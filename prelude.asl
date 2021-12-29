@@ -5,7 +5,6 @@
 // SPDX-Licence-Identifier: BSD-3-Clause
 ////////////////////////////////////////////////////////////////
 
-__builtin type integer;
 __builtin type real;
 __builtin type string;
 __builtin type __mask; // todo: should have a type parameter
@@ -17,76 +16,78 @@ type bit = bits(1);
 enumeration boolean { FALSE, TRUE };
 enumeration signal { LOW, HIGH };
 
-__builtin boolean   eq_bool(boolean x, boolean y);
-__builtin boolean   ne_bool(boolean x, boolean y);
-__builtin boolean   not_bool(boolean x);
-__builtin boolean   and_bool(boolean x, boolean y);
-__builtin boolean   or_bool(boolean x, boolean y);
-__builtin boolean   equiv_bool(boolean x, boolean y);
-__builtin boolean   implies_bool(boolean x, boolean y);
+__builtin func eq_bool(x :: boolean, y :: boolean) => boolean;
+__builtin func ne_bool(x :: boolean, y :: boolean) => boolean;
+__builtin func not_bool(x :: boolean) => boolean;
+__builtin func and_bool(x :: boolean, y :: boolean) => boolean;
+__builtin func or_bool(x :: boolean, y :: boolean) => boolean;
+__builtin func equiv_bool(x :: boolean, y :: boolean) => boolean;
+__builtin func implies_bool(x :: boolean, y :: boolean) => boolean;
 
-__builtin boolean   eq_int(integer x, integer y);
-__builtin boolean   ne_int(integer x, integer y);
-__builtin boolean   gt_int(integer x, integer y);
-__builtin boolean   ge_int(integer x, integer y);
-__builtin boolean   le_int(integer x, integer y);
-__builtin boolean   lt_int(integer x, integer y);
-__builtin boolean   is_pow2_int(integer x);
-__builtin integer   add_int(integer x, integer y);
-__builtin integer   neg_int(integer x);
-__builtin integer   sub_int(integer x, integer y);
-__builtin integer   shl_int(integer x, integer y);
-__builtin integer   shr_int(integer x, integer y);
-__builtin integer   mul_int(integer x, integer y);
-__builtin integer   zdiv_int(integer x, integer y);
-__builtin integer   zrem_int(integer x, integer y);
-__builtin integer   fdiv_int(integer x, integer y);
-__builtin integer   frem_int(integer x, integer y);
-__builtin integer   mod_pow2_int(integer x, integer y);
-__builtin integer   align_int(integer x, integer y);
-__builtin integer   pow2_int(integer y);
+__builtin func eq_int(x :: integer, y :: integer) => boolean;
+__builtin func ne_int(x :: integer, y :: integer) => boolean;
+__builtin func gt_int(x :: integer, y :: integer) => boolean;
+__builtin func ge_int(x :: integer, y :: integer) => boolean;
+__builtin func le_int(x :: integer, y :: integer) => boolean;
+__builtin func lt_int(x :: integer, y :: integer) => boolean;
+__builtin func is_pow2_int(x :: integer) => boolean;
+__builtin func add_int(x :: integer, y :: integer) => integer;
+__builtin func neg_int(x :: integer) => integer;
+__builtin func sub_int(x :: integer, y :: integer) => integer;
+__builtin func shl_int(x :: integer, y :: integer) => integer;
+__builtin func shr_int(x :: integer, y :: integer) => integer;
+__builtin func mul_int(x :: integer, y :: integer) => integer;
+__builtin func zdiv_int(x :: integer, y :: integer) => integer;
+__builtin func zrem_int(x :: integer, y :: integer) => integer;
+__builtin func fdiv_int(x :: integer, y :: integer) => integer;
+__builtin func frem_int(x :: integer, y :: integer) => integer;
+__builtin func mod_pow2_int(x :: integer, y :: integer) => integer;
+__builtin func align_int(x :: integer, y :: integer) => integer;
+__builtin func pow2_int(y :: integer) => integer;
 
-__builtin real      cvt_int_real(integer x);
-__builtin boolean   eq_real(real x, real y);
-__builtin boolean   ne_real(real x, real y);
-__builtin boolean   le_real(real x, real y);
-__builtin boolean   lt_real(real x, real y);
-__builtin boolean   gt_real(real x, real y);
-__builtin boolean   ge_real(real x, real y);
-__builtin real      add_real(real x,    real y);
-__builtin real      neg_real(real x);
-__builtin real      sub_real(real x, real y);
-__builtin real      mul_real(real x, real y);
-__builtin real      divide_real(real x, real y);
-__builtin real      pow2_real(integer y);
-__builtin integer   round_tozero_real(real x);
-__builtin integer   round_down_real(real x);
-__builtin integer   round_up_real(real x);
-__builtin real      sqrt_real(real x);
+__builtin func cvt_int_real(x :: integer) => real;
+__builtin func eq_real(x :: real, y :: real) => boolean;
+__builtin func ne_real(x :: real, y :: real) => boolean;
+__builtin func le_real(x :: real, y :: real) => boolean;
+__builtin func lt_real(x :: real, y :: real) => boolean;
+__builtin func gt_real(x :: real, y :: real) => boolean;
+__builtin func ge_real(x :: real, y :: real) => boolean;
+__builtin func add_real(x :: real,    y :: real) => real;
+__builtin func neg_real(x :: real) => real;
+__builtin func sub_real(x :: real, y :: real) => real;
+__builtin func mul_real(x :: real, y :: real) => real;
+__builtin func divide_real(x :: real, y :: real) => real;
+__builtin func pow2_real(y :: integer) => real;
+__builtin func round_tozero_real(x :: real) => integer;
+__builtin func round_down_real(x :: real) => integer;
+__builtin func round_up_real(x :: real) => integer;
+__builtin func sqrt_real(x :: real) => real;
 
-__builtin bits(N)   cvt_int_bits(integer x, integer N);
-__builtin integer   cvt_bits_sint(bits(N) x);
-__builtin integer   cvt_bits_uint(bits(N) x);
-__builtin boolean   in_mask(bits(N) x, __mask(N) y);
-__builtin boolean   notin_mask(bits(N) x, __mask(N) y);
-__builtin boolean   eq_bits(bits(N) x, bits(N) y);
-__builtin boolean   ne_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   add_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   sub_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   mul_bits(bits(N) x, bits(N) y);
-__builtin integer   frem_bits_int(bits(N) x, integer y);
-__builtin bits(N)   and_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   or_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   eor_bits(bits(N) x, bits(N) y);
-__builtin bits(N)   not_bits(bits(N) x);
-__builtin bits(N)   zeros_bits();
-__builtin bits(N)   ones_bits();
+__builtin func cvt_int_bits(x :: integer, N :: integer) => bits(N);
+__builtin func cvt_bits_sint{N}(x :: bits(N)) => integer;
+__builtin func cvt_bits_uint{N}(x :: bits(N)) => integer;
+__builtin func in_mask{N}(x :: bits(N), y :: __mask(N)) => boolean;
+__builtin func notin_mask{N}(x :: bits(N), y :: __mask(N)) => boolean;
+__builtin func eq_bits{N}(x :: bits(N), y :: bits(N)) => boolean;
+__builtin func ne_bits{N}(x :: bits(N), y :: bits(N)) => boolean;
+__builtin func add_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func sub_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func mul_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func frem_bits_int{N}(x :: bits(N), y :: integer) => integer;
+__builtin func and_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func or_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func eor_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
+__builtin func not_bits{N}(x :: bits(N)) => bits(N);
+__builtin func zeros_bits{N}() => bits(N);
+__builtin func ones_bits{N}() => bits(N);
 
-bits(N) add_bits_int(bits(N) x, integer y)
+func add_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
     return add_bits(x, cvt_int_bits(y, N));
+end
 
-bits(N) sub_bits_int(bits(N) x, integer y)
+func sub_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
     return sub_bits(x, cvt_int_bits(y, N));
+end
 
 __operator2 + = add_int, add_real, add_bits, add_bits_int;
 __operator2 - = sub_int, sub_real, sub_bits, sub_bits_int;
@@ -94,86 +95,96 @@ __operator1 - = neg_int, neg_real;
 __operator2 * = mul_int, mul_real, mul_bits;
 __operator2 / = divide_real;
 
-__builtin bits(M*N) replicate_bits(bits(M) x, integer N);
-__builtin bits(M+N) append_bits(bits(M) x, bits(N) y);
+__builtin func replicate_bits{M}(x :: bits(M), N :: integer) => bits(M*N);
+__builtin func append_bits{M, N}(x :: bits(M), y :: bits(N)) => bits(M+N);
 
-__builtin boolean   is_cunpred_exc(__Exception ex);
-__builtin boolean   is_exctaken_exc(__Exception ex);
-__builtin boolean   is_impdef_exc(__Exception ex);
-__builtin boolean   is_see_exc(__Exception ex);
-__builtin boolean   is_undefined_exc(__Exception ex);
-__builtin boolean   is_unpred_exc(__Exception ex);
+__builtin func is_cunpred_exc(ex :: __Exception) => boolean;
+__builtin func is_exctaken_exc(ex :: __Exception) => boolean;
+__builtin func is_impdef_exc(ex :: __Exception) => boolean;
+__builtin func is_see_exc(ex :: __Exception) => boolean;
+__builtin func is_undefined_exc(ex :: __Exception) => boolean;
+__builtin func is_unpred_exc(ex :: __Exception) => boolean;
 
-__builtin string    cvt_int_hexstr(integer x);
-__builtin string    cvt_int_decstr(integer x);
-__builtin string    cvt_bool_str(boolean x);
-__builtin string    cvt_bits_str(integer N, bits(N) x);
-__builtin string    cvt_real_str(real x);
-__builtin string    append_str_str(string x, string y);
-__builtin boolean   eq_str(string x, string y);
-__builtin boolean   ne_str(string x, string y);
-__builtin ()        print_str(string x);
-__builtin ()        print_char(integer x);
+__builtin func cvt_int_hexstr(x :: integer) => string;
+__builtin func cvt_int_decstr(x :: integer) => string;
+__builtin func cvt_bool_str(x :: boolean) => string;
+__builtin func cvt_bits_str(N :: integer, x :: bits(N)) => string;
+__builtin func cvt_real_str(x :: real) => string;
+__builtin func append_str_str(x :: string, y :: string) => string;
+__builtin func eq_str(x :: string, y :: string) => boolean;
+__builtin func ne_str(x :: string, y :: string) => boolean;
+__builtin func print_str(x :: string) => ();
+__builtin func print_char(x :: integer) => ();
 
-__builtin ()        asl_pragma(string x);
+__builtin func asl_pragma(x :: string) => ();
 
-__builtin integer   asl_file_open(string name, string mode);
-__builtin integer   asl_file_write(integer fd, string data);
-__builtin integer   asl_file_getc(integer fd);
+__builtin func asl_file_open(name :: string, mode :: string) => integer;
+__builtin func asl_file_write(fd :: integer, data :: string) => integer;
+__builtin func asl_file_getc(fd :: integer) => integer;
 
-__builtin ()        ram_init(integer A, integer N, __RAM(A) ram, bits(8*N) val);
-__builtin bits(8*N) ram_read(integer A, integer N, __RAM(A) ram, bits(A) address);
-__builtin ()        ram_write(integer A, integer N, __RAM(A) ram, bits(A) address, bits(8*N) val);
+__builtin func ram_init(A :: integer, N :: integer, ram :: __RAM(A), val :: bits(8*N)) => ();
+__builtin func ram_read(A :: integer, N :: integer, ram :: __RAM(A), address :: bits(A)) => bits(8*N);
+__builtin func ram_write(A :: integer, N :: integer, ram :: __RAM(A), address :: bits(A), val :: bits(8*N)) => ();
 
-__InitRAM(integer A, integer N, __RAM(A) ram, bits(8*N) val)
+func __InitRAM(A :: integer, N :: integer, ram :: __RAM(A), val :: bits(8*N))
     ram_init(A, N, ram, val);
+end
 
-bits(8*N) __ReadRAM(integer A, integer N, __RAM(A) ram, bits(A) address)
+func __ReadRAM(A :: integer, N :: integer, ram :: __RAM(A), address :: bits(A)) => bits(8*N)
     return ram_read(A, N, ram, address);
+end
 
-__WriteRAM(integer A, integer N, __RAM(A) ram, bits(A) address, bits(8*N) val)
+func __WriteRAM(A :: integer, N :: integer, ram :: __RAM(A), address :: bits(A), val :: bits(8*N))
     ram_write(A, N, ram, address, val);
+end
 
-__builtin ()        trace_memory_write(integer N, bits(A) address, bits(8*N) val);
-__builtin ()        trace_memory_read(integer N, bits(A) address, bits(8*N) val);
-__builtin ()        trace_event(string event);
+__builtin func trace_memory_write{A}(N :: integer, address :: bits(A), val :: bits(8*N)) => ();
+__builtin func trace_memory_read{A}(N :: integer, address :: bits(A), val :: bits(8*N)) => ();
+__builtin func trace_event(event :: string) => ();
 
-__tarmacEvent(string event)
+func __tarmacEvent(event :: string)
     trace_event(event);
+end
 
-__builtin ()        sleep_request();
-__builtin ()        wakeup_request();
-__builtin ()        program_end();
+__builtin func sleep_request() => ();
+__builtin func wakeup_request() => ();
+__builtin func program_end() => ();
 
-__builtin ()        decodeInstr_A64(bits(32) instr);
-__builtin ()        decodeInstr_A32(bits(32) instr);
-__builtin ()        decodeInstr_T32(bits(32) instr);
-__builtin ()        decodeInstr_T16(bits(16) instr);
+__builtin func decodeInstr_A64(instr :: bits(32)) => ();
+__builtin func decodeInstr_A32(instr :: bits(32)) => ();
+__builtin func decodeInstr_T32(instr :: bits(32)) => ();
+__builtin func decodeInstr_T16(instr :: bits(16)) => ();
 
-print(bits(N) x)
+func print{N}(x :: bits(N))
     print_str(cvt_bits_str(N, x));
+end
 
-print(string x)
+func print(x :: string)
     print_str(x);
+end
 
-println()
+func println()
     print_char(10);
+end
 
-println(string x)
+func println(x :: string)
     print_str(x);
     print_char(10);
+end
 
-putchar(integer c)
+func putchar(c :: integer)
     print_char(c);
+end
 
-__abort()
+func __abort()
     program_end();
+end
 
 __operator1 !       = not_bool;
 __operator2 &&      = and_bool;
 __operator2 ||      = or_bool;
-__operator2 IFF     = equiv_bool;
-__operator2 IMPLIES = implies_bool;
+__operator2 iff     = equiv_bool;
+__operator2 implies = implies_bool;
 
 // omit since they are auto-generated
 // __operator2 == = eq_bool;
@@ -186,37 +197,45 @@ __operator2 >= = ge_int, ge_real;
 __operator2 <  = lt_int, lt_real;
 __operator2 >  = gt_int, gt_real;
 
-integer shift_left_int(integer x, integer y)
+func shift_left_int(x :: integer, y :: integer) => integer
     return if y >= 0 then shl_int(x, y) else shr_int(x, -y);
+end
 
-integer shift_right_int(integer x, integer y)
+func shift_right_int(x :: integer, y :: integer) => integer
     return if y >= 0 then shr_int(x, y) else shl_int(x, -y);
+end
 
 __operator2 << = shift_left_int;
 __operator2 >> = shift_right_int;
 
-integer pow_int_int(integer x, integer y)
+func pow_int_int(x :: integer, y :: integer) => integer
     if x == 2 then
         return pow2_int(y); // optimized case
     else
         assert y >= 0;
-        integer result = 1;
-        for i = 1 to y
+        var result :: integer = 1;
+        for i = 1 to y do
             result = result * x;
+        end
         return result;
+    end
+end
 
-real pow_real_int(real x, integer y)
+func pow_real_int(x :: real, y :: integer) => real
     assert x == 2.0;
     return pow2_real(y);
+end
 
 __operator2 ^ = pow_int_int, pow_real_int;
 
-real Real(integer x)
+func Real(x :: integer) => real
     return cvt_int_real(x);
+end
 
-integer frem_bits_int(bits(N) x, integer y)
+func frem_bits_int{N}(x :: bits(N), y :: integer) => integer
     assert y > 0;
     return frem_int(cvt_bits_uint(x), y);
+end
 
 // Division: round to zero
 __operator2 QUOT = zdiv_int;
@@ -231,35 +250,45 @@ __operator2 OR   = or_bits;
 __operator2 EOR  = eor_bits;
 __operator1 NOT  = not_bits;
 
-string HexStr(integer x)
+func HexStr(x :: integer) => string
     return cvt_int_hexstr(x);
+end
 
-string DecStr(integer x)
+func DecStr(x :: integer) => string
     return cvt_int_decstr(x);
+end
 
-string append_str_bool(string x, boolean y)
+func append_str_bool(x :: string, y :: boolean) => string
     return append_str_str(x, cvt_bool_str(y));
+end
 
-string append_bool_str(boolean x, string  y)
+func append_bool_str(x :: boolean, y :: string) => string
     return append_str_str(cvt_bool_str(x), y);
+end
 
-string append_str_bits(string  x, bits(N) y)
+func append_str_bits{N}(x :: string, y :: bits(N)) => string
     return append_str_str(x, cvt_bits_str(N, y));
+end
 
-string append_bits_str(bits(N) x, string  y)
+func append_bits_str{N}(x :: bits(N), y :: string) => string
     return append_str_str(cvt_bits_str(N, x), y);
+end
 
-string append_str_real(string  x, real y)
+func append_str_real(x :: string, y :: real) => string
     return append_str_str(x, cvt_real_str(y));
+end
 
-string append_real_str(real x, string  y)
+func append_real_str(x :: real, y :: string) => string
     return append_str_str(cvt_real_str(x), y);
+end
 
-string append_str_int(string  x, integer y)
+func append_str_int(x :: string, y :: integer) => string
     return append_str_str(x, DecStr(y));
+end
 
-string append_int_str(integer x, string  y)
+func append_int_str(x :: integer, y :: string) => string
     return append_str_str(DecStr(x), y);
+end
 
 __operator2 ++ = append_str_str;
 __operator2 ++ = append_str_bool, append_bool_str;
@@ -267,92 +296,117 @@ __operator2 ++ = append_str_real, append_real_str;
 __operator2 ++ = append_str_bits, append_bits_str;
 __operator2 ++ = append_str_int,  append_int_str;
 
-__operator2 : = append_bits;
-
-bits(M*N) Replicate(bits(M) x, integer N)
+func Replicate{M}(x :: bits(M), N :: integer) => bits(M*N)
     return replicate_bits(x, N);
+end
 
-bits(N) Replicate(bits(M) x)
+func Replicate{M, N}(x :: bits(M)) => bits(N)
     assert N MOD M == 0;
     return replicate_bits(x, N DIV M);
+end
 
-bits(N) Zeros(integer N)
+func Zeros(N :: integer) => bits(N)
     return zeros_bits();
+end
 
-bits(N) Ones(integer N)
+func Ones(N :: integer) => bits(N)
     return ones_bits();
+end
 
-bits(N) Zeros()
+func Zeros{N}() => bits(N)
     return zeros_bits();
+end
 
-bits(N) Ones()
+func Ones{N}() => bits(N)
     return ones_bits();
+end
 
-boolean IsOnes(bits(N) x)
+func IsOnes{N}(x :: bits(N)) => boolean
     return x == Ones();
+end
 
-boolean IsZero(bits(N) x)
+func IsZero{N}(x :: bits(N)) => boolean
     return x == Zeros();
+end
 
-bits(N) SignExtend(bits(M) x, integer N)
+func SignExtend{M}(x :: bits(M), N :: integer) => bits(N)
     assert N >= M;
-    return Replicate(x[M-1], N-M) : x;
+    let sign :: bit = x[M-1];
+    return [Replicate(sign, N-M), x];
+end
 
-bits(N) ZeroExtend(bits(M) x, integer N)
+func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
     assert N >= M;
-    return Zeros(N-M) : x;
+    return [Zeros(N-M), x];
+end
 
 // The existence of SignExtend and ZeroExtend makes the
 // typesystem considerably more complex because we cannot
 // determine the value of 'N' just from the types of the
 // arguments.
-bits(N) SignExtend(bits(M) x)
+func SignExtend{M, N}(x :: bits(M)) => bits(N)
     return SignExtend(x, N);
+end
 
-bits(N) ZeroExtend(bits(M) x)
+func ZeroExtend{M, N}(x :: bits(M)) => bits(N)
     return ZeroExtend(x, N);
+end
 
-real Sqrt(real x)
+func Sqrt(x :: real) => real
     return sqrt_real(x);
+end
 
-integer RoundTowardsZero(real x)
+func RoundTowardsZero(x :: real) => integer
     return round_tozero_real(x);
+end
 
-integer RoundDown(real x)
+func RoundDown(x :: real) => integer
     return round_down_real(x);
+end
 
-integer RoundUp(real x)
+func RoundUp(x :: real) => integer
     return round_up_real(x);
+end
 
-boolean IsUNDEFINED(__Exception x)
+func IsUNDEFINED(x :: __Exception) => boolean
     return is_undefined_exc(x);
+end
 
-boolean IsUNPREDICTABLE(__Exception x)
+func IsUNPREDICTABLE(x :: __Exception) => boolean
     return is_unpred_exc(x);
+end
 
-boolean IsSEE(__Exception x)
+func IsSEE(x :: __Exception) => boolean
     return is_see_exc(x);
+end
 
-boolean IsExceptionTaken(__Exception x)
+func IsExceptionTaken(x :: __Exception) => boolean
     return is_exctaken_exc(x);
+end
 
-integer UInt(integer N, bits(N) x)
+func UInt(N :: integer, x :: bits(N)) => integer
     return cvt_bits_uint(x);
+end
 
-integer UInt(bits(N) x)
+func UInt(x :: bits(N)) => integer
     return cvt_bits_uint(x);
+end
 
-integer SInt(integer N, bits(N) x)
+func SInt(N :: integer, x :: bits(N)) => integer
     return cvt_bits_sint(x);
+end
 
-integer SInt(bits(N) x)
+func SInt{N}(x :: bits(N)) => integer
     return cvt_bits_sint(x);
+end
 
-bits(N) Align(bits(N) x, integer y)
+func Align{N}(x :: bits(N), y :: integer) => bits(N)
     return align_int(cvt_bits_uint(x), y)[N-1:0];
+end
 
-integer Align(integer x, integer y)
+func Align(x :: integer, y :: integer) => integer
     return align_int(x, y);
+end
 
 
 ////////////////////////////////////////////////////////////////

@@ -169,6 +169,7 @@ let prim_not_bits (x: bitvector): bitvector = mkBits x.n (Z.lognot x.v)
 let prim_zeros_bits (x: bigint): bitvector = mkBits (Z.to_int x) Z.zero
 let prim_ones_bits  (x: bigint): bitvector = mkBits (Z.to_int x) Z.minus_one
 let prim_append_bits (x: bitvector) (y: bitvector): bitvector = mkBits (x.n+y.n) (Z.logor (Z.shift_left x.v y.n) y.v)
+let prim_concat_bits (xs: bitvector list): bitvector = List.fold_right prim_append_bits xs empty_bits
 
 let prim_replicate_bits (x: bitvector) (y: bigint): bitvector =
     (* Tail recursive helper to calculate "x : ... : x : r" with c copies of x *)

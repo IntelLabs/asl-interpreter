@@ -101,8 +101,8 @@ module Env : sig
     val isEnumEq            : t -> ident -> bool
     val isEnumNeq           : t -> ident -> bool
 
-    val addRecord           : t -> ident -> (AST.ty * ident) list -> unit
-    val getRecord           : t -> ident -> (AST.ty * ident) list option
+    val addRecord           : t -> ident -> (ident * AST.ty) list -> unit
+    val getRecord           : t -> ident -> (ident * AST.ty) list option
 
     val addTypedef          : t -> ident -> AST.ty -> unit
     val getTypedef          : t -> ident -> AST.ty option
@@ -131,7 +131,7 @@ end = struct
         mutable enums        : (value list) Bindings.t;
         mutable enumEqs      : IdentSet.t;
         mutable enumNeqs     : IdentSet.t;
-        mutable records      : ((AST.ty * ident) list) Bindings.t;
+        mutable records      : ((ident * AST.ty) list) Bindings.t;
         mutable typedefs     : AST.ty Bindings.t;
         mutable globals      : scope;
         mutable constants    : scope;
@@ -217,10 +217,10 @@ end = struct
     let isEnumEq  (env: t) (x: ident): bool = IdentSet.mem x env.enumEqs
     let isEnumNeq (env: t) (x: ident): bool = IdentSet.mem x env.enumNeqs
 
-    let addRecord (env: t) (x: ident) (fs: (AST.ty * ident) list): unit =
+    let addRecord (env: t) (x: ident) (fs: (ident * AST.ty) list): unit =
         env.records <- Bindings.add x fs env.records
 
-    let getRecord (env: t) (x: ident): ((AST.ty * ident) list) option =
+    let getRecord (env: t) (x: ident): ((ident * AST.ty) list) option =
         Bindings.find_opt x env.records
 
     let addTypedef (env: t) (x: ident) (ty: AST.ty): unit =
@@ -349,7 +349,7 @@ and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
     | Type_Constructor(tc) ->
         (match Env.getRecord env tc with
         | Some fs ->
-            mkrecord (List.map (fun (ty, f) -> (f, mk_uninitialized loc env ty)) fs)
+            mkrecord (List.map (fun (f, ty) -> (f, mk_uninitialized loc env ty)) fs)
         | None ->
             (match Env.getTypedef env tc with
             | Some ty' -> mk_uninitialized loc env ty'
@@ -362,6 +362,7 @@ and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
             Value.empty_array (mk_uninitialized loc env ety)
     | Type_Tuple(tys) ->
             VTuple (List.map (mk_uninitialized loc env) tys)
+    | Type_Integer _ -> eval_unknown_integer ()
     (* bitvectors and registers should really track whether a bit is initialized individually *)
     | Type_Bits(n) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
@@ -372,7 +373,6 @@ and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
 (** Evaluate UNKNOWN at given type *)
 and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
     ( match x with
-    | Type_Constructor(Ident "integer") -> eval_unknown_integer ()
     | Type_Constructor(Ident "real")    -> eval_unknown_real ()
     | Type_Constructor(Ident "string")  -> eval_unknown_string ()
     | Type_Constructor(tc) ->
@@ -382,7 +382,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
         | None ->
             (match Env.getRecord env tc with
             | Some fs ->
-                mkrecord (List.map (fun (ty, f) -> (f, eval_unknown loc env ty)) fs)
+                mkrecord (List.map (fun (f, ty) -> (f, eval_unknown loc env ty)) fs)
             | None ->
                 (match Env.getTypedef env tc with
                 | Some ty' -> eval_unknown loc env ty'
@@ -391,6 +391,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
                 )
             )
         )
+    | Type_Integer _ -> eval_unknown_integer ()
     | Type_Bits(n) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | Type_App(Ident "__RAM", [a]) ->
             let a' = to_integer loc (eval_expr loc env a) in
@@ -530,6 +531,9 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
     | Expr_Tuple(es) ->
             let vs = List.map (eval_expr loc env) es in
             VTuple vs
+    | Expr_Concat(es) ->
+            let vs = List.map (eval_expr loc env) es in
+            eval_concat loc vs
     | Expr_Unop(op, e) ->
             raise (EvalError (loc, "unary operation should have been removed"))
     | Expr_Unknown(t) ->
@@ -639,12 +643,12 @@ and eval_stmts (env: Env.t) (xs: AST.stmt list): unit =
 (** Evaluate statement *)
 and eval_stmt (env: Env.t) (x: AST.stmt): unit =
     (match x with
-    | Stmt_VarDeclsNoInit(ty, vs, loc) ->
+    | Stmt_VarDeclsNoInit(vs, ty, loc) ->
             List.iter (fun v -> Env.addLocalVar loc env v (mk_uninitialized loc env ty)) vs
-    | Stmt_VarDecl(ty, v, i, loc) ->
+    | Stmt_VarDecl(v, ty, i, loc) ->
             let i' = eval_expr loc env i in
             Env.addLocalVar loc env v i'
-    | Stmt_ConstDecl(ty, v, i, loc) ->
+    | Stmt_ConstDecl(v, ty, i, loc) ->
             let i' = eval_expr loc env i in
             Env.addLocalConst loc env v i'
     | Stmt_Assign(l, r, loc) ->
@@ -688,6 +692,8 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
             let dec = Env.getDecoder env i in
             let op  = eval_expr loc env e in
             eval_decode_case loc env dec op
+    | Stmt_Block(b, loc) ->
+            eval_stmts env b
     | Stmt_If(c, t, els, e, loc) ->
             let rec eval css d =
                 (match css with
@@ -940,41 +946,41 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
                 Env.addEnum env qid (List.map (fun (e, v) -> v) evs)
         | Decl_Typedef (v, ty, loc) ->
                 Env.addTypedef env v ty
-        | Decl_Var(ty, v, loc) ->
+        | Decl_Var(v, ty, loc) ->
                 let init = eval_uninitialized loc env ty in
                 Env.addGlobalVar env v init
-        | Decl_Const(ty, v, i, loc) ->
+        | Decl_Const(v, ty, i, loc) ->
                 (* todo: constants need to be lazily evaluated or need to be
                  * sorted by dependencies
                  *)
                 let init = eval_expr loc env i in
                 Env.addGlobalConst env v init
-        | Decl_FunDefn(rty, f, atys, body, loc) ->
-                let tvs  = Asl_utils.to_sorted_list (TC.fv_funtype (f, false, [], [], atys, rty) |> removeGlobalConsts env) in
-                let args = List.map snd atys in
+        | Decl_FunDefn(f, ps, atys, rty, body, loc) ->
+                let tvs  = List.map fst ps in
+                let args = List.map fst atys in
                 Env.addFun loc env f (tvs, args, loc, body)
-        | Decl_ProcDefn(f, atys, body, loc) ->
-                let tvs  = Asl_utils.to_sorted_list (Asl_utils.fv_args atys |> removeGlobalConsts env) in
-                let args = List.map snd atys in
+        | Decl_ProcDefn(f, ps, atys, body, loc) ->
+                let tvs  = List.map fst ps in
+                let args = List.map fst atys in
                 Env.addFun loc env f (tvs, args, loc, body)
-        | Decl_VarGetterDefn(ty, f, body, loc) ->
-                let tvs  = Asl_utils.to_sorted_list (Asl_utils.fv_type ty |> removeGlobalConsts env) in
+        | Decl_VarGetterDefn(f, ps, ty, body, loc) ->
+                let tvs  = List.map fst ps in
                 let args = [] in
                 Env.addFun loc env f (tvs, args, loc, body)
-        | Decl_ArrayGetterDefn(rty, f, atys, body, loc) ->
-                let tvs = Asl_utils.to_sorted_list (TC.fv_funtype (f, true, [], [], atys, rty) |> removeGlobalConsts env) in
-                let args = List.map snd atys in
+        | Decl_ArrayGetterDefn(f, ps, atys, rty, body, loc) ->
+                let tvs  = List.map fst ps in
+                let args = List.map fst atys in
                 Env.addFun loc env f (tvs, args, loc, body)
-        | Decl_VarSetterDefn(f, ty, v, body, loc) ->
-                let tvs  = Asl_utils.to_sorted_list (Asl_utils.fv_type ty |> removeGlobalConsts env) in
+        | Decl_VarSetterDefn(f, ps, v, ty, body, loc) ->
+                let tvs  = List.map fst ps in
                 let args = [v] in
                 Env.addFun loc env f (tvs, args, loc, body)
-        | Decl_ArraySetterDefn(f, atys, ty, v, body, loc) ->
-                let tvs = Asl_utils.to_sorted_list (Asl_utils.IdentSet.union (Asl_utils.fv_sformals atys) (Asl_utils.fv_type ty) |> removeGlobalConsts env) in
+        | Decl_ArraySetterDefn(f, ps, atys, v, ty, body, loc) ->
+                let tvs  = List.map fst ps in
                 let name_of (x: AST.sformal): ident =
                     (match x with
-                    | Formal_In (_, nm) -> nm
-                    | Formal_InOut (_, nm) -> nm
+                    | Formal_In (nm, _) -> nm
+                    | Formal_InOut (nm, _) -> nm
                     )
                 in
                 let args = List.map name_of atys in
@@ -987,19 +993,19 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
                 ) encs
         | Decl_DecoderDefn(nm, case, loc) ->
                 Env.addDecoder env nm case
-        | Decl_NewMapDefn(rty, f, atys, body, loc) ->
-                let tvs  = Asl_utils.to_sorted_list (TC.fv_funtype (f, false, [], [], atys, rty) |> removeGlobalConsts env) in
-                let args = List.map snd atys in
+        | Decl_NewMapDefn(f, ps, atys, rty, body, loc) ->
+                let tvs  = List.map fst ps in
+                let args = List.map fst atys in
                 Env.addFun loc env f (tvs, args, loc, body)
         (*
-        | Decl_MapClause(f, atys, cond, body, loc) ->
-                let tvs   = Asl_utils.to_sorted_list (Asl_utils.fv_args atys) in
-                let args' = List.map snd args in
+        | Decl_MapClause(f, ps, atys, cond, body, loc) ->
+                let tvs   = List.map fst ps in
+                let args' = List.map fst args in
                 Env.addFun loc env f (tvs, args', loc, body)
         *)
-        | Decl_NewEventDefn (f, atys, loc) ->
-                let tvs   = Asl_utils.to_sorted_list (Asl_utils.fv_args atys |> removeGlobalConsts env) in
-                let args = List.map snd atys in
+        | Decl_NewEventDefn (f, ps, atys, loc) ->
+                let tvs  = List.map fst ps in
+                let args = List.map fst atys in
                 Env.addFun loc env f (tvs, args, loc, [])
         | Decl_EventClause (f, body, loc) ->
                 let (tvs, args, _, body0) = Env.getFun loc env f in
@@ -1007,7 +1013,7 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
         (* todo: when creating initial environment, should pass in a set of configuration
          * options that will override any default values given in definition
          *)
-        | Decl_Config(ty, v, i, loc) ->
+        | Decl_Config(v, ty, i, loc) ->
                 (* todo: config constants need to be lazily evaluated or need to be
                  * sorted by dependencies
                  *)
@@ -1016,10 +1022,10 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
 
         (* The following declarations have no impact on execution *)
         | Decl_BuiltinType (_, _)           | Decl_Forward (_, _)
-        | Decl_BuiltinFunction (_, _, _, _)
-        | Decl_FunType (_, _, _, _)         | Decl_ProcType (_, _, _)
-        | Decl_VarGetterType (_, _, _)      | Decl_ArrayGetterType (_, _, _, _)
-        | Decl_VarSetterType (_, _, _, _)   | Decl_ArraySetterType (_, _, _, _, _)
+        | Decl_BuiltinFunction (_, _, _, _, _)
+        | Decl_FunType (_, _, _, _, _)         | Decl_ProcType (_, _, _, _)
+        | Decl_VarGetterType (_, _, _, _)      | Decl_ArrayGetterType (_, _, _, _, _)
+        | Decl_VarSetterType (_, _, _, _, _)   | Decl_ArraySetterType (_, _, _, _, _, _)
         | Decl_Operator1 (_, _, _)
         | Decl_Operator2 (_, _, _)
         | Decl_MapClause (_, _, _, _, _)

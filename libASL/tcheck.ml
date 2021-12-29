@@ -42,7 +42,7 @@ exception InternalError of (string) (* internal invariants have been broken *)
  * that we need type_unit
  *)
 let type_unit    = Type_Tuple([])
-let type_integer = Type_Constructor(Ident "integer")
+let type_integer = Type_Integer None
 let type_bool    = Type_Constructor(Ident "boolean")
 let type_real    = Type_Constructor(Ident "real")
 let type_string  = Type_Constructor(Ident "string")
@@ -124,7 +124,7 @@ let ppp_type (x: AST.ty): string =
 type typedef
     = Type_Builtin of ident
     | Type_Forward
-    | Type_Record of (ty * ident) list
+    | Type_Record of (ident * ty) list
     | Type_Enumeration of ident list
     | Type_Abbreviation of ty
 
@@ -132,24 +132,19 @@ let pp_typedef (x: typedef): string =
     (match x with
     | Type_Builtin t -> "builtin " ^ pprint_ident t
     | Type_Forward   -> "forward"
-    | Type_Record fs -> "record { " ^ String.concat "; " (List.map (fun (ty, f) -> pp_type ty ^" "^ pprint_ident f) fs) ^ "}"
+    | Type_Record fs -> "record { " ^ String.concat "; " (List.map (fun (f, ty) -> pprint_ident f ^ " :: " ^ pp_type ty) fs) ^ "}"
     | Type_Enumeration es -> "enumeration {" ^ String.concat ", " (List.map pprint_ident es) ^ "}"
     | Type_Abbreviation ty -> pp_type ty
     )
 
-type funtype = (AST.ident * bool * AST.ident list * AST.expr list * (AST.ty * AST.ident) list * AST.ty)
+type funtype = (AST.ident * bool * (AST.ident * AST.ty option) list * AST.expr list * (AST.ident * AST.ty) list * AST.ty)
 
 let ft_id ((f, _, _, _, _, _): funtype): AST.ident = f
 
-let pp_funtype ((f, isArr, tvs, cs, atys, rty): funtype): document =
+let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): document =
     PP.pp_ident f
     ^^ string " :: " ^^
-    (if tvs = [] then
-        string ""
-    else
-        (string "∀ " ^^ (PC.separate (string ", ") (List.map PP.pp_ident tvs))
-        ^^ string " . ")
-    )
+    PP.pp_parameter_list ps
     ^^
     (if cs = [] then
         string ""
@@ -163,31 +158,17 @@ let pp_funtype ((f, isArr, tvs, cs, atys, rty): funtype): document =
     ^^ string " -> "
     ^^ PP.pp_ty rty
 
-let fv_funtype ((_, _, tvs, _, atys, rty): funtype): IdentSet.t =
-    (* todo: should final tvs list we generate exclude any variable names mentioned in atys?
-     * This would let us think of the tvs as being implicit parameters that are
-     * added by the type inference process and would mean that there would be no
-     * possible way that the value parameter "N" and a type parameter "N" could
-     * be different from each other.
-     * This would be different from archex and would break down a bit the distinction
-     * between type variables and value variables.
-     *)
-    IdentSet.union (IdentSet.of_list tvs) (IdentSet.union (fv_args atys) (fv_type rty))
+
 
 (* type of setter function *)
-type sfuntype = (AST.ident * AST.ident list * AST.expr list * AST.sformal list * AST.ty)
+type sfuntype = (AST.ident * (AST.ident * AST.ty option) list * AST.expr list * AST.sformal list * AST.ty)
 
 let sft_id ((f, _, _, _, _): sfuntype): AST.ident = f
 
-let pp_sfuntype ((f, tvs, cs, atys, vty): sfuntype): document =
+let pp_sfuntype ((f, ps, cs, atys, vty): sfuntype): document =
     PP.pp_ident f
     ^^ string " :: " ^^
-    (if tvs = [] then
-        string ""
-    else
-        (string "∀ " ^^ (PC.separate (string ", ") (List.map PP.pp_ident tvs))
-        ^^ string " . ")
-    )
+    PP.pp_parameter_list ps
     ^^
     (if cs = [] then
         string ""
@@ -202,20 +183,20 @@ let pp_sfuntype ((f, tvs, cs, atys, vty): sfuntype): document =
 
 let sformal_var (x: sformal): AST.ident =
     ( match x with
-    | Formal_In    (_, v) -> v
-    | Formal_InOut (_, v) -> v
+    | Formal_In    (v, _) -> v
+    | Formal_InOut (v, _) -> v
     )
 
 let sformal_type (x: sformal): AST.ty =
     ( match x with
-    | Formal_In    (ty, _) -> ty
-    | Formal_InOut (ty, _) -> ty
+    | Formal_In    (_, ty) -> ty
+    | Formal_InOut (_, ty) -> ty
     )
 
-let formal_of_sformal (x: AST.sformal): (AST.ty * AST.ident) =
+let formal_of_sformal (x: AST.sformal): (AST.ident * AST.ty) =
     ( match x with
-    | Formal_In    (ty, v) -> (ty, v)
-    | Formal_InOut (ty, v) -> (ty, v)
+    | Formal_In    (v, ty) -> (v, ty)
+    | Formal_InOut (v, ty) -> (v, ty)
     )
 
 let funtype_of_sfuntype ((f, tvs, cs, atys, vty): sfuntype): funtype =
@@ -396,11 +377,12 @@ let cmp_ixtype (ty1: AST.ixtype) (ty2: AST.ixtype): bool =
     | _ -> false
     )
 
-(** structural match on two types - ignoring the dependent type part *)
+(** structural match on two types - ignoring the dependent type part and constraints *)
 (* todo: does not handle register<->bits coercions *)
 let rec cmp_type (env: GlobalEnv.t) (ty1: AST.ty) (ty2: AST.ty): bool =
     (match (derefType env ty1, derefType env ty2) with
     | (Type_Constructor c1,       Type_Constructor c2)       -> c1 = c2
+    | (Type_Integer _,            Type_Integer _)            -> true
     | (Type_Bits(e1),             Type_Bits(e2))             -> true
     | (Type_App (c1, es1),        Type_App (c2, es2))        -> c1 = c2
     | (Type_OfExpr e1,            Type_OfExpr e2)            -> raise (InternalError "cmp_type: typeof")
@@ -426,7 +408,7 @@ let rec cmp_type (env: GlobalEnv.t) (ty1: AST.ty) (ty2: AST.ty): bool =
     - a list of fieldname/slice pairs for registers
  *)
 type fieldtypes
-    = FT_Record of (ty * ident) list
+    = FT_Record of (ident * ty) list
     | FT_Register of (AST.slice list * ident) list
 
 (** Get fieldtype information for a record/register type *)
@@ -445,9 +427,9 @@ let rec typeFields (env: GlobalEnv.t) (loc: AST.l) (x: ty): fieldtypes =
     )
 
 (** Get fieldtype information for a named field of a record *)
-let get_recordfield (loc: AST.l) (rfs: (ty * ident) list) (f: ident): AST.ty =
-    (match List.filter (fun (_, fnm) -> fnm = f) rfs with
-    | [(fty, _)] -> fty
+let get_recordfield (loc: AST.l) (rfs: (ident * ty) list) (f: ident): AST.ty =
+    (match List.filter (fun (fnm, _) -> fnm = f) rfs with
+    | [(_, fty)] -> fty
     | [] -> raise (UnknownObject(loc, "field", pprint_ident f))
     | fs -> raise (Ambiguous (loc, "field", pprint_ident f))
     )
@@ -527,7 +509,7 @@ let get_regfields (loc: AST.l) (rfs: (AST.slice list * ident) list) (fs: ident l
 type implicitVars = (AST.ident * AST.ty) list
 
 let declare_implicits (loc: AST.l) (imps: implicitVars): AST.stmt list =
-    List.map (fun (v, ty) -> Stmt_VarDeclsNoInit(ty, [v], loc)) imps
+    List.map (fun (v, ty) -> Stmt_VarDeclsNoInit([v], ty, loc)) imps
 
 module Env : sig
     type t
@@ -784,7 +766,7 @@ let check_constraints (bs: expr list) (cs: expr list): bool =
     if verbose then Printf.printf "      - Checking %s\n" (Z3.Expr.to_string p);
     Z3.Solver.add solver [Z3.Boolean.mk_not z3_ctx p];
     let q = Z3.Solver.check solver [] in
-    if q = SATISFIABLE then Printf.printf "Failed property %s\n" (Z3.Expr.to_string p);
+    if verbose && (q = SATISFIABLE) then Printf.printf "Failed property %s\n" (Z3.Expr.to_string p);
     q = UNSATISFIABLE
 
 
@@ -1057,46 +1039,56 @@ let unify_subst_ty (s: expr Bindings.t) (x: AST.ty): AST.ty =
 
 (** Replace all type variables in function type with fresh variables *)
 let mkfresh_funtype (u: unifier) (fty: funtype): funtype =
-    let (f, isArr, tvs, cs, atys, rty) = fty in
+    let (f, isArr, ps, cs, atys, rty) = fty in
 
     (* generate renamings for all type variables *)
-    let rns = List.map (fun tv -> (tv, u#fresh)) tvs in
+    let rns = List.map (fun (tv, _) -> (tv, u#fresh)) ps in
     let s   = mk_bindings (List.map (fun (v, w) -> (v, Expr_Var w)) rns) in
 
-    let tvs'  = List.map snd rns in
-    let atys' = List.map (fun (ty, a) ->
+    let ps' = List.map (fun (a, oty) ->
+        let ty  = Option.get oty in
         let ty' = subst_type s ty in
         let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-        (ty', a')
+        (a', Some ty')
+    ) ps in
+    let atys' = List.map (fun (a, ty) ->
+        let ty' = subst_type s ty in
+        let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
+        (a', ty')
     ) atys in
     let cs'   = List.map (subst_expr s) cs in
     let rty'  = subst_type s rty in
-    (f, isArr, tvs', cs', atys', rty')
+    (f, isArr, ps', cs', atys', rty')
 
 (** Replace all type variables in setter function type with fresh variables *)
 let mkfresh_sfuntype (u: unifier) (fty: sfuntype): sfuntype =
-    let (f, tvs, cs, atys, vty) = fty in
+    let (f, ps, cs, atys, vty) = fty in
 
     (* generate renamings for all type variables *)
-    let rns = List.map (fun tv -> (tv, u#fresh)) tvs in
+    let rns = List.map (fun (tv, _) -> (tv, u#fresh)) ps in
     let s   = mk_bindings (List.map (fun (v, w) -> (v, Expr_Var w)) rns) in
 
-    let tvs'  = List.map snd rns in
+    let ps' = List.map (fun (a, oty) ->
+        let ty  = Option.get oty in
+        let ty' = subst_type s ty in
+        let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
+        (a', Some ty')
+    ) ps in
     let atys' = List.map (fun aty ->
         (match aty with
-        | Formal_In(ty, a) ->
+        | Formal_In(a, ty) ->
             let ty' = subst_type s ty in
             let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-            Formal_In(ty', a')
-        | Formal_InOut(ty, a) ->
+            Formal_In(a', ty')
+        | Formal_InOut(a, ty) ->
             let ty' = subst_type s ty in
             let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-            Formal_InOut(ty', a')
+            Formal_InOut(a', ty')
         )
     ) atys in
     let cs'   = List.map (subst_expr s) cs in
     let vty'  = subst_type s vty in
-    (f, tvs', cs', atys', vty')
+    (f, ps', cs', atys', vty')
 
 (** Check that ty2 is a subtype of ty1: ty1 >= ty2 *)
 let check_type (env: Env.t) (u: unifier) (loc: AST.l) (ty1: AST.ty) (ty2: AST.ty): unit =
@@ -1128,7 +1120,7 @@ let reportChoices (loc: AST.l) (what: string) (nm: string) (tys: AST.ty list) (f
         Printf.printf "  Choice : %s : %s -> %s\n"
             (pprint_ident f)
             (Utils.to_string (PPrintCombinators.separate (PPrintEngine.string " ")
-                (List.map (fun (ty, _) -> PP.pp_ty ty) atys)))
+                (List.map (fun (_, ty) -> PP.pp_ty ty) atys)))
             (pp_type rty)
     ) funs
 
@@ -1141,7 +1133,7 @@ let reportChoices (loc: AST.l) (what: string) (nm: string) (tys: AST.ty list) (f
 let isCompatibleFunction (env: GlobalEnv.t) (isArr: bool) (tys: AST.ty list) (ft: funtype): bool =
     let nargs = List.length tys in
     let (_, isArr', _, _, atys, _) = ft in
-    isArr = isArr' && List.length atys = nargs && List.for_all2 (cmp_type env) (List.map fst atys) tys
+    isArr = isArr' && List.length atys = nargs && List.for_all2 (cmp_type env) (List.map snd atys) tys
 
 (** Disambiguate a function name based on the number and type of arguments *)
 let chooseFunction (env: GlobalEnv.t) (loc: AST.l) (what: string) (nm: string) (isArr: bool) (tys: AST.ty list) (funs: funtype list): funtype option =
@@ -1184,28 +1176,28 @@ let chooseSetterFunction (env: GlobalEnv.t) (loc: AST.l) (what: string) (nm: ide
 
 (** Instantiate type of function using unifier 'u' *)
 let instantiate_fun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: funtype) (es: AST.expr list) (tys: AST.ty list): (AST.ident * AST.expr list * AST.ty) =
-    let (f, _, tvs, cs, atys, rty) = mkfresh_funtype u fty in
+    let (f, _, ps, cs, atys, rty) = mkfresh_funtype u fty in
 
     (* Add bindings for every explicit type argument *)
     assert ((List.length atys) = (List.length es));
-    List.iter2 (fun (_, v) e -> if List.mem v tvs then u#addEquality (Expr_Var v) (subst_consts_expr env e)) atys es;
+    List.iter2 (fun (v, _) e -> if List.mem_assoc v ps then u#addEquality (Expr_Var v) (subst_consts_expr env e)) atys es;
 
     (* unify argument types *)
     assert ((List.length atys) = (List.length tys));
-    List.iter2 (unify_type env u) (List.map fst atys) tys;
+    List.iter2 (unify_type env u) (List.map snd atys) tys;
 
-    let tes = List.map (fun tv -> Expr_Var tv) tvs in
+    let tes = List.map (fun (tv, _) -> Expr_Var tv) ps in
     (f, tes, rty)
 
 (** Instantiate type of setter function using unifier 'u' *)
 let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype) (es: AST.expr list) (tys: AST.ty list) (ty: AST.ty): (AST.ident * AST.expr list) =
-    let (f, tvs, cs, atys, vty) = mkfresh_sfuntype u fty in
+    let (f, ps, cs, atys, vty) = mkfresh_sfuntype u fty in
 
     (* Add bindings for every explicit type argument *)
     assert ((List.length atys) = (List.length es));
     List.iter2 (fun aty e ->
         let v = sformal_var aty in
-        if List.mem v tvs then u#addEquality (Expr_Var v) (subst_consts_expr env e)
+        if List.mem_assoc v ps then u#addEquality (Expr_Var v) (subst_consts_expr env e)
     ) atys es;
 
     (* unify argument types *)
@@ -1214,7 +1206,7 @@ let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype
     (* unify value type *)
     unify_type env u vty ty;
 
-    let tes = List.map (fun tv -> Expr_Var tv) tvs in
+    let tes = List.map (fun (tv, _) -> Expr_Var tv) ps in
     (f, tes)
 
 
@@ -1378,7 +1370,7 @@ and tc_slice_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: expr) (ss: (AST.sli
             (Expr_Slices(x', ss'), type_bits (slices_width ss'))
     | Type_Register (wd, _) ->
             (Expr_Slices(x', ss'), type_bits (slices_width ss'))
-    | Type_Constructor tc when tc = Ident "integer" ->
+    | Type_Integer _ ->
             (* todo: desugar into a call to slice_int? *)
             (Expr_Slices(x', ss'), type_bits (slices_width ss'))
     | _ -> raise (TypeError (loc, "slice of expr"))
@@ -1482,6 +1474,9 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
     | Expr_Tuple(es) ->
             let (es', tys) = List.split (List.map (tc_expr env u loc) es) in
             (Expr_Tuple(es'), Type_Tuple(tys))
+    | Expr_Concat(es) ->
+            let (es', tys) = List.split (List.map (tc_expr env u loc) es) in
+            (Expr_Concat(es'), mk_concat_tys tys)
     | Expr_Unop(op, e) ->
             let (e', ety) = tc_expr env u loc e in
             (* Printf.printf "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)
@@ -1533,6 +1528,9 @@ and tc_type (env: Env.t) (loc: AST.l) (x: AST.ty): AST.ty =
             | Some (Type_Abbreviation ty') -> derefType (Env.globals env) ty'
             | _ -> Type_Constructor(tc)
             )
+    | Type_Integer ocrs ->
+            let ocrs' = map_option (List.map (tc_constraint env loc)) ocrs in
+            Type_Integer ocrs'
     | Type_Bits(n) ->
             let n' = check_expr env loc type_integer n in
             Type_Bits(n')
@@ -1565,6 +1563,17 @@ and tc_type (env: Env.t) (loc: AST.l) (x: AST.ty): AST.ty =
             Type_Tuple(tys')
     )
 
+and tc_constraint (env: Env.t) (loc: AST.l) (c: AST.constraint_range): AST.constraint_range =
+    ( match c with
+    | Constraint_Single e ->
+        let e' = check_expr env loc type_integer e in
+        Constraint_Single e'
+    | Constraint_Range (lo, hi) ->
+        let lo' = check_expr env loc type_integer lo in
+        let hi' = check_expr env loc type_integer hi in
+        Constraint_Range (lo', hi')
+    )
+
 
 (****************************************************************)
 (** {2 Typecheck L-expressions}                                 *)
@@ -1593,7 +1602,7 @@ let rec tc_slice_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (x: lexpr) (ss: (A
             (LExpr_Slices(x', ss'), type_bits (slices_width ss'))
     | Type_Register (wd, _) ->
             (LExpr_Slices(x', ss'), type_bits (slices_width ss'))
-    | Type_Constructor tc when tc = Ident "integer" ->
+    | Type_Integer _ ->
             (* There is an argument for making this operation illegal *)
             if false then printf "Warning: slice assignment of integer at %s\n" (pp_loc loc);
             (LExpr_Slices(x', ss'), type_bits (slices_width ss'))
@@ -1830,7 +1839,7 @@ let rec tc_stmts (env: Env.t) (loc: AST.l) (xs: AST.stmt list): AST.stmt list =
         let imps = Env.getImplicits env' in
         List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
         let decls = declare_implicits loc imps in
-        if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_indented_block decls));
+        if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
         List.append decls [s']
     ) xs
     ) env in
@@ -1867,21 +1876,21 @@ and tc_catcher (env: Env.t) (loc: AST.l) (x: AST.catcher): AST.catcher =
 (** Typecheck statement *)
 and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
     (match x with
-    | Stmt_VarDeclsNoInit(ty, vs, loc) ->
+    | Stmt_VarDeclsNoInit(vs, ty, loc) ->
             let ty' = tc_type env loc ty in
             List.iter (fun v -> Env.addLocalVar env loc v ty') vs;
-            Stmt_VarDeclsNoInit(ty', vs, loc)
-    | Stmt_VarDecl(ty, v, i, loc) ->
+            Stmt_VarDeclsNoInit(vs, ty', loc)
+    | Stmt_VarDecl(v, ty, i, loc) ->
             let ty' = tc_type env loc ty in
             let i' = check_expr env loc ty' i in
             Env.addLocalVar env loc v ty';
-            Stmt_VarDecl(ty', v, i', loc)
-    | Stmt_ConstDecl(ty, v, i, loc) ->
+            Stmt_VarDecl(v, ty', i', loc)
+    | Stmt_ConstDecl(v, ty, i, loc) ->
             let ty' = tc_type env loc ty in
             let i'  = check_expr env loc ty' i in
             Env.addLocalVar env loc v ty';
             if ty' = type_integer then Env.addConstraint env loc (mk_eq_int (Expr_Var v) i');
-            Stmt_ConstDecl(ty', v, i', loc)
+            Stmt_ConstDecl(v, ty', i', loc)
     | Stmt_Assign(l, r, loc) ->
             let (s, (r', rty, l', imps)) = with_unify env loc (fun u ->
                 let (r', rty)  = tc_expr env u loc r in
@@ -1972,6 +1981,9 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
             ) in
             let e' = check_expr env loc ty e in
             Stmt_DecodeExecute(i, e', loc)
+    | Stmt_Block(ss, loc) ->
+            let ss' = tc_stmts env loc ss in
+            Stmt_Block(ss', loc)
     | Stmt_If(c, t, els, e, loc) ->
             let c'   = check_expr env loc type_bool c in
             let t'   = tc_stmts env loc t in
@@ -2022,39 +2034,85 @@ let tc_body (env: Env.t) (loc: AST.l) (xs: AST.stmt list): AST.stmt list =
     let xs' = tc_stmts env loc xs in
     let imps = Env.getAllImplicits env in
     let decls = declare_implicits loc imps in
-    if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_indented_block decls));
+    if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
     List.append decls xs'
 
+(** Typecheck function parameter *)
+let tc_parameter (env: Env.t) (loc: AST.l) ((arg, oty): (AST.ident * AST.ty option)): (AST.ident * AST.ty option) =
+    let ty' = ( match oty with
+              | None -> type_integer
+              | Some ty -> tc_type env loc ty
+              )
+    in
+    Env.addLocalVar env loc arg ty';
+    (arg, Some ty')
+
 (** Typecheck function argument *)
-let tc_argument (env: Env.t) (loc: AST.l) ((ty, arg): (AST.ty * AST.ident)): (AST.ty * AST.ident) =
+let tc_argument (env: Env.t) (loc: AST.l) ((arg, ty): (AST.ident * AST.ty)): (AST.ident * AST.ty) =
     let ty' = tc_type env loc ty in
     Env.addLocalVar env loc arg ty';
-    (ty', arg)
+    (arg, ty')
 
 (** Typecheck list of function arguments *)
-let tc_arguments (env: Env.t) (loc: AST.l) (xs: (AST.ty * AST.ident) list): (AST.ty * AST.ident) list =
-    List.map (tc_argument env loc) xs
+let tc_arguments
+    (env: Env.t)
+    (loc: AST.l)
+    (ps: (AST.ident * AST.ty option) list)
+    (args: (AST.ident * AST.ty) list)
+    (rty: AST.ty)
+    : ((AST.ident * AST.ty option) list * (AST.ident * AST.ty) list * AST.ty)
+    =
+    let fvs = IdentSet.union (fv_args args) (fv_type rty) |> removeConsts (Env.globals env) in
+    let ps = if Utils.is_null ps then
+            (* If no parameter list was supplied, use freevars from arg/return type *)
+            List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
+        else
+            (* If parameter list was supplied, add any arguments if they are in freevar list *)
+            let extra = List.filter (fun (v, ty) -> IdentSet.mem v fvs) args in
+            let extra = List.map (fun (v, ty) -> (v, Some ty)) extra in
+            List.append extra ps
+    in
+    let ps'   = List.map (tc_parameter env loc) ps in
+    let args' = List.map (tc_argument env loc) args in
+    let rty'  = tc_type env loc rty in
+    Env.setReturnType env rty';
+    (ps', args', rty')
 
 (** Typecheck setter procedure argument *)
 let tc_sformal (env: Env.t) (loc: AST.l) (x: sformal): sformal =
     ( match x with
-    | Formal_In(ty,v) ->
+    | Formal_In(v, ty) ->
             let ty' = tc_type env loc ty in
             Env.addLocalVar env loc v ty';
-            Formal_In(ty', v)
-    | Formal_InOut(ty,v) ->
+            Formal_In(v, ty')
+    | Formal_InOut(v, ty) ->
             let ty' = tc_type env loc ty in
             Env.addLocalVar env loc v ty';
-            Formal_InOut(ty', v)
+            Formal_InOut(v, ty')
     )
 
 (** Typecheck list of setter procedure arguments *)
-let tc_sformals (env: Env.t) (loc: AST.l) (xs: sformal list): sformal list =
-    List.map (tc_sformal env loc) xs
+let tc_sformals
+    (env: Env.t)
+    (loc: AST.l)
+    (ps: (AST.ident * AST.ty option) list)
+    (args: sformal list)
+    : ((AST.ident * AST.ty option) list * sformal list)
+    =
+    (* If no parameter list was supplied, use freevars from arg/return type *)
+    let ps = if Utils.is_null ps then
+            let fvs = fv_sformals args |> removeConsts (Env.globals env) in
+            List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
+        else
+            ps
+    in
+    let ps' = List.map (tc_parameter env loc) ps in
+    let args' = List.map (tc_sformal env loc) args in
+    (ps', args')
 
 (** Add function definition to environment *)
-let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (tvs: IdentSet.t) (args: (AST.ty * AST.ident) list) (rty: AST.ty): funtype =
-    let argtys   = List.map (fun (ty, _) -> ty) args in
+let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (ps: (AST.ident * AST.ty option) list) (args: (AST.ident * AST.ty) list) (rty: AST.ty): funtype =
+    let argtys   = List.map (fun (_, ty) -> ty) args in
     let funs     = GlobalEnv.getFuns env qid in
     let num_funs = List.length funs in
     (match List.filter (isCompatibleFunction env isArr argtys) funs with
@@ -2066,7 +2124,7 @@ let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (
          *)
         let tag  = num_funs in
         let qid' = addTag qid tag in
-        let fty: funtype = (qid', isArr, IdentSet.elements tvs, [], args, rty) in
+        let fty: funtype = (qid', isArr, ps, [], args, rty) in
         GlobalEnv.addFuns env loc qid (fty :: funs);
         fty
     | [fty] -> (* already defined *)
@@ -2075,7 +2133,7 @@ let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (
         failwith "addFunction"
     )
 
-let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (tvs: IdentSet.t) (args: AST.sformal list) (vty: AST.ty): sfuntype =
+let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (ps: (AST.ident * AST.ty option) list) (args: AST.sformal list) (vty: AST.ty): sfuntype =
     let argtys   = List.map sformal_type args in
     let funs     = GlobalEnv.getSetterFun env qid in
     let num_funs = List.length funs in
@@ -2088,7 +2146,7 @@ let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (tvs: Ide
          *)
         let tag  = num_funs in
         let qid' = addTag qid tag in
-        let fty: sfuntype = (qid', IdentSet.elements tvs, [], args, vty) in
+        let fty: sfuntype = (qid', ps, [], args, vty) in
         GlobalEnv.addSetterFuns env qid (fty :: funs);
         fty
     | [fty] -> (* already defined *)
@@ -2117,7 +2175,7 @@ let tc_encoding (env: Env.t) (x: encoding): (encoding * ((AST.ident * AST.ty) li
             let imps = Env.getAllImplicits env in
             List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
             let decls = declare_implicits loc imps in
-            if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_indented_block decls));
+            if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
             List.append decls b'
         ) env in
         (Encoding_Block (nm, iset, fields, opcode, guard', unpreds, b', loc), bs)
@@ -2205,8 +2263,8 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
             [d]
     | Decl_Record(qid, fs, loc) ->
             let env' = Env.mkEnv env in
-            let fs' = List.map (fun (ty, f) ->
-                (tc_type env' loc ty, f)
+            let fs' = List.map (fun (f, ty) ->
+                (f, tc_type env' loc ty)
             ) fs
             in
             GlobalEnv.addType env loc qid (Type_Record(fs'));
@@ -2219,148 +2277,118 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
             GlobalEnv.addType env loc qid (Type_Enumeration(es));
             List.iter (fun e -> GlobalEnv.addGlobalVar env loc e (Type_Constructor(qid)) true) es;
             let ty = Type_Constructor(qid) in
-            let cmp_args = [(ty, Ident "x"); (ty, Ident "y")] in
-            let eq = addFunction env loc (Ident "eq_enum") false IdentSet.empty cmp_args type_bool in
-            let ne = addFunction env loc (Ident "ne_enum") false IdentSet.empty cmp_args type_bool in
+            let cmp_args = [(Ident "x", ty); (Ident "y", ty)] in
+            let eq = addFunction env loc (Ident "eq_enum") false [] cmp_args type_bool in
+            let ne = addFunction env loc (Ident "ne_enum") false [] cmp_args type_bool in
             GlobalEnv.addOperators2 env loc Binop_Eq   [eq];
             GlobalEnv.addOperators2 env loc Binop_NtEq [ne];
-            let deq = Decl_BuiltinFunction(ty, ft_id eq, [], loc) in
-            let dne = Decl_BuiltinFunction(ty, ft_id ne, [], loc) in
+            let deq = Decl_BuiltinFunction(ft_id eq, [], [], ty, loc) in
+            let dne = Decl_BuiltinFunction(ft_id ne, [], [], ty, loc) in
             [d; deq; dne]
-    | Decl_Var(ty, qid, loc) ->
+    | Decl_Var(qid, ty, loc) ->
             let ty' = tc_type (Env.mkEnv env) loc ty in
             GlobalEnv.addGlobalVar env loc qid ty' false;
-            [Decl_Var(ty', qid, loc)]
-    | Decl_Const(ty, qid, i, loc) ->
+            [Decl_Var(qid, ty', loc)]
+    | Decl_Const(qid, ty, i, loc) ->
             let ty' = tc_type (Env.mkEnv env) loc ty in
             let i'  = check_expr (Env.mkEnv env) loc ty' i in
             GlobalEnv.addGlobalVar env loc qid ty' true;
             GlobalEnv.addConstant env qid (simplify_expr i');
-            [Decl_Const(ty', qid, i', loc)]
-    | Decl_BuiltinFunction(rty, qid, atys, loc) ->
+            [Decl_Const(qid, ty', i', loc)]
+    | Decl_BuiltinFunction(qid, ps, atys, rty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type locals loc rty in
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' rty') in
-            [Decl_BuiltinFunction(rty', qid', atys', loc)]
-    | Decl_FunType(rty, qid, atys, loc) ->
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
+            [Decl_BuiltinFunction(qid', ps', atys', rty', loc)]
+    | Decl_FunType(qid, ps, atys, rty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type      locals loc rty in
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' rty') in
-            [Decl_FunType(rty', qid', atys', loc)]
-    | Decl_FunDefn(rty, qid, atys, b, loc) ->
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
+            [Decl_FunType(qid', ps', atys', rty', loc)]
+    | Decl_FunDefn(qid, ps, atys, rty, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type      locals loc rty in
-            let atys' = tc_arguments locals loc atys in
-            Env.setReturnType locals rty';
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
             let b'    = tc_body locals loc b in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' rty') in
-            [Decl_FunDefn(rty', qid', atys', b', loc)]
-    | Decl_ProcType(qid, atys, loc) ->
+            [Decl_FunDefn(qid', ps', atys', rty', b', loc)]
+    | Decl_ProcType(qid, ps, atys, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_args atys |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' type_unit) in
-            [Decl_ProcType(qid', atys', loc)]
-    | Decl_ProcDefn(qid, atys, b, loc) ->
+            let (ps', atys', rty') = tc_arguments locals loc ps atys type_unit in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
+            [Decl_ProcType(qid', ps', atys', loc)]
+    | Decl_ProcDefn(qid, ps, atys, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_args atys |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let atys' = tc_arguments locals loc atys in
+            let (ps', atys', rty') = tc_arguments locals loc ps atys type_unit in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
             let b'    = tc_body locals loc b in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' type_unit) in
-            [Decl_ProcDefn(qid', atys', b', loc)]
-    | Decl_VarGetterType(rty, qid, loc) ->
+            [Decl_ProcDefn(qid', ps', atys', b', loc)]
+    | Decl_VarGetterType(qid, ps, rty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_type rty |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty' = tc_type locals loc rty in
+            let (ps', atys', rty') = tc_arguments locals loc ps [] rty in
             (* todo: check that if a setter function exists, it has a compatible type *)
-            let qid' = ft_id (addFunction env loc (addSuffix qid "read") false tvs [] rty') in
-            [Decl_VarGetterType(rty', qid', loc)]
-    | Decl_VarGetterDefn(rty, qid, b, loc) ->
+            let qid' = ft_id (addFunction env loc (addSuffix qid "read") false ps' atys' rty') in
+            [Decl_VarGetterType(qid', ps', rty', loc)]
+    | Decl_VarGetterDefn(qid, ps, rty, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_type rty |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty' = tc_type locals loc rty in
+            let (ps', atys', rty') = tc_arguments locals loc ps [] rty in
             (* todo: check that if a setter function exists, it has a compatible type *)
-            let qid' = ft_id (addFunction env loc (addSuffix qid "read") false tvs [] rty') in
-            Env.setReturnType locals rty';
+            let qid' = ft_id (addFunction env loc (addSuffix qid "read") false ps' atys' rty') in
             let b' = tc_body locals loc b in
-            [Decl_VarGetterDefn(rty', qid', b', loc)]
-    | Decl_ArrayGetterType(rty, qid, atys, loc) ->
+            [Decl_VarGetterDefn(qid', ps', rty', b', loc)]
+    | Decl_ArrayGetterType(qid, ps, atys, rty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type      locals loc rty in
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc (addSuffix qid "read") true tvs atys' rty') in
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
+            let qid'  = ft_id (addFunction env loc (addSuffix qid "read") true ps' atys' rty') in
             (* todo: check that if a setter function exists, it has a compatible type *)
-            [Decl_ArrayGetterType(rty', qid', atys', loc)]
-    | Decl_ArrayGetterDefn(rty, qid, atys, b, loc) ->
+            [Decl_ArrayGetterType(qid', ps', atys', rty', loc)]
+    | Decl_ArrayGetterDefn(qid, ps, atys, rty, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type      locals loc rty in
-            let atys' = tc_arguments locals loc atys in
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
             (* todo: check that if a setter function exists, it has a compatible type *)
-            Env.setReturnType locals rty';
-            let qid'  = ft_id (addFunction env loc (addSuffix qid "read") true tvs atys' rty') in
+            let qid'  = ft_id (addFunction env loc (addSuffix qid "read") true ps' atys' rty') in
             let b' = tc_body locals loc b in
-            [Decl_ArrayGetterDefn(rty', qid', atys', b', loc)]
-    | Decl_VarSetterType(qid, ty, v, loc) ->
+            [Decl_ArrayGetterDefn(qid', ps', atys', rty', b', loc)]
+    | Decl_VarSetterType(qid, ps, v, ty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_type ty |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let ty'   = tc_type locals loc ty in
-            Env.addLocalVar locals loc v ty';
+            let (ps', atys', rty') = tc_arguments locals loc ps [(v, ty)] type_unit in
+            let (v', ty') = List.hd atys' in
             (* todo: check that if a getter function exists, it has a compatible type *)
             (* todo: this obscures the difference between "PC[]" and "PC" *)
-            let qid' = ft_id (addFunction env loc (addSuffix qid "write") false tvs [(ty', v)] type_unit) in
-            [Decl_VarSetterType(qid', ty', v, loc)]
-    | Decl_VarSetterDefn(qid, ty, v, b, loc) ->
+            let qid' = ft_id (addFunction env loc (addSuffix qid "write") false ps' atys' rty') in
+            [Decl_VarSetterType(qid', ps', v, ty', loc)]
+    | Decl_VarSetterDefn(qid, ps, v, ty, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = fv_type ty |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let ty'   = tc_type locals loc ty in
-            Env.addLocalVar locals loc v ty';
+            let (ps', atys', rty') = tc_arguments locals loc ps [(v, ty)] type_unit in
+            let (v', ty') = List.hd atys' in
             (* todo: check that if a getter function exists, it has a compatible type *)
             (* todo: this obscures the difference between "PC[]" and "PC" *)
-            let qid'  = ft_id (addFunction env loc (addSuffix qid "write") false tvs [(ty', v)] type_unit) in
+            let qid'  = ft_id (addFunction env loc (addSuffix qid "write") false ps' atys' rty') in
             let b' = tc_body locals loc b in
-            [Decl_VarSetterDefn(qid', ty', v, b', loc)]
-    | Decl_ArraySetterType(qid, atys, ty, v, loc) ->
+            [Decl_VarSetterDefn(qid', ps', v, ty', b', loc)]
+    | Decl_ArraySetterType(qid, ps, atys, v, ty, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = IdentSet.union (fv_sformals atys) (fv_type ty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let atys' = tc_sformals locals loc atys in
-            let ty'   = tc_type     locals loc ty in
-            Env.addLocalVar locals loc v ty';
+            let (ps', atys') = tc_sformals locals loc ps (Formal_In(v, ty)::atys) in
+            let (v', ty') = ( match atys' with
+                            | (Formal_In(v', ty') :: _) -> (v', ty')
+                            | _ -> raise (InternalError "arraysetter")
+                            ) in
             (* todo: check that if a getter function exists, it has a compatible type *)
-            let qid' = addSetterFunction env loc (addSuffix qid "set") tvs atys' ty' in
-            [Decl_ArraySetterType(sft_id qid', atys', ty', v, loc)]
-    | Decl_ArraySetterDefn(qid, atys, ty, v, b, loc) ->
+            let qid' = addSetterFunction env loc (addSuffix qid "set") ps' atys' ty' in
+            [Decl_ArraySetterType(sft_id qid', ps', atys', v, ty', loc)]
+    | Decl_ArraySetterDefn(qid, ps, atys, v, ty, b, loc) ->
             let locals = Env.mkEnv env in
-            let tvs = IdentSet.union (fv_sformals atys) (fv_type ty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let atys' = tc_sformals locals loc atys in
-            let ty'   = tc_type     locals loc ty in
+            let (ps', atys') = tc_sformals locals loc ps (Formal_In(v, ty)::atys) in
+            let (v', ty') = ( match atys' with
+                            | (Formal_In(v', ty') :: _) -> (v', ty')
+                            | _ -> raise (InternalError "arraysetter")
+                            ) in
             (* todo: should I use name mangling or define an enumeration to select
              * which namespace to do lookup in?
              *)
             (* todo: check that if a getter function exists, it has a compatible type *)
-            let qid' = addSetterFunction env loc (addSuffix qid "set") tvs atys' ty' in
-            Env.addLocalVar locals loc v ty';
+            let qid' = addSetterFunction env loc (addSuffix qid "set") ps' atys' ty' in
             let b' = tc_body locals loc b in
-            [Decl_ArraySetterDefn(sft_id qid', atys', ty', v, b', loc)]
+            [Decl_ArraySetterDefn(sft_id qid', ps', atys', v, ty', b', loc)]
     | Decl_InstructionDefn(nm, encs, opost, conditional, exec, loc) ->
             let locals = Env.mkEnv env in
             let (encs', vss) = List.split (List.map (tc_encoding locals) encs) in
@@ -2399,20 +2427,16 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
             ) funs) in
             GlobalEnv.addOperators2 env loc op funs';
             [Decl_Operator2(op, List.map ft_id funs', loc)]
-    | Decl_NewEventDefn(qid, atys, loc) -> (* very similar to Decl_ProcType *)
+    | Decl_NewEventDefn(qid, ps, atys, loc) -> (* very similar to Decl_ProcType *)
             let locals = Env.mkEnv env in
-            let tvs = fv_args atys |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' type_unit) in
-            [Decl_NewEventDefn(qid', atys', loc)]
+            let (ps', atys', rty') = tc_arguments locals loc ps atys type_unit in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
+            [Decl_NewEventDefn(qid', ps', atys', loc)]
     | Decl_EventClause(nm, b, loc) ->
             (match GlobalEnv.getFuns env nm with
-            | [(_, _, _, _, atys, _) as ft] ->
+            | [(_, _, ps, _, atys, _) as ft] ->
                 let locals = Env.mkEnv env in
-                let tvs = fv_funtype ft |> removeConsts env in
-                IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-                let _ = tc_arguments locals loc atys in
+                let _ = tc_arguments locals loc ps atys type_unit in
                 let b' = tc_body locals loc b in
                 [Decl_EventClause(ft_id ft, b', loc)]
             | [] ->
@@ -2421,25 +2445,17 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
                 reportChoices loc "event" (pprint_ident nm) [] fs;
                 raise (Ambiguous (loc, "event", pprint_ident nm))
             )
-    | Decl_NewMapDefn(rty, qid, atys, b, loc) -> (* very similar to Decl_FunDefn *)
+    | Decl_NewMapDefn(qid, ps, atys, rty, b, loc) -> (* very similar to Decl_FunDefn *)
             let locals = Env.mkEnv env in
-            let tvs = fv_funtype (qid, false, [], [], atys, rty) |> removeConsts env in
-            IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-            let rty'  = tc_type      locals loc rty in
-            Env.setReturnType locals rty';
-            let atys' = tc_arguments locals loc atys in
-            let qid'  = ft_id (addFunction env loc qid false tvs atys' rty') in
+            let (ps', atys', rty') = tc_arguments locals loc ps atys rty in
+            let qid'  = ft_id (addFunction env loc qid false ps' atys' rty') in
             let b'    = tc_body locals loc b in
-            [Decl_NewMapDefn(rty', qid', atys', b', loc)]
+            [Decl_NewMapDefn(qid', ps', atys', rty', b', loc)]
     | Decl_MapClause(nm, fs, oc, b, loc) ->
             (match GlobalEnv.getFuns env nm with
-            | [((nm', _, _, _, atys, rty) as ft)] ->
+            | [(nm', _, ps, _, atys, rty)] ->
                 let locals = Env.mkEnv env in
-                let tvs = fv_funtype ft |> removeConsts env in
-                IdentSet.iter (fun tv -> Env.addLocalVar locals loc tv type_integer) tvs;
-                let rty' = tc_type locals loc rty in
-                Env.setReturnType locals rty';
-                let _ = tc_arguments locals loc atys in
+                let _ = tc_arguments locals loc ps atys rty in
                 let tc_mapfield (MapField_Field (id, pat)) =
                   match Env.getVar locals id with
                   | Some (_, ty) ->
@@ -2457,12 +2473,12 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
                 reportChoices loc "map" (pprint_ident nm) [] fs;
                 raise (Ambiguous (loc, "map", pprint_ident nm))
             )
-    | Decl_Config(ty, qid, i, loc) -> (* very similar to Decl_Const *)
+    | Decl_Config(qid, ty, i, loc) -> (* very similar to Decl_Const *)
             let locals = Env.mkEnv env in
             let ty' = tc_type locals loc ty in
             let i'  = check_expr locals loc ty' i in
             GlobalEnv.addGlobalVar env loc qid ty' true;
-            [Decl_Config(ty', qid, i', loc)]
+            [Decl_Config(qid, ty', i', loc)]
     )
 
 (** Generate function prototype declarations.
@@ -2475,34 +2491,34 @@ let genPrototypes (ds: AST.declaration list): (AST.declaration list * AST.declar
     let post : (AST.declaration list) ref = ref [] in
     List.iter (fun d ->
         (match d with
-        | Decl_FunDefn(rty, qid, atys, _, loc) ->
+        | Decl_FunDefn(qid, ps, atys, rty, _, loc) ->
                 post := d :: !post;
-                pre := Decl_FunType(rty, qid, atys, loc) :: !pre
-        | Decl_ProcDefn(qid, atys, _, loc) ->
+                pre := Decl_FunType(qid, ps, atys, rty, loc) :: !pre
+        | Decl_ProcDefn(qid, ps, atys, _, loc) ->
                 post := d :: !post;
-                pre := Decl_ProcType(qid, atys, loc) :: !pre
-        | Decl_VarGetterDefn(rty, qid, _, loc) ->
+                pre := Decl_ProcType(qid, ps, atys, loc) :: !pre
+        | Decl_VarGetterDefn(qid, ps, rty, _, loc) ->
                 post := d :: !post;
-                pre := Decl_VarGetterType(rty, qid, loc) :: !pre
-        | Decl_ArrayGetterDefn(rty, qid, atys, _, loc) ->
+                pre := Decl_VarGetterType(qid, ps, rty, loc) :: !pre
+        | Decl_ArrayGetterDefn(qid, ps, atys, rty, _, loc) ->
                 post := d :: !post;
-                pre := Decl_ArrayGetterType(rty, qid, atys, loc) :: !pre
-        | Decl_VarSetterDefn(qid, ty, v, _, loc) ->
+                pre := Decl_ArrayGetterType(qid, ps, atys, rty, loc) :: !pre
+        | Decl_VarSetterDefn(qid, ps, v, ty, _, loc) ->
                 post := d :: !post;
-                pre := Decl_VarSetterType(qid, ty, v, loc) :: !pre
-        | Decl_ArraySetterDefn(qid, atys, ty, v, _, loc) ->
+                pre := Decl_VarSetterType(qid, ps, v, ty, loc) :: !pre
+        | Decl_ArraySetterDefn(qid, ps, atys, v, ty, _, loc) ->
                 post := d :: !post;
-                pre := Decl_ArraySetterType(qid, atys, ty, v, loc) :: !pre
-        | Decl_NewEventDefn(qid, atys, loc) ->
-                post := d :: !post;
-                (* todo: replacing it with a function declaration is not
-                 * completely kosher *)
-                pre := Decl_ProcType(qid, atys, loc) :: !pre
-        | Decl_NewMapDefn(rty, qid, atys, b, loc) ->
+                pre := Decl_ArraySetterType(qid, ps, atys, v, ty, loc) :: !pre
+        | Decl_NewEventDefn(qid, ps, atys, loc) ->
                 post := d :: !post;
                 (* todo: replacing it with a function declaration is not
                  * completely kosher *)
-                pre := Decl_FunType(rty, qid, atys, loc) :: !pre
+                pre := Decl_ProcType(qid, ps, atys, loc) :: !pre
+        | Decl_NewMapDefn(qid, ps, atys, rty, b, loc) ->
+                post := d :: !post;
+                (* todo: replacing it with a function declaration is not
+                 * completely kosher *)
+                pre := Decl_FunType(qid, ps, atys, rty, loc) :: !pre
         | Decl_EventClause(nm, b, loc) ->
                 post := d :: !post;
         | Decl_MapClause(nm, fs, oc, b, loc) ->

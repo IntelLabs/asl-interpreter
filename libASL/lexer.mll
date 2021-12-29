@@ -18,8 +18,8 @@ let keywords : (string * Asl_parser.token) list = [
     ("EOR",                    EOR);
     ("IMPLEMENTATION_DEFINED", IMPLEMENTATION_UNDERSCORE_DEFINED);
     ("IN",                     IN);
-    ("IFF",                    IFF);
-    ("IMPLIES",                IMPLIES);
+    ("iff",                    IFF);
+    ("implies",                IMPLIES);
     ("MOD",                    MOD);
     ("NOT",                    NOT);
     ("OR",                     OR);
@@ -36,13 +36,11 @@ let keywords : (string * Asl_parser.token) list = [
     ("__array",                UNDERSCORE_UNDERSCORE_ARRAY);
     ("__builtin",              UNDERSCORE_UNDERSCORE_BUILTIN);
     ("__conditional",          UNDERSCORE_UNDERSCORE_CONDITIONAL);
-    ("__config",               UNDERSCORE_UNDERSCORE_CONFIG);
     ("__decode",               UNDERSCORE_UNDERSCORE_DECODE);
     ("__encoding",             UNDERSCORE_UNDERSCORE_ENCODING);
     ("__event",                UNDERSCORE_UNDERSCORE_EVENT);
     ("__execute",              UNDERSCORE_UNDERSCORE_EXECUTE);
     ("__field",                UNDERSCORE_UNDERSCORE_FIELD);
-    ("__function",             UNDERSCORE_UNDERSCORE_FUNCTION);
     ("__guard",                UNDERSCORE_UNDERSCORE_GUARD);
     ("__instruction",          UNDERSCORE_UNDERSCORE_INSTRUCTION);
     ("__instruction_set",      UNDERSCORE_UNDERSCORE_INSTRUCTION_UNDERSCORE_SET);
@@ -59,23 +57,31 @@ let keywords : (string * Asl_parser.token) list = [
     ("__write",                UNDERSCORE_UNDERSCORE_WRITE);
     ("array",                  ARRAY);
     ("assert",                 ASSERT);
+    ("begin",                  BEGIN);
     ("bits",                   BITS);
     ("case",                   CASE);
     ("catch",                  CATCH);
+    ("config",                 CONFIG);
     ("constant",               CONSTANT);
     ("do",                     DO);
     ("downto",                 DOWNTO);
     ("else",                   ELSE);
     ("elsif",                  ELSIF);
     ("enumeration",            ENUMERATION);
+    ("end",                    END);
     ("for",                    FOR);
+    ("func",                   FUNC);
+    ("getter",                 GETTER);
     ("if",                     IF);
+    ("integer",                INTEGER);
     ("is",                     IS);
+    ("let",                    LET);
     ("of",                     OF);
     ("otherwise",              OTHERWISE);
     ("record",                 RECORD);
     ("repeat",                 REPEAT);
     ("return",                 RETURN);
+    ("setter",                 SETTER);
     ("then",                   THEN);
     ("throw",                  THROW);
     ("to",                     TO);
@@ -83,17 +89,43 @@ let keywords : (string * Asl_parser.token) list = [
     ("type",                   TYPE);
     ("typeof",                 TYPEOF);
     ("until",                  UNTIL);
+    ("var",                    VAR);
     ("when",                   WHEN);
+    ("where",                  WHERE);
     ("while",                  WHILE);
 ]
+
+(* To allow us to retain comments when pretty-printing, we record
+ * all comments and their locations.
+ *)
+let comments: (Lexing.position * Lexing.position * string) list ref = ref []
+
+let get_comments (): (Lexing.position * Lexing.position * string) list = begin
+    let cs = !comments in
+    comments := [];
+    List.rev cs
+end
+
+let record_comment (start: Lexing.position) (finish: Lexing.position) (lxm: string): unit = begin
+    if false then begin
+        Printf.printf "Comment %s:%d:%d-%d = '%s'\n"
+            start.pos_fname
+            start.pos_lnum
+            (start.pos_cnum - start.pos_bol)
+            (finish.pos_cnum - finish.pos_bol)
+            lxm
+    end;
+    let comment = (start, finish, lxm) in
+    comments := comment :: !comments
+end
 
 }
 
 rule token = parse
     (* whitespace and comments *)
-    | ['\n']                      { Lexing.new_line lexbuf; EOL }
+    | ['\n']                      { Lexing.new_line lexbuf; token lexbuf }
     | [' ' '\t']                  { token lexbuf }
-    | '/' '/' [^'\n']*            { token lexbuf }
+    | '/' '/' [^'\n']*     as lxm { record_comment lexbuf.lex_start_p lexbuf.lex_curr_p lxm; token lexbuf }
     | '#' [^'\n']*                { token lexbuf }
     | '/' '*'                     { comment 1 lexbuf }
 
@@ -130,6 +162,7 @@ rule token = parse
     | '.'            { DOT        }
     | '.' '.'        { DOT_DOT    }
     | '/'            { SLASH      }
+    | ':' ':'        { COLON_COLON }
     | ':'            { COLON      }
     | ';'            { SEMICOLON  }
     | '<'            { LT         }
@@ -149,7 +182,7 @@ rule token = parse
     | '|' '|'        { BAR_BAR    }
     | '}'            { RBRACE     }
     | '}' '}'        { RBRACE_RBRACE }
-    | eof            { raise Eof  }
+    | eof            { EOF  }
     | _ as c         { Printf.printf "%s:%d Unrecognized character '%c'\n"
                            lexbuf.lex_curr_p.pos_fname
                            lexbuf.lex_curr_p.pos_lnum

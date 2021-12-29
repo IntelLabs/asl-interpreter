@@ -13,7 +13,6 @@ module TC     = Tcheck
 module PP     = Asl_parser_pp
 module AST    = Asl_ast
 
-open Lexersupport
 open Lexing
 
 let report_parse_error (on_error: unit -> 'a) (f: unit -> 'a): 'a =
@@ -64,26 +63,6 @@ let report_eval_error (on_error: unit -> 'a) (f: unit -> 'a): 'a =
         on_error ()
     )
 
-(* Official ASL does not have specific syntax for declaring variable getter
-   functions, so if we encounter a variable declaration and a variable getter
-   function definition of the same name, we assume that the former is meant
-   to be a declaration of the latter and update the AST accordingly.
-   Otherwise, the variable would shadow the getter function, which would
-   remain unused. *)
-let declare_var_getters (decls: declaration list) =
-  let open Asl_utils in
-  let getter_def_id = function
-    | Decl_VarGetterDefn (_, id, _, _) -> [id]
-    | _ -> []
-  in
-  let getters = IdentSet.of_list (List.concat (List.map getter_def_id decls)) in
-  let declare = function
-    | Decl_Var (ty, id, l) when IdentSet.mem id getters ->
-       Decl_VarGetterType (ty, id, l)
-    | decl -> decl
-  in
-  List.map declare decls
-
 let parse_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
     let inchan = open_in filename in
     let lexbuf = Lexing.from_channel inchan in
@@ -92,15 +71,12 @@ let parse_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declar
         report_parse_error
           (fun _ -> print_endline (pp_loc (Range (lexbuf.lex_start_p, lexbuf.lex_curr_p))); exit 1)
           (fun _ ->
-            (* Apply offside rule to raw token stream *)
-            let lexer = offside_token Lexer.token in
-
             (* Run the parser on this line of input. *)
             if verbose then Printf.printf "- Parsing %s\n" filename;
-            Parser.declarations_start lexer lexbuf)
+            Parser.declarations_start Lexer.token lexbuf)
     in
     close_in inchan;
-    declare_var_getters t
+    t
 
 let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
     if verbose then Printf.printf "Processing %s\n" filename;
@@ -139,8 +115,7 @@ let read_spec (filename : string) (verbose: bool): AST.declaration list =
 
 let read_impdef (tcenv: TC.Env.t) (loc: AST.l) (s: string): (string * AST.expr) =
     let lexbuf = Lexing.from_string s in
-    let lexer  = offside_token Lexer.token in
-    let CLI_Impdef (x, e) = Parser.impdef_command_start lexer lexbuf in
+    let CLI_Impdef (x, e) = Parser.impdef_command_start Lexer.token lexbuf in
     let (s, e') = TC.with_unify tcenv loc (fun u ->
         let (e', _) = TC.tc_expr tcenv u loc e in
         e'
@@ -149,8 +124,7 @@ let read_impdef (tcenv: TC.Env.t) (loc: AST.l) (s: string): (string * AST.expr) 
 
 let read_expr (tcenv: TC.Env.t) (loc: AST.l) (s: string): AST.expr =
     let lexbuf = Lexing.from_string s in
-    let lexer  = offside_token Lexer.token in
-    let e = Parser.expr_command_start lexer lexbuf in
+    let e = Parser.expr_command_start Lexer.token lexbuf in
     let (s, e') = TC.with_unify tcenv loc (fun u ->
         let (e', _) = TC.tc_expr tcenv u loc e in
         e'
@@ -159,8 +133,7 @@ let read_expr (tcenv: TC.Env.t) (loc: AST.l) (s: string): AST.expr =
 
 let read_stmt (tcenv: TC.Env.t) (s: string): AST.stmt =
     let lexbuf = Lexing.from_string s in
-    let lexer  = offside_token Lexer.token in
-    let s = Parser.stmt_command_start lexer lexbuf in
+    let s = Parser.stmt_command_start Lexer.token lexbuf in
     TC.tc_stmt tcenv s
 
 (****************************************************************

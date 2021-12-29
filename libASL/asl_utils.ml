@@ -200,13 +200,13 @@ let fv_type (x: ty): IdentSet.t =
     ignore (visit_type (fv :> aslVisitor) x);
     fv#result
 
-let fv_args (atys: (ty * ident) list): IdentSet.t =
-    unionSets (List.map (fun (ty, _) -> fv_type ty) atys)
+let fv_args (atys: (ident * ty) list): IdentSet.t =
+    unionSets (List.map (fun (_, ty) -> fv_type ty) atys)
 
 let fv_sformal (x: sformal): IdentSet.t =
     (match x with
-    | Formal_In(ty,v) -> fv_type ty
-    | Formal_InOut(ty,v) -> fv_type ty
+    | Formal_In(v, ty) -> fv_type ty
+    | Formal_InOut(v, ty) -> fv_type ty
     )
 
 let fv_sformals (atys: sformal list): IdentSet.t =
@@ -258,7 +258,7 @@ class localsClass = object (self)
         let merge _ x y = Some x in
         List.fold_right (Bindings.union merge) stack Bindings.empty
 
-    method add_local (ty, id) =
+    method add_local (id, ty) =
         match stack with
         | s :: ss -> stack <- (Bindings.add id ty s :: ss)
         | [] -> failwith "addLocal: empty stack"
@@ -270,12 +270,12 @@ class localsClass = object (self)
         | s :: ss -> stack <- ss
         | [] -> failwith "leave_scope: empty stack"
     method! vstmt = function
-        | Stmt_VarDecl (ty, id, _, _)
-        | Stmt_ConstDecl (ty, id, _, _) ->
-            self#add_local (ty, id);
+        | Stmt_VarDecl (id, ty, _, _)
+        | Stmt_ConstDecl (id, ty, _, _) ->
+            self#add_local (id, ty);
             DoChildren
-        | Stmt_VarDeclsNoInit (ty, ids, _) ->
-            List.iter (fun id -> self#add_local (ty, id)) ids;
+        | Stmt_VarDeclsNoInit (ids, ty, _) ->
+            List.iter (fun id -> self#add_local (id, ty)) ids;
             DoChildren
         | _ ->
             DoChildren

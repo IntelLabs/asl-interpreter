@@ -200,16 +200,11 @@ grammar
 % Declarations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-leadingblank :: 'Leading' ::=
-    | EOL :: :: Blank
-    |     :: :: Nothing
-
 declarations :: 'Decls_' ::= {{ menhir-start }}
     {{ phantom }} {{ ocaml declaration list }}
     {{ pp-raw es = string "[ "^^ separate (string ";\n") (List.map pp_raw_declaration es) ^^ string " ]" }}
     {{ pp es = separate (string "\n") (List.map pp_declaration es) }}
-    | leadingblank declaration1 .. declarationn :: :: Decls
-                                          {{ ocaml [[declaration1..declarationn]] }}
+    | declaration1 .. declarationn :: :: Decls {{ ocaml [[declaration1..declarationn]] }}
 
 declaration :: 'Decl_' ::=
     {{ aux _ l }}
@@ -224,30 +219,30 @@ declaration :: 'Decl_' ::=
 
 type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __builtin type tidentdecl ; EOL                          ::   :: BuiltinType
-    | type tidentdecl ; EOL                                    ::   :: Forward % says there is a type decl elsewhere
-    | record tidentdecl { field1 ... fieldn } ; EOL            ::   :: Record
-    | type tidentdecl is ( field_ns1 , ... , field_nsn ) EOL   :: S :: Dep_Record {{ ocaml Decl_Record([[tidentdecl]], [[field_ns1 ... field_nsn]], Range($symbolstartpos,$endpos)) }} {{ com DEPRECATED }}
-    | type tidentdecl = ty ; EOL                               ::   :: Typedef
-    | enumeration tidentdecl { ident1 , .. , identn } ; EOL    ::   :: Enum
+    | __builtin type tidentdecl ;                           ::   :: BuiltinType
+    | type tidentdecl ;                                     ::   :: Forward % says there is a type decl elsewhere
+    | record tidentdecl { field1 ... fieldn } ;             ::   :: Record
+    | type tidentdecl is ( field_ns1 , ... , field_nsn )    :: S :: Dep_Record {{ ocaml Decl_Record([[tidentdecl]], [[field_ns1 ... field_nsn]], Range($symbolstartpos,$endpos)) }} {{ com DEPRECATED }}
+    | type tidentdecl = ty ;                                ::   :: Typedef
+    | enumeration tidentdecl { ident1 , .. , identn } ;     ::   :: Enum
 
 field_ns :: 'FieldNS_' ::=
-    {{ phantom }} {{ ocaml ty * ident }}
-    {{ pp-raw f = string "(" ^^ pp_raw_ty (fst f) ^^ string ", " ^^ string (snd f) ^^ string ")" }}
-    {{ pp f     = pp_ty (fst f) ^^ string " " ^^ string (snd f) }}
-    | ty ident              :: :: Field {{ ocaml ([[ty]], [[ident]]) }}
+    {{ phantom }} {{ ocaml ident * ty }}
+    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_ty (snd f) ^^ string ")" }}
+    {{ pp f     = pp_ident (fst f) ^^ string " " ^^ pp_ty (snd f) }}
+    | ident '::' ty         :: :: Field {{ ocaml ([[ident]], [[ty]]) }}
 
 field :: 'Field_' ::=
-    {{ phantom }} {{ ocaml ty * ident }}
-    {{ pp-raw f = string "(" ^^ pp_raw_ty (fst f) ^^ string ", " ^^ pp_raw_ident (snd f) ^^ string ")" }}
-    {{ pp f     = pp_ty (fst f) ^^ string " " ^^ pp_ident (snd f) }}
-    | ty ident ;            :: :: Field {{ ocaml ([[ty]], [[ident]]) }}
+    {{ phantom }} {{ ocaml ident * ty }}
+    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_ty (snd f) ^^ string ")" }}
+    {{ pp f     = pp_ident (fst f) ^^ string " " ^^ pp_ty (snd f) }}
+    | ident '::' ty ;       :: :: Field {{ ocaml ([[ident]], [[ty]]) }}
 
 variable_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | ty qualident ; EOL                                       ::   :: Var
-    | constant ty qualident = expr ; EOL                       ::   :: Const
-    | array ty qualident [ ixtype ] ; EOL                      :: S :: Array {{ ocaml Decl_Var(Type_Array([[ixtype]],[[ty]]), [[qualident]], Range($symbolstartpos,$endpos)) }}
+    | var qualident '::' ty ;                    ::   :: Var
+    | constant qualident '::' ty = expr ;        ::   :: Const
+    | let qualident '::' ty = expr ;             :: S :: Const2{{ ocaml Decl_Const([[qualident]], [[ty]], [[expr]], Range($symbolstartpos,$endpos)) }}
 
 ixtype :: 'Index_' ::=
     | tident                        :: :: Enum
@@ -255,64 +250,96 @@ ixtype :: 'Index_' ::=
 
 function_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __builtin ty qualident ( formal1 , .. , formaln ) ; EOL      :: :: BuiltinFunction
-    | ty qualident ( formal1 , .. , formaln ) ; EOL                :: :: FunType
-    | ty qualident ( formal1 , .. , formaln ) opt_indented_block   :: :: FunDefn
+    | __builtin func qualident parameters_opt ( formal_list ) => ty ;   :: :: BuiltinFunction
+    | func qualident parameters_opt ( formal_list ) => ty ;             :: :: FunType
+    | func qualident parameters_opt ( formal_list ) => ty block end     :: :: FunDefn
 
 procedure_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | qualident ( formal1 , .. , formaln ) ; EOL                   :: :: ProcType
-    | qualident ( formal1 , .. , formaln ) opt_indented_block      :: :: ProcDefn
+    | func qualident parameters_opt ( formal_list ) ;                       :: :: ProcType
+    | func qualident parameters_opt ( formal_list ) block end               :: :: ProcDefn
+
+parameters_opt :: 'Parameters_Opt_' ::=
+    {{ phantom }} {{ ocaml (ident * ty option) list }}
+    {{ pp-raw ps = lbrace ^^ pp_raw_parameter_list ps ^^ rbrace }}
+    {{ pp ps = lbrace ^^ pp_parameter_list ps ^^ rbrace }}
+    | { parameter_list } :: :: Some {{ ocaml [[parameter_list]] }}
+    |                    :: :: None {{ ocaml [] }}
+
+parameter_list :: 'Parameters_' ::=
+    {{ phantom }} {{ ocaml (ident * ty option) list }}
+    {{ pp-raw fs = separate (string ", ") (List.map pp_raw_parameter fs) }}
+    {{ pp fs = separate (string ", ") (List.map pp_parameter fs) }}
+    | parameter1 , ... , parametern :: :: List {{ ocaml [[parameter1...parametern]] }}
+
+parameter :: 'Parameter_' ::=
+    {{ phantom }} {{ ocaml ident * ty option }}
+    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_opt_ty (snd f) ^^ string ")" }}
+    {{ pp f     = pp_ident (fst f) ^^ string " :: " ^^ pp_opt_ty (snd f) }}
+    | ident opt_ty       :: :: Ident {{ ocaml ([[ident]], [[opt_ty]]) }}
+
+opt_ty :: 'Opt_' ::=
+    {{ phantom }} {{ ocaml ty option }}
+    {{ pp-raw ot = match ot with None -> string "" | Some t -> pp_raw_ty t }}
+    {{ pp ot = match ot with None -> string "" | Some t -> pp_ty t }}
+    | '::' ty         :: :: Ty    {{ ocaml Some [[ty]] }}
+    |                 :: :: No_Ty {{ ocaml None }}
+
+formal_list :: 'Formals_' ::=
+    {{ phantom }} {{ ocaml (ident * ty) list }}
+    {{ pp-raw fs = separate (string ", ") (List.map pp_raw_formal fs) }}
+    {{ pp fs = separate (string ", ") (List.map pp_formal fs) }}
+    | formal1 , .. , formaln :: :: List {{ ocaml [[formal1..formaln]] }}
 
 formal :: 'Formal_' ::=
-    {{ phantom }} {{ ocaml ty * ident }}
-    {{ pp-raw f = string "(" ^^ pp_raw_ty (fst f) ^^ string ", " ^^ pp_raw_ident (snd f) ^^ string ")" }}
-    {{ pp f     = pp_ty (fst f) ^^ string " " ^^ pp_ident (snd f) }}
-    | ty ident              :: :: In2 {{ ocaml ([[ty]], [[ident]]) }}
+    {{ phantom }} {{ ocaml ident * ty }}
+    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_ty (snd f) ^^ string ")" }}
+    {{ pp f     = pp_ident (fst f) ^^ string " " ^^ pp_ty (snd f) }}
+    | ident '::' ty         :: :: InTy {{ ocaml ([[ident]], [[ty]]) }}
 
 getter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
     % Note: VarGetterType is an unofficial extension because ASL has no official way
     % to declare a getter because syntax would be same as declaring a variable
-    | __function ty qualident ; EOL                                        :: :: VarGetterType
-    | ty qualident opt_indented_block                                      :: :: VarGetterDefn
-    | ty qualident [ formal1 , .. , formaln ] ; EOL                        :: :: ArrayGetterType
-    | ty qualident [ formal1 , .. , formaln ] opt_indented_block           :: :: ArrayGetterDefn
+    | getter qualident parameters_opt => ty ;                                      :: :: VarGetterType
+    | getter qualident parameters_opt => ty block end                              :: :: VarGetterDefn
+    | getter qualident parameters_opt [ formal_list ] => ty ;                      :: :: ArrayGetterType
+    | getter qualident parameters_opt [ formal_list ] => ty block end              :: :: ArrayGetterDefn
 
 setter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | qualident = ty ident ; EOL                                           :: :: VarSetterType
-    | qualident = ty ident opt_indented_block                              :: :: VarSetterDefn
-    | qualident [ sformal1 , .. , sformaln ] = ty ident ; EOL              :: :: ArraySetterType
-    | qualident [ sformal1 , .. , sformaln ] = ty ident opt_indented_block :: :: ArraySetterDefn
+    | setter qualident parameters_opt = ident '::' ty ;                                       :: :: VarSetterType
+    | setter qualident parameters_opt = ident '::' ty block end                               :: :: VarSetterDefn
+    | setter qualident parameters_opt [ sformal1 , .. , sformaln ] = ident '::' ty ;          :: :: ArraySetterType
+    | setter qualident parameters_opt [ sformal1 , .. , sformaln ] = ident '::' ty block end  :: :: ArraySetterDefn
 
 sformal :: 'Formal_' ::=
-    | ty ident              :: :: In
-    | ty & ident            :: :: InOut
+    |   ident '::' ty       :: :: In
+    | & ident '::' ty       :: :: InOut
 
 instruction_definition :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __instruction ident EOL INDENT
+    | __instruction ident
           encoding1 ... encodingn
           opt_postdecode
-          __execute opt_conditional opt_indented_block
-      DEDENT
+          __execute opt_conditional block
+      end
       :: :: InstructionDefn
-    | __decode ident EOL INDENT
+    | __decode ident
           decode_case
-      DEDENT
+      end
       :: :: DecoderDefn
 
 encoding :: 'Encoding_' ::=
     {{ aux _ l }}
-    | __encoding ident1 EOL INDENT
-          __instruction_set ident2 EOL
+    | __encoding ident1
+          __instruction_set ident2
           instr_field1 .. instr_fieldm
-          __opcode opcode_value EOL
-          __guard expr EOL
+          __opcode opcode_value
+          __guard expr
           instr_unpred1 .. instr_unpredn
-          __decode opt_indented_block
-      DEDENT
+          __decode block
+      end
       :: :: Block
 
 opt_conditional :: 'OptConditional_' ::=
@@ -328,11 +355,11 @@ opt_postdecode :: 'OptPostDecode_' ::=
     {{ pp     x = match x with Some(ys) -> string "postdecode" ^^ hardline
                                            ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
                              | None -> string "" }}
-    | __postdecode indented_block   :: :: Some {{ ocaml Some([[indented_block]]) }}
+    | __postdecode block end        :: :: Some {{ ocaml Some([[block]]) }}
     |                               :: :: None {{ ocaml None }}
 
 instr_field :: 'IField_' ::=
-    | __field ident offset1 +: offset2 EOL :: :: Field
+    | __field ident offset1 +: offset2 :: :: Field
 
 % OTT workaround: I can't write "intlit1 : intLit2" in a rule
 % because intLit is a terminal not a non-terminal
@@ -350,14 +377,13 @@ instr_unpred :: 'Instr_Unpred_' ::=
     {{ phantom }} {{ ocaml (int * bitsLit) }}
     {{ pp-raw x = string "??" }}
     {{ pp     x = string "??" }}
-    | __unpredictable_unless intLit == bitsLit EOL :: :: Unpred {{ ocaml (int_of_string [[intLit]], [[bitsLit]]) }}
+    | __unpredictable_unless intLit == bitsLit :: :: Unpred {{ ocaml (int_of_string [[intLit]], [[bitsLit]]) }}
 
 decode_case :: 'DecoderCase_' ::=
     {{ aux _ l }}
-    | case ( decode_slice1 , .. , decode_slicem ) of EOL
-      INDENT
+    | case ( decode_slice1 , .. , decode_slicem ) of
           decode_alt1 ... decode_altn
-      DEDENT
+      end
       :: :: Case
 
 decode_slice :: 'DecoderSlice_' ::=
@@ -376,26 +402,25 @@ decode_pattern :: 'DecoderPattern_' ::=
 
 decode_body :: 'DecoderBody_' ::=
     {{ aux _ l }}
-    | __UNPREDICTABLE  EOL :: :: UNPRED
-    | __UNALLOCATED    EOL :: :: UNALLOC
-    | __NOP            EOL :: :: NOP
-    | __encoding ident EOL :: :: Encoding
-    | EOL INDENT
-          instr_field1 .. instr_fieldm
+    | __UNPREDICTABLE  :: :: UNPRED
+    | __UNALLOCATED    :: :: UNALLOC
+    | __NOP            :: :: NOP
+    | __encoding ident :: :: Encoding
+    |     instr_field1 .. instr_fieldm
           decode_case
-      DEDENT
+      end
       :: :: Decoder
 
 % features not found in published ASL but potentially used in glue code
 internal_definition :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __operator1 unop            = ident1 , ... , identn ; EOL                       :: :: Operator1
-    | __operator2 binop_or_concat = ident1 , ... , identn ; EOL                       :: :: Operator2
-    | __newevent qualident ( formal1 , .. , formaln ) ; EOL                           :: :: NewEventDefn
-    | __event    qualident possibly_empty_block                                       :: :: EventClause
-    | __newmap ty qualident ( formal1 , .. , formaln ) opt_indented_block             :: :: NewMapDefn
-    | __map qualident mapfield1 , .. , mapfieldn optmapcond then possibly_empty_block :: :: MapClause
-    | __config ty qualident = expr ; EOL                                              :: :: Config
+    | __operator1 unop  = ident1 , ... , identn ;                                     :: :: Operator1
+    | __operator2 binop = ident1 , ... , identn ;                                     :: :: Operator2
+    | __newevent qualident parameters_opt ( formal_list ) ;                           :: :: NewEventDefn
+    | __event    qualident block end                                                  :: :: EventClause
+    | __newmap qualident parameters_opt ( formal_list ) => ty block end               :: :: NewMapDefn
+    | __map qualident mapfield1 , .. , mapfieldn optmapcond then block end            :: :: MapClause
+    | config qualident '::' ty = expr ;                                               :: :: Config
 
 operator :: 'Operator_' ::=
     {{ phantom }} {{ ocaml string }}
@@ -441,6 +466,7 @@ tident :: 'QIdent_' ::= {{ quotient-with qualident }}
 
 ty :: 'Type_' ::=
     | tident                          :: :: Constructor
+    | integer constraint_opt          :: :: Integer
     | bits ( expr )                   :: :: Bits
     | tident ( expr1 , ... , exprn )  :: :: App
     | typeof ( expr )                 :: :: OfExpr
@@ -448,6 +474,19 @@ ty :: 'Type_' ::=
     | array [ ixtype ] of ty          :: :: Array
     % I would prefer not to have a tuple type and restrict it to return types.
     | ( ty1 , .. , tyn )              :: :: Tuple
+
+constraint_opt :: 'Constraint_' ::=
+    {{ phantom }} {{ ocaml constraint_range list option }}
+    {{ pp-raw ocrs = match ocrs with None -> string ""
+                                   | Some crs -> string "{"^^ separate (string ", ") (List.map pp_raw_constraint_range crs) ^^ string "}" }}
+    {{ pp ocrs = match ocrs with None -> string ""
+                               | Some crs -> string "{"^^ separate (string ", ") (List.map pp_constraint_range crs) ^^ string "}" }}
+    | { constraint_range1 , ... , constraint_rangen } :: :: Ranges {{ ocaml Some [[constraint_range1 ... constraint_rangen]] }}
+    |                                                 :: :: Empty {{ ocaml None }}
+
+constraint_range :: 'Constraint_' ::=
+    | expr             :: :: Single
+    | expr1 '..' expr2 :: :: Range
 
 % possibly empty list of regfields separated by comma, with optional trailing comma
 regfields :: 'RegFields' ::=
@@ -477,33 +516,9 @@ compound_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     | conditional_stmt   :: :: Conditional {{ quotient-remove }} {{ ocaml [[conditional_stmt]] }}
     | repetitive_stmt    :: :: Repetitive  {{ quotient-remove }} {{ ocaml [[repetitive_stmt]] }}
     | catch_stmt         :: :: Catch       {{ quotient-remove }} {{ ocaml [[catch_stmt]] }}
+    | begin block end    :: :: Block
 
-
-simple_stmt_list :: 'SimpleStmtList_' ::=
-    {{ phantom }} {{ ocaml stmt list }}
-    | simple_stmt1 ... simple_stmtn :: :: Simple {{ quotient-remove }} {{ ocaml [[simple_stmt1...simple_stmtn]] }}
-
-% It may be possible to simplify the following because we made normal if statements more flexible - experimentation needed
-simple_if_stmt :: 'SimpleIfStmts_' ::=
-    {{ phantom }} {{ ocaml stmt }}
-    | if expr then simple_stmt_list1 simple_elsif1 .. simple_elsifn  else simple_stmt_list2 EOL :: :: If {{ quotient-remove }} {{ ocaml Stmt_If([[expr]], [[simple_stmt_list1]], [[simple_elsif1 .. simple_elsifn]], [[simple_stmt_list2]], Range($symbolstartpos, $endpos)) }}
-    | if expr then simple_stmt_list1 simple_elsif1 .. simple_elsifn  EOL :: :: IfNoElse {{ quotient-remove }} {{ ocaml Stmt_If([[expr]], [[simple_stmt_list1]], [[simple_elsif1 .. simple_elsifn]], [], Range($symbolstartpos, $endpos)) }}
-
-simple_elsif :: 'S_Elsif_' ::= {{ quotient-with s_elsif }}
-    | elsif expr then simple_stmt_list  :: :: Simple  {{ quotient-remove }} {{ ocaml S_Elsif_Cond([[expr]], [[simple_stmt_list]]) }}
-
-simple_stmts :: 'SimpleStmts_' ::=
-    {{ phantom }} {{ ocaml stmt list }}
-    | simple_stmt_list simple_if_stmt :: :: ListIf   {{ quotient-remove }} {{ ocaml [[simple_stmt_list]] @ [ [[simple_if_stmt]] ] }}
-    | simple_stmt_list EOL            :: :: List     {{ quotient-remove }} {{ ocaml [[simple_stmt_list]] }}
-
-
-stmts :: 'Stmts_' ::=
-    {{ phantom }} {{ ocaml stmt list }}
-    | simple_stmts    :: :: Simple   {{ quotient-remove }} {{ ocaml [[simple_stmts]] }}
-    | compound_stmt   :: :: Compound {{ quotient-remove }} {{ ocaml [ [[compound_stmt]] ] }}
-
-indented_block :: 'Block_' ::=
+block :: 'Block_' ::=
     {{ phantom }} {{ ocaml stmt list }}
     {{ pp-raw x = (nest 4 (lbracket
                           ^^ hardline
@@ -521,32 +536,14 @@ indented_block :: 'Block_' ::=
                   ^^ hardline
                   ^^ rbrace
     }}
-    | EOL INDENT stmts1 ... stmtsn DEDENT :: :: Indented
-                                           {{ ocaml List.concat [[stmts1...stmtsn]] }}
-
-possibly_empty_block :: 'Block_' ::= {{ quotient-with indented_block }}
-    | indented_block :: :: EIndented {{ quotient-remove }} {{ ocaml [[indented_block]] }}
-    | simple_stmts   :: :: ESimple   {{ quotient-remove }} {{ com statements on same line }} {{ ocaml [[simple_stmts]] }}
-    | EOL            :: :: Empty     {{ quotient-remove }} {{ ocaml [] }}
-
-opt_indented_block :: 'Block_' ::= {{ quotient-with indented_block }}
-    | indented_block :: :: PE_EIndented {{ quotient-remove }} {{ ocaml [[indented_block]] }}
-    | EOL            :: :: PE_Empty     {{ quotient-remove }} {{ ocaml [] }}
-
-% special type of block only found in if-statements
-% (distinguishing this helps avoid the dangling else problem)
-nonempty_block :: 'Block_' ::= {{ quotient-with indented_block }}
-    | indented_block :: :: NEIndented {{ quotient-remove }} {{ ocaml [[indented_block]] }}
-    | simple_stmts   :: :: NESimple   {{ quotient-remove }} {{ com statements on same line }} {{ ocaml [[simple_stmts]] }}
-
-
+    | stmt1 .. stmtn :: :: Stmts {{ ocaml [[stmt1..stmtn]] }}
 
 assignment_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
-    | ty ident1 , ... , identn ;   :: :: VarDeclsNoInit
-    | ty ident = expr ;            :: :: VarDecl
-    | constant ty ident = expr ;   :: :: ConstDecl
-    | lexpr = expr ;               :: :: Assign
+    | var ident1 , .... , identn '::' ty ;  :: :: VarDeclsNoInit
+    | var ident '::' ty = expr ;            :: :: VarDecl
+    | let ident '::' ty = expr ;            :: :: ConstDecl
+    | lexpr = expr ;                        :: :: Assign
 
 lexpr :: 'LExpr_' ::=
     | -                                   ::   :: Wildcard
@@ -590,32 +587,25 @@ stmt_spice :: 'Stmt_' ::= {{ quotient-with stmt }}
 
 conditional_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
-    | if expr then opt_indented_block
+    | if expr then
+          block
       s_elsif1
       ..
       s_elsifn
       optional_else
+      end
       :: :: If
 
-    | if expr then simple_stmts
-      s_elsif1
-      ..
-      s_elsifn
-      optional_else
-      :: S :: If2 {{ ocaml Stmt_If([[expr]],[[simple_stmts]],[[s_elsif1 .. s_elsifn]],[[optional_else]], Range($symbolstartpos, $endpos)) }}
-
-    | if expr then simple_stmt_list1 simple_elsif1 .. simple_elsifn  else simple_stmt_list2 EOL :: :: If3 {{ quotient-remove }} {{ ocaml Stmt_If([[expr]], [[simple_stmt_list1]], [[simple_elsif1 .. simple_elsifn]], [[simple_stmt_list2]], Range($symbolstartpos, $endpos)) }}
-
-    | case expr of EOL
-      INDENT
+    | case expr of
           alt1 ... altn
           opt_otherwise
-      DEDENT
+      end
       :: :: Case
 
 s_elsif :: 'S_Elsif_' ::=
-    | elsif expr then opt_indented_block  ::   :: Cond
-    | elsif expr then simple_stmts        :: S :: Cond2 {{ ocaml S_Elsif_Cond([[expr]], [[simple_stmts]]) }}
+    | elsif expr then
+          block
+      ::   :: Cond
 
 optional_else :: 'S_Else' ::=
     {{ phantom }} {{ ocaml stmt list }}
@@ -625,13 +615,11 @@ optional_else :: 'S_Else' ::=
                              | ys -> string "else" ^^ hardline
                                          ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
     }}
-    | else opt_indented_block :: :: ElseBlock  {{ ocaml [[opt_indented_block]] }}
-    | else simple_stmts                  :: :: ElseSimple {{ ocaml [[simple_stmts]] }}
+    | else block                         :: :: ElseBlock  {{ ocaml [[block]] }}
     |                                    :: :: NoElse     {{ ocaml [] }}
 
 alt :: 'Alt_' ::=
-    | when pattern1 , ... , patternn opt_altcond possibly_empty_block ::   :: Alt
-    | when pattern1 , ... , patternn opt_altcond simple_if_stmt       :: S :: Alt2 {{ ocaml Alt_Alt([[pattern1 ... patternn]], [[opt_altcond]], [ [[simple_if_stmt]] ]) }}
+    | when pattern1 , ... , patternn opt_altcond : block ::   :: Alt
 
 opt_otherwise :: 'OptOtherwise_' ::=
     {{ phantom }} {{ ocaml (stmt list) option }}
@@ -639,16 +627,15 @@ opt_otherwise :: 'OptOtherwise_' ::=
     {{ pp     x = match x with Some(ys) -> string "otherwise" ^^ hardline
                                            ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
                              | None -> string "" }}
-    | otherwise possibly_empty_block   :: :: Some {{ ocaml Some([[possibly_empty_block]]) }}
-    |                                  :: :: None {{ ocaml None }}
+    | otherwise : block :: :: Some {{ ocaml Some([[block]]) }}
+    |                   :: :: None {{ ocaml None }}
 
 opt_altcond :: 'AltCond_' ::= {{ ocaml expr option }}
     {{ phantom }} {{ ocaml expr option }}
     {{ pp-raw x = match x with Some(y) -> string "Some(" ^^ pp_raw_expr y ^^ string ")" | None -> string "None" }}
     {{ pp     x = match x with Some(y) -> pp_expr y | None -> string "" }}
-    | && expr => :: :: Some {{ ocaml Some([[expr]]) }}
-    |         => :: :: None0 {{ ocaml None }}
-    |            :: :: None {{ ocaml None }}
+    | where expr => :: :: Some {{ ocaml Some([[expr]]) }}
+    |               :: :: None {{ ocaml None }}
 
 pattern :: 'Pat_' ::=
     | intLit                             :: :: LitInt
@@ -666,9 +653,9 @@ apattern :: 'Pat_' ::= {{ quotient-with pattern }}
 
 repetitive_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
-    | for ident = expr1 direction expr2 indented_block :: :: For
-    | while expr do indented_block                     :: :: While
-    | repeat indented_block until expr ; EOL           :: :: Repeat
+    | for ident = expr1 direction expr2 do block end      :: :: For
+    | while expr do block end                             :: :: While
+    | repeat block until expr ;                           :: :: Repeat
 
 direction :: 'Direction_' ::=
     | to      :: :: Up
@@ -676,16 +663,16 @@ direction :: 'Direction_' ::=
 
 catch_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
-    | try indented_block
-      catch ident EOL
-      INDENT
+    | try
+          block
+      catch ident
           catcher1 .. catchern
           opt_otherwise
-      DEDENT
+      end
       :: :: Try
 
 catcher :: 'Catcher_' ::=
-    | when expr opt_indented_block  :: :: Guarded
+    | when expr : block  :: :: Guarded
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Expressions
@@ -710,11 +697,7 @@ zexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | expr1 binop expr2 :: :: Binop
 
 factor :: 'Factor_' ::=
-    | binop_or_concat bexpr :: :: BinOp
-
-binop_or_concat :: 'Binop_' ::= {{ quotient-with binop }}
-    | binop    :: :: NotConcat {{ quotient-remove }} {{ ocaml [[binop]] }}
-    | :        :: :: Concat
+    | binop bexpr :: :: BinOp
 
 binop :: 'Binop_' ::=
     | ==      :: :: Eq
@@ -736,8 +719,8 @@ binop :: 'Binop_' ::=
     | >>      :: :: ShiftR
     | &&      :: :: BoolAnd
     | ||      :: :: BoolOr
-    | IFF     :: :: BoolIff
-    | IMPLIES :: :: BoolImplies
+    | iff     :: :: BoolIff
+    | implies :: :: BoolImplies
     | OR      :: :: BitOr
     | EOR     :: :: BitEor
     | AND     :: :: BitAnd
@@ -763,6 +746,7 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | qualident ( expr1 , .. , exprn )           :: S :: Apply   {{ ocaml Expr_TApply([[qualident]], [], [[expr1 .. exprn]]) }}
     | ( expr )                                   ::   :: Parens
     | ( expr1 , .... , exprn )                   ::   :: Tuple     {{ com tuple }}
+    | [ expr1 , .... , exprn ]                   ::   :: Concat    {{ com bitvector concatenation }}
     | ty UNKNOWN                                 ::   :: Unknown
     | ty IMPLEMENTATION_DEFINED opt_stringLit    ::   :: ImpDef
 
@@ -783,20 +767,9 @@ unop :: 'Unop_' ::=
     | NOT      :: :: BitsNot
 
 slice :: 'Slice_' ::=
-    | sexpr            :: :: Single
-    | sexpr1 :  sexpr2 :: :: HiLo
-    | sexpr1 +: sexpr2 :: :: LoWd
-
-% almost identical to conditional_expression except that it omits : binop
-sexpr :: 'Expr_' ::= {{ quotient-with expr }}
-    | scexpr                                                 :: :: CExpr2  {{ quotient-remove }} {{ ocaml [[scexpr]] }}
-    | if cexpr1 then expr1 e_elsif1 .. e_elsifn else scexpr2 :: :: If2  {{ quotient-remove }} {{ ocaml Expr_If([[cexpr1]], [[expr1]], [[e_elsif1 .. e_elsifn]], [[scexpr2]]) }}
-
-scexpr :: 'Expr_' ::= {{ quotient-with expr }}
-    | bexpr sfactor1 .. sfactorn :: :: Binop2  {{ quotient-remove }} {{ ocaml buildExpression [[bexpr]] [[sfactor1..sfactorn]] (Range($startpos([[bexpr]]),$endpos([[sfactor1..sfactorn]]))) }}
-
-sfactor :: 'Factor_' ::= {{ quotient-with factor }}
-    | binop bexpr :: :: BinOp2 {{ quotient-remove }} {{ ocaml Factor_BinOp([[binop]], [[bexpr]]) }}
+    | expr           :: :: Single
+    | expr1 :  expr2 :: :: HiLo
+    | expr1 +: expr2 :: :: LoWd
 
 literal_expression :: 'Expr_' ::= {{ quotient-with expr }}
     | intLit                                     :: :: LitInt    {{ com literal decimal integer }}
@@ -815,27 +788,24 @@ expr_command :: 'CLI_' ::= {{ menhir-start }}
     {{ phantom }} {{ ocaml expr }}
     {{ pp-raw x = pp_raw_expr x }}
     {{ pp     x = pp_expr     x }}
-    | EOL expr :: :: Expr {{ ocaml [[expr]] }}
+    | expr :: :: Expr {{ ocaml [[expr]] }}
 
 stmt_command :: 'CLI_' ::= {{ menhir-start }}
     {{ phantom }} {{ ocaml stmt }}
     {{ pp-raw x = pp_raw_stmt x }}
     {{ pp     x = pp_stmt     x }}
-    | EOL stmt :: :: Stmt {{ ocaml [[stmt]] }}
+    | stmt :: :: Stmt {{ ocaml [[stmt]] }}
 
 impdef_command :: 'CLI_' ::= {{ menhir-start }}
     {{ pp-raw se = match se with (s,e) -> string s ^^ string "=" ^^ pp_raw_expr e }}
     {{ pp     se = match se with (s,e) -> string s ^^ string "=" ^^ pp_expr e }}
-    | EOL stringLit = expr :: :: Impdef {{ ocaml ([[stringLit]], [[expr]]) }}
+    | stringLit = expr :: :: Impdef {{ ocaml ([[stringLit]], [[expr]]) }}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Misc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 terminals :: 'terminals_' ::=
-    | INDENT :: :: Indent {{ tex \mbox{$\{\!\mid$} }}
-    | DEDENT :: :: Dedent {{ tex \mbox{$\mid\!\}$} }}
-    | EOL    :: :: EndOfLine {{ tex \mbox{$\hookleftarrow$} }}
     | ^      :: :: Caret     {{ tex \mbox{$\,\hat{}$} }}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -853,7 +823,6 @@ let associativeOperators: binop list =
     ; Binop_BitOr
     ; Binop_BitEor
     ; Binop_BitAnd
-    ; Binop_Concat
     ; Binop_Append
     ]
 
@@ -891,7 +860,6 @@ let miscOperators: binop list =
     ; Binop_BitOr
     ; Binop_BitEor
     ; Binop_BitAnd
-    ; Binop_Concat
     ]
 
 let isAssociative (x: binop): bool = List.mem x associativeOperators

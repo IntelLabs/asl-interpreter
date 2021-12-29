@@ -405,7 +405,7 @@ let eval_sub_int (loc: AST.l) (x: value) (y: value): value =
 
 let eval_concat (loc: AST.l) (xs: value list): value =
     let xs' = List.map (to_bits loc) xs in
-    VBits (List.fold_left prim_append_bits empty_bits xs')
+    VBits (prim_concat_bits xs')
 
 
 (****************************************************************)

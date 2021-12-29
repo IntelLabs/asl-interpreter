@@ -41,12 +41,9 @@ let _ =
 
         lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
 
-        (* Apply offside rule to raw token stream *)
-        let lexer = offside_token Lexer.token in
-
         let eof = ref false in
         while not !eof do
-            let tok  = lexer lexbuf in
+            let tok  = Lexer.token lexbuf in
             let curr = lexbuf.Lexing.lex_curr_p in
             let line = curr.Lexing.pos_lnum in
             let cnum = curr.Lexing.pos_cnum - curr.Lexing.pos_bol in
