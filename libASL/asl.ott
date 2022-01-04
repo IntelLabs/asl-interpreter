@@ -30,6 +30,8 @@ type l =
 
 type 'a annot = l * 'a
 
+type pos = Lexing.position
+
 let pp_lexing_position (p: Lexing.position): string =
     Printf.sprintf  "file \"%s\" line %d char %d"
         p.Lexing.pos_fname p.Lexing.pos_lnum (p.Lexing.pos_cnum - p.Lexing.pos_bol)
@@ -179,6 +181,13 @@ l :: '' ::=            {{ phantom }}
                        {{ pp     l = pp_loc l }}
                        {{ pp-raw l = PPrintEngine.string (pp_loc l) }}
   |                    :: :: Unknown {{ ocaml Unknown }}
+
+pos :: '' ::=          {{ phantom }}
+                       {{ ocaml pos }}
+                       {{ com Source location }}
+                       {{ pp     p = PPrintEngine.string (pp_lexing_position p) }}
+                       {{ pp-raw p = PPrintEngine.string (pp_lexing_position p) }}
+  |                    :: :: Pos {{ ocaml $symbolstartpos }}
 
 ident :: '' ::=        {{ phantom }}
                        {{ ocaml ident }}
@@ -607,31 +616,33 @@ conditional_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
       :: :: Case
 
 s_elsif :: 'S_Elsif_' ::=
+    {{ aux _ l }}
     | elsif expr then
           block
       ::   :: Cond
 
 optional_else :: 'S_Else' ::=
-    {{ phantom }} {{ ocaml stmt list }}
-    {{ pp-raw x = match x with [] -> string ""
+    {{ phantom }} {{ ocaml (stmt list * l) }}
+    {{ pp-raw x = match fst x with [] -> string ""
                              | ys -> string "(else " ^^ separate (string "\n") (List.map pp_raw_stmt ys) ^^ string ")" }}
-    {{ pp     x = match x with [] -> string ""
+    {{ pp     x = match fst x with [] -> string ""
                              | ys -> string "else" ^^ hardline
                                          ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
     }}
-    | else block                         :: :: ElseBlock  {{ ocaml [[block]] }}
-    |                                    :: :: NoElse     {{ ocaml [] }}
+    | else block                         :: :: ElseBlock  {{ ocaml ([[block]], Range($symbolstartpos,$endpos)) }}
+    |                                    :: :: NoElse     {{ ocaml ([], Range($symbolstartpos,$endpos)) }}
 
 alt :: 'Alt_' ::=
+    {{ aux _ l }}
     | when pattern1 , ... , patternn opt_altcond : block ::   :: Alt
 
 opt_otherwise :: 'OptOtherwise_' ::=
-    {{ phantom }} {{ ocaml (stmt list) option }}
-    {{ pp-raw x = match x with Some(ys) -> string "Some(" ^^ separate (string "\n") (List.map pp_raw_stmt ys) ^^ string ")" | None -> string "None" }}
-    {{ pp     x = match x with Some(ys) -> string "otherwise" ^^ hardline
+    {{ phantom }} {{ ocaml (stmt list * l) option }}
+    {{ pp-raw x = match x with Some(ys,_) -> string "Some(" ^^ separate (string "\n") (List.map pp_raw_stmt ys) ^^ string ")" | None -> string "None" }}
+    {{ pp     x = match x with Some(ys,_) -> string "otherwise" ^^ hardline
                                            ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
                              | None -> string "" }}
-    | otherwise : block :: :: Some {{ ocaml Some([[block]]) }}
+    | otherwise : block :: :: Some {{ ocaml Some([[block]], Range($symbolstartpos,$endpos)) }}
     |                   :: :: None {{ ocaml None }}
 
 opt_altcond :: 'AltCond_' ::= {{ ocaml expr option }}
@@ -659,7 +670,7 @@ repetitive_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
     | for ident = expr1 direction expr2 do block end      :: :: For
     | while expr do block end                             :: :: While
-    | repeat block until expr ;                           :: :: Repeat
+    | repeat block until expr ; pos                       :: :: Repeat
 
 direction :: 'Direction_' ::=
     | to      :: :: Up
@@ -669,13 +680,14 @@ catch_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
     | try
           block
-      catch ident
+      catch ident pos
           catcher1 .. catchern
           opt_otherwise
       end
       :: :: Try
 
 catcher :: 'Catcher_' ::=
+    {{ aux _ l }}
     | when expr : block  :: :: Guarded
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

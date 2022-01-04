@@ -7,8 +7,8 @@
 
 (** ASL evaluator *)
 
-module PP   = Asl_parser_pp
 module AST  = Asl_ast
+module FMT  = Asl_fmt
 module TC   = Tcheck
 
 open AST
@@ -346,7 +346,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
     | Type_Constructor(tc) ->
         (match GlobalEnv.getEnum (Env.globals env) tc with
         | Some (e::_) -> e
-        | Some [] -> raise (EvalError (loc, "eval_unknown unknown type constructor " ^ Utils.to_string (PP.pp_ty x)))
+        | Some [] -> raise (EvalError (loc, "eval_unknown unknown type constructor " ^ pp_type x))
         | None ->
             (match GlobalEnv.getRecord (Env.globals env) tc with
             | Some fs ->
@@ -355,7 +355,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
                 (match GlobalEnv.getTypedef (Env.globals env) tc with
                 | Some ty' -> eval_unknown loc env ty'
                 | None ->
-                    raise (EvalError (loc, "eval_unknown " ^ Utils.to_string (PP.pp_ty x)))
+                    raise (EvalError (loc, "eval_unknown " ^ pp_type x))
                 )
             )
         )
@@ -365,9 +365,9 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
             let a' = to_integer loc (eval_expr loc env a) in
             eval_unknown_ram a'
     | Type_App(tc, es) ->
-            raise (EvalError (loc, "eval_unknown App " ^ Utils.to_string (PP.pp_ty x)))
+            raise (EvalError (loc, "eval_unknown App " ^ pp_type x))
     | Type_OfExpr(e) ->
-            raise (EvalError (loc, "eval_unknown typeof " ^ Utils.to_string (PP.pp_ty x)))
+            raise (EvalError (loc, "eval_unknown typeof " ^ pp_type x))
     | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
     | Type_Array(Index_Enum(tc),ety) ->
             Value.empty_array (eval_unknown loc env ety)
@@ -433,7 +433,7 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
             eval_if (E_Elsif_Cond(c, t)::els) e
     | Expr_Binop(a, op, b) ->
             raise (EvalError (loc, "binary operation should have been removed in expression "
-                   ^ Utils.to_string (PP.pp_expr x)))
+                   ^ pp_expr x))
     | Expr_Field(e, f) ->
             get_field loc (eval_expr loc env e) f
     | Expr_Fields(e, fs) ->
@@ -467,7 +467,7 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
                         from_bool false
                 | _ ->
                     raise (EvalError (loc, "malformed and_bool expression "
-                       ^ Utils.to_string (PP.pp_expr x)))
+                       ^ pp_expr x))
                 )
             end else if name_of_FIdent f = "or_bool" then begin
                 (match (tes, es) with
@@ -478,7 +478,7 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
                         eval_expr loc env y
                 | _ ->
                     raise (EvalError (loc, "malformed or_bool expression "
-                       ^ Utils.to_string (PP.pp_expr x)))
+                       ^ pp_expr x))
                 )
             end else if name_of_FIdent f = "implies_bool" then begin
                 (match (tes, es) with
@@ -489,7 +489,7 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
                         from_bool true
                 | _ ->
                     raise (EvalError (loc, "malformed implies_bool expression "
-                       ^ Utils.to_string (PP.pp_expr x)))
+                       ^ pp_expr x))
                 )
             end else begin
                 let tvs = eval_exprs loc env tes in
@@ -575,7 +575,7 @@ and eval_lexpr (loc: l) (env: Env.t) (x: AST.lexpr) (r: value): unit =
             let vs  = eval_exprs loc env es in
             eval_proccall loc env setter tvs (List.append vs [r])
     | _ ->
-            failwith ("eval_lexpr: "^ (pp_lexpr x))
+            failwith ("eval_lexpr: "^ pp_lexpr x)
     )
 
 (** Evaluate L-expression in read-modify-write mode.
@@ -668,27 +668,27 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
             eval_decode_case loc env dec op
     | Stmt_Block(b, loc) ->
             eval_stmts env b
-    | Stmt_If(c, t, els, e, loc) ->
+    | Stmt_If(c, t, els, (e, el), loc) ->
             let rec eval css d =
                 (match css with
                 | [] -> eval_stmts env d
-                | (S_Elsif_Cond(c, s) :: css') ->
+                | (S_Elsif_Cond(c, s, loc) :: css') ->
                         if to_bool loc (eval_expr loc env c) then
                             eval_stmts env s
                         else
                             eval css' d
                 )
             in
-            eval (S_Elsif_Cond(c, t) :: els) e
+            eval (S_Elsif_Cond(c, t, loc) :: els) e
     | Stmt_Case(e, alts, odefault, loc) ->
             let rec eval v alts =
                 (match alts with
                 | [] ->
                         (match odefault with
                         | None -> raise (EvalError (loc, "unmatched case"))
-                        | Some s -> eval_stmts env s
+                        | Some (s, _) -> eval_stmts env s
                         )
-                | (Alt_Alt(ps, oc, s) :: alts') ->
+                | (Alt_Alt(ps, oc, s, loc) :: alts') ->
                         if List.exists (eval_pattern loc env v) ps && from_option
                         (map_option (to_bool loc) (map_option (eval_expr loc env) oc)) (fun _ -> true) then
                             eval_stmts env s
@@ -726,14 +726,14 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
                     eval ()
             in
             eval ()
-    | Stmt_Repeat(b, c, loc) ->
+    | Stmt_Repeat(b, c, pos, loc) ->
             let rec eval _ =
                 eval_stmts env b;
                 if to_bool loc (eval_expr loc env c) then
                     eval ()
             in
             eval ()
-    | Stmt_Try(tb, ev, catchers, odefault, loc) ->
+    | Stmt_Try(tb, ev, pos, catchers, odefault, loc) ->
             (try
                 eval_stmts env tb
             with
@@ -745,9 +745,9 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
                         | [] ->
                             (match odefault with
                             | None   -> raise (Throw (l, ex))
-                            | Some s -> eval_stmts env' s
+                            | Some (s, _) -> eval_stmts env' s
                             )
-                        | (Catcher_Guarded(c, b) :: cs') ->
+                        | (Catcher_Guarded(c, b, loc) :: cs') ->
                             if to_bool loc (eval_expr loc env' c) then
                                 eval_stmts env' b
                             else

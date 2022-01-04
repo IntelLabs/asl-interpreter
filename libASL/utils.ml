@@ -11,11 +11,27 @@
  * Pretty-printer related
  ****************************************************************)
 
-let to_string (d: PPrintEngine.document): string =
+let to_string2 (pp: Format.formatter -> unit): string =
     let buf = Buffer.create 100 in
-    PPrintEngine.ToBuffer.compact buf d;
+    let fmt = Format.formatter_of_buffer buf in
+    pp fmt;
+    Format.pp_print_flush fmt ();
     Buffer.contents buf
 
+let to_file (filename: string) (pp: Format.formatter -> unit): unit =
+    let chan = open_out filename in
+    let fmt = Format.formatter_of_out_channel chan in
+    pp fmt;
+    Format.pp_print_flush fmt ();
+    close_out chan
+
+
+(****************************************************************
+ * Function related
+ ****************************************************************)
+
+(* flip argument order in a curried function *)
+let flip (f: 'a -> 'b -> 'c) (b: 'b) (a: 'a): 'c = f a b
 
 (****************************************************************
  * List related

@@ -13,11 +13,12 @@ open Asl_ast
 
 module Parser = Asl_parser
 module TC     = Tcheck
-module PP     = Asl_parser_pp
 module AST    = Asl_ast
+module FMT    = Asl_fmt
 
 let opt_filenames : string list ref = ref []
 let opt_print_version = ref false
+let opt_print_spec = ref false
 let opt_verbose = ref false
 
 
@@ -138,6 +139,7 @@ let rec repl (tcenv: TC.Env.t) (cpu: Cpu.cpu): unit =
     )
 
 let options = Arg.align ([
+    ( "--print_spec", Arg.Set opt_print_spec, "       Print ASL spec");
     ( "-v", Arg.Set opt_verbose,              "       Verbose output");
     ( "--version", Arg.Set opt_print_version, "       Print version");
 ] )
@@ -163,6 +165,8 @@ let _ =
     usage_msg
 
 let main () =
+    Ocolor_format.prettify_formatter Format.std_formatter;
+    Ocolor_config.set_color_capability Ocolor_config.Color4;
     if !opt_print_version then Printf.printf "%s\n" version
     else begin
         List.iter print_endline banner;
@@ -178,6 +182,12 @@ let main () =
             end
         ) !opt_filenames
         in
+
+        if !opt_print_spec then begin
+          FMT.comment_list := Lexer.get_comments ();
+          FMT.declarations Format.std_formatter t;
+          Format.pp_print_flush Format.std_formatter ()
+        end;
 
         if !opt_verbose then Printf.printf "Building evaluation environment\n";
         let env = (try

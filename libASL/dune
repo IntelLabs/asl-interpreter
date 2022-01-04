@@ -4,12 +4,11 @@
  (modules asl_parser))
 
 (rule
- (targets asl_parser_pp.ml asl_parser.mly asl_lexer.mll asl_ast.ml)
+ (targets asl_parser.mly asl_lexer.mll asl_ast.ml)
  (deps   asl.ott)
  (action
    (progn
      (run ott -aux_style_rules false -tex_wrap true -quotient_rules false -i asl.ott -o asl_parser_head.mly -o asl_lexer.mll -o asl_ast.ml)
-     (run mv asl_parser_head_pp.ml asl_parser_pp.ml)
      (with-stdout-to asl_parser_tail.mly (bash "grep -v '^%%' `opam config var ott:share`/menhir_library_extra.mly"))
      (with-stdout-to asl_parser.mly (run cat asl_parser_head.mly asl_parser_tail.mly)))))
 
@@ -18,6 +17,23 @@
  (public_name asli.libASL)
  (flags
   (:standard -w -27 -cclib -lstdc++))
- (modules asl_ast asl_parser asl_parser_pp asl_utils asl_visitor cpu elf eval
-   lexer lexersupport loadASL primops tcheck utils value visitor)
- (libraries pprint zarith z3))
+
+(modules
+ asl_ast
+ asl_fmt
+ asl_parser
+ asl_utils
+ asl_visitor
+ cpu
+ elf
+ eval
+ format_utils
+ lexer
+ lexersupport
+ loadASL
+ primops
+ tcheck
+ utils
+ value
+ visitor)
+ (libraries ocolor pprint zarith z3))

@@ -10,10 +10,11 @@ open Asl_ast
 module Lexer  = Lexer
 module Parser = Asl_parser
 module TC     = Tcheck
-module PP     = Asl_parser_pp
+module FMT    = Asl_fmt
 module AST    = Asl_ast
 
 open Lexing
+open Asl_utils
 
 let report_parse_error (on_error: unit -> 'a) (f: unit -> 'a): 'a =
     (try
@@ -24,8 +25,8 @@ let report_parse_error (on_error: unit -> 'a) (f: unit -> 'a): 'a =
         on_error ()
     | PrecedenceError(loc, op1, op2) ->
         Printf.printf "  Syntax error: operators %s and %s require parentheses to disambiguate expression at location %s\n"
-            (Utils.to_string (PP.pp_binop op1))
-            (Utils.to_string (PP.pp_binop op2))
+            (pp_binop op1)
+            (pp_binop op2)
             (pp_loc loc);
         on_error ()
     | Parser.Error ->
@@ -82,7 +83,11 @@ let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declara
     if verbose then Printf.printf "Processing %s\n" filename;
     let t = parse_file filename isPrelude verbose in
 
-    if false then PPrint.ToChannel.pretty 1.0 60 stdout (PP.pp_declarations t);
+    if false then begin
+      FMT.comment_list := Lexer.get_comments ();
+      FMT.declarations Format.std_formatter t;
+      Format.pp_print_flush Format.std_formatter ()
+    end;
     if verbose then Printf.printf "  - Got %d declarations from %s\n" (List.length t) filename;
 
     let t' =
@@ -92,7 +97,7 @@ let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declara
         )
     in
 
-    if false then PPrint.ToChannel.pretty 1.0 60 stdout (PP.pp_declarations t');
+    if false then FMT.declarations Format.std_formatter t';
     if verbose then Printf.printf "  - Got %d typechecked declarations from %s\n" (List.length t') filename;
 
     if verbose then Printf.printf "Finished %s\n" filename;

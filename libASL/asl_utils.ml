@@ -7,8 +7,9 @@
 
 (** ASL utility functions *)
 
-module PP   = Asl_parser_pp
 module AST  = Asl_ast
+module FMT  = Asl_fmt
+module FMTUtils = Format_utils
 
 open AST
 open Asl_visitor
@@ -279,12 +280,17 @@ class equivalences = object (self)
     (* Print equivalence classes adding a prefix at the start of every line of
      * output.
      *)
-    method pp (prefix: string): unit =
+    method pp (fmt: Format.formatter) (prefix: string): unit =
+        Format.pp_open_vbox fmt 0;
         Bindings.iter (fun v vs ->
-            Printf.printf "%s%s -> {" prefix (pprint_ident v);
-            IdentSet.iter (fun w -> Printf.printf " %s" (pprint_ident w)) vs;
-            Printf.printf "}\n";
-        ) self#classes
+            Format.pp_print_string fmt prefix;
+            FMT.varname fmt v;
+            Format.fprintf fmt "-> {";
+            IdentSet.iter (fun w -> FMT.varname fmt w; FMTUtils.nbsp fmt) vs;
+            Format.fprintf fmt "}";
+            Format.pp_print_space fmt ()
+        ) self#classes;
+        Format.pp_close_box fmt ()
 end
 
 
@@ -808,10 +814,12 @@ let resugar_type (ops: AST.binop Bindings.t) (x: AST.ty): AST.ty =
 (** {2 Pretty printing wrappers}                                *)
 (****************************************************************)
 
-let pp_type  (x: ty):    string = Utils.to_string (PP.pp_ty    x)
-let pp_expr  (x: expr):  string = Utils.to_string (PP.pp_expr  x)
-let pp_lexpr (x: lexpr): string = Utils.to_string (PP.pp_lexpr x)
-let pp_stmt  (x: stmt):  string = Utils.to_string (PP.pp_stmt  x)
+let pp_unop  (x: unop):  string = Utils.to_string2 (Utils.flip FMT.unop  x)
+let pp_binop (x: binop): string = Utils.to_string2 (Utils.flip FMT.binop x)
+let pp_type  (x: ty):    string = Utils.to_string2 (Utils.flip FMT.ty    x)
+let pp_expr  (x: expr):  string = Utils.to_string2 (Utils.flip FMT.expr  x)
+let pp_lexpr (x: lexpr): string = Utils.to_string2 (Utils.flip FMT.lexpr x)
+let pp_stmt  (x: stmt):  string = Utils.to_string2 (Utils.flip FMT.stmt  x)
 
 
 (****************************************************************)

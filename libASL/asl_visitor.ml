@@ -403,16 +403,16 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
             | Stmt_Block (b, loc) ->
                     let b' = visit_stmts vis b in
                     if b == b' then x else Stmt_Block (b', loc)
-            | Stmt_If (c, t, els, e, loc) ->
+            | Stmt_If (c, t, els, (e, el), loc) ->
                     let c'   = visit_expr vis c in
                     let t'   = visit_stmts vis t in
                     let els' = mapNoCopy (visit_s_elsif vis) els in
                     let e'   = visit_stmts vis e in
-                    if c == c' && t == t' && els == els' && e == e' then x else Stmt_If (c', t', els', e', loc)
+                    if c == c' && t == t' && els == els' && e == e' then x else Stmt_If (c', t', els', (e', el), loc)
             | Stmt_Case (e, alts, ob, loc) ->
                     let e'    = visit_expr vis e in
                     let alts' = mapNoCopy (visit_alt vis) alts in
-                    let ob'   = mapOptionNoCopy (visit_stmts vis) ob in
+                    let ob'   = mapOptionNoCopy (fun (b, bl) -> (visit_stmts vis b, bl)) ob in
                     if e == e' && alts == alts' && ob == ob' then x else Stmt_Case (e', alts', ob', loc)
             | Stmt_For (v, f, dir, t, b, loc) ->
                     let v' = visit_lvar vis v in
@@ -425,17 +425,17 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
                     let c' = visit_expr vis c in
                     let b' = visit_stmts vis b in
                     if c == c' && b == b' then x else Stmt_While (c', b', loc)
-            | Stmt_Repeat (b, c, loc) ->
+            | Stmt_Repeat (b, c, pos, loc) ->
                     let b' = visit_stmts vis b in
                     let c' = visit_expr vis c in
-                    if b == b' && c == c' then x else Stmt_Repeat (b', c', loc)
-            | Stmt_Try (b, v, cs, ob, loc) ->
+                    if b == b' && c == c' then x else Stmt_Repeat (b', c', pos, loc)
+            | Stmt_Try (b, v, pos, cs, ob, loc) ->
                     let b'  = visit_stmts vis b in
                     let v'  = visit_lvar vis v in
                     let ty_v' = (v', Type_Constructor(Ident "__Exception")) in
                     let cs' = mapNoCopy (with_locals [ty_v'] vis visit_catcher) cs in
-                    let ob' = mapOptionNoCopy (with_locals [ty_v'] vis visit_stmts) ob in
-                    if b == b' && v == v' && cs == cs' && ob == ob' then x else Stmt_Try (b', v', cs', ob', loc)
+                    let ob' = mapOptionNoCopy (fun (b, bl) -> (with_locals [ty_v'] vis visit_stmts b, bl)) ob in
+                    if b == b' && v == v' && cs == cs' && ob == ob' then x else Stmt_Try (b', v', pos, cs', ob', loc)
 
             )
         in
@@ -444,10 +444,10 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
     and visit_s_elsif (vis: aslVisitor) (x: s_elsif): s_elsif =
         let aux (vis: aslVisitor) (x: s_elsif): s_elsif =
             (match x with
-            | S_Elsif_Cond(c, b) ->
+            | S_Elsif_Cond(c, b, loc) ->
                     let c' = visit_expr vis c in
                     let b' = visit_stmts vis b in
-                    if c == c' && b == b' then x else S_Elsif_Cond(c', b')
+                    if c == c' && b == b' then x else S_Elsif_Cond(c', b', loc)
             )
         in
         doVisit vis (vis#vs_elsif x) aux x
@@ -455,11 +455,11 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
     and visit_alt (vis: aslVisitor) (x: alt): alt =
         let aux (vis: aslVisitor) (x: alt): alt =
             (match x with
-            | Alt_Alt(ps, oc, b) ->
+            | Alt_Alt(ps, oc, b, loc) ->
                     let ps' = visit_patterns vis ps in
                     let oc' = mapOptionNoCopy (visit_expr vis) oc in
                     let b' = visit_stmts vis b in
-                    if ps == ps' && oc == oc' && b == b' then x else Alt_Alt(ps', oc', b')
+                    if ps == ps' && oc == oc' && b == b' then x else Alt_Alt(ps', oc', b', loc)
             )
         in
         doVisit vis (vis#valt x) aux x
@@ -467,10 +467,10 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
     and visit_catcher (vis: aslVisitor) (x: catcher): catcher =
         let aux (vis: aslVisitor) (x: catcher): catcher =
             (match x with
-            | Catcher_Guarded(c, b) ->
+            | Catcher_Guarded(c, b, loc) ->
                     let c' = visit_expr vis c in
                     let b' = visit_stmts vis b in
-                    if c == c' && b == b' then x else Catcher_Guarded(c', b')
+                    if c == c' && b == b' then x else Catcher_Guarded(c', b', loc)
             )
         in
         doVisit vis (vis#vcatcher x) aux x

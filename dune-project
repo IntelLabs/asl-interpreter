@@ -19,7 +19,7 @@
     ("menhir"    :build)
     ("ott"       :build)
     "linenoise"
-    "pprint"
+    ("ocolor"    (>= "1.2.2"))
     "zarith"
     ("z3"        (>= "4.8.7"))
     ("alcotest"  :with-test)

@@ -7,19 +7,18 @@
 
 (** Type inference and checker for ASL language *)
 
-module PE   = PPrintEngine
-module PC   = PPrintCombinators
-module PP   = Asl_parser_pp
-module AST  = Asl_ast
+module AST     = Asl_ast
 module Visitor = Asl_visitor
+module FMT     = Asl_fmt
+module FMTUtils = Format_utils
 
-open PE
 open AST
 open Utils
 open Asl_utils
-open Printf
+open Format
 
 let verbose = false
+let fmt = std_formatter
 
 
 (****************************************************************)
@@ -108,13 +107,11 @@ let binop_table : AST.binop Bindings.t ref = ref Bindings.empty
 let add_binop (op: binop) (x: ident): unit =
     binop_table := Bindings.add x op !binop_table
 
-(** Very pretty print expression (resugaring expressions) *)
-let ppp_expr (x: expr): string =
-    pp_expr (resugar_expr !binop_table x)
+(** Resugar expression *)
+let ppp_expr (x: AST.expr): AST.expr = resugar_expr !binop_table x
 
 (** Very pretty print type (resugaring expressions) *)
-let ppp_type (x: AST.ty): string =
-    pp_type (resugar_type !binop_table x)
+let ppp_type (x: AST.ty): AST.ty = resugar_type !binop_table x
 
 
 (****************************************************************)
@@ -128,21 +125,42 @@ type typedef
     | Type_Enumeration of ident list
     | Type_Abbreviation of ty
 
-let pp_typedef (x: typedef): string =
+let pp_typedef (x: typedef) (fmt: formatter): unit =
     (match x with
-    | Type_Builtin t -> "builtin " ^ pprint_ident t
-    | Type_Forward   -> "forward"
-    | Type_Record fs -> "record { " ^ String.concat "; " (List.map (fun (f, ty) -> pprint_ident f ^ " :: " ^ pp_type ty) fs) ^ "}"
-    | Type_Enumeration es -> "enumeration {" ^ String.concat ", " (List.map pprint_ident es) ^ "}"
-    | Type_Abbreviation ty -> pp_type ty
+    | Type_Builtin t ->
+        FMT.kw_underscore_builtin fmt; FMTUtils.nbsp fmt; FMT.tycon fmt t
+    | Type_Forward ->
+        pp_print_string fmt "forward"
+    | Type_Record fs ->
+        FMT.kw_record fmt;
+        FMTUtils.nbsp fmt;
+        FMT.braces fmt (fun _ ->
+            FMTUtils.vbox fmt (fun _ ->
+                FMTUtils.cutsep fmt
+                    (fun (f, ty) -> FMT.fieldname fmt f; FMTUtils.nbsp fmt; FMT.coloncolon fmt; FMTUtils.nbsp fmt; FMT.ty fmt ty; FMT.semicolon fmt)
+                    fs
+            )
+        )
+    | Type_Enumeration es ->
+        FMT.kw_enumeration fmt;
+        FMTUtils.nbsp fmt;
+        FMT.braces fmt (fun _ ->
+            FMTUtils.vbox fmt (fun _ ->
+                FMT.commasep fmt (FMT.varname fmt) es
+            )
+        )
+    | Type_Abbreviation ty ->
+        FMT.ty fmt ty
     )
 
 type funtype = (AST.ident * bool * (AST.ident * AST.ty option) list * AST.expr list * (AST.ident * AST.ty) list * AST.ty)
 
 let ft_id ((f, _, _, _, _, _): funtype): AST.ident = f
 
-let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): document =
-    PP.pp_ident f
+let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): unit =
+  ()
+(*
+    FMT.pp_ident f
     ^^ string " :: " ^^
     PP.pp_parameter_list ps
     ^^
@@ -157,6 +175,7 @@ let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): document =
        (PC.separate (string ", ") (List.map PP.pp_formal atys))
     ^^ string " -> "
     ^^ PP.pp_ty rty
+*)
 
 
 
@@ -165,7 +184,9 @@ type sfuntype = (AST.ident * (AST.ident * AST.ty option) list * AST.expr list * 
 
 let sft_id ((f, _, _, _, _): sfuntype): AST.ident = f
 
-let pp_sfuntype ((f, ps, cs, atys, vty): sfuntype): document =
+let pp_sfuntype ((f, ps, cs, atys, vty): sfuntype): unit =
+  ()
+  (*
     PP.pp_ident f
     ^^ string " :: " ^^
     PP.pp_parameter_list ps
@@ -180,6 +201,7 @@ let pp_sfuntype ((f, ps, cs, atys, vty): sfuntype): document =
     ^^ PC.parens (PC.separate (string ", ") (List.map PP.pp_sformal atys))
     ^^ string " <- "
     ^^ PP.pp_ty vty
+*)
 
 let sformal_var (x: sformal): AST.ident =
     ( match x with
@@ -267,13 +289,13 @@ end = struct
     }
 
     let addType (env: t) (loc: AST.l) (qid: AST.ident) (t: typedef): unit =
-        (* Printf.printf "New type %s at %s\n" qid (pp_loc loc); *)
+        (* Format.fprintf fmt "New type %s at %s\n" qid (pp_loc loc); *)
         let t' = (match (Bindings.find_opt qid env.types, t) with
             | (None,              _)            -> t
             | (Some Type_Forward, _)            -> t
             | (Some p,            Type_Forward) -> p
             | (Some p,            _) when p <> t ->
-                    raise (DoesNotMatch (loc, "type definition", pp_typedef t, pp_typedef p))
+                    raise (DoesNotMatch (loc, "type definition", to_string2 (pp_typedef t), to_string2 (pp_typedef p)))
             | _ -> t
         ) in
         env.types <- Bindings.add qid t' env.types
@@ -329,11 +351,11 @@ end = struct
         IdentSet.mem qid env.encodings
 
     let addGlobalVar (env: t) (loc: AST.l) (qid: AST.ident) (ty: AST.ty) (isConstant: bool): unit =
-        (* Printf.printf "New %s %s at %s\n" (if isConstant then "constant" else "variable") qid (pp_loc loc); *)
+        (* Format.fprintf fmt "New %s %s at %s\n" (if isConstant then "constant" else "variable") qid (pp_loc loc); *)
         env.globals <- Bindings.add qid ty env.globals
 
     let getGlobalVar (env: t) (v: AST.ident): AST.ty option =
-        (* Printf.printf "Looking for global variable %s\n" (pprint_ident v); *)
+        (* Format.fprintf fmt "Looking for global variable %s\n" (pprint_ident v); *)
         Bindings.find_opt v env.globals
 
     let getConstant (env: t) (v: AST.ident): AST.expr option =
@@ -422,7 +444,7 @@ let rec typeFields (env: GlobalEnv.t) (loc: AST.l) (x: ty): fieldtypes =
         | _ -> raise (IsNotA(loc, "record", pprint_ident tc))
         )
     | Type_Register (wd, fs) -> FT_Register fs
-    | Type_OfExpr(e) -> raise (InternalError ("typeFields: Type_OfExpr " ^ ppp_expr e))
+    | Type_OfExpr(e) -> raise (InternalError ("typeFields: Type_OfExpr " ^ to_string2 (flip FMT.expr (ppp_expr e))))
     | _ -> raise (IsNotA(loc, "record/register", pp_type x))
     )
 
@@ -589,7 +611,7 @@ end = struct
         if (GlobalEnv.getConstant (env.globals) v <> None) then begin
             raise (TypeError (loc, pprint_ident v ^ " already declared as global constant"))
         end;
-        (* Printf.printf "New local var %s : %s at %s\n" (pprint_ident v) (ppp_type ty) (pp_loc loc); *)
+        (* Format.fprintf fmt "New local var %s : %s at %s\n" (pprint_ident v) (ppp_type ty) (pp_loc loc); *)
         (match env.locals with
         | (bs :: bss) -> env.locals <- (Bindings.add v ty bs) :: bss
         | []          -> raise (InternalError "addLocalVar")
@@ -599,7 +621,7 @@ end = struct
     let addLocalImplicitVar (env: t) (loc: AST.l) (v: AST.ident) (ty: AST.ty): unit =
         (* Should only be called for undeclared variables *)
         assert (GlobalEnv.getConstant (env.globals) v = None);
-        (* Printf.printf "New implicit: %s : %s\n" (pprint_ident v) (ppp_type ty); *)
+        (* Format.fprintf fmt "New implicit: %s : %s\n" (pprint_ident v) (ppp_type ty); *)
         env.implicits := Bindings.add v ty !(env.implicits);
         env.modified <- IdentSet.add v env.modified
 
@@ -618,7 +640,7 @@ end = struct
         Bindings.bindings conflicts
 
     let getVar (env: t) (v: AST.ident): (AST.ident * AST.ty) option =
-        (* Printf.printf "Looking for variable %s\n" (pprint_ident v); *)
+        (* Format.fprintf fmt "Looking for variable %s\n" (pprint_ident v); *)
         let rec search (bss : AST.ty Bindings.t list): AST.ty option =
             (match bss with
             | (bs :: bss') ->
@@ -739,7 +761,9 @@ let rec z3_of_expr (ctx: Z3.context) (ufs: (AST.expr * Z3.Expr.expr) list ref) (
     | Expr_TApply (FIdent ("fdiv_int",_), [], [a;b]) -> Z3.Arithmetic.mk_div ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
     | Expr_TApply (FIdent ("eq_int",_),   [], [a;b]) -> Z3.Boolean.mk_eq ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
     | _ ->
-            if verbose then Printf.printf "    Unable to translate %s - using as uninterpreted function\n" (pp_expr x);
+            if verbose then begin
+                Format.fprintf fmt "    Unable to translate %s - using as uninterpreted function\n" (pp_expr x)
+            end;
             let intsort = Z3.Arithmetic.Integer.mk_sort ctx in
             (match List.assoc_opt x !ufs with
             | None ->
@@ -763,10 +787,10 @@ let check_constraints (bs: expr list) (cs: expr list): bool =
     let bs' = List.map (z3_of_expr z3_ctx ufs) bs in
     let cs' = List.map (z3_of_expr z3_ctx ufs) cs in
     let p = Z3.Boolean.mk_implies z3_ctx (Z3.Boolean.mk_and z3_ctx bs') (Z3.Boolean.mk_and z3_ctx cs') in
-    if verbose then Printf.printf "      - Checking %s\n" (Z3.Expr.to_string p);
+    if verbose then Format.fprintf fmt "      - Checking %s\n" (Z3.Expr.to_string p);
     Z3.Solver.add solver [Z3.Boolean.mk_not z3_ctx p];
     let q = Z3.Solver.check solver [] in
-    if verbose && (q = SATISFIABLE) then Printf.printf "Failed property %s\n" (Z3.Expr.to_string p);
+    if verbose && (q = SATISFIABLE) then Format.fprintf fmt "Failed property %s\n" (Z3.Expr.to_string p);
     q = UNSATISFIABLE
 
 
@@ -848,11 +872,15 @@ class unifier (loc: AST.l) (assumptions: expr list) = object (self)
         let binds   = Bindings.map (fun vs -> flatmap_option (fun v -> Bindings.find_opt v bindings) (IdentSet.elements vs)) classes in
 
         if verbose then begin
-            Printf.printf "    - Checking Constraints at %s\n" (pp_loc loc);
-            Bindings.iter (fun v e -> Printf.printf "      Old Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) bindings;
-            Bindings.iter (fun v es -> List.iter (fun e -> Printf.printf "      binds: %s -> %s\n" (pprint_ident v) (ppp_expr e)) es) binds;
-            renamings#pp "      Renaming: ";
-            Bindings.iter (fun v w -> Printf.printf "      - renaming: %s -> %s\n" (pprint_ident v) (pprint_ident w)) rns
+            FMTUtils.vbox fmt (fun _ ->
+              Format.fprintf fmt "- Checking Constraints at %s\n" (pp_loc loc);
+              FMTUtils.vbox fmt (fun _ ->
+                Bindings.iter (fun v e -> Format.fprintf fmt "Old Bind: "; FMT.varname fmt v; FMT.delimiter fmt " -> "; FMT.expr fmt (ppp_expr e); FMTUtils.cut fmt) bindings;
+                Bindings.iter (fun v es -> List.iter (fun e -> Format.fprintf fmt "binds: "; FMT.varname fmt v; FMT.delimiter fmt " -> "; FMT.expr fmt (ppp_expr e); pp_print_space fmt ()) es) binds;
+              );
+              renamings#pp fmt "Renaming: ";
+              Bindings.iter (fun v w -> Format.fprintf fmt "- renaming: "; FMT.varname fmt v; FMT.delimiter fmt " -> "; FMT.varname fmt w; FMTUtils.cut fmt) rns
+            )
         end;
 
         let isClosed (x: expr): bool =
@@ -866,13 +894,13 @@ class unifier (loc: AST.l) (assumptions: expr list) = object (self)
             (match bind_option (Bindings.find_opt x' binds) (fun es -> first_option close_expr es) with
             | Some e -> e
             | None ->
-                Printf.printf "Type Error at %s\n" (pp_loc loc);
-                if verbose then begin
-                    List.iter (fun v -> Printf.printf "  Related to: %s\n" (pprint_ident v)) (IdentSet.elements (Bindings.find x' classes));
-                    List.iter (fun e -> Printf.printf "  Candidate: %s\n" (pp_expr e)) (Bindings.find x' binds);
+                Format.fprintf fmt "Type Error at %s\n" (pp_loc loc);
+                (* if verbose then begin
+                    List.iter (fun v -> Format.fprintf fmt "  Related to: %s\n" (pprint_ident v)) (IdentSet.elements (Bindings.find x' classes));
+                    List.iter (fun e -> Format.fprintf fmt "  Candidate: %s\n" (pp_expr e)) (Bindings.find x' binds);
                     renamings#pp "  Renaming: ";
-                    Bindings.iter (fun v e -> Printf.printf "  Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) bindings
-                end;
+                    Bindings.iter (fun v e -> Format.fprintf fmt "  Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) bindings
+                end; *)
                 raise (TypeError (loc, "Unable to infer value of type parameter "^ pprint_ident x'))
             )
 
@@ -894,8 +922,8 @@ class unifier (loc: AST.l) (assumptions: expr list) = object (self)
         let closed = Bindings.map (fun v -> Bindings.find v pre_closed) rns in
 
         if verbose then begin
-            Bindings.iter (fun v e -> Printf.printf "      PreClosed Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) pre_closed;
-            Bindings.iter (fun v e -> Printf.printf "      Closed Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) closed
+            Bindings.iter (fun v e -> Format.fprintf fmt "      PreClosed Bind: %s -> %s\n" (pprint_ident v) (pp_expr (ppp_expr e))) pre_closed;
+            Bindings.iter (fun v e -> Format.fprintf fmt "      Closed Bind: %s -> %s\n" (pprint_ident v) (pp_expr (ppp_expr e))) closed
         end;
 
         constraints <- List.map (subst_expr closed) constraints;
@@ -906,9 +934,9 @@ class unifier (loc: AST.l) (assumptions: expr list) = object (self)
         bindings    <- closed;
 
         if verbose then begin
-            List.iter (fun c -> Printf.printf "      OldConstraint: %s\n" (ppp_expr c)) constraints;
-            List.iter (fun c -> Printf.printf "      NewConstraint: %s\n" (ppp_expr c)) new_constraints;
-            List.iter (fun c -> Printf.printf "      Constraint: %s\n" (ppp_expr c)) constraints
+            List.iter (fun c -> Format.fprintf fmt "      OldConstraint: %s\n" (pp_expr (ppp_expr c))) constraints;
+            List.iter (fun c -> Format.fprintf fmt "      NewConstraint: %s\n" (pp_expr (ppp_expr c))) new_constraints;
+            List.iter (fun c -> Format.fprintf fmt "      Constraint: %s\n" (pp_expr (ppp_expr c))) constraints
         end;
 
         constraints <- List.map simplify_expr constraints;
@@ -920,12 +948,12 @@ class unifier (loc: AST.l) (assumptions: expr list) = object (self)
          * improves runtime by a factor of 6x
          *)
         if constraints <> [] && not (check_constraints assumptions constraints) then begin
-            Printf.printf "Type Error at %s\n" (pp_loc loc);
+            Format.fprintf fmt "Type Error at %s\n" (pp_loc loc);
             if verbose then begin
-                renamings#pp "      Renaming: ";
-                Bindings.iter (fun v e -> Printf.printf "      Bind: %s -> %s\n" (pprint_ident v) (ppp_expr e)) bindings
+                renamings#pp fmt "      Renaming: ";
+                Bindings.iter (fun v e -> Format.fprintf fmt "      Bind: %s -> %s\n" (pprint_ident v) (pp_expr (ppp_expr e))) bindings
             end;
-            List.iter (fun c -> Printf.printf "      Constraint: %s\n" (ppp_expr c)) constraints;
+            List.iter (fun c -> Format.fprintf fmt "      Constraint: "; FMT.expr fmt (ppp_expr c); FMTUtils.cut fmt) constraints;
             flush stdout;
             raise (TypeError (loc, "Type mismatch"))
         end;
@@ -1111,18 +1139,26 @@ let check_type_exact (env: Env.t) (loc: AST.l) (ty1: AST.ty) (ty2: AST.ty): unit
 
 (** Generate error message when function disambiguation fails *)
 let reportChoices (loc: AST.l) (what: string) (nm: string) (tys: AST.ty list) (funs: funtype list): unit =
-    if funs = [] then
-        Printf.printf "%s: Can't find matching %s for %s\n" (pp_loc loc) what nm
-    else
-        Printf.printf "%s: Ambiguous choice for %s %s\n" (pp_loc loc) what nm;
-    List.iter (fun ty -> Printf.printf "  Arg : %s\n" (pp_type ty)) tys;
-    List.iter (fun (f, _, _, _, atys, rty) ->
-        Printf.printf "  Choice : %s : %s -> %s\n"
-            (pprint_ident f)
-            (Utils.to_string (PPrintCombinators.separate (PPrintEngine.string " ")
-                (List.map (fun (_, ty) -> PP.pp_ty ty) atys)))
-            (pp_type rty)
-    ) funs
+    FMT.loc fmt loc;
+    FMT.colon fmt;
+    FMTUtils.nbsp fmt;
+    if funs = [] then begin
+        Format.pp_print_string fmt ("Can't find matching " ^what^ " for " ^nm)
+    end else begin
+        Format.pp_print_string fmt ("Ambiguous choice for " ^what^ " " ^nm)
+    end;
+    FMTUtils.cut fmt;
+    FMTUtils.vbox fmt (fun _ ->
+        List.iter (fun ty -> Format.fprintf fmt "Arg : "; FMT.ty fmt ty; FMTUtils.cut fmt) tys;
+        List.iter (fun (f, _, _, _, atys, rty) ->
+            FMT.funname fmt f;
+            FMT.colon fmt;
+            FMTUtils.nbsp fmt;
+            FMTUtils.hlist fmt (fun _ -> FMTUtils.nbsp fmt) (fun (_, t) -> FMT.ty fmt t) atys;
+            FMT.delimiter fmt " -> ";
+            FMT.ty fmt rty
+        ) funs
+    )
 
 (** Check whether a list of function argument types is compatible with the
     type of a function.
@@ -1219,14 +1255,14 @@ let tc_apply (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (what: string) (f: AST
             reportChoices loc what nm tys funs;
             raise (UnknownObject(loc, what, nm))
     | Some fty ->
-            if verbose then Printf.printf "    - Found matching %s at %s for %s = %s\n" what (pp_loc loc) nm (Utils.to_string (pp_funtype fty));
+            (* if verbose then Format.fprintf fmt "    - Found matching %s at %s for %s = %s\n" what (pp_loc loc) nm (Utils.to_string (pp_funtype fty)); *)
             instantiate_fun env u loc fty es tys
     )
 
 (** Disambiguate and typecheck application of a unary operator to argument *)
 let tc_unop (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (op: unop) (x: AST.expr) (ty: AST.ty): (AST.ident * AST.expr list * AST.ty) =
     let what = "unary operator" in
-    let nm   = Utils.to_string (PP.pp_unop op) in
+    let nm   = pp_unop op in
     let tys  = [ty] in
     let ops  = GlobalEnv.getOperators1 env loc op in
     (match chooseFunction env loc what nm false [ty] ops with
@@ -1240,7 +1276,7 @@ let tc_unop (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (op: unop) (x: AST.expr
 (** Disambiguate and typecheck application of a binary operator to arguments *)
 let tc_binop (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (op: binop) (x1: AST.expr) (x2: AST.expr) (ty1: AST.ty) (ty2: AST.ty): (AST.ident * AST.expr list * AST.ty) =
     let what = "binary operator" in
-    let nm   = Utils.to_string (PP.pp_binop op) in
+    let nm   = pp_binop op in
     let tys  = [ty1; ty2] in
     let ops  = GlobalEnv.getOperators2 env loc op in
     (match chooseFunction env loc what nm false tys ops with
@@ -1271,7 +1307,7 @@ let rec tc_exprs (env: Env.t) (u: unifier) (loc: AST.l) (xs: AST.expr list): (AS
 and check_expr (env: Env.t) (loc: AST.l) (ty: AST.ty) (x: AST.expr): AST.expr =
     let (s, x') = with_unify env loc (fun u ->
         let (x', ty') = tc_expr env u loc x in
-        if verbose then Printf.printf "    - Typechecking %s : %s\n" (pp_expr x') (pp_type ty');
+        if verbose then Format.fprintf fmt "    - Typechecking %s : %s\n" (pp_expr x') (pp_type ty');
         check_type env u loc ty ty';
         x'
     ) in
@@ -1448,7 +1484,7 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
             let (s, (e', ety')) = with_unify env loc (fun u -> tc_expr env u loc e) in
             let e''   = unify_subst_e  s e' in
             let ety'' = unify_subst_ty s ety' in
-            if verbose then Printf.printf "    - Typechecking %s IN ... : %s\n" (pp_expr e') (pp_type ety');
+            if verbose then Format.fprintf fmt "    - Typechecking %s IN ... : %s\n" (pp_expr e') (pp_type ety');
             let p' = tc_pattern env loc ety'' p in
             (Expr_In(e'', p'), type_bool)
     | Expr_Var(v) ->
@@ -1479,7 +1515,7 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
             (Expr_Concat(es'), mk_concat_tys tys)
     | Expr_Unop(op, e) ->
             let (e', ety) = tc_expr env u loc e in
-            (* Printf.printf "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)
+            (* Format.fprintf fmt "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)
             let (f, tes, ty) = tc_unop (Env.globals env) u loc op e ety in
             (Expr_TApply(f, tes, [e']), ty)
     | Expr_Unknown(t) ->
@@ -1618,7 +1654,7 @@ let rec tc_slice_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (x: lexpr) (ss: (A
             (LExpr_Slices(x', ss'), type_bits (slices_width ss'))
     | Type_Integer _ ->
             (* There is an argument for making this operation illegal *)
-            if false then printf "Warning: slice assignment of integer at %s\n" (pp_loc loc);
+            if false then Format.fprintf fmt "Warning: slice assignment of integer at %s\n" (pp_loc loc);
             (LExpr_Slices(x', ss'), type_bits (slices_width ss'))
     | _ -> raise (TypeError (loc, "slice of lexpr"))
     )
@@ -1853,38 +1889,38 @@ let rec tc_stmts (env: Env.t) (loc: AST.l) (xs: AST.stmt list): AST.stmt list =
         let imps = Env.getImplicits env' in
         List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
         let decls = declare_implicits loc imps in
-        if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
+        (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
         List.append decls [s']
     ) xs
     ) env in
     List.concat rss
 
 (** Typecheck 'if expr then stmt' *)
-and tc_s_elsif (env: Env.t) (loc: AST.l) (x: AST.s_elsif): AST.s_elsif =
+and tc_s_elsif (env: Env.t) (x: AST.s_elsif): AST.s_elsif =
     (match x with
-    | S_Elsif_Cond(c, s) ->
+    | S_Elsif_Cond(c, s, loc) ->
             let c' = check_expr env loc type_bool c in
             let s' = tc_stmts env loc s in
-            S_Elsif_Cond(c', s')
+            S_Elsif_Cond(c', s', loc)
     )
 
 (** Typecheck case alternative *)
-and tc_alt (env: Env.t) (loc: AST.l) (ty: AST.ty) (x: AST.alt): AST.alt =
+and tc_alt (env: Env.t) (ty: AST.ty) (x: AST.alt): AST.alt =
     (match x with
-    | Alt_Alt(ps, oc, b) ->
+    | Alt_Alt(ps, oc, b, loc) ->
             let ps' = List.map (tc_pattern env loc ty) ps in
             let oc' = map_option (fun c -> check_expr env loc type_bool c) oc in
             let b' = tc_stmts env loc b in
-            Alt_Alt(ps', oc', b')
+            Alt_Alt(ps', oc', b', loc)
     )
 
 (** Typecheck exception catcher 'when expr stmt' *)
 and tc_catcher (env: Env.t) (loc: AST.l) (x: AST.catcher): AST.catcher =
     (match x with
-    | Catcher_Guarded(c, b) ->
+    | Catcher_Guarded(c, b, loc) ->
             let c' = check_expr env loc type_bool c in
             let b' = tc_stmts env loc b in
-            Catcher_Guarded(c', b')
+            Catcher_Guarded(c', b', loc)
     )
 
 (** typecheck statement *)
@@ -1935,7 +1971,7 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
             let (s, (r', rty, l', imps)) = with_unify env loc (fun u ->
                 let (r', rty)  = tc_expr env u loc r in
                 let (l', imps) = tc_lexpr env u loc rty l in
-                if verbose then Printf.printf "    - Typechecking %s <- %s : %s\n" (pp_lexpr l') (pp_expr r') (pp_type rty);
+                if verbose then Format.fprintf fmt "    - Typechecking %s <- %s : %s\n" (pp_lexpr l') (pp_expr r') (pp_type rty);
                 (r', rty, l', imps)
             ) in
             let l'' = unify_subst_le s l' in
@@ -2024,18 +2060,18 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
     | Stmt_Block(ss, loc) ->
             let ss' = tc_stmts env loc ss in
             Stmt_Block(ss', loc)
-    | Stmt_If(c, t, els, e, loc) ->
+    | Stmt_If(c, t, els, (e, el), loc) ->
             let c'   = check_expr env loc type_bool c in
             let t'   = tc_stmts env loc t in
-            let els' = List.map (tc_s_elsif env loc) els in
-            let e'   = tc_stmts env loc e in
-            Stmt_If(c', t', els', e', loc)
+            let els' = List.map (tc_s_elsif env) els in
+            let e'   = tc_stmts env el e in
+            Stmt_If(c', t', els', (e', el), loc)
     | Stmt_Case(e, alts, odefault, loc) ->
             let (s, (e', ty')) = with_unify env loc (fun u -> tc_expr env u loc e) in
             let e''       = unify_subst_e  s e' in
             let ty''      = unify_subst_ty s ty' in
-            let alts'     = List.map (tc_alt env loc ty'') alts in
-            let odefault' = map_option (fun b -> tc_stmts env loc b) odefault in
+            let alts'     = List.map (tc_alt env ty'') alts in
+            let odefault' = map_option (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault in
             Stmt_Case(e'', alts', odefault', loc)
     | Stmt_For(v, start, dir, stop, b, loc) ->
             let start' = check_expr env loc type_integer start in
@@ -2050,17 +2086,17 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
             let c' = check_expr env loc type_bool c in
             let b' = tc_stmts env loc b in
             Stmt_While(c', b', loc)
-    | Stmt_Repeat(b, c, loc) ->
+    | Stmt_Repeat(b, c, pos, loc) ->
             let b' = tc_stmts env loc b in
             let c' = check_expr env loc type_bool c in
-            Stmt_Repeat(b', c', loc)
-    | Stmt_Try(tb, ev, catchers, odefault, loc) ->
+            Stmt_Repeat(b', c', pos, loc)
+    | Stmt_Try(tb, ev, pos, catchers, odefault, loc) ->
             let tb' = tc_stmts env loc tb in
             Env.nest (fun env' ->
                 Env.addLocalVar env' loc ev type_exn;
                 let catchers' = List.map (tc_catcher env' loc) catchers in
-                let odefault' = map_option (fun b -> tc_stmts env loc b) odefault in
-                Stmt_Try(tb', ev, catchers', odefault', loc)
+                let odefault' = map_option (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault in
+                Stmt_Try(tb', ev, pos, catchers', odefault', loc)
             ) env
     )
 
@@ -2074,7 +2110,7 @@ let tc_body (env: Env.t) (loc: AST.l) (xs: AST.stmt list): AST.stmt list =
     let xs' = tc_stmts env loc xs in
     let imps = Env.getAllImplicits env in
     let decls = declare_implicits loc imps in
-    if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
+    (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
     List.append decls xs'
 
 (** Typecheck function parameter *)
@@ -2215,7 +2251,7 @@ let tc_encoding (env: Env.t) (x: encoding): (encoding * ((AST.ident * AST.ty) li
             let imps = Env.getAllImplicits env in
             List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
             let decls = declare_implicits loc imps in
-            if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls));
+            (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
             List.append decls b'
         ) env in
         (Encoding_Block (nm, iset, fields, opcode, guard', unpreds, b', loc), bs)
@@ -2574,7 +2610,7 @@ let env0 = GlobalEnv.mkempty ()
 
 (** Typecheck a list of declarations - main entrypoint into typechecker *)
 let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaration list =
-    if verbose then Printf.printf "  - Using Z3 %s\n" Z3.Version.to_string;
+    if verbose then Format.fprintf fmt "  - Using Z3 %s\n" Z3.Version.to_string;
     (* Process declarations, starting by moving all function definitions to the
      * end of the list and replacing them with function prototypes.
      * As long as the type/var decls are all sorted correctly, this
@@ -2584,11 +2620,11 @@ let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaratio
      * but that they share the same global environment
      *)
     let (pre, post) = if isPrelude then (ds, []) else genPrototypes ds in
-    if verbose then Printf.printf "  - Typechecking %d phase 1 declarations\n" (List.length pre);
+    if verbose then Format.fprintf fmt "  - Typechecking %d phase 1 declarations\n" (List.length pre);
     let pre'  = List.map (tc_declaration env0) pre  in
     let post' = List.map (tc_declaration env0) post in
-    if verbose then List.iter (fun ds -> List.iter (fun d -> Printf.printf "\nTypechecked %s\n" (Utils.to_string (PP.pp_declaration d))) ds) post';
-    if verbose then Printf.printf "  - Typechecking %d phase 2 declarations\n" (List.length post);
+    (* if verbose then List.iter (fun ds -> List.iter (fun d -> Format.fprintf fmt "\nTypechecked %s\n" (Utils.to_string (PP.pp_declaration d))) ds) post'; *)
+    if verbose then Format.fprintf fmt "  - Typechecking %d phase 2 declarations\n" (List.length post);
     List.append (List.concat pre') (List.concat post')
 
 (****************************************************************

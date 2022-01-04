@@ -20,12 +20,12 @@ To build and run the ASL interpreter, you will need:
   * OPAM OCaml version 2.0.5 (other versions may work)
   * The following OPAM packages
       * ocaml     - OCaml compiler
+      * ocolor    - adds color support to formatted output
       * odoc      - OCaml documentation generator (optional)
       * dune      - OCaml build system
       * menhir    - parser generator tool
       * ott.0.29  - tool for defining language grammars and semantics (this version or later required)
       * linenoise - OCaml line editing library
-      * pprint    - OCaml pretty-printing library
       * z3.4.7.1  - OCaml bindings for the Z3 SMT solver (exactly this version is required)
       * zarith    - OCaml multiprecision arithmetic library
 
@@ -100,7 +100,7 @@ Platform independent instructions:
     opam install menhir
     opam install ott
     opam install linenoise
-    opam install pprint
+    opam install ocolor
     opam install z3.4.7.1
     opam install zarith
 
