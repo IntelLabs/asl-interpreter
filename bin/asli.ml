@@ -154,7 +154,7 @@ let banner = [
 ]
 let usage_msg =
     ( version
-    ^ "\nusage: asl <options> <file1> ... <fileN>\n"
+    ^ "\nusage: asli <options> <file1> ... <fileN>\n"
     )
 
 let _ =
