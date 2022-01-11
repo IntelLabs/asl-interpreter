@@ -87,10 +87,10 @@ let width_of_type (ty: AST.ty): AST.expr =
 let one = Expr_LitInt "1"
 
 let mk_bits_select (w: AST.expr) (n: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
-    Expr_TApply (FIdent ("asl_bits_select",0), [w; n], [w; x; lo])
+    Expr_TApply (FIdent ("asl_extract_bits",0), [w; n], [x; lo; w])
 
 let mk_int_select (w: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
-    Expr_TApply (FIdent ("asl_int_select",0), [w], [w; x; lo])
+    Expr_TApply (FIdent ("asl_extract_int",0), [w], [x; lo; w])
 
 (* Lower bit slice expression *)
 let mk_expr_slices (x: AST.expr) (ss: AST.slice list) (ty: AST.ty): AST.expr =

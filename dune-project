@@ -13,6 +13,9 @@
                "\| interactive execution of ASL statements and expressions,
                "\| executing opcodes one at a time,
                "\| loading ELF files and executing Arm binaries.
+               "\|
+               "\| Experimentally includes partial support for generating Verilog
+               "\| that can be used as a reference model for hardware verification.
   )
   (depends
     ("ocaml"     (>= "4.11"))

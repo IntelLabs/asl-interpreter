@@ -7,6 +7,14 @@
  (libraries libASL linenoise pprint))
 
 (executable
+ (name asl2v)
+ (public_name asl2v)
+ (modes exe)
+ (modules asl2v)
+ (flags (-cclib -lstdc++))
+ (libraries libASL linenoise pprint))
+
+(executable
  (name testlexer)
  (modes exe)
  ; (public_name test_asl_lexer)
