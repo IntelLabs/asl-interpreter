@@ -168,13 +168,23 @@ end
 class freevarClass = object
     inherit nopAslVisitor
 
-    val mutable fvs = IdentSet.empty
-    method result = fvs
+    val mutable free_vars = IdentSet.empty
+    val mutable free_tcs  = IdentSet.empty
+    val mutable free_funs = IdentSet.empty
+    method vars = free_vars
+    method tycons = free_tcs
+    method funs   = free_funs
     method! vvar x =
-        fvs <- IdentSet.add x fvs;
+        free_vars <- IdentSet.add x free_vars;
         SkipChildren
     method! vtype ty =
         match ty with
+        | Type_Constructor tc ->
+              free_tcs <- IdentSet.add tc free_tcs;
+              DoChildren
+        | Type_App (tc, _) ->
+              free_tcs <- IdentSet.add tc free_tcs;
+              DoChildren
         | Type_Register _ ->
            (* Free variables in register types are not supported and will
               lead to a type error.
@@ -188,17 +198,29 @@ class freevarClass = object
               the field indices). *)
            SkipChildren
         | _ -> DoChildren
+    method! vexpr e =
+        match e with
+        | Expr_TApply(f, tes, es) ->
+             free_funs <- IdentSet.add f free_funs;
+             DoChildren
+        | _ -> DoChildren
+    method! vstmt s =
+        match s with
+        | Stmt_TCall (f, tes, args, loc) ->
+             free_funs <- IdentSet.add f free_funs;
+             DoChildren
+        | _ -> DoChildren
 end
 
 let fv_expr (x: expr): IdentSet.t =
     let fv = new freevarClass in
     ignore (visit_expr (fv :> aslVisitor) x);
-    fv#result
+    fv#vars
 
 let fv_type (x: ty): IdentSet.t =
     let fv = new freevarClass in
     ignore (visit_type (fv :> aslVisitor) x);
-    fv#result
+    fv#vars
 
 let fv_args (atys: (ident * ty) list): IdentSet.t =
     unionSets (List.map (fun (_, ty) -> fv_type ty) atys)
@@ -215,12 +237,12 @@ let fv_sformals (atys: sformal list): IdentSet.t =
 let fv_stmts stmts =
     let fvs = new freevarClass in
     ignore (visit_stmts (fvs :> aslVisitor) stmts);
-    fvs#result
+    fvs#vars
 
 let fv_decl decl =
     let fvs = new freevarClass in
     ignore (visit_decl (fvs :> aslVisitor) decl);
-    fvs#result
+    fvs#vars
 
 (****************************************************************)
 (** {2 Calculating assigned variables in statements}            *)
@@ -368,6 +390,126 @@ let calls_of_decl decl =
   let cc = new callsClass in
   ignore (visit_decl (cc :> aslVisitor) decl);
   cc#result
+
+(****************************************************************)
+(** {2 Keep definitions reachable from roots}                   *)
+(****************************************************************)
+
+let decl_name (x: declaration): ident option =
+    (match x with
+    | Decl_BuiltinType (v, loc) -> Some v
+    | Decl_Forward (v, loc) -> Some v
+    | Decl_Record (v, fs, loc) -> Some v
+    | Decl_Typedef (v, ty, loc) -> Some v
+    | Decl_Enum (v, es, loc) -> Some v
+    | Decl_Var (v, ty, loc) -> Some v
+    | Decl_Const (v, ty, e, loc) -> Some v
+    | Decl_BuiltinFunction (f, args, ty, loc) -> Some f
+    | Decl_FunType (f, args, ty, loc) -> Some f
+    | Decl_FunDefn (f, args, ty, b, loc) -> Some f
+    | Decl_ProcType (f, args, loc) -> Some f
+    | Decl_ProcDefn (f, args, b, loc) -> Some f
+    | Decl_VarGetterType (f, ty, loc) -> Some f
+    | Decl_VarGetterDefn (f, ty, b, loc) -> Some f
+    | Decl_ArrayGetterType (f, args, ty, loc) -> Some f
+    | Decl_ArrayGetterDefn (f, args, ty, b, loc) -> Some f
+    | Decl_VarSetterType (f, v, ty, loc) -> Some f
+    | Decl_VarSetterDefn (f, v, ty, b, loc) -> Some f
+    | Decl_ArraySetterType (f, args, v, ty, loc) -> Some f
+    | Decl_ArraySetterDefn (f, args, v, ty, b, loc) -> Some f
+    | Decl_InstructionDefn (d, es, opd, c, ex, loc) -> Some d
+    | Decl_DecoderDefn (d, dc, loc) -> Some d
+    | Decl_Operator1 (op, vs, loc) -> None
+    | Decl_Operator2 (op, vs, loc) -> None
+    | Decl_NewEventDefn(v, args, loc) -> Some v
+    | Decl_EventClause(v, b, loc) -> Some v
+    | Decl_NewMapDefn(ty, v, args, b, loc) -> Some v
+    | Decl_MapClause(v, fs, oc, b, loc) -> Some v
+    | Decl_Config(v, ty, e, loc) -> Some v
+    )
+
+let decl_map_of (ds: declaration list): declaration Bindings.t =
+    (* Map of declarations *)
+    let decls : declaration Bindings.t ref = ref Bindings.empty in
+    List.iter (fun d ->
+        (match decl_name d with
+        | Some nm -> decls := Bindings.add nm d !decls
+        | None -> ()
+        )
+    ) ds;
+    !decls
+
+(* construct map of Union { x -> f x | for x in xs } *)
+let memoize (xs: ident list) (f: ident -> IdentSet.t): IdentSet.t Bindings.t =
+    let results = ref Bindings.empty in
+    List.iter (fun x -> results := Bindings.add x (f x) !results) xs;
+    !results
+
+(* construct map of Union { f x -> x | for x in xs } *)
+let rev_memoize (xs: ident list) (f: ident -> IdentSet.t): IdentSet.t Bindings.t =
+    let results = ref Bindings.empty in
+    List.iter (fun x ->
+        let ys = f x in
+        IdentSet.iter (fun y ->
+            let prev = Utils.from_option (Bindings.find_opt y !results) (fun _ -> IdentSet.empty) in
+            results := Bindings.add y (IdentSet.add x prev) !results
+        ) ys
+    ) xs;
+    !results
+
+(* topologically sorted list of objects reachable from roots *)
+let reach (next: ident -> IdentSet.t) (roots: ident list): ident list =
+    let result : ident list ref = ref [] in
+    let seen : IdentSet.t ref = ref IdentSet.empty in
+    let rec visit (lss: ident list list): unit =
+        ( match lss with
+        | [] -> ()
+        | ([]::lss) -> visit lss
+        | ((l::ls)::lss) when IdentSet.mem l !seen -> visit (ls::lss)
+        | ((l::ls)::lss) ->
+            seen := IdentSet.add l !seen;
+            IdentSet.iter (fun n -> visit ((n :: ls) :: lss)) (next l);
+            result := l :: !result
+        )
+    in
+    visit [roots];
+    !result
+
+
+(* f (find x bs) if x in bs, empty otherwise *)
+let bindings_to_function (bs: 'a Bindings.t) (f: 'a -> IdentSet.t) (x: ident): IdentSet.t =
+    Utils.from_option
+        (Utils.map_option f (Bindings.find_opt x bs))
+        (fun _ -> IdentSet.empty)
+
+(* Result is topologically sorted list of everything reachable from roots *)
+let reachable_decls (roots: ident list) (ds: declaration list): declaration list =
+    let next (d: declaration): IdentSet.t =
+        let fvs = new freevarClass in
+        ignore (visit_decl (fvs :> aslVisitor) d);
+        let refs = (fvs#vars) in
+        let refs = IdentSet.union (fvs#funs) refs in
+        let refs = IdentSet.union (fvs#tycons) refs in
+        refs
+    in
+
+    let decls = decl_map_of ds in
+    let reachable = reach (bindings_to_function decls next) roots in
+    (* List.iter (fun r -> Printf.printf "%s\n" (pprint_ident r)) reachable; *)
+    let r = Utils.flatmap_option (fun x -> Bindings.find_opt x decls) reachable in
+    List.rev r
+
+let callers (leaves: ident list) (ds: declaration list): IdentSet.t =
+    let next (d: declaration): IdentSet.t =
+        let fvs = new freevarClass in
+        ignore (visit_decl (fvs :> aslVisitor) d);
+        fvs#funs
+    in
+
+    let decls = decl_map_of ds in
+    let fs = List.filter Id.isFunction (List.map fst (Bindings.bindings decls)) in
+    let rev_next = rev_memoize fs (bindings_to_function decls next) in
+    IdentSet.of_list (reach (bindings_to_function rev_next Fun.id) leaves)
 
 (****************************************************************)
 (** {2 Substitutions}                                           *)
