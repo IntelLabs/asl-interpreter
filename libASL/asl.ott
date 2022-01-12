@@ -112,13 +112,13 @@ let addQualifier (p: string) (x: ident): ident =
 let addPrefix (p: string) (x: ident): ident =
     (match x with
     | Ident(q)    -> Ident (p ^ "." ^ q)
-    | FIdent(_,_) -> failwith "addQualifier"
+    | FIdent(_,_) -> failwith "addPrefix"
     )
 
 let addSuffix (x: ident) (s: string): ident =
     (match x with
     | Ident(p)    -> Ident (p ^ "." ^ s)
-    | FIdent(_,_) -> failwith "addQualifier"
+    | FIdent(_,_) -> failwith "addSuffix"
     )
 
 let genericTyvar (i: int): ident =
@@ -128,7 +128,7 @@ let genericTyvar (i: int): ident =
 let isGenericTyvar (x: ident): bool =
     (match x with
     | Ident(s)    -> s.[0] = '$'
-    | FIdent(_,_) -> failwith "addQualifier"
+    | FIdent(_,_) -> failwith "isGenericTyvar"
     )
 
 module Id = struct
