@@ -173,9 +173,10 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
                     let e' = visit_expr vis e in
                     if e == e' then x else Expr_Parens e'
             | Expr_TApply(f, tes, es) ->
+                    let f'   = visit_var vis f in
                     let tes' = visit_exprs vis tes in
                     let es'  = visit_exprs vis es in
-                    if tes == tes' && es == es' then x else Expr_TApply(f, tes', es')
+                    if f == f' && tes == tes' && es == es' then x else Expr_TApply(f', tes', es')
             | Expr_Tuple(es) ->
                     let es'  = visit_exprs vis es in
                     if es == es' then x else Expr_Tuple es'
