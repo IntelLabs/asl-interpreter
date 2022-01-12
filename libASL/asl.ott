@@ -128,7 +128,7 @@ let genericTyvar (i: int): ident =
 let isGenericTyvar (x: ident): bool =
     (match x with
     | Ident(s)    -> s.[0] = '$'
-    | FIdent(_,_) -> failwith "isGenericTyvar"
+    | FIdent(_,_) -> false
     )
 
 module Id = struct
