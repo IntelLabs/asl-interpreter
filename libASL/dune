@@ -28,6 +28,7 @@
  elf
  eval
  format_utils
+ lattice
  lexer
  lexersupport
  loadASL
@@ -35,5 +36,7 @@
  tcheck
  utils
  value
- visitor)
+ visitor
+ xform_constprop
+ )
  (libraries ocolor pprint zarith z3))
