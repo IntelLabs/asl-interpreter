@@ -32,6 +32,144 @@ let mk_bindings (xs: (ident * 'a) list): 'a Bindings.t =
 let pp_bindings (pp: 'a -> string) (bs: 'a Bindings.t): string =
     String.concat ", " (List.map (fun (k, v) -> pprint_ident k ^"->"^ pp v) (Bindings.bindings bs))
 
+(****************************************************************)
+(** {2 Scopes}                                                  *)
+(****************************************************************)
+
+(** A mutable binding *)
+module Scope : sig
+    type 'a t
+    val empty   : unit -> 'a t
+
+    (* make a clean copy that can be independently mutated *)
+    val clone          : 'a t -> 'a t
+    val mem            : 'a t -> ident -> bool
+    val get            : 'a t -> ident -> 'a option
+    val set            : 'a t -> ident -> 'a -> unit
+    val map            : ('a -> 'b) -> 'a t -> 'b t
+    val map_inplace    : ('a -> 'a) -> 'a t -> unit
+    val flatmap_option : ('a -> 'b option) -> 'a t -> 'b t
+    val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+end = struct
+    type 'a t = { mutable bs : 'a Bindings.t; }
+
+    let empty (_: unit): 'a t =
+        let bs = Bindings.empty in
+        { bs }
+
+    (* create copy of a scope that can be independently mutated *)
+    let clone (s: 'a t): 'a t =
+        { bs = s.bs }
+
+    let mem (s: 'a t) (k: ident): bool =
+        Bindings.mem k s.bs
+
+    let get (s: 'a t) (k: ident): 'a option =
+        Bindings.find_opt k s.bs
+
+    let set (s: 'a t) (k: ident) (v: 'a): unit =
+        s.bs <- Bindings.add k v s.bs
+
+    let map (f: 'a -> 'b) (s: 'a t): 'b t =
+        { bs = Bindings.map f s.bs }
+
+    let map_inplace (f: 'a -> 'a) (s: 'a t): unit =
+        s.bs <- Bindings.map f s.bs
+
+    let flatmap_option (f: 'a -> 'b option) (env: 'a t): 'b t =
+        let add (x: ident) (v: 'a) (bs: 'b Bindings.t): 'b Bindings.t =
+            (match f v with
+            | Some w -> Bindings.add x w bs
+            | None -> bs
+            )
+        in
+        { bs = Bindings.fold add env.bs Bindings.empty }
+
+    let map2 (f: 'a -> 'b -> 'c) (env1: 'a t) (env2: 'b t): 'c t =
+        let merge v oa ob =
+            (match (oa, ob) with
+            | (Some a, Some b) -> Some (f a b)
+            | _ -> None
+            )
+        in
+        { bs = Bindings.merge merge env1.bs env2.bs }
+end
+
+(* A collection of nested mutable scopes *)
+module ScopeStack : sig
+    type 'a t
+    val empty   : unit -> 'a t
+
+    (* make a clean copy that can be independently mutated *)
+    val clone          : 'a t -> 'a t
+    val add            : 'a t -> ident -> 'a -> unit
+    val mem            : 'a t -> ident -> bool
+    val get            : 'a t -> ident -> 'a option
+    val set            : 'a t -> ident -> 'a -> bool
+    val map            : ('a -> 'b) -> 'a t -> 'b t
+    val map_inplace    : ('a -> 'a) -> 'a t -> unit
+    val flatmap_option : ('a -> 'b option) -> 'a t -> 'b t
+    val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val nest           : 'a t -> ('a t -> 'b) -> 'b
+end = struct
+    type 'a t = ('a Scope.t) list
+
+    let empty (_: unit): 'a t =
+        let base: 'a Scope.t = Scope.empty () in
+        [base]
+
+    let clone (ss: 'a t): 'a Scope.t list =
+        List.map Scope.clone ss
+
+    let add (ss: 'a t) (x: ident) (v: 'a): unit =
+        (match ss with
+        | (s :: _) -> Scope.set s x v
+        | []       -> failwith "ScopeStack.add: broken invariant"
+        )
+
+    let rec get (ss: 'a t) (x: ident): 'a option =
+        (match ss with
+        | (s :: ss') ->
+            (match Scope.get s x with
+            | Some v -> Some v
+            | None -> get ss' x
+            )
+        | [] -> None
+        )
+
+    let mem (ss: 'a t) (x: ident): bool =
+        Option.is_some (get ss x)
+
+    let rec set (ss: 'a t) (x: ident) (v: 'a): bool =
+        (match ss with
+        | (s :: ss') ->
+            if Scope.mem s x then (
+                Scope.set s x v;
+                true
+            ) else (
+                set ss' x v
+            )
+        | [] -> false
+        )
+
+    let map (f: 'a -> 'b) (env: 'a t): 'b t =
+        List.map (Scope.map f) env
+
+    let map_inplace (f: 'a -> 'a) (env: 'a t): unit =
+        List.iter (Scope.map_inplace f) env
+
+    let flatmap_option (f: 'a -> 'b option) (env: 'a t): 'b t =
+        List.map (Scope.flatmap_option f) env
+
+    let map2 (f: 'a -> 'b -> 'c) (env1: 'a t) (env2: 'b t): 'c t =
+        List.map2 (Scope.map2 f) env1 env2
+
+
+    let nest (env: 'a t) (k: 'a t -> 'b): 'b =
+        let newscope = Scope.empty () in
+        k (newscope :: env)
+end
+
 
 (** {2 Sets of identifiers} *)
 module IdentSet = Set.Make(Id)
@@ -435,26 +573,26 @@ let decl_name (x: declaration): ident option =
     | Decl_Enum (v, es, loc) -> Some v
     | Decl_Var (v, ty, loc) -> Some v
     | Decl_Const (v, ty, e, loc) -> Some v
-    | Decl_BuiltinFunction (f, args, ty, loc) -> Some f
-    | Decl_FunType (f, args, ty, loc) -> Some f
-    | Decl_FunDefn (f, args, ty, b, loc) -> Some f
-    | Decl_ProcType (f, args, loc) -> Some f
-    | Decl_ProcDefn (f, args, b, loc) -> Some f
-    | Decl_VarGetterType (f, ty, loc) -> Some f
-    | Decl_VarGetterDefn (f, ty, b, loc) -> Some f
-    | Decl_ArrayGetterType (f, args, ty, loc) -> Some f
-    | Decl_ArrayGetterDefn (f, args, ty, b, loc) -> Some f
-    | Decl_VarSetterType (f, v, ty, loc) -> Some f
-    | Decl_VarSetterDefn (f, v, ty, b, loc) -> Some f
-    | Decl_ArraySetterType (f, args, v, ty, loc) -> Some f
-    | Decl_ArraySetterDefn (f, args, v, ty, b, loc) -> Some f
+    | Decl_BuiltinFunction (f, ps, args, ty, loc) -> Some f
+    | Decl_FunType (f, ps, args, ty, loc) -> Some f
+    | Decl_FunDefn (f, ps, args, ty, b, loc) -> Some f
+    | Decl_ProcType (f, ps, args, loc) -> Some f
+    | Decl_ProcDefn (f, ps, args, b, loc) -> Some f
+    | Decl_VarGetterType (f, ps, ty, loc) -> Some f
+    | Decl_VarGetterDefn (f, ps, ty, b, loc) -> Some f
+    | Decl_ArrayGetterType (f, ps, args, ty, loc) -> Some f
+    | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> Some f
+    | Decl_VarSetterType (f, ps, v, ty, loc) -> Some f
+    | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> Some f
+    | Decl_ArraySetterType (f, ps, args, v, ty, loc) -> Some f
+    | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
     | Decl_InstructionDefn (d, es, opd, c, ex, loc) -> Some d
     | Decl_DecoderDefn (d, dc, loc) -> Some d
     | Decl_Operator1 (op, vs, loc) -> None
     | Decl_Operator2 (op, vs, loc) -> None
-    | Decl_NewEventDefn(v, args, loc) -> Some v
+    | Decl_NewEventDefn(v, ps, args, loc) -> Some v
     | Decl_EventClause(v, b, loc) -> Some v
-    | Decl_NewMapDefn(ty, v, args, b, loc) -> Some v
+    | Decl_NewMapDefn(v, ps, args, ty, b, loc) -> Some v
     | Decl_MapClause(v, fs, oc, b, loc) -> Some v
     | Decl_Config(v, ty, e, loc) -> Some v
     )

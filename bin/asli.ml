@@ -71,7 +71,7 @@ let rec process_command (tcenv: TC.Env.t) (cpu: Cpu.cpu) (fname: string) (input0
         let loc = mkLoc fname cmd in
         let (x, e) = LoadASL.read_impdef tcenv loc cmd in
         let v = Eval.eval_expr loc cpu.env e in
-        Eval.Env.setImpdef cpu.env x v
+        cpu.setImpdef x v
     | [":set"; flag] when Utils.startswith flag "+" ->
         (match List.assoc_opt (Utils.stringDrop 1 flag) flags with
         | None -> Printf.printf "Unknown flag %s\n" flag;

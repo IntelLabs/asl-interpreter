@@ -53,45 +53,20 @@ end
 
 
 (****************************************************************)
-(** {2 Scopes}                                                  *)
-(****************************************************************)
-
-(** Basically just a mutable binding *)
-type scope = { mutable bs : value Bindings.t; }
-
-let empty_scope (_: unit): scope =
-    let bs = Bindings.empty in
-    { bs }
-
-let mem_scope (k: ident) (s: scope): bool =
-    Bindings.mem k s.bs
-
-let get_scope (k: ident) (s: scope): value =
-    Bindings.find k s.bs
-
-let get_scope_opt (k: ident) (s: scope): value option =
-    Bindings.find_opt k s.bs
-
-let set_scope (k: ident) (v: value) (s: scope): unit =
-    s.bs <- Bindings.add k v s.bs
-
-
-(****************************************************************)
 (** {2 Mutable bindings}                                        *)
 (****************************************************************)
 
-(** Environment representing both global and local state of the system *)
-module Env : sig
+(** Environment representing immutable global state of the system
+ * Note that it is mutable so that we can construct the initial state
+ * as each declaration is processed.
+ *)
+module GlobalEnv : sig
     type t
     val empty               : t
-    val nestTop             : (t -> 'a) -> (t -> 'a)
-    val nest                : (t -> 'a) -> (t -> 'a)
-
-    val addLocalVar         : AST.l -> t -> ident -> value -> unit
-    val addLocalConst       : AST.l -> t -> ident -> value -> unit
 
     val addGlobalConst      : t -> ident -> value -> unit
     val getGlobalConst      : t -> ident -> value
+    val getGlobalConstOpt   : t -> ident -> value option
 
     (* to support generation of unknown values, we need to remember the structure
      * of user-defined types such as enumerations and records
@@ -107,11 +82,7 @@ module Env : sig
     val addTypedef          : t -> ident -> AST.ty -> unit
     val getTypedef          : t -> ident -> AST.ty option
 
-    val addGlobalVar        : t -> ident -> value -> unit
-    val getVar              : AST.l -> t -> ident -> value
-    val setVar              : AST.l -> t -> ident -> value -> unit
-
-    val getFun              : AST.l -> t -> ident -> (ident list * ident list * AST.l * stmt list)
+    val getFun              : AST.l -> t -> ident -> (ident list * ident list * AST.l * stmt list) option
     val addFun              : AST.l -> t -> ident -> (ident list * ident list * AST.l * stmt list) -> unit
 
     val getInstruction      : AST.l -> t -> ident -> (encoding * (stmt list) option * bool * stmt list)
@@ -122,7 +93,6 @@ module Env : sig
 
     val setImpdef           : t -> string -> value -> unit
     val getImpdef           : AST.l -> t -> string -> value
-
 end = struct
     type t = {
         mutable instructions : (encoding * (stmt list) option * bool * stmt list) Bindings.t;
@@ -133,10 +103,8 @@ end = struct
         mutable enumNeqs     : IdentSet.t;
         mutable records      : ((ident * AST.ty) list) Bindings.t;
         mutable typedefs     : AST.ty Bindings.t;
-        mutable globals      : scope;
-        mutable constants    : scope;
+        mutable constants    : value Scope.t;
         mutable impdefs      : value ImpDefs.t;
-        mutable locals       : scope list
     }
 
     let empty = {
@@ -148,65 +116,21 @@ end = struct
         enumNeqs     = IdentSet.empty;
         records      = Bindings.empty;
         typedefs     = Bindings.empty;
-        globals      = empty_scope ();
-        constants    = empty_scope ();
+        constants    = Scope.empty();
         impdefs      = ImpDefs.empty;
-        locals       = [empty_scope ()];
     }
 
-    let nestTop (k: t -> 'a) (parent: t): 'a =
-        let child = {
-            decoders     = parent.decoders;
-            instructions = parent.instructions;
-            functions    = parent.functions;
-            enums        = parent.enums;
-            enumEqs      = parent.enumEqs;
-            enumNeqs     = parent.enumNeqs;
-            records      = parent.records;
-            typedefs     = parent.typedefs;
-            globals      = parent.globals;
-            constants    = parent.constants;
-            impdefs      = parent.impdefs;
-            locals       = [empty_scope ()];  (* only change *)
-        } in
-        k child
-
-    let nest (k: t -> 'a) (parent: t): 'a =
-        let child = {
-            decoders     = parent.decoders;
-            instructions = parent.instructions;
-            functions    = parent.functions;
-            enums        = parent.enums;
-            enumEqs      = parent.enumEqs;
-            enumNeqs     = parent.enumNeqs;
-            records      = parent.records;
-            typedefs     = parent.typedefs;
-            globals      = parent.globals;
-            constants    = parent.constants;
-            impdefs      = parent.impdefs;
-            locals       = empty_scope () :: parent.locals;  (* only change *)
-        } in
-        k child
-
-    let addLocalVar (loc: l) (env: t) (x: ident) (v: value): unit =
-        if !trace_write then Printf.printf "TRACE: fresh %s = %s\n" (pprint_ident x) (pp_value v);
-        (match env.locals with
-        | (bs :: _) -> set_scope x v bs
-        | []        -> raise (EvalError (loc, "addLocalVar"))
-        )
-
-    let addLocalConst (loc: l) (env: t) (x: ident) (v: value): unit =
-        (* todo: should constants be held separately from local vars? *)
-        (match env.locals with
-        | (bs :: _) -> set_scope x v bs
-        | []        -> raise (EvalError (loc, "addLocalConst"))
-        )
-
     let addGlobalConst (env: t) (x: ident) (v: value): unit =
-        set_scope x v env.constants
+        Scope.set env.constants x v
 
     let getGlobalConst (env: t) (x: ident): value =
-        get_scope x env.constants
+        (match Scope.get env.constants x with
+        | Some v -> v
+        | None   -> failwith "getGlobalConst"
+        )
+
+    let getGlobalConstOpt (env: t) (x: ident): value option =
+        Scope.get env.constants x
 
     let addEnum (env: t) (x: ident) (vs: value list): unit =
         env.enums    <- Bindings.add x vs env.enums
@@ -229,40 +153,8 @@ end = struct
     let getTypedef (env: t) (x: ident): AST.ty option =
         Bindings.find_opt x env.typedefs
 
-    let addGlobalVar (env: t) (x: ident) (v: value): unit =
-        set_scope x v env.globals
-
-    let findScope (env: t) (x: ident): scope option =
-        let rec search (bss : scope list): scope option =
-            (match bss with
-            | (bs :: bss') ->
-                    if mem_scope x bs then Some bs else search bss'
-            | [] ->
-                    if mem_scope x env.globals then Some env.globals
-                    else if mem_scope x env.constants then Some env.constants
-                    else None
-            )
-        in
-        search env.locals
-
-    let getVar (loc: l) (env: t) (x: ident): value =
-        (match findScope env x with
-        | Some bs -> get_scope x bs
-        | None    -> raise (EvalError (loc, "getVar: " ^ pprint_ident x))
-        )
-
-    let setVar (loc: l) (env: t) (x: ident) (v: value): unit =
-        if !trace_write then Printf.printf "TRACE: write %s = %s\n" (pprint_ident x) (pp_value v);
-        (match findScope env x with
-        | Some bs -> set_scope x v bs
-        | None    -> raise (EvalError (loc, "setVar " ^ pprint_ident x))
-        )
-
-    let getFun (loc: l) (env: t) (x: ident): (ident list * ident list * AST.l * stmt list) =
-        (match Bindings.find_opt x env.functions with
-        | Some def -> def
-        | None     -> raise (EvalError (loc, "getFun " ^ pprint_ident x))
-        )
+    let getFun (loc: l) (env: t) (x: ident): (ident list * ident list * AST.l * stmt list) option =
+        Bindings.find_opt x env.functions
 
     let addFun (loc: l) (env: t) (x: ident) (def: (ident list * ident list * AST.l * stmt list)): unit =
         if false then Printf.printf "Adding function %s\n" (pprint_ident x);
@@ -300,15 +192,91 @@ end = struct
         | None ->
                 raise (EvalError (loc, "Unknown value for IMPLEMENTATION_DEFINED \""^x^"\""))
         )
+
 end
 
-let isGlobalConst (env: Env.t) (id: AST.ident): bool =
-    match Env.getGlobalConst env id with
-    | _ -> true
-    | exception _ -> false
 
-let removeGlobalConsts (env: Env.t) (ids: IdentSet.t): IdentSet.t =
-    IdentSet.filter (fun id -> not (isGlobalConst env id)) ids
+(** Environment representing both global and local state of the system *)
+module Env : sig
+    type t
+    val mkEnv               : GlobalEnv.t -> value ScopeStack.t -> t
+    val newEnv              : GlobalEnv.t -> t
+    val nestTop             : t -> (t -> 'a) -> 'a
+    val nest                : t -> (t -> 'a) -> 'a
+
+    val globals             : t -> GlobalEnv.t
+
+    val addLocalVar         : AST.l -> t -> ident -> value -> unit
+    val addLocalConst       : AST.l -> t -> ident -> value -> unit
+
+    val addGlobalVar        : t -> ident -> value -> unit
+    val getVar              : AST.l -> t -> ident -> value
+    val setVar              : AST.l -> t -> ident -> value -> unit
+end = struct
+    type t = {
+                globalConsts : GlobalEnv.t;
+        mutable globalVars   : value Scope.t;
+        mutable locals       : value ScopeStack.t
+    }
+
+    let mkEnv (genv: GlobalEnv.t) (env: value ScopeStack.t) = {
+        globalConsts = genv;
+        globalVars   = Scope.empty();
+        locals       = env;
+    }
+
+    let newEnv (genv: GlobalEnv.t) = mkEnv genv (ScopeStack.empty ())
+
+    let nestTop (parent: t) (k: t -> 'a): 'a =
+        let child = {
+            globalConsts = parent.globalConsts;
+            globalVars   = parent.globalVars;
+            locals       = ScopeStack.empty ();  (* only change *)
+        } in
+        k child
+
+    let nest (parent: t) (k: t -> 'a): 'a =
+        ScopeStack.nest parent.locals (fun newenv ->
+            let child = {
+                globalConsts = parent.globalConsts;
+                globalVars   = parent.globalVars;
+                locals       = newenv;  (* only change *)
+            } in
+            k child
+        )
+
+    let globals (env: t): GlobalEnv.t = env.globalConsts
+
+    let addLocalVar (loc: l) (env: t) (x: ident) (v: value): unit =
+        if !trace_write then Printf.printf "TRACE: fresh %s = %s\n" (pprint_ident x) (pp_value v);
+        ScopeStack.add env.locals x v
+
+    let addLocalConst (loc: l) (env: t) (x: ident) (v: value): unit =
+        (* todo: should constants be held separately from local vars? *)
+        ScopeStack.add env.locals x v
+
+    let addGlobalVar (env: t) (x: ident) (v: value): unit =
+        Scope.set env.globalVars x v
+
+    let getVar (loc: l) (env: t) (x: ident): value =
+        from_option (ScopeStack.get env.locals x) (fun _ ->
+        from_option (Scope.get env.globalVars x) (fun _ ->
+        from_option ( GlobalEnv.getGlobalConstOpt env.globalConsts x) (fun _ ->
+        raise (EvalError (loc, "getVar: " ^ pprint_ident x))
+        )))
+
+    let setVar (loc: l) (env: t) (x: ident) (v: value): unit =
+        if !trace_write then Printf.printf "TRACE: write %s = %s\n" (pprint_ident x) (pp_value v);
+        if ScopeStack.set env.locals x v then ()
+        else Scope.set env.globalVars x v
+
+end
+
+let isGlobalConst (genv: GlobalEnv.t) (id: AST.ident): bool =
+    Option.is_some (GlobalEnv.getGlobalConstOpt genv id)
+
+let removeGlobalConsts (genv: GlobalEnv.t) (ids: IdentSet.t): IdentSet.t =
+    IdentSet.filter (fun id -> not (isGlobalConst genv id)) ids
 
 (****************************************************************)
 (** {2 Evaluation functions}                                    *)
@@ -347,11 +315,11 @@ let rec eval_exprs (loc: l) (env: Env.t) (xs: AST.expr list): value list =
 and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
     ( match x with
     | Type_Constructor(tc) ->
-        (match Env.getRecord env tc with
+        (match GlobalEnv.getRecord (Env.globals env) tc with
         | Some fs ->
             mkrecord (List.map (fun (f, ty) -> (f, mk_uninitialized loc env ty)) fs)
         | None ->
-            (match Env.getTypedef env tc with
+            (match GlobalEnv.getTypedef (Env.globals env) tc with
             | Some ty' -> mk_uninitialized loc env ty'
             | None     -> VUninitialized
             )
@@ -376,15 +344,15 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
     | Type_Constructor(Ident "real")    -> eval_unknown_real ()
     | Type_Constructor(Ident "string")  -> eval_unknown_string ()
     | Type_Constructor(tc) ->
-        (match Env.getEnum env tc with
+        (match GlobalEnv.getEnum (Env.globals env) tc with
         | Some (e::_) -> e
         | Some [] -> raise (EvalError (loc, "eval_unknown unknown type constructor " ^ Utils.to_string (PP.pp_ty x)))
         | None ->
-            (match Env.getRecord env tc with
+            (match GlobalEnv.getRecord (Env.globals env) tc with
             | Some fs ->
                 mkrecord (List.map (fun (f, ty) -> (f, eval_unknown loc env ty)) fs)
             | None ->
-                (match Env.getTypedef env tc with
+                (match GlobalEnv.getTypedef (Env.globals env) tc with
                 | Some ty' -> eval_unknown loc env ty'
                 | None ->
                     raise (EvalError (loc, "eval_unknown " ^ Utils.to_string (PP.pp_ty x)))
@@ -416,7 +384,7 @@ and eval_pattern (loc: l) (env: Env.t) (v: value) (x: AST.pattern): bool =
     | Pat_LitHex(l)  -> eval_eq_int  loc v (from_hexLit l)
     | Pat_LitBits(l) -> eval_eq_bits loc v (from_bitsLit l)
     | Pat_LitMask(l) -> eval_inmask  loc v (from_maskLit l)
-    | Pat_Const(c)   -> eval_eq      loc v (Env.getGlobalConst env c)
+    | Pat_Const(c)   -> eval_eq      loc v (GlobalEnv.getGlobalConst (Env.globals env) c)
     | Pat_Wildcard   -> true
     | Pat_Tuple(ps) ->
             let vs = of_tuple loc v in
@@ -539,7 +507,7 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
     | Expr_Unknown(t) ->
             eval_unknown loc env t
     | Expr_ImpDef(t, Some(s)) ->
-            Env.getImpdef loc env s
+            GlobalEnv.getImpdef loc (Env.globals env) s
     | Expr_ImpDef(t, None) ->
             raise (EvalError (loc, "unnamed IMPLEMENTATION_DEFINED behavior"))
     | Expr_Array(a, i) ->
@@ -644,7 +612,7 @@ and eval_lexpr_modify (loc: l) (env: Env.t) (x: AST.lexpr) (modify: value -> val
 
 (** Evaluate list of statements *)
 and eval_stmts (env: Env.t) (xs: AST.stmt list): unit =
-    Env.nest (fun env' -> List.iter (eval_stmt env') xs) env
+    Env.nest env (fun env' -> List.iter (eval_stmt env') xs)
 
 (** Evaluate statement *)
 and eval_stmt (env: Env.t) (x: AST.stmt): unit =
@@ -695,7 +663,7 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
             let ex = to_exc loc (Env.getVar loc env v) in
             raise (Throw ex)
     | Stmt_DecodeExecute(i, e, loc) ->
-            let dec = Env.getDecoder env i in
+            let dec = GlobalEnv.getDecoder (Env.globals env) i in
             let op  = eval_expr loc env e in
             eval_decode_case loc env dec op
     | Stmt_Block(b, loc) ->
@@ -738,10 +706,10 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
                 | Direction_Down -> eval_leq loc stop' i
                 ) in
                 if c then begin
-                    Env.nest (fun env' ->
+                    Env.nest env (fun env' ->
                         Env.addLocalVar loc env' v i;
                         eval_stmts env' b
-                    ) env;
+                    );
                     let i' = (match dir with
                     | Direction_Up   -> eval_add_int loc i (VInt Z.one)
                     | Direction_Down -> eval_sub_int loc i (VInt Z.one)
@@ -771,7 +739,7 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
             with
             | Return v -> raise (Return v)
             | Throw (l, ex) ->
-                Env.nest (fun env' ->
+                Env.nest env (fun env' ->
                     let rec eval cs =
                         (match cs with
                         | [] ->
@@ -788,7 +756,7 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
                     in
                     Env.addLocalVar loc env' ev (VExc (l, ex));
                     eval catchers
-                ) env
+                )
             )
     )
 
@@ -811,14 +779,16 @@ and eval_call (loc: l) (env: Env.t) (f: ident) (tvs: value list) (vs: value list
                 List.iter (fun v -> Printf.printf " %s" (pp_value v)) vs;
                 Printf.printf "\n"
             end;
-            let (targs, args, loc, b) = Env.getFun loc env f in
+            let (targs, args, loc, b) = Utils.from_option (GlobalEnv.getFun loc (Env.globals env) f)
+                (fun _ -> raise (EvalError (loc, "Undeclared function " ^ pprint_ident f)))
+            in
             assert (List.length targs = List.length tvs);
             assert (List.length args  = List.length vs);
-            Env.nestTop (fun env' ->
+            Env.nestTop env (fun env' ->
                 List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) targs tvs;
                 List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) args vs;
                 eval_stmts env' b
-            ) env
+            )
         end
     )
 
@@ -869,7 +839,7 @@ and eval_decode_alt (loc: AST.l) (env: Env.t) (DecoderAlt_Alt (ps, b)) (vs: valu
         | DecoderBody_UNALLOC loc -> raise (Throw (loc, Exc_Undefined))
         | DecoderBody_NOP loc -> true
         | DecoderBody_Encoding (enc, l) ->
-                let (enc, opost, cond, exec) = Env.getInstruction loc env enc in
+                let (enc, opost, cond, exec) = GlobalEnv.getInstruction loc (Env.globals env) enc in
                 if eval_encoding env enc op then begin
                     (match opost with
                     | Some post -> List.iter (eval_stmt env) post
@@ -882,11 +852,12 @@ and eval_decode_alt (loc: AST.l) (env: Env.t) (DecoderAlt_Alt (ps, b)) (vs: valu
                     false
                 end
         | DecoderBody_Decoder (fs, c, loc) ->
-                let env = Env.empty in (* todo: this seems to share a single mutable object far too widely *)
-                List.iter (function (IField_Field (f, lo, wd)) ->
-                    Env.addLocalVar loc env f (extract_bits' loc op lo wd)
-                ) fs;
-                eval_decode_case loc env c op;
+                Env.nestTop env (fun env ->
+                    List.iter (function (IField_Field (f, lo, wd)) ->
+                        Env.addLocalVar loc env f (extract_bits' loc op lo wd)
+                    ) fs;
+                    eval_decode_case loc env c op
+                );
                 true
         )
     else
@@ -930,17 +901,17 @@ and eval_encoding (env: Env.t) (x: encoding) (op: value): bool =
 (* Uninitialized global variables are UNKNOWN by default *)
 let eval_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value = eval_unknown loc env x
 
-(** Construct environment from global declarations *)
-let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
+(** Construct global constant environment from global declarations *)
+let build_constant_environment (ds: AST.declaration list): GlobalEnv.t = begin
     if false then Printf.printf "Building environment from %d declarations\n" (List.length ds);
-    let env = Env.empty in
+    let genv = GlobalEnv.empty in
     (* todo?: first pull out the constants/configs and evaluate all of them
      * lazily?
      *)
     List.iter (fun d ->
         (match d with
         | Decl_Record (v, fs, loc) ->
-                Env.addRecord env v fs
+                GlobalEnv.addRecord genv v fs
         | Decl_Enum(qid, es, loc) ->
                 let evs = if qid = Ident "boolean" then begin (* optimized special case *)
                               [ (Ident "FALSE", VBool false); (Ident "TRUE", VBool true) ]
@@ -948,39 +919,36 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
                               List.mapi (fun i e -> (e, VEnum (e, i))) es;
                           end
                 in
-                List.iter (fun (e, v) -> Env.addGlobalConst env e v) evs;
-                Env.addEnum env qid (List.map (fun (e, v) -> v) evs)
+                List.iter (fun (e, v) -> GlobalEnv.addGlobalConst genv e v) evs;
+                GlobalEnv.addEnum genv qid (List.map (fun (e, v) -> v) evs)
         | Decl_Typedef (v, ty, loc) ->
-                Env.addTypedef env v ty
-        | Decl_Var(v, ty, loc) ->
-                let init = eval_uninitialized loc env ty in
-                Env.addGlobalVar env v init
+                GlobalEnv.addTypedef genv v ty
         | Decl_Const(v, ty, i, loc) ->
                 (* todo: constants need to be lazily evaluated or need to be
                  * sorted by dependencies
                  *)
-                let init = eval_expr loc env i in
-                Env.addGlobalConst env v init
+                let init = eval_expr loc (Env.newEnv genv) i in
+                GlobalEnv.addGlobalConst genv v init
         | Decl_FunDefn(f, ps, atys, rty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = List.map fst atys in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_ProcDefn(f, ps, atys, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = List.map fst atys in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_VarGetterDefn(f, ps, ty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = [] in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_ArrayGetterDefn(f, ps, atys, rty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = List.map fst atys in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_VarSetterDefn(f, ps, v, ty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = [v] in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_ArraySetterDefn(f, ps, atys, v, ty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let name_of (x: AST.sformal): ident =
@@ -990,32 +958,34 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
                     )
                 in
                 let args = List.map name_of atys in
-                Env.addFun loc env f (tvs, List.append args [v], loc, body)
+                GlobalEnv.addFun loc genv f (tvs, List.append args [v], loc, body)
         | Decl_InstructionDefn(nm, encs, opost, conditional, exec, loc) ->
                 (* Instructions are looked up by their encoding name *)
                 List.iter (fun enc ->
                     let Encoding_Block (nm, _, _, _, _, _, _, _) = enc in
-                    Env.addInstruction loc env nm (enc, opost, conditional, exec)
+                    GlobalEnv.addInstruction loc genv nm (enc, opost, conditional, exec)
                 ) encs
         | Decl_DecoderDefn(nm, case, loc) ->
-                Env.addDecoder env nm case
+                GlobalEnv.addDecoder genv nm case
         | Decl_NewMapDefn(f, ps, atys, rty, body, loc) ->
                 let tvs  = List.map fst ps in
                 let args = List.map fst atys in
-                Env.addFun loc env f (tvs, args, loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         (*
         | Decl_MapClause(f, ps, atys, cond, body, loc) ->
                 let tvs   = List.map fst ps in
                 let args' = List.map fst args in
-                Env.addFun loc env f (tvs, args', loc, body)
+                GlobalEnv.addFun loc genv f (tvs, args', loc, body)
         *)
         | Decl_NewEventDefn (f, ps, atys, loc) ->
                 let tvs  = List.map fst ps in
                 let args = List.map fst atys in
-                Env.addFun loc env f (tvs, args, loc, [])
+                GlobalEnv.addFun loc genv f (tvs, args, loc, [])
         | Decl_EventClause (f, body, loc) ->
-                let (tvs, args, _, body0) = Env.getFun loc env f in
-                Env.addFun loc env f (tvs, args, loc, List.append body body0)
+                let (tvs, args, _, body0) = Utils.from_option (GlobalEnv.getFun loc genv f)
+                    (fun _ -> raise (EvalError (loc, "Undeclared event " ^ pprint_ident f)))
+                in
+                GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)
         (* todo: when creating initial environment, should pass in a set of configuration
          * options that will override any default values given in definition
          *)
@@ -1023,8 +993,12 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
                 (* todo: config constants need to be lazily evaluated or need to be
                  * sorted by dependencies
                  *)
-                let init = eval_expr loc env i in
-                Env.addGlobalConst env v init
+                let init = eval_expr loc (Env.newEnv genv) i in
+                GlobalEnv.addGlobalConst genv v init
+
+        (* The following declarations are part of the mutable global state *)
+        | Decl_Var(ty, v, loc)
+        -> ()
 
         (* The following declarations have no impact on execution *)
         | Decl_BuiltinType (_, _)           | Decl_Forward (_, _)
@@ -1036,6 +1010,22 @@ let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
         | Decl_Operator2 (_, _, _)
         | Decl_MapClause (_, _, _, _, _)
         -> ()
+        )
+    ) ds;
+    genv
+end
+
+(** Construct environment from global declarations *)
+let build_evaluation_environment (ds: AST.declaration list): Env.t = begin
+    let genv = build_constant_environment ds in
+    let env = Env.newEnv genv in
+    List.iter (fun d ->
+        (match d with
+        | Decl_Var(v, ty, loc) ->
+                let init = eval_uninitialized loc (Env.newEnv genv) ty in
+                Env.addGlobalVar env v init
+
+        | _ -> ()
         )
     ) ds;
     env

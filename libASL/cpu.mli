@@ -7,6 +7,7 @@
 
 type cpu = {
     env      : Eval.Env.t;
+    setImpdef: string -> Value.value -> unit;
     reset    : unit -> unit;
     step     : unit -> unit;
     getPC    : unit -> Primops.bigint;

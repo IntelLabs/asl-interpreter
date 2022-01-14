@@ -9,6 +9,7 @@ module AST = Asl_ast
 
 type cpu = {
     env      : Eval.Env.t;
+    setImpdef: string -> Value.value -> unit;
     reset    : unit -> unit;
     step     : unit -> unit;
     getPC    : unit -> Primops.bigint;
@@ -18,9 +19,13 @@ type cpu = {
 }
 
 let mkCPU (env : Eval.Env.t): cpu =
+    let genv = Eval.Env.globals env in
     let loc = AST.Unknown in
 
-    let reset (_ : unit): unit =
+    let setImpdef (key: string) (v: Value.value): unit =
+        Eval.GlobalEnv.setImpdef genv key v
+
+    and reset (_ : unit): unit =
         Eval.eval_proccall loc env (AST.FIdent ("__TakeColdReset", 0)) [] []
 
     and step (_ : unit): unit =
@@ -41,11 +46,12 @@ let mkCPU (env : Eval.Env.t): cpu =
 
     and opcode (iset: string) (opcode: Primops.bigint): unit =
         let op = Value.VBits (Primops.prim_cvt_int_bits (Z.of_int 32) opcode) in
-        let decoder = Eval.Env.getDecoder env (Ident iset) in
+        let decoder = Eval.GlobalEnv.getDecoder genv (Ident iset) in
         Eval.eval_decode_case AST.Unknown env decoder op
     in
     {
         env      = env;
+        setImpdef= setImpdef;
         reset    = reset;
         step     = step;
         getPC    = getPC;
