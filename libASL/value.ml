@@ -80,6 +80,23 @@ let rec pp_value (x: value): string =
 
 
 (****************************************************************)
+(** {2 Equality check on values}                                     *)
+(****************************************************************)
+
+let rec eq_value (x: value) (y: value): bool =
+    (match (x, y) with
+    | (VBool   x', VBool   y') -> prim_eq_bool x' y'
+    | (VEnum   x', VEnum   y') -> snd x' = snd y'
+    | (VInt    x', VInt    y') -> prim_eq_int x' y'
+    | (VReal   x', VReal   y') -> prim_eq_real x' y'
+    | (VBits   x', VBits   y') -> prim_eq_bits x' y'
+    | (VString x', VString y') -> String.equal x' y'
+    | (VTuple  xs, VTuple  ys) -> List.for_all2 eq_value xs ys
+    (* todo: add missing cases *)
+    | _ -> failwith "eq_value"
+    )
+
+(****************************************************************)
 (** {2 Functions on values}                                     *)
 (****************************************************************)
 
