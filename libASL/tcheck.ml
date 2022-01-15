@@ -444,7 +444,7 @@ let rec typeFields (env: GlobalEnv.t) (loc: AST.l) (x: ty): fieldtypes =
         | _ -> raise (IsNotA(loc, "record", pprint_ident tc))
         )
     | Type_Register (wd, fs) -> FT_Register fs
-    | Type_OfExpr(e) -> raise (InternalError ("typeFields: Type_OfExpr " ^ to_string2 (flip FMT.expr (ppp_expr e))))
+    | Type_OfExpr(e) -> raise (InternalError ("typeFields: Type_OfExpr " ^ to_string2 (Fun.flip FMT.expr (ppp_expr e))))
     | _ -> raise (IsNotA(loc, "record/register", pp_type x))
     )
 
