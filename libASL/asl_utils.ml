@@ -269,6 +269,30 @@ let assigned_vars_of_decl decl =
     avs#result
 
 (****************************************************************)
+(** {2 Calculating subexpressions}                              *)
+(****************************************************************)
+
+(** Collect subexpressions of an expression *)
+class subExprsClass (root: expr) = object
+    inherit nopAslVisitor
+
+    val mutable exprs: expr list = []
+    method result = exprs
+    method! vexpr x =
+        if x == root then begin
+            DoChildren
+        end else begin
+            exprs <- x :: exprs;
+            SkipChildren
+        end
+end
+
+let subexprs_of_expr (x: expr): expr list =
+    let subs = new subExprsClass(x) in
+    ignore (visit_expr (subs :> aslVisitor) x);
+    subs#result
+
+(****************************************************************)
 (** {2 Collect local bindings (variables and constants)}        *)
 (****************************************************************)
 
