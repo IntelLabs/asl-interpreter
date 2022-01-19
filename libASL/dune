@@ -38,5 +38,6 @@
  value
  visitor
  xform_constprop
+ xform_mono
  )
  (libraries ocolor pprint zarith z3))
