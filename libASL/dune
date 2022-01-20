@@ -38,6 +38,7 @@
  utils
  value
  visitor
+ xform_casesplit
  xform_constprop
  xform_mono
  )
