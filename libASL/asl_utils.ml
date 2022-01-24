@@ -47,8 +47,8 @@ module Scope : sig
     val get            : 'a t -> ident -> 'a option
     val set            : 'a t -> ident -> 'a -> unit
     val map            : ('a -> 'b) -> 'a t -> 'b t
+    val filter_map     : ('a -> 'b option) -> 'a t -> 'b t
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
-    val flatmap_option : ('a -> 'b option) -> 'a t -> 'b t
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
 end = struct
     type 'a t = { mutable bs : 'a Bindings.t; }
@@ -73,17 +73,11 @@ end = struct
     let map (f: 'a -> 'b) (s: 'a t): 'b t =
         { bs = Bindings.map f s.bs }
 
+    let filter_map (f: 'a -> 'b option) (s: 'a t): 'b t =
+        { bs = Bindings.filter_map (fun k a -> f a) s.bs }
+
     let map_inplace (f: 'a -> 'a) (s: 'a t): unit =
         s.bs <- Bindings.map f s.bs
-
-    let flatmap_option (f: 'a -> 'b option) (env: 'a t): 'b t =
-        let add (x: ident) (v: 'a) (bs: 'b Bindings.t): 'b Bindings.t =
-            (match f v with
-            | Some w -> Bindings.add x w bs
-            | None -> bs
-            )
-        in
-        { bs = Bindings.fold add env.bs Bindings.empty }
 
     let map2 (f: 'a -> 'b -> 'c) (env1: 'a t) (env2: 'b t): 'c t =
         let merge v oa ob =
@@ -107,8 +101,8 @@ module ScopeStack : sig
     val get            : 'a t -> ident -> 'a option
     val set            : 'a t -> ident -> 'a -> bool
     val map            : ('a -> 'b) -> 'a t -> 'b t
+    val filter_map     : ('a -> 'b option) -> 'a t -> 'b t
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
-    val flatmap_option : ('a -> 'b option) -> 'a t -> 'b t
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
     val nest           : 'a t -> ('a t -> 'b) -> 'b
 end = struct
@@ -155,15 +149,14 @@ end = struct
     let map (f: 'a -> 'b) (env: 'a t): 'b t =
         List.map (Scope.map f) env
 
+    let filter_map (f: 'a -> 'b option) (env: 'a t): 'b t =
+        List.map (Scope.filter_map f) env
+
     let map_inplace (f: 'a -> 'a) (env: 'a t): unit =
         List.iter (Scope.map_inplace f) env
 
-    let flatmap_option (f: 'a -> 'b option) (env: 'a t): 'b t =
-        List.map (Scope.flatmap_option f) env
-
     let map2 (f: 'a -> 'b -> 'c) (env1: 'a t) (env2: 'b t): 'c t =
         List.map2 (Scope.map2 f) env1 env2
-
 
     let nest (env: 'a t) (k: 'a t -> 'b): 'b =
         let newscope = Scope.empty () in
