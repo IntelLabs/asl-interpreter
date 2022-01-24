@@ -78,6 +78,60 @@ let mk_concat_ty (x: AST.ty) (y: AST.ty): AST.ty =
 let mk_concat_tys (xs: AST.ty list): AST.ty =
     List.fold_left mk_concat_ty (type_bitsK "0") xs
 
+let width_of_type (ty: AST.ty): AST.expr =
+    (match ty with
+    | Type_Bits(n) -> n
+    | _ -> raise (InternalError "width_of_type")
+    )
+
+let one = Expr_LitInt "1"
+
+let mk_bits_select (w: AST.expr) (n: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
+    Expr_TApply (FIdent ("asl_bits_select",0), [w; n], [w; x; lo])
+
+let mk_int_select (w: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
+    Expr_TApply (FIdent ("asl_int_select",0), [w], [w; x; lo])
+
+(* Lower bit slice expression *)
+let mk_expr_slices (x: AST.expr) (ss: AST.slice list) (ty: AST.ty): AST.expr =
+    let n = width_of_type ty in
+    (match (x, ss) with
+    (* don't lower the easy case *)
+    | (Expr_Var(v), ss) -> Expr_Slices(x, ss)
+
+    (* lower all cases where x is not a variable *)
+    | (_, [Slice_Single(i)]) ->
+      mk_bits_select one n x i
+    | (_, [Slice_HiLo(hi, lo)]) ->
+      let w = mk_add_int (mk_sub_int hi lo) one in
+      mk_bits_select w n x lo
+    | (_, [Slice_LoWd(lo, wd)]) ->
+      mk_bits_select wd n x lo
+
+    (* todo: currently don't have a good story for lowering the multi-slice case *)
+    | _ -> Expr_Slices(x, ss)
+    )
+
+(* Lower int slice expression *)
+let mk_expr_intslices (x: AST.expr) (ss: AST.slice list): AST.expr =
+    (match (x, ss) with
+    (* don't lower the easy case *)
+    | (Expr_Var(v), ss) -> Expr_Slices(x, ss)
+
+    (* lower all cases where x is not a variable *)
+    | (_, [Slice_Single(i)]) ->
+      mk_int_select one x i
+    | (_, [Slice_HiLo(hi, lo)]) ->
+      let w = mk_add_int (mk_sub_int hi lo) one in
+      mk_int_select w x lo
+    | (_, [Slice_LoWd(lo, wd)]) ->
+      mk_int_select wd x lo
+
+    (* todo: currently don't have a good story for lowering the multi-slice case *)
+    | _ -> Expr_Slices(x, ss)
+    )
+
+
 let slice_width (x: AST.slice): AST.expr =
     (match x with
     | Slice_Single(e) -> Expr_LitInt "1"
@@ -1403,12 +1457,15 @@ and tc_slice_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: expr) (ss: (AST.sli
             | _ -> raise (TypeError (loc, "multiple subscripts for array"))
             )
     | Type_Bits(n) ->
-            (Expr_Slices(x', ss'), type_bits (slices_width ss'))
+            let ty = type_bits (slices_width ss') in
+            (mk_expr_slices x' ss' ty, ty)
     | Type_Register (wd, _) ->
-            (Expr_Slices(x', ss'), type_bits (slices_width ss'))
+            let ty = type_bits (slices_width ss') in
+            (mk_expr_slices x' ss' ty, ty)
     | Type_Integer _ ->
             (* todo: desugar into a call to slice_int? *)
-            (Expr_Slices(x', ss'), type_bits (slices_width ss'))
+            let ty = type_bits (slices_width ss') in
+            (mk_expr_intslices x' ss', ty)
     | _ -> raise (TypeError (loc, "slice of expr"))
     )
 
@@ -1441,7 +1498,7 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
                 (Expr_Field(e', f), get_recordfield loc rfs f)
             | FT_Register rfs ->
                 let (ss, ty') = get_regfield loc rfs f in
-                (Expr_Slices(e', ss), ty')
+                (mk_expr_slices e' ss ty', ty')
             )
     | Expr_Fields(e, fs) ->
             let (e', ty) = tc_expr env u loc e in
@@ -1451,7 +1508,7 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
                 (Expr_Fields(e', fs), mk_concat_tys tys)
             | FT_Register rfs ->
                 let (ss, ty') = get_regfields loc rfs fs in
-                (Expr_Slices(e', ss), ty')
+                (mk_expr_slices e' ss ty', ty')
             )
     | Expr_Slices(e, ss) ->
             let all_single = List.for_all (function (Slice_Single _) -> true | _ -> false) ss in
