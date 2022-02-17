@@ -697,6 +697,13 @@ let masklength (x: string): int =
     String.iter (function ' ' -> () | _ -> r := !r + 1) x;
     !r
 
+(** transform the type of a formal *)
+let map_sformal (f: AST.ty -> AST.ty) (sf: sformal): sformal =
+    ( match sf with
+    | Formal_In (id, ty) -> Formal_In (id, f ty)
+    | Formal_InOut (id, ty) -> Formal_InOut (id, f ty)
+    )
+
 (****************************************************************
  * End
  ****************************************************************)
