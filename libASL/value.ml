@@ -207,6 +207,7 @@ let drop_chars (x: string) (c: char): string =
 
 let from_intLit (x: AST.intLit): value = VInt (Z.of_string x)
 let from_hexLit (x: AST.hexLit): value = VInt (Z.of_string_base 16 (drop_chars x '_'))
+let int_one: value = VInt (Z.of_int 1)
 
 let from_realLit (x: AST.realLit): value =
     let pt          = String.index x '.' in
