@@ -204,6 +204,13 @@ class freevarClass = object
              free_funs <- IdentSet.add f free_funs;
              DoChildren
         | _ -> DoChildren
+
+    method! vlexpr = function
+      | LExpr_Var v ->
+         free_vars <- IdentSet.add v free_vars;
+         SkipChildren
+      | _ -> DoChildren
+
     method! vstmt s =
         match s with
         | Stmt_TCall (f, tes, args, loc) ->
