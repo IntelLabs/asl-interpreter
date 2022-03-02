@@ -30,8 +30,8 @@ let mk_bindings (xs: (ident * 'a) list): 'a Bindings.t =
     add_bindings Bindings.empty xs
 
 (** print bindings *)
-let pp_bindings (pp: 'a -> string) (bs: 'a Bindings.t): string =
-    String.concat ", " (List.map (fun (k, v) -> pprint_ident k ^"->"^ pp v) (Bindings.bindings bs))
+let pp_bindings (pp: 'a -> string) (bs: 'a Bindings.t): unit =
+    Bindings.iter (fun k v -> Printf.printf "%s: %s\n" (pprint_ident k) (pp v)) bs
 
 (****************************************************************)
 (** {2 Scopes}                                                  *)
@@ -51,8 +51,15 @@ module Scope : sig
     val filter_map     : ('a -> 'b option) -> 'a t -> 'b t
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val bindings       : 'a t -> (ident * 'a) list
+    val pp             : ('a -> string) -> ('a t -> unit)
 end = struct
     type 'a t = { mutable bs : 'a Bindings.t; }
+
+    let pp (pp_value: 'a -> string) (env: 'a t): unit =
+        Printf.printf "{\n";
+        pp_bindings pp_value env.bs;
+        Printf.printf "}\n"
 
     let empty (_: unit): 'a t =
         let bs = Bindings.empty in
@@ -88,6 +95,9 @@ end = struct
             )
         in
         { bs = Bindings.merge merge env1.bs env2.bs }
+
+    let bindings (env: 'a t): (ident * 'a) list =
+        Bindings.bindings env.bs
 end
 
 (* A collection of nested mutable scopes *)
@@ -106,8 +116,13 @@ module ScopeStack : sig
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
     val nest           : 'a t -> ('a t -> 'b) -> 'b
+    val bindings       : 'a t -> (ident * 'a) list list
+    val pp             : ('a -> string) -> ('a t -> unit)
 end = struct
     type 'a t = ('a Scope.t) list
+
+    let pp (pp_value: 'a -> string) (env: 'a t): unit =
+        List.iter (Scope.pp pp_value) env
 
     let empty (_: unit): 'a t =
         let base: 'a Scope.t = Scope.empty () in
@@ -162,6 +177,9 @@ end = struct
     let nest (env: 'a t) (k: 'a t -> 'b): 'b =
         let newscope = Scope.empty () in
         k (newscope :: env)
+
+    let bindings (env: 'a t): (ident * 'a) list list =
+        List.map Scope.bindings env
 end
 
 

@@ -93,6 +93,8 @@ module GlobalEnv : sig
 
     val setImpdef           : t -> string -> value -> unit
     val getImpdef           : AST.l -> t -> string -> value
+
+    val pp                  : t -> unit
 end = struct
     type t = {
         mutable instructions : (encoding * (stmt list) option * bool * stmt list) Bindings.t;
@@ -106,6 +108,9 @@ end = struct
         mutable constants    : value Scope.t;
         mutable impdefs      : value ImpDefs.t;
     }
+
+    let pp (env: t): unit =
+        Scope.pp pp_value env.constants
 
     let empty = {
         decoders     = Bindings.empty;
@@ -192,7 +197,6 @@ end = struct
         | None ->
                 raise (EvalError (loc, "Unknown value for IMPLEMENTATION_DEFINED \""^x^"\""))
         )
-
 end
 
 
@@ -212,6 +216,8 @@ module Env : sig
     val addGlobalVar        : t -> ident -> value -> unit
     val getVar              : AST.l -> t -> ident -> value
     val setVar              : AST.l -> t -> ident -> value -> unit
+
+    val pp                  : Format.formatter -> t -> unit
 end = struct
     type t = {
                 globalConsts : GlobalEnv.t;
@@ -269,6 +275,17 @@ end = struct
         if !trace_write then Printf.printf "TRACE: write %s = %s\n" (pprint_ident x) (pp_value v);
         if ScopeStack.set env.locals x v then ()
         else Scope.set env.globalVars x v
+
+    let pp (fmt: Format.formatter) (env: t): unit =
+        List.iter (fun bs ->
+            List.iter (fun (k, v) ->
+                let fmt = Format.std_formatter in
+                Asl_fmt.varname fmt k;
+                Format.pp_print_string fmt " -> ";
+                Format.pp_print_string fmt (pp_value v);
+                Format.pp_print_string fmt ", ";
+            ) bs)
+            (ScopeStack.bindings (env.locals))
 
 end
 
