@@ -1187,11 +1187,11 @@ let instantiate_fun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: funtype) 
     let (f, _, tvs, cs, atys, rty) = mkfresh_funtype u fty in
 
     (* Add bindings for every explicit type argument *)
-    assert ((List.length atys) == (List.length es));
+    assert ((List.length atys) = (List.length es));
     List.iter2 (fun (_, v) e -> if List.mem v tvs then u#addEquality (Expr_Var v) (subst_consts_expr env e)) atys es;
 
     (* unify argument types *)
-    assert ((List.length atys) == (List.length tys));
+    assert ((List.length atys) = (List.length tys));
     List.iter2 (unify_type env u) (List.map fst atys) tys;
 
     let tes = List.map (fun tv -> Expr_Var tv) tvs in
@@ -1202,7 +1202,7 @@ let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype
     let (f, tvs, cs, atys, vty) = mkfresh_sfuntype u fty in
 
     (* Add bindings for every explicit type argument *)
-    assert ((List.length atys) == (List.length es));
+    assert ((List.length atys) = (List.length es));
     List.iter2 (fun aty e ->
         let v = sformal_var aty in
         if List.mem v tvs then u#addEquality (Expr_Var v) (subst_consts_expr env e)
@@ -1361,7 +1361,7 @@ and tc_pattern (env: Env.t) (loc: AST.l) (ty: AST.ty) (x: AST.pattern): AST.patt
     Note that this function is almost identical to tc_slice_lexpr
  *)
 and tc_slice_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: expr) (ss: (AST.slice * AST.ty) list): (AST.expr * AST.ty) =
-    if List.length ss == 0 then begin
+    if List.length ss = 0 then begin
         raise (TypeError (loc, "empty list of subscripts"))
     end;
     let ss' = List.map fst ss in
@@ -1576,7 +1576,7 @@ and tc_type (env: Env.t) (loc: AST.l) (x: AST.ty): AST.ty =
     Note that this function is almost identical to tc_slice_expr
  *)
 let rec tc_slice_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (x: lexpr) (ss: (AST.slice * AST.ty) list): (AST.lexpr * AST.ty) =
-    if List.length ss == 0 then begin
+    if List.length ss = 0 then begin
         raise (TypeError (loc, "empty list of subscripts"))
     end;
     let ss' = List.map fst ss in
@@ -1707,7 +1707,7 @@ let rec tc_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (ty: AST.ty) (x: AST.lex
     ( match x with
     | LExpr_Wildcard ->
         (LExpr_Wildcard, [])
-    | LExpr_Var(v) when v == Ident "_" -> (* treat '_' as wildcard token *)
+    | LExpr_Var(v) when v = Ident "_" -> (* treat '_' as wildcard token *)
         (LExpr_Wildcard, [])
     | LExpr_Var(v) ->
         (match Env.getVar env v with
