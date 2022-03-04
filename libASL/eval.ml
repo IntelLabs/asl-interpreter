@@ -292,8 +292,14 @@ end
 let isGlobalConst (genv: GlobalEnv.t) (id: AST.ident): bool =
     Option.is_some (GlobalEnv.getGlobalConstOpt genv id)
 
+let isFun (genv: GlobalEnv.t) (id: AST.ident): bool =
+    (match id with
+    | FIdent _ -> true
+    | _ -> false
+    )
+
 let removeGlobalConsts (genv: GlobalEnv.t) (ids: IdentSet.t): IdentSet.t =
-    IdentSet.filter (fun id -> not (isGlobalConst genv id)) ids
+    IdentSet.filter (fun id -> not (isGlobalConst genv id || isFun genv id)) ids
 
 (****************************************************************)
 (** {2 Evaluation functions}                                    *)
