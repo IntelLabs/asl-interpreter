@@ -354,6 +354,10 @@ class freevarClass = object
              free_funs <- IdentSet.add f free_funs;
              DoChildren
         | _ -> DoChildren
+
+    method! leave_scope (vs: ident list) =
+        (* remove reads/writes to local variables *)
+        List.iter (fun v -> free_vars <- IdentSet.remove v free_vars) vs
 end
 
 let fv_expr (x: expr): IdentSet.t =
@@ -440,6 +444,7 @@ let subexprs_of_expr (x: expr): expr list =
 (** {2 Collect local bindings (variables and constants)}        *)
 (****************************************************************)
 
+(*
 class localsClass = object (self)
     inherit nopAslVisitor
 
@@ -480,6 +485,7 @@ let locals_of_decl decl =
     let lc = new localsClass in
     ignore (Visitor.mapNoCopy (visit_decl (lc :> aslVisitor)) decl);
     lc#locals
+*)
 
 (****************************************************************)
 (** {2 Calculate types used in expressions and statements}      *)
