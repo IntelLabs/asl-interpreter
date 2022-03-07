@@ -718,6 +718,79 @@ let callers (leaves: ident list) (ds: declaration list): IdentSet.t =
     IdentSet.of_list (reach (bindings_to_function rev_next Fun.id) leaves)
 
 (****************************************************************)
+(** {2 Side effect detection}                                   *)
+(****************************************************************)
+
+class sideEffectClass = object
+    inherit nopAslVisitor
+
+    val mutable reads = IdentSet.empty
+    val mutable writes = IdentSet.empty
+    val mutable functions_called = IdentSet.empty
+    val mutable throws_exceptions = false
+
+    method sideEffects: (IdentSet.t * IdentSet.t * IdentSet.t * bool) =
+        (reads, writes, functions_called, throws_exceptions)
+
+    method! vlvar x =
+        writes <- IdentSet.add x writes;
+        SkipChildren
+
+    method! vvar x =
+        reads <- IdentSet.add x reads;
+        SkipChildren
+
+    method! vexpr e =
+        match e with
+        | Expr_TApply(f, tes, es) ->
+             functions_called <- IdentSet.add f functions_called;
+             DoChildren
+        | _ -> DoChildren
+
+    method! vstmt s =
+        match s with
+        | Stmt_TCall (f, tes, args, loc) ->
+             functions_called <- IdentSet.add f functions_called;
+             DoChildren
+        | Stmt_Throw _ ->
+             throws_exceptions <- true;
+             DoChildren
+        | _ -> DoChildren
+
+    method! leave_scope (vs: ident list) =
+        (* remove reads/writes to local variables *)
+        List.iter (fun v -> writes <- IdentSet.remove v writes) vs;
+        List.iter (fun v -> reads  <- IdentSet.remove v reads) vs
+end
+
+
+let identify_impure_funs (isConstant: ident -> bool) (isImpurePrim: ident -> bool) (ds: declaration list): IdentSet.t =
+    let locally_impure (d: declaration): bool =
+        let se = new sideEffectClass in
+        ignore (visit_decl (se :> aslVisitor) d);
+        let (rds, wrs, callees, throws) = se#sideEffects in
+        let vrds = IdentSet.filter (fun v -> not (isConstant v)) rds in
+        throws || not (IdentSet.is_empty vrds) || not (IdentSet.is_empty wrs)
+    in
+
+    let impure = ref IdentSet.empty in
+    List.iter (fun d ->
+        ( match decl_name d with
+        | Some(x)
+            when isImpurePrim x
+              || IdentSet.mem x !impure
+              || locally_impure d
+            ->
+            impure := IdentSet.add x !impure
+        | _ -> ()
+        )
+    ) ds;
+
+    (* globally impure if it calls a locally impure function *)
+    callers (IdentSet.elements !impure) ds
+
+
+(****************************************************************)
 (** {2 Substitutions}                                           *)
 (****************************************************************)
 
