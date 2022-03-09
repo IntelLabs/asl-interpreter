@@ -51,6 +51,7 @@ module Scope : sig
     val filter_map     : ('a -> 'b option) -> 'a t -> 'b t
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val merge_inplace  : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
     val bindings       : 'a t -> (ident * 'a) list
     val pp             : ('a -> string) -> ('a t -> unit)
 end = struct
@@ -96,6 +97,15 @@ end = struct
         in
         { bs = Bindings.merge merge env1.bs env2.bs }
 
+    let merge_inplace (f: 'a -> 'b -> 'a) (env1: 'a t) (env2: 'b t): unit =
+        let merge v oa ob =
+            (match (oa, ob) with
+            | (Some a, Some b) -> Some (f a b)
+            | _ -> None
+            )
+        in
+        env1.bs <- Bindings.merge merge env1.bs env2.bs
+
     let bindings (env: 'a t): (ident * 'a) list =
         Bindings.bindings env.bs
 end
@@ -115,6 +125,7 @@ module ScopeStack : sig
     val filter_map     : ('a -> 'b option) -> 'a t -> 'b t
     val map_inplace    : ('a -> 'a) -> 'a t -> unit
     val map2           : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val merge_inplace  : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
     val nest           : 'a t -> ('a t -> 'b) -> 'b
     val bindings       : 'a t -> (ident * 'a) list list
     val pp             : ('a -> string) -> ('a t -> unit)
@@ -173,6 +184,9 @@ end = struct
 
     let map2 (f: 'a -> 'b -> 'c) (env1: 'a t) (env2: 'b t): 'c t =
         List.map2 (Scope.map2 f) env1 env2
+
+    let merge_inplace (f: 'a -> 'b -> 'a) (env1: 'a t) (env2: 'b t): unit =
+        List.iter2 (Scope.merge_inplace f) env1 env2
 
     let nest (env: 'a t) (k: 'a t -> 'b): 'b =
         let newscope = Scope.empty () in
