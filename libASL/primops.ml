@@ -400,6 +400,9 @@ let prim_print_str (data: string): unit =
 let prim_print_char (data: bigint): unit =
     Printf.printf "%c" (char_of_int (Z.to_int data))
 
+let prim_print_bits (n: bigint) (data: bitvector): unit =
+    Printf.printf "%s" (prim_cvt_bits_str n data)
+
 
 (****************************************************************)
 (** {2 Trace primops}                                           *)

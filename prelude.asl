@@ -115,6 +115,7 @@ __builtin func eq_str(x :: string, y :: string) => boolean;
 __builtin func ne_str(x :: string, y :: string) => boolean;
 __builtin func print_str(x :: string) => ();
 __builtin func print_char(x :: integer) => ();
+__builtin func print_bits(x :: bits(N)) => ();
 
 __builtin func asl_pragma(x :: string) => ();
 
@@ -156,7 +157,7 @@ __builtin func decodeInstr_T32(instr :: bits(32)) => ();
 __builtin func decodeInstr_T16(instr :: bits(16)) => ();
 
 func print{N}(x :: bits(N))
-    print_str(cvt_bits_str(N, x));
+    print_bits(x);
 end
 
 func print(x :: string)

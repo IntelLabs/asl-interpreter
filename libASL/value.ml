@@ -337,6 +337,7 @@ let eval_prim (f: string) (tvs: value list) (vs: value list): value option =
     | ("asl_file_getc",      _,       [VInt fd                   ]) -> Some (VInt (prim_getc_file fd))
     | ("print_str",          _,       [VString s                 ]) -> Some (prim_print_str  s; VTuple [])
     | ("print_char",         _,       [VInt c                    ]) -> Some (prim_print_char c; VTuple [])
+    | ("print_bits",         [VInt n],[VBits b                   ]) -> Some (prim_print_bits n b; VTuple [])
 
     | ("program_end",        _,       [                          ]) -> Some (raise (Throw (Unknown, Exc_ExceptionTaken)))
 
