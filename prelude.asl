@@ -89,6 +89,21 @@ func sub_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
     return sub_bits(x, cvt_int_bits(y, N));
 end
 
+// Bit slice helper functions used in some backends
+func asl_extract_int(x :: integer, lo :: integer, W :: integer) => bits(W)
+    return x[lo +: W];
+end
+
+// Bit slice helper functions used in some backends
+func asl_extract_bits(x :: bits(N), lo :: integer, W :: integer) => bits(W)
+    return x[lo +: W];
+end
+
+// Bit slice helper functions used in some backends
+func asl_bits_set(x :: bits(N), lo :: integer, v :: bits(W))
+    x[lo +: W] = v;
+end
+
 __operator2 + = add_int, add_real, add_bits, add_bits_int;
 __operator2 - = sub_int, sub_real, sub_bits, sub_bits_int;
 __operator1 - = neg_int, neg_real;
