@@ -16,6 +16,7 @@ let string_of_token (t: Asl_parser.token): string =
     | AMPERSAND_AMPERSAND -> "ampamp"
     | AND                 -> "and"
     | ARRAY               -> "array"
+    | AS                  -> "as"
     | ASSERT              -> "assert"
     | BANG                -> "bang"
     | BAR_BAR             -> "barbar"

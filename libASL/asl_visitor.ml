@@ -201,6 +201,16 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
             | Expr_LitBits   _  -> x
             | Expr_LitMask   _  -> x
             | Expr_LitString _  -> x
+            | Expr_AsConstraint (e, c) ->
+                    let e' = visit_expr vis e in
+                    let c' = visit_constraints vis c in
+                    if e == e' && c == c' then x
+                    else Expr_AsConstraint(e', c')
+            | Expr_AsType (e, t) ->
+                    let e' = visit_expr vis e in
+                    let t' = visit_type vis t in
+                    if e == e' && t == t' then x
+                    else Expr_AsType(e', t')
             )
         in
         doVisit vis (vis#vexpr x) aux x
@@ -221,6 +231,9 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
         in
         doVisit vis (vis#vconstraint x) aux x
 
+    and visit_constraints (vis: aslVisitor) (x: constraint_range list): constraint_range list =
+        mapNoCopy (visit_constraint_range vis) x
+
     and visit_types (vis: aslVisitor) (xs: ty list): ty list =
         mapNoCopy (visit_type vis) xs
 
@@ -229,7 +242,7 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
             ( match x with
             | Type_Constructor(_) -> x
             | Type_Integer ocrs ->
-                    let ocrs' = mapOptionNoCopy (mapNoCopy (visit_constraint_range vis)) ocrs in
+                    let ocrs' = mapOptionNoCopy (visit_constraints vis) ocrs in
                     if ocrs == ocrs' then x else
                     Type_Integer ocrs'
             | Type_Bits(n) ->

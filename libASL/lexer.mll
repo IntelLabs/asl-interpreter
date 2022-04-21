@@ -56,6 +56,7 @@ let keywords : (string * Asl_parser.token) list = [
     ("__unpredictable_unless", UNDERSCORE_UNDERSCORE_UNPREDICTABLE_UNDERSCORE_UNLESS);
     ("__write",                UNDERSCORE_UNDERSCORE_WRITE);
     ("array",                  ARRAY);
+    ("as",                     AS);
     ("assert",                 ASSERT);
     ("begin",                  BEGIN);
     ("bits",                   BITS);

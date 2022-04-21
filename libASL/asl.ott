@@ -477,12 +477,16 @@ ty :: 'Type_' ::=
 
 constraint_opt :: 'Constraint_' ::=
     {{ phantom }} {{ ocaml constraint_range list option }}
-    {{ pp-raw ocrs = match ocrs with None -> string ""
-                                   | Some crs -> string "{"^^ separate (string ", ") (List.map pp_raw_constraint_range crs) ^^ string "}" }}
-    {{ pp ocrs = match ocrs with None -> string ""
-                               | Some crs -> string "{"^^ separate (string ", ") (List.map pp_constraint_range crs) ^^ string "}" }}
-    | { constraint_range1 , ... , constraint_rangen } :: :: Ranges {{ ocaml Some [[constraint_range1 ... constraint_rangen]] }}
-    |                                                 :: :: Empty {{ ocaml None }}
+    {{ pp-raw ocrs = match ocrs with None -> string "" | Some crs -> pp_raw_constraints crs }}
+    {{ pp ocrs = match ocrs with None -> string "" | Some crs -> pp_constraints crs }}
+    | constraints    :: :: Constraint {{ ocaml Some [[constraints]] }}
+    |                :: :: Empty      {{ ocaml None }}
+
+constraints :: 'Constraint_' ::=
+    {{ phantom }} {{ ocaml constraint_range list }}
+    {{ pp-raw crs = string "{"^^ separate (string ", ") (List.map pp_raw_constraint_range crs) ^^ string "}" }}
+    {{ pp     crs = string "{"^^ separate (string ", ") (List.map pp_constraint_range crs) ^^ string "}" }}
+    | { constraint_range1 , ... , constraint_rangen } :: :: Ranges {{ ocaml [[constraint_range1 ... constraint_rangen]] }}
 
 constraint_range :: 'Constraint_' ::=
     | expr             :: :: Single
@@ -749,6 +753,8 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | [ expr1 , .... , exprn ]                   ::   :: Concat    {{ com bitvector concatenation }}
     | ty UNKNOWN                                 ::   :: Unknown
     | ty IMPLEMENTATION_DEFINED opt_stringLit    ::   :: ImpDef
+    | aexpr as constraints                       ::   :: AsConstraint
+    | aexpr as ty                                ::   :: AsType
 
 expr_spice :: 'Expr_' ::= {{ quotient-with expr }}
     | qualident {{ expr1' , .. , exprm' }} ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}

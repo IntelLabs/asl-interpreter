@@ -1511,6 +1511,17 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
             raise (InternalError "tc_expr: litmask")
     | Expr_LitString(s) ->
             (Expr_LitString(s), type_string)
+    | Expr_AsConstraint (e, c) ->
+            let (e', ty) = tc_expr env u loc e in
+            let c' = tc_constraints env loc c in
+            (* todo: check ty against c *)
+            (* todo: refine ty using c *)
+            (Expr_AsConstraint (e', c'), ty)
+    | Expr_AsType (e, t) ->
+            let (e', ty) = tc_expr env u loc e in
+            let t' = tc_type env loc t in
+            (* todo: check ty against t' *)
+            (Expr_AsType (e', t'), t')
     )
 
 
@@ -1529,7 +1540,7 @@ and tc_type (env: Env.t) (loc: AST.l) (x: AST.ty): AST.ty =
             | _ -> Type_Constructor(tc)
             )
     | Type_Integer ocrs ->
-            let ocrs' = map_option (List.map (tc_constraint env loc)) ocrs in
+            let ocrs' = map_option (tc_constraints env loc) ocrs in
             Type_Integer ocrs'
     | Type_Bits(n) ->
             let n' = check_expr env loc type_integer n in
@@ -1573,6 +1584,9 @@ and tc_constraint (env: Env.t) (loc: AST.l) (c: AST.constraint_range): AST.const
         let hi' = check_expr env loc type_integer hi in
         Constraint_Range (lo', hi')
     )
+
+and tc_constraints (env: Env.t) (loc: AST.l) (cs: AST.constraint_range list): AST.constraint_range list =
+    List.map (tc_constraint env loc) cs
 
 
 (****************************************************************)

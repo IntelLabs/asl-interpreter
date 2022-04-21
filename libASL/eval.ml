@@ -552,6 +552,12 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
     | Expr_LitBits(b) -> from_bitsLit b
     | Expr_LitMask(b) -> from_maskLit b (* todo: masks should not be expressions *)
     | Expr_LitString(s) -> from_stringLit s
+    | Expr_AsConstraint(e, c) ->
+         (* todo: dynamic constraint check *)
+         eval_expr loc env e
+    | Expr_AsType(e, t) ->
+         (* todo: dynamic type/constraint check *)
+         eval_expr loc env e
     )
 
 (** Evaluate L-expression in write-mode (i.e., this is not a read-modify-write) *)
