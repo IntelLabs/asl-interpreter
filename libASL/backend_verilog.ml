@@ -16,8 +16,8 @@ open Format_utils
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
 let mangle (s: string): string =
-    (* todo: handle all SV verilogs *)
-    if s = "integer" then "asl_integer" else s
+    (* todo: this should detect whether s is a reserved name in System Verilog and rename to avoid conflict *)
+    s
 
 let comment (fmt: PP.formatter) (x: string): unit =
     PP.pp_print_string fmt ("// "^ x);
@@ -102,6 +102,7 @@ let kw_function             (fmt: PP.formatter): unit = keyword fmt "function"
 let kw_if                   (fmt: PP.formatter): unit = keyword fmt "if"
 let kw_iff                  (fmt: PP.formatter): unit = keyword fmt "iff"
 let kw_implies              (fmt: PP.formatter): unit = keyword fmt "implies"
+let kw_integer              (fmt: PP.formatter): unit = keyword fmt "asl_integer"
 let kw_input                (fmt: PP.formatter): unit = keyword fmt "input"
 let kw_inout                (fmt: PP.formatter): unit = keyword fmt "inout"
 let kw_inside               (fmt: PP.formatter): unit = keyword fmt "inside"
@@ -178,6 +179,7 @@ let ones (fmt: PP.formatter) (x: int): unit =
 let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
   ( match x with
   | Type_Constructor(tc) -> tycon fmt tc
+  | Type_Integer _ -> kw_integer fmt
   | Type_Bits(n) -> kw_bit fmt; nbsp fmt; brackets fmt (fun _ -> constant fmt (string_of_int (const_int_expr n - 1)); colon fmt; intLit fmt "0")
   | Type_OfExpr(e) -> fn_typeof fmt; parens fmt (fun _ -> expr fmt e)
   | Type_Register (n, _) -> kw_bit fmt; nbsp fmt; brackets fmt (fun _ -> constant fmt (n^"-1"); colon fmt; intLit fmt "0")
@@ -397,6 +399,8 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   | Expr_ImpDef (_, _)
   | Expr_Tuple _
   | Expr_Fields _
+  | Expr_AsConstraint _
+  | Expr_AsType _
   -> raise (Unimplemented(AST.Unknown, "expression", (fun fmt -> FMTAST.expr fmt x)))
   )
 
@@ -624,9 +628,6 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   (match x with
   | Decl_BuiltinType (tc, loc) ->
     (match tc with
-    | Ident("integer") ->
-      typedef fmt tc
-      (fun _ -> kw_bit fmt; nbsp fmt; kw_signed fmt; brackets fmt (fun _ -> constant fmt (string_of_int (int_width - 1)); colon fmt; constant fmt "0"))
     | Ident("string") -> comment fmt "typedef string string;";
     | _ -> raise (Unimplemented(AST.Unknown, "builtin type", (fun fmt -> FMTAST.tycon fmt tc)))
     )
@@ -709,7 +710,12 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   )
   )
 
+let decl_integer (fmt: PP.formatter): unit =
+  typedef fmt (Ident "asl_integer")
+      (fun _ -> kw_bit fmt; nbsp fmt; kw_signed fmt; brackets fmt (fun _ -> constant fmt (string_of_int (int_width - 1)); colon fmt; constant fmt "0"))
+
 let declarations (fmt: PP.formatter) (xs: AST.declaration list): unit =
+  decl_integer fmt;
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
 
 (****************************************************************
