@@ -90,7 +90,6 @@ let string_of_token (t: Asl_parser.token): string =
     | INTLIT(x)           -> "int:" ^ x
     | IS                  -> "is"
     | LBRACE              -> "lbrace"
-    | LBRACE_LBRACE       -> "{{"
     | LBRACK              -> "lbrack"
     | LET                 -> "let"
     | LPAREN              -> "lparen"
@@ -111,7 +110,6 @@ let string_of_token (t: Asl_parser.token): string =
     | QUALIFIER(x)        -> "qualifier:"^x
     | QUOT                -> "quot"
     | RBRACE              -> "rbrace"
-    | RBRACE_RBRACE       -> "}}"
     | RBRACK              -> "rbrack"
     | RECORD              -> "record"
     | REM                 -> "rem"

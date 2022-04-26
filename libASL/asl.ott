@@ -570,8 +570,8 @@ lexpr :: 'LExpr_' ::=
 
 lexpr_spice :: 'LExpr_' ::= {{ quotient-with lexpr }}
     | __array     lexpr         [ expr ]  :: :: Array     {{ com spice for desugaring array assignment }}
-    | __write     ident         {{ expr1' , .. , exprm' }} [ expr1 , .. , exprn ] :: :: Write     {{ com spice for desugaring setter procedure call }}
-    | __readwrite ident1 ident2 {{ expr1' , .. , exprm' }} [ expr1 , .. , exprn ] :: :: ReadWrite {{ com spice for desugaring read-modify-write function+procedure call }}
+    | __write     ident         { expr1' , .. , exprm' } [ expr1 , .. , exprn ] :: :: Write     {{ com spice for desugaring setter procedure call }}
+    | __readwrite ident1 ident2 { expr1' , .. , exprm' } [ expr1 , .. , exprn ] :: :: ReadWrite {{ com spice for desugaring read-modify-write function+procedure call }}
 
 simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
@@ -596,7 +596,7 @@ simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     | __decode ident expr ;               ::   :: DecodeExecute {{ com decode and execute instruction }}
 
 stmt_spice :: 'Stmt_' ::= {{ quotient-with stmt }}
-    | qualident {{ expr1' , .. , exprm' }} ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}
+    | qualident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}
 
 conditional_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
@@ -769,7 +769,7 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | aexpr as ty                                ::   :: AsType
 
 expr_spice :: 'Expr_' ::= {{ quotient-with expr }}
-    | qualident {{ expr1' , .. , exprm' }} ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
+    | qualident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
     | __array expr1 [ expr2 ]                    ::   :: Array     {{ com spice for desugaring array accesses }}
 
 opt_stringLit :: 'String_' ::=
