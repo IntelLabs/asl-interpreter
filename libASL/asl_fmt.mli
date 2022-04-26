@@ -82,6 +82,7 @@ val star               : formatter -> unit
 
 val kw_and                             : formatter -> unit
 val kw_array                           : formatter -> unit
+val kw_as                              : formatter -> unit
 val kw_assert                          : formatter -> unit
 val kw_bits                            : formatter -> unit
 val kw_case                            : formatter -> unit

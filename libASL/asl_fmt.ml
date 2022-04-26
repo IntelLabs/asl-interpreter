@@ -78,6 +78,7 @@ let kw_quot                            (fmt: PP.formatter): unit = delimiter fmt
 let kw_rem                             (fmt: PP.formatter): unit = delimiter fmt "REM"
 
 let kw_array                           (fmt: PP.formatter): unit = keyword fmt "array"
+let kw_as                              (fmt: PP.formatter): unit = delimiter fmt "as"
 let kw_assert                          (fmt: PP.formatter): unit = keyword fmt "assert"
 let kw_bits                            (fmt: PP.formatter): unit = keyword fmt "bits"
 let kw_case                            (fmt: PP.formatter): unit = keyword fmt "case"
@@ -276,7 +277,7 @@ let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
     tycon fmt (Ident "integer");
     ( match ocrs with
     | None -> ()
-    | Some crs -> braces fmt (fun _ -> commasep fmt (constraint_range fmt) crs)
+    | Some crs -> constraints fmt crs
     )
   | Type_Bits(n) -> tycon fmt (Ident "bits"); parens fmt (fun _ -> expr fmt n)
   | Type_App(tc, es) -> tycon fmt tc; parens fmt (fun _ -> exprs fmt es)
@@ -303,6 +304,9 @@ and constraint_range (fmt: PP.formatter) (x: AST.constraint_range): unit =
   | Constraint_Single e -> expr fmt e
   | Constraint_Range (lo, hi) -> expr fmt lo; dot_dot fmt; expr fmt hi
   )
+
+and constraints (fmt: PP.formatter) (x: AST.constraint_range list): unit =
+    braces fmt (fun _ -> commasep fmt (constraint_range fmt) x)
 
 and regfield (fmt: PP.formatter) (rf: (AST.slice list * AST.ident)): unit =
   commasep fmt (slice fmt) (fst rf); nbsp fmt; fieldname fmt (snd rf)
@@ -356,6 +360,8 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   | Expr_LitBits   l -> bitsLit fmt l
   | Expr_LitMask   l -> maskLit fmt l
   | Expr_LitString l -> strLit  fmt l
+  | Expr_AsConstraint (e, c) -> expr fmt e; nbsp fmt; kw_as fmt; nbsp fmt; constraints fmt c
+  | Expr_AsType (e, t) -> expr fmt e; nbsp fmt; kw_as fmt; nbsp fmt; ty fmt t
   )
 
 and exprs (fmt: PP.formatter) (es: AST.expr list): unit = commasep fmt (expr fmt) es
@@ -407,6 +413,12 @@ and lexprs (fmt: PP.formatter) (ps: AST.lexpr list): unit = commasep fmt (lexpr 
 let varty (fmt: PP.formatter) (v: AST.ident) (t: AST.ty): unit =
     varname fmt v; nbsp fmt; coloncolon fmt; nbsp fmt; varname fmt v
 
+let varoty (fmt: PP.formatter) (v: AST.ident) (ot: AST.ty option): unit =
+    ( match ot with
+    | None   -> varname fmt v
+    | Some t -> varty fmt v t
+    )
+
 let direction (fmt: PP.formatter) (x: AST.direction): unit =
   (match x with
   | Direction_Up   -> kw_to fmt
@@ -419,14 +431,14 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
     comments_before fmt loc;
     varnames fmt vs; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t; semicolon fmt;
     comment_start fmt loc
-  | Stmt_VarDecl (v, t, i, loc) ->
+  | Stmt_VarDecl (v, ot, i, loc) ->
     comments_before fmt loc;
-    varty fmt v t; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
+    varoty fmt v ot; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
     comment_start fmt loc
-  | Stmt_ConstDecl (v, t, i, loc) ->
+  | Stmt_ConstDecl (v, ot, i, loc) ->
     comments_before fmt loc;
     kw_constant fmt; nbsp fmt;
-    varty fmt v t; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
+    varoty fmt v ot; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
     comment_start fmt loc
   | Stmt_Assign (l, r, loc) ->
     comments_before fmt loc;
@@ -596,10 +608,7 @@ and indented_block (fmt: PP.formatter) (xs: AST.stmt list): unit =
 
 let parameter (fmt: PP.formatter) (x: (AST.ident * AST.ty option)): unit =
   let (v, ot) = x in
-  ( match ot with
-  | None   -> varname fmt v
-  | Some t -> varty fmt v t
-  )
+  varoty fmt v ot
 
 let formal (fmt: PP.formatter) (x: (AST.ident * AST.ty)): unit =
   let (v, t) = x in
