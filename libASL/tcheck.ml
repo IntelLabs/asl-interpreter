@@ -1887,24 +1887,50 @@ and tc_catcher (env: Env.t) (loc: AST.l) (x: AST.catcher): AST.catcher =
             Catcher_Guarded(c', b')
     )
 
-(** Typecheck statement *)
+(** typecheck statement *)
 and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
     (match x with
     | Stmt_VarDeclsNoInit(vs, ty, loc) ->
             let ty' = tc_type env loc ty in
             List.iter (fun v -> Env.addLocalVar env loc v ty') vs;
             Stmt_VarDeclsNoInit(vs, ty', loc)
-    | Stmt_VarDecl(v, ty, i, loc) ->
-            let ty' = tc_type env loc ty in
-            let i' = check_expr env loc ty' i in
-            Env.addLocalVar env loc v ty';
-            Stmt_VarDecl(v, ty', i', loc)
-    | Stmt_ConstDecl(v, ty, i, loc) ->
-            let ty' = tc_type env loc ty in
-            let i'  = check_expr env loc ty' i in
-            Env.addLocalVar env loc v ty';
-            if ty' = type_integer then Env.addConstraint env loc (mk_eq_int (Expr_Var v) i');
-            Stmt_ConstDecl(v, ty', i', loc)
+    | Stmt_VarDecl(v, oty, i, loc) ->
+            let (s, (ty', i')) = with_unify env loc (fun u ->
+                let (i', ity)  = tc_expr env u loc i in
+                let ty' = ( match oty with
+                         | None -> ity
+                         | Some ty ->
+                             let ty' = tc_type env loc ty in
+                             check_type env u loc ty' ity;
+                             ty'
+                         )
+                in
+                (ty', i')
+            ) in
+            let ty'' = unify_subst_ty s ty' in
+            let i''  = unify_subst_e  s i' in
+
+            Env.addLocalVar env loc v ty'';
+            Stmt_VarDecl(v, Some ty'', i'', loc)
+    | Stmt_ConstDecl(v, oty, i, loc) ->
+            let (s, (ty', i')) = with_unify env loc (fun u ->
+                let (i', ity)  = tc_expr env u loc i in
+                let ty' = ( match oty with
+                         | None -> ity
+                         | Some ty ->
+                             let ty' = tc_type env loc ty in
+                             check_type env u loc ty' ity;
+                             ty'
+                         )
+                in
+                (ty', i')
+            ) in
+            let ty'' = unify_subst_ty s ty' in
+            let i''  = unify_subst_e  s i' in
+
+            Env.addLocalVar env loc v ty'';
+            if ty'' = type_integer then Env.addConstraint env loc (mk_eq_int (Expr_Var v) i'');
+            Stmt_ConstDecl(v, Some ty'', i'', loc)
     | Stmt_Assign(l, r, loc) ->
             let (s, (r', rty, l', imps)) = with_unify env loc (fun u ->
                 let (r', rty)  = tc_expr env u loc r in

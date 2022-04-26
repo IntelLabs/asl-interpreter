@@ -213,7 +213,7 @@ func pow_int_int(x :: integer, y :: integer) => integer
         return pow2_int(y); // optimized case
     else
         assert y >= 0;
-        var result :: integer = 1;
+        var result = 1;
         for i = 1 to y do
             result = result * x;
         end
@@ -331,7 +331,7 @@ end
 
 func SignExtend{M}(x :: bits(M), N :: integer) => bits(N)
     assert N >= M;
-    let sign :: bit = x[M-1];
+    let sign = x[M-1];
     return [Replicate(sign, N-M), x];
 end
 

@@ -274,11 +274,11 @@ parameter_list :: 'Parameters_' ::=
 
 parameter :: 'Parameter_' ::=
     {{ phantom }} {{ ocaml ident * ty option }}
-    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_opt_ty (snd f) ^^ string ")" }}
-    {{ pp f     = pp_ident (fst f) ^^ string " :: " ^^ pp_opt_ty (snd f) }}
-    | ident opt_ty       :: :: Ident {{ ocaml ([[ident]], [[opt_ty]]) }}
+    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_ty_opt (snd f) ^^ string ")" }}
+    {{ pp f     = pp_ident (fst f) ^^ string " :: " ^^ pp_ty_opt (snd f) }}
+    | ident ty_opt       :: :: Ident {{ ocaml ([[ident]], [[ty_opt]]) }}
 
-opt_ty :: 'Opt_' ::=
+ty_opt :: 'Opt_' ::=
     {{ phantom }} {{ ocaml ty option }}
     {{ pp-raw ot = match ot with None -> string "" | Some t -> pp_raw_ty t }}
     {{ pp ot = match ot with None -> string "" | Some t -> pp_ty t }}
@@ -545,8 +545,8 @@ block :: 'Block_' ::=
 assignment_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
     | var ident1 , .... , identn '::' ty ;  :: :: VarDeclsNoInit
-    | var ident '::' ty = expr ;            :: :: VarDecl
-    | let ident '::' ty = expr ;            :: :: ConstDecl
+    | var ident ty_opt = expr ;             :: :: VarDecl
+    | let ident ty_opt = expr ;             :: :: ConstDecl
     | lexpr = expr ;                        :: :: Assign
 
 lexpr :: 'LExpr_' ::=

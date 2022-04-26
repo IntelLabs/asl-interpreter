@@ -401,6 +401,10 @@ let subst_lexpr (s: expr Bindings.t) (x: lexpr): lexpr =
     let subst = new substClass s in
     visit_lexpr subst x
 
+let subst_var (s: expr Bindings.t) (x: ident): ident =
+    let subst = new substClass s in
+    visit_var subst x
+
 let subst_slice (s: expr Bindings.t) (x: slice): slice =
     let subst = new substClass s in
     visit_slice subst x

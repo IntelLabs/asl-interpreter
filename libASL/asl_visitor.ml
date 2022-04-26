@@ -326,6 +326,14 @@ let with_locals (ls: ((ident * ty) list)) (vis: aslVisitor) (f: aslVisitor -> 'a
     vis#leave_scope ();
     result
 
+let locals_of (x: stmt): ident list =
+    ( match x with
+    | Stmt_VarDeclsNoInit (vs, ty, loc) -> vs
+    | Stmt_VarDecl (v, oty, i, loc) -> [v]
+    | Stmt_ConstDecl (v, oty, i, loc) -> [v]
+    | _ -> []
+    )
+
 (* todo: should probably make this more like cil visitor and allow
  * visit_stmt to generate a list of statements and provide a mechanism to emit
  * statements to be inserted before/after the statement being transformed
@@ -342,17 +350,20 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
             | Stmt_VarDeclsNoInit (vs, ty, loc) ->
                     let ty' = visit_type vis ty in
                     let vs' = mapNoCopy (visit_lvar vis) vs in
-                    if ty == ty' && vs == vs' then x else Stmt_VarDeclsNoInit (vs', ty', loc)
-            | Stmt_VarDecl (v, ty, i, loc) ->
-                    let ty' = visit_type vis ty in
+                    if ty == ty' && vs == vs' then x else
+                    Stmt_VarDeclsNoInit (vs', ty', loc)
+            | Stmt_VarDecl (v, oty, i, loc) ->
+                    let oty' = mapOptionNoCopy (visit_type vis) oty in
                     let v' = visit_lvar vis v in
                     let i' = visit_expr vis i in
-                    if ty == ty' && v == v' && i == i'  then x else Stmt_VarDecl (v', ty', i', loc)
-            | Stmt_ConstDecl (v, ty, i, loc) ->
-                    let ty' = visit_type vis ty in
+                    if oty == oty' && v == v' && i == i'  then x else
+                    Stmt_VarDecl (v', oty', i', loc)
+            | Stmt_ConstDecl (v, oty, i, loc) ->
+                    let oty' = mapOptionNoCopy (visit_type vis) oty in
                     let v' = visit_lvar vis v in
                     let i' = visit_expr vis i in
-                    if ty == ty' && v == v' && i == i' then x else Stmt_ConstDecl (v', ty', i', loc)
+                    if oty == oty' && v == v' && i == i' then x else
+                    Stmt_ConstDecl (v', oty', i', loc)
             | Stmt_Assign (l, r, loc) ->
                     let l' = visit_lexpr vis l in
                     let r' = visit_expr vis r in
