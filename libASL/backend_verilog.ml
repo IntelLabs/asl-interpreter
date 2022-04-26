@@ -486,12 +486,17 @@ let decl (fmt: PP.formatter) (x: AST.stmt): unit =
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
     ty fmt t; nbsp fmt; varnames fmt vs; semicolon fmt;
     cut fmt
-  | Stmt_VarDecl (v, t, i, loc) ->
+  | Stmt_VarDecl (v, Some t, i, loc) ->
     varty fmt v t; semicolon fmt;
     cut fmt
-  | Stmt_ConstDecl (v, t, i, loc) ->
+  | Stmt_ConstDecl (v, Some t, i, loc) ->
     varty fmt v t; semicolon fmt;
     cut fmt
+
+  | Stmt_VarDecl (v, None, i, loc)
+  | Stmt_ConstDecl (v, None, i, loc)
+  -> raise (Unimplemented(AST.Unknown, "decl: type of variable unknown", (fun fmt -> FMTAST.varname fmt v)))
+
   | _ ->
     ()
   )
