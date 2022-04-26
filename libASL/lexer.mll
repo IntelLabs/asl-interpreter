@@ -179,10 +179,8 @@ rule token = parse
     | ']'            { RBRACK     }
     | '^'            { CARET      }
     | '{'            { LBRACE     }
-    | '{' '{'        { LBRACE_LBRACE }
     | '|' '|'        { BAR_BAR    }
     | '}'            { RBRACE     }
-    | '}' '}'        { RBRACE_RBRACE }
     | eof            { EOF  }
     | _ as c         { Printf.printf "%s:%d Unrecognized character '%c'\n"
                            lexbuf.lex_curr_p.pos_fname
