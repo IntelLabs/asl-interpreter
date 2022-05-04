@@ -16,7 +16,7 @@ describing how to use ASLi with Arm's v8.6-A ISA specification.
 
 To build and run the ASL interpreter, you will need:
 
-  * OCaml version 4.09 or later
+  * OCaml version 4.11 or later
   * OPAM OCaml version 2.0.5 (other versions may work)
   * The following OPAM packages
       * ocaml     - OCaml compiler
@@ -96,7 +96,7 @@ Platform specific instructions:
 Platform independent instructions:
 
 ```
-    opam install ocaml.4.09.0
+    opam install ocaml.4.11.0
     opam install dune
     opam install menhir
     opam install ott
