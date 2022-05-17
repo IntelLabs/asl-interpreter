@@ -21,11 +21,13 @@ val unop           : formatter -> AST.unop              -> unit
 val binop          : formatter -> AST.binop             -> unit
 val ty             : formatter -> AST.ty                -> unit
 val expr           : formatter -> AST.expr              -> unit
+val exprs          : formatter -> AST.expr list         -> unit
 val pattern        : formatter -> AST.pattern           -> unit
 val patterns       : formatter -> AST.pattern list      -> unit
 val lexpr          : formatter -> AST.lexpr             -> unit
 val stmt           : formatter -> AST.stmt              -> unit
 val indented_block : formatter -> AST.stmt list         -> unit
+val parameters     : formatter -> (AST.ident * AST.ty option) list -> unit
 val formals        : formatter -> (AST.ident * AST.ty) list -> unit
 val sformals       : formatter -> AST.sformal list      -> unit
 val declaration    : formatter -> AST.declaration       -> unit
