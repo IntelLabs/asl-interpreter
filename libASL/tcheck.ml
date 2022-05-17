@@ -212,50 +212,25 @@ type funtype = (AST.ident * bool * (AST.ident * AST.ty option) list * AST.expr l
 let ft_id ((f, _, _, _, _, _): funtype): AST.ident = f
 
 let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): unit =
-  ()
-(*
-    FMT.pp_ident f
-    ^^ string " :: " ^^
-    PP.pp_parameter_list ps
-    ^^
-    (if cs = [] then
-        string ""
-    else
-        ((PC.separate (string ", ") (List.map PP.pp_expr cs))
-        ^^ string " => "
-        )
-    )
-    ^^ (if isArr then PC.brackets else PC.parens)
-       (PC.separate (string ", ") (List.map PP.pp_formal atys))
-    ^^ string " -> "
-    ^^ PP.pp_ty rty
-*)
-
-
+    FMT.varname fmt f; FMTUtils.nbsp fmt; FMT.coloncolon fmt; FMTUtils.nbsp fmt;
+    FMT.braces fmt (fun _ -> FMT.parameters fmt ps);
+    FMT.braces fmt (fun _ -> FMT.exprs fmt cs);
+    (if isArr
+    then FMT.brackets fmt (fun _ -> FMT.formals fmt atys)
+    else FMT.parens fmt (fun _ -> FMT.formals fmt atys));
+    FMTUtils.nbsp fmt; FMT.eq_gt fmt; FMTUtils.nbsp fmt; FMT.ty fmt rty
 
 (* type of setter function *)
 type sfuntype = (AST.ident * (AST.ident * AST.ty option) list * AST.expr list * AST.sformal list * AST.ty)
 
 let sft_id ((f, _, _, _, _): sfuntype): AST.ident = f
 
-let pp_sfuntype ((f, ps, cs, atys, vty): sfuntype): unit =
-  ()
-  (*
-    PP.pp_ident f
-    ^^ string " :: " ^^
-    PP.pp_parameter_list ps
-    ^^
-    (if cs = [] then
-        string ""
-    else
-        ((PC.separate (string ", ") (List.map PP.pp_expr cs))
-        ^^ string " => "
-        )
-    )
-    ^^ PC.parens (PC.separate (string ", ") (List.map PP.pp_sformal atys))
-    ^^ string " <- "
-    ^^ PP.pp_ty vty
-*)
+let pp_sfuntype fmt ((f, ps, cs, atys, rty): sfuntype): unit =
+    FMT.varname fmt f; FMTUtils.nbsp fmt; FMT.coloncolon fmt; FMTUtils.nbsp fmt;
+    FMT.braces fmt (fun _ -> FMT.parameters fmt ps);
+    FMT.braces fmt (fun _ -> FMT.exprs fmt cs);
+    FMT.brackets fmt (fun _ -> FMT.sformals fmt atys);
+    FMTUtils.nbsp fmt; FMT.eq_gt fmt; FMTUtils.nbsp fmt; FMT.ty fmt rty
 
 let sformal_var (x: sformal): AST.ident =
     ( match x with
@@ -275,8 +250,8 @@ let formal_of_sformal (x: AST.sformal): (AST.ident * AST.ty) =
     | Formal_InOut (v, ty) -> (v, ty)
     )
 
-let funtype_of_sfuntype ((f, tvs, cs, atys, vty): sfuntype): funtype =
-    (f, true, tvs, cs, List.map formal_of_sformal atys, vty)
+let funtype_of_sfuntype ((f, tvs, cs, atys, rty): sfuntype): funtype =
+    (f, true, tvs, cs, List.map formal_of_sformal atys, rty)
 
 module Operator1 = struct
     type t = AST.unop
@@ -1144,7 +1119,7 @@ let mkfresh_funtype (u: unifier) (fty: funtype): funtype =
 
 (** Replace all type variables in setter function type with fresh variables *)
 let mkfresh_sfuntype (u: unifier) (fty: sfuntype): sfuntype =
-    let (f, ps, cs, atys, vty) = fty in
+    let (f, ps, cs, atys, rty) = fty in
 
     (* generate renamings for all type variables *)
     let rns = List.map (fun (tv, _) -> (tv, u#fresh)) ps in
@@ -1169,8 +1144,8 @@ let mkfresh_sfuntype (u: unifier) (fty: sfuntype): sfuntype =
         )
     ) atys in
     let cs'   = List.map (subst_expr s) cs in
-    let vty'  = subst_type s vty in
-    (f, ps', cs', atys', vty')
+    let rty' = subst_type s rty in
+    (f, ps', cs', atys', rty')
 
 (** Check that ty2 is a subtype of ty1: ty1 >= ty2 *)
 let check_type (env: Env.t) (u: unifier) (loc: AST.l) (ty1: AST.ty) (ty2: AST.ty): unit =
@@ -1280,24 +1255,21 @@ let instantiate_fun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: funtype) 
     (f, tes, rty)
 
 (** Instantiate type of setter function using unifier 'u' *)
-let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype) (es: AST.expr list) (tys: AST.ty list) (ty: AST.ty): (AST.ident * AST.expr list) =
-    let (f, ps, cs, atys, vty) = mkfresh_sfuntype u fty in
+let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype) (es: AST.expr list) (tys: AST.ty list): (AST.ident * AST.expr list * AST.ty) =
+    let (f, ps, cs, atys, rty) = mkfresh_sfuntype u fty in
 
     (* Add bindings for every explicit type argument *)
-    assert ((List.length atys) = (List.length es));
+    assert ((List.length atys) = (List.length es) + 1);
     List.iter2 (fun aty e ->
         let v = sformal_var aty in
         if List.mem_assoc v ps then u#addEquality (Expr_Var v) (subst_consts_expr env e)
-    ) atys es;
+    ) (List.tl atys) es;
 
     (* unify argument types *)
-    List.iter2 (unify_type env u) (List.map sformal_type atys) tys;
-
-    (* unify value type *)
-    unify_type env u vty ty;
+    List.iter2 (unify_type env u) (List.map sformal_type atys) (List.tl tys);
 
     let tes = List.map (fun (tv, _) -> Expr_Var tv) ps in
-    (f, tes)
+    (f, tes, rty)
 
 
 (** Disambiguate and typecheck application of a function to a list of arguments *)
@@ -1881,14 +1853,14 @@ let rec tc_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (ty: AST.ty) (x: AST.lex
          *)
         let (e', ty') = (match e with
             | LExpr_Var(a) ->
-                let tys = List.map (function (_, ty) -> ty) ss' in
+                let tys = ty :: List.map (function (_, ty) -> ty) ss' in
                 let setters = GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set") in
                 let osetters = chooseSetterFunction (Env.globals env) loc "setter function" a tys setters in
                 (match osetters with
                 | Some gty when all_single ->
                     (* todo: check for Formal_InOut and check that corresponding argument is a legal lexpr *)
                     let es = List.map (function (Slice_Single a, _) -> a | _ -> raise (InternalError "Expr_Slices1")) ss' in
-                    let (g', tes') = instantiate_sfun (Env.globals env) u loc gty es tys ty in
+                    let (g', tes', _) = instantiate_sfun (Env.globals env) u loc gty es (ty :: tys) in
                     (LExpr_Write(sft_id gty, tes', es), ty)
                 | _ ->
                     let getters = GlobalEnv.getFuns (Env.globals env) (addSuffix a "read") in
@@ -2279,7 +2251,7 @@ let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (ps: (AST
          *)
         let tag  = num_funs in
         let qid' = addTag qid tag in
-        let fty: sfuntype = (qid', ps, [], args, vty) in
+        let fty: sfuntype = (qid', ps, [], args, type_unit) in
         GlobalEnv.addSetterFuns env qid (fty :: funs);
         fty
     | [fty] -> (* already defined *)
