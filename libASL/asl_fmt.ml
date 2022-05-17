@@ -411,7 +411,7 @@ let rec lexpr (fmt: PP.formatter) (x: AST.lexpr): unit =
 and lexprs (fmt: PP.formatter) (ps: AST.lexpr list): unit = commasep fmt (lexpr fmt) ps
 
 let varty (fmt: PP.formatter) (v: AST.ident) (t: AST.ty): unit =
-    varname fmt v; nbsp fmt; coloncolon fmt; nbsp fmt; varname fmt v
+    varname fmt v; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
 
 let varoty (fmt: PP.formatter) (v: AST.ident) (ot: AST.ty option): unit =
     ( match ot with
@@ -610,6 +610,9 @@ let parameter (fmt: PP.formatter) (x: (AST.ident * AST.ty option)): unit =
   let (v, ot) = x in
   varoty fmt v ot
 
+let parameters (fmt: PP.formatter) (xs: (AST.ident * AST.ty option) list): unit =
+  commasep fmt (parameter fmt) xs
+
 let formal (fmt: PP.formatter) (x: (AST.ident * AST.ty)): unit =
   let (v, t) = x in
   varty fmt v t
@@ -704,7 +707,7 @@ and decode_case (fmt: PP.formatter) (x: AST.decode_case): unit =
 
 let function_header (fmt: PP.formatter) (ot: AST.ty option) (f: AST.ident) (ps: (AST.ident * AST.ty option) list) (args: unit -> unit): unit =
     funname fmt f;
-    braces fmt (fun _ -> commasep fmt (parameter fmt) ps);
+    braces fmt (fun _ -> parameters fmt ps);
     parens fmt args;
     PP.pp_print_option (fun _ t -> eq_gt fmt; ty fmt t; nbsp fmt) fmt ot
 
@@ -775,34 +778,40 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   | Decl_ArrayGetterType (f, ps, args, t, loc) ->
     comments_before fmt loc;
     kw_getter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_ArrayGetterDefn (f, ps, args, t, b, loc) ->
     comments_before fmt loc;
     kw_getter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t;
     indented_block fmt b
   | Decl_VarSetterType (f, ps, v, t, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_VarSetterDefn (f, ps, v, t, b, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     indented_block fmt b
   | Decl_ArraySetterType (f, ps, args, v, t, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     brackets fmt (fun _ -> sformals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
+    braces fmt (fun _ -> parameters fmt ps);
     brackets fmt (fun _ -> sformals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     indented_block fmt b
