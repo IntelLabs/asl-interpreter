@@ -10,22 +10,31 @@
 open LibASL
 
 module AST       = Asl_ast
-module ASL2V     = Backend_verilog
 module CP        = Xform_constprop
 module ASL_FMT   = Asl_fmt
 module FMT_Utils = Format_utils
 
+type backend = Backend_C | Backend_Verilog
+
 let opt_filenames : string list ref = ref []
 let opt_verbose = ref false
+let opt_backend = ref Backend_Verilog
 let roots: string list ref  = ref []
 let keeps: string list ref  = ref []
 let output_file: string ref = ref ""
 
+let backend_pairs = [ ("c", Backend_C); ("verilog", Backend_Verilog) ]
+let backend_symbols = List.map fst backend_pairs
+
+let match_backend (symb : string) : unit =
+  opt_backend := List.assoc symb backend_pairs
+
 let options = Arg.align ([
-    ( "-v",     Arg.Set opt_verbose,                         "       Verbose output");
-    ( "--root", Arg.String (fun s -> roots := !roots @ [s]), "       Add function to convert");
-    ( "--keep", Arg.String (fun s -> keeps := !keeps @ [s]), "       Add variable to keep");
-    ( "-o",     Arg.Set_string output_file,                  "       Output Verilog file");
+    ( "-v",        Arg.Set opt_verbose,                         "       Verbose output");
+    ( "--backend", Arg.Symbol (backend_symbols, match_backend), "       Backend type (default: verilog)");
+    ( "--root",    Arg.String (fun s -> roots := !roots @ [s]), "       Add function to convert");
+    ( "--keep",    Arg.String (fun s -> keeps := !keeps @ [s]), "       Add variable to keep");
+    ( "-o",        Arg.Set_string output_file,                  "       Output file");
 ] )
 
 let version = "ASL 0.2.0 alpha"
@@ -82,12 +91,17 @@ let main () =
         if true then Utils.to_file "tmp.prev.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
         Utils.to_file !output_file (fun fmt ->
-            Format.pp_print_string fmt "/* verilator lint_off WIDTH */";
-            Format.pp_print_cut fmt ();
-            ASL2V.declarations fmt ds
+            match !opt_backend with
+            | Backend_C ->
+                Backend_c.declarations fmt ds;
+            | Backend_Verilog ->
+                Format.pp_print_string fmt "/* verilator lint_off WIDTH */";
+                Format.pp_print_cut fmt ();
+                Backend_verilog.declarations fmt ds;
         )
     with
-    | ASL2V.Unimplemented (loc, what, pp) ->
+    | Backend_c.Unimplemented (loc, what, pp)
+    | Backend_verilog.Unimplemented (loc, what, pp) ->
         let fmt = Format.std_formatter in
         Format.pp_print_newline fmt ();
         FMT_Utils.vbox fmt (fun _ ->
