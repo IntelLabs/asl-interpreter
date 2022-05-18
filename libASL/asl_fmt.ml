@@ -350,7 +350,7 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   | Expr_Tuple(es) -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat(es) -> brackets fmt (fun _ -> exprs fmt es)
   | Expr_Unop(op, e) -> unop fmt op; nbsp fmt; expr fmt e
-  | Expr_Unknown(t) -> ty fmt t; nbsp fmt; kw_unknown fmt
+  | Expr_Unknown(t) -> kw_unknown fmt; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
   | Expr_ImpDef(t, os) ->
     ty fmt t; nbsp fmt; kw_implementation_defined fmt; PP.pp_print_option strLit fmt os
   | Expr_Array(a, e) -> expr fmt a; brackets fmt (fun _ -> expr fmt e)
