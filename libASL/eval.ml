@@ -458,6 +458,8 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
                 extract_bits'' loc v i w
             ) ss in
             eval_concat loc vs
+    | Expr_RecordInit(tc, fas) ->
+            mkrecord (List.map (fun (f, e) -> (f, eval_expr loc env e)) fas)
     | Expr_In(e, p) ->
             from_bool (eval_pattern loc env (eval_expr loc env e) p)
     | Expr_Var(v) ->

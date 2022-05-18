@@ -162,6 +162,9 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
                     let e'  = visit_expr vis e in
                     let ss' = mapNoCopy (visit_slice vis) ss in
                     if e == e' && ss == ss' then x else Expr_Slices(e', ss')
+            | Expr_RecordInit(tc, fas) ->
+                    let fas' = mapNoCopy (visit_fieldassignment vis) fas in
+                    if fas == fas' then x else Expr_RecordInit(tc, fas')
             | Expr_In(e, p) ->
                     let e' = visit_expr vis e in
                     let p' = visit_pattern vis p in
@@ -215,6 +218,13 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
             )
         in
         doVisit vis (vis#vexpr x) aux x
+
+    and visit_fieldassignment (vis: aslVisitor) (x: (ident * expr)): (ident * expr) =
+        ( match x with
+        | (f, e) ->
+            let e' = visit_expr vis e in
+            if e == e' then x else (f, e')
+        )
 
     and visit_constraint_range (vis: aslVisitor) (x: constraint_range): constraint_range =
         let aux (vis: aslVisitor) (x: constraint_range): constraint_range =

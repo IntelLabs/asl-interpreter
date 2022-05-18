@@ -1509,6 +1509,22 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
                 tc_slice_expr env u loc e ss'
             )
 
+    | Expr_RecordInit(tc, fas) ->
+            if not (GlobalEnv.isType (Env.globals env) tc) then raise (IsNotA (loc, "type constructor", pprint_ident tc));
+            let fs = (match GlobalEnv.getType (Env.globals env) tc with
+                | Some(Type_Record fs) -> fs
+                | _ -> raise (IsNotA (loc, "record type", pprint_ident tc))
+                )
+            in
+            (* todo: check that fas has exactly one field assignment for every field in fs *)
+            let fas' = List.map (fun (f, e) ->
+                let ty = get_recordfield loc fs f in
+                let e' = check_expr env loc ty e in
+                (f, e')
+                ) fas
+            in
+            (Expr_RecordInit(tc, fas'), Type_Constructor tc)
+
     | Expr_In(e, p) ->
             let (s, (e', ety')) = with_unify env loc (fun u -> tc_expr env u loc e) in
             let e''   = unify_subst_e  s e' in
