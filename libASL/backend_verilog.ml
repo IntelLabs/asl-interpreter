@@ -393,6 +393,7 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
 
   (* unimplemented *)
   | Expr_Slices _
+  | Expr_RecordInit _
   | Expr_In _
   | Expr_Binop _
   | Expr_Unop _

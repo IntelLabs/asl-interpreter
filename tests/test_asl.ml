@@ -82,6 +82,9 @@ let tests : unit Alcotest.test_case list =
         (test_static globals true "literals (string)" "" "\"ab\\tc\"");
         (test_static globals true "literals (string)" "" "\"ab\\\\c\"");
         (test_static globals true "literals (string)" "" "\"ab\\\"c\"");
+        (test_static globals true "expressions (records)"
+                     "record Pair{x :: integer; y :: integer; };"
+                     "Pair{x = 1, y = 2}");
         (test_static globals true "expressions (UNKNOWN)" "" "UNKNOWN :: bits(4)");
         (test_static globals true "expressions (IMPDEF)" "" "IMPLEMENTATION_DEFINED \"MaxAddr\" :: bits(64)");
         (test_static globals false "expressions (bitfields)"

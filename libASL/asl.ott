@@ -690,6 +690,7 @@ fexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | fexpr . ident                              :: :: Field   {{ com field selection }}
     | fexpr . [ ident1 , ... , identn ]          :: :: Fields  {{ com multiple field selection }}
     | fexpr   [ slice1 , .. , slicen ]           :: :: Slices  {{ com bitslice }}
+    | ident { field_assignment1 , ... , field_assignmentn } :: :: RecordInit
     | fexpr 'IN' pattern                         :: :: In      {{ com pattern match }}
     | aexpr                                      :: :: AExpr   {{ quotient-remove }} {{ ocaml [[aexpr]] }}
 
@@ -708,6 +709,12 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
 expr_spice :: 'Expr_' ::= {{ quotient-with expr }}
     | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
     | __array expr1 [ expr2 ]                    ::   :: Array     {{ com spice for desugaring array accesses }}
+
+field_assignment :: 'Field_Assignment_' ::=
+    {{ phantom }} {{ ocaml ident * expr }}
+    {{ pp-raw fa = pp_raw_ident (fst fa) ^^ " = " ^^ pp_raw_expr (snd fa) }}
+    {{ pp     fa = pp_ident (fst fa) ^^ " = " ^^ pp_expr (snd fa) }}
+    | ident = expr                               ::   :: FieldAssign {{ ocaml ([[ident]], [[expr]]) }}
 
 opt_stringLit :: 'String_' ::=
     {{ phantom }} {{ ocaml string option }}

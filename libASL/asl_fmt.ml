@@ -349,6 +349,7 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
     expr fmt e; dot fmt;
     brackets fmt (fun _ -> commasep fmt (fieldname fmt) fs)
   | Expr_Slices(e, ss) -> expr fmt e; brackets fmt (fun _ -> slices fmt ss)
+  | Expr_RecordInit(tc, fas) -> tycon fmt tc; braces fmt (fun _ -> commasep fmt (field_assignment fmt) fas)
   | Expr_In(e, p) -> expr fmt e; nbsp fmt; kw_in fmt; nbsp fmt; pattern fmt p
   | Expr_Var(v) -> varname fmt v
   | Expr_Parens(e) -> parens fmt (fun _ -> expr fmt e)
@@ -375,6 +376,11 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   )
 
 and exprs (fmt: PP.formatter) (es: AST.expr list): unit = commasep fmt (expr fmt) es
+
+and field_assignment (fmt: PP.formatter) (x: (AST.ident * AST.expr)): unit =
+  (match x with
+  | (f, e) -> fieldname fmt f; nbsp fmt; eq fmt; nbsp fmt; expr fmt e
+  )
 
 and pattern (fmt: PP.formatter) (x: AST.pattern): unit =
   ( match x with
