@@ -64,24 +64,35 @@ let report_eval_error (on_error: unit -> 'a) (f: unit -> 'a): 'a =
         on_error ()
     )
 
-let parse_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
-    let inchan = open_in filename in
+let rec find_file (paths : string list) (filename : string): string =
+    ( match paths with
+    | [] -> failwith ("Can't find file '" ^ filename ^ "' on path")
+    | (f :: paths') ->
+        let fname = Filename.concat f filename in
+        if Sys.file_exists fname
+        then fname
+        else find_file paths' filename
+    )
+
+let parse_file (paths : string list) (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
+    let fname  = find_file paths filename in
+    let inchan = open_in fname in
+    if verbose then Printf.printf "Processing %s\n" fname;
     let lexbuf = Lexing.from_channel inchan in
-    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = fname };
     let t =
         report_parse_error
           (fun _ -> print_endline (pp_loc (Range (lexbuf.lex_start_p, lexbuf.lex_curr_p))); exit 1)
           (fun _ ->
             (* Run the parser on this line of input. *)
-            if verbose then Printf.printf "- Parsing %s\n" filename;
+            if verbose then Printf.printf "- Parsing %s\n" fname;
             Parser.declarations_start Lexer.token lexbuf)
     in
     close_in inchan;
     t
 
-let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
-    if verbose then Printf.printf "Processing %s\n" filename;
-    let t = parse_file filename isPrelude verbose in
+let read_file (paths : string list) (filename : string) (isPrelude: bool) (verbose: bool): AST.declaration list =
+    let t = parse_file paths filename isPrelude verbose in
 
     if false then begin
       FMT.comment_list := Lexer.get_comments ();
@@ -104,12 +115,13 @@ let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declara
     flush stdout;
     t'
 
-let read_spec (filename : string) (verbose: bool): AST.declaration list =
+let read_spec (paths : string list) (filename : string) (verbose: bool): AST.declaration list =
     let r: AST.declaration list list ref = ref [] in
-    let inchan = open_in filename in
+    let fname  = find_file paths filename in
+    let inchan = open_in fname in
     (try
         while true do
-            let t = read_file (input_line inchan) false verbose in
+            let t = read_file paths (input_line inchan) false verbose in
             r := t :: !r
         done
     with

@@ -167,16 +167,18 @@ let _ =
 let main () =
     Ocolor_format.prettify_formatter Format.std_formatter;
     Ocolor_config.set_color_capability Ocolor_config.Color4;
+    let paths = Utils.from_option (Sys.getenv_opt "ASL_PATH") (fun _ -> ".") in
+    let paths = String.split_on_char ':' paths in
     if !opt_print_version then Printf.printf "%s\n" version
     else begin
         List.iter print_endline banner;
         print_endline "\nType :? for help";
-        let t  = LoadASL.read_file "prelude.asl" true !opt_verbose in
+        let t  = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
         let ts = List.map (fun filename ->
             if Utils.endswith filename ".spec" then begin
-                LoadASL.read_spec filename !opt_verbose
+                LoadASL.read_spec paths filename !opt_verbose
             end else if Utils.endswith filename ".asl" then begin
-                LoadASL.read_file filename false !opt_verbose
+                LoadASL.read_file paths filename false !opt_verbose
             end else begin
                 failwith ("Unrecognized file suffix on "^filename)
             end

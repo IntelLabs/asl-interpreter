@@ -25,7 +25,8 @@ let test_arith tcenv env () : unit =
     check_int "5 DIV 3 == 1" (eval tcenv env "5 DIV 3") 1
 
 let tests : unit Alcotest.test_case list =
-    let prelude = LoadASL.read_file "../../../prelude.asl" true false in
+    let paths   = ["../../.."] in
+    let prelude = LoadASL.read_file paths "prelude.asl" true false in
     let tcenv   = TC.Env.mkEnv TC.env0 in
     let env     = Eval.build_evaluation_environment prelude in
     [
