@@ -24,6 +24,7 @@
  asl_parser
  asl_utils
  asl_visitor
+ backend_c
  backend_verilog
  cpu
  elf
