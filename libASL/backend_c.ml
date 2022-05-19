@@ -17,6 +17,7 @@ exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
+      | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
       | _ ->
           raise
             (Unimplemented
