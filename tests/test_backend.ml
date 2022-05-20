@@ -57,6 +57,10 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f(p1 :: integer, p2 :: integer) end";
   check_declaration tcenv decls "uninitialized variables"
     "func f() var i1, i2 :: integer; end";
+  check_declaration tcenv decls "variable, literal (integer)"
+    "func f() var i :: integer = 0; end";
+  check_declaration tcenv decls "let, literal (integer)"
+    "func f() let i :: integer = 0; end";
   ()
 
 let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()

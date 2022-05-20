@@ -24,6 +24,7 @@ let delimiter (fmt : PP.formatter) (s : string) : unit =
   PP.pp_print_string fmt s
 
 let keyword (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
+let constant (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
 
 let ident_str (fmt : PP.formatter) (x : string) : unit =
   PP.pp_print_string fmt x
@@ -130,6 +131,8 @@ let kw_uint32           (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64           (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8            (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
+let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
+
 let const_expr (x : AST.expr) : V.value =
   match x with
   | Expr_LitBits b -> V.from_bitsLit b
@@ -167,6 +170,35 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   | Type_Tuple _ ->
       raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
 
+let expr (fmt : PP.formatter) (x : AST.expr) : unit =
+  match x with
+  | Expr_LitInt l -> intLit fmt l
+  | Expr_Array _
+  | Expr_AsConstraint _
+  | Expr_AsType _
+  | Expr_Binop _
+  | Expr_Concat _
+  | Expr_Field _
+  | Expr_Fields _
+  | Expr_If _
+  | Expr_ImpDef _
+  | Expr_In _
+  | Expr_LitBits _
+  | Expr_LitHex _
+  | Expr_LitMask _
+  | Expr_LitReal _
+  | Expr_LitString _
+  | Expr_Parens _
+  | Expr_RecordInit _
+  | Expr_Slices _
+  | Expr_TApply _
+  | Expr_Tuple _
+  | Expr_Unknown _
+  | Expr_Unop _
+  | Expr_Var _ ->
+      raise
+        (Unimplemented (AST.Unknown, "expression", fun fmt -> FMTAST.expr fmt x))
+
 let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
   | _ ->
@@ -183,8 +215,9 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       semicolon fmt;
       cut fmt
   | Stmt_VarDecl (v, Some t, i, loc) ->
-      raise
-        (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
+      varty fmt v t;
+      semicolon fmt;
+      cut fmt
   | Stmt_VarDecl (v, None, i, loc) ->
       raise
         (Unimplemented
@@ -193,9 +226,54 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
              fun fmt -> FMTAST.varname fmt v ))
   | _ -> ()
 
+let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
+  match x with
+  | Stmt_ConstDecl (v, Some t, i, loc) ->
+      kw_const fmt;
+      nbsp fmt;
+      varty fmt v t;
+      nbsp fmt;
+      eq fmt;
+      nbsp fmt;
+      expr fmt i;
+      semicolon fmt
+  | Stmt_ConstDecl (v, None, i, loc) ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "statement: type of variable unknown",
+             fun fmt -> FMTAST.varname fmt v ))
+  | Stmt_VarDeclsNoInit (vs, t, loc) ->
+      (* handled by decl *)
+      ()
+  | Stmt_VarDecl (v, t, i, loc) ->
+      varname fmt v;
+      nbsp fmt;
+      eq fmt;
+      nbsp fmt;
+      expr fmt i;
+      semicolon fmt
+  | Stmt_Assert _
+  | Stmt_Assign _
+  | Stmt_Block _
+  | Stmt_Case _
+  | Stmt_DecodeExecute _
+  | Stmt_For _
+  | Stmt_FunReturn _
+  | Stmt_If _
+  | Stmt_ProcReturn _
+  | Stmt_Repeat _
+  | Stmt_TCall _
+  | Stmt_Throw _
+  | Stmt_Try _
+  | Stmt_While _ ->
+      raise
+        (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
+
 let indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
   indented fmt (fun _ ->
-      map fmt (decl fmt) xs)
+      map fmt (decl fmt) xs;
+      cutsep fmt (stmt fmt) xs)
 
 let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
   let v, t = x in
