@@ -35,6 +35,8 @@ let ident (fmt : PP.formatter) (x : AST.ident) : unit =
 
 let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
+let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+  commasep fmt (varname fmt) xs
 
 (* C delimiters *)
 
@@ -172,6 +174,29 @@ let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
       nbsp fmt;
       varname fmt v
 
+let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
+  match x with
+  | Stmt_VarDeclsNoInit (vs, t, loc) ->
+      ty fmt t;
+      nbsp fmt;
+      varnames fmt vs;
+      semicolon fmt;
+      cut fmt
+  | Stmt_VarDecl (v, Some t, i, loc) ->
+      raise
+        (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
+  | Stmt_VarDecl (v, None, i, loc) ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "decl: type of variable unknown",
+             fun fmt -> FMTAST.varname fmt v ))
+  | _ -> ()
+
+let indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
+  indented fmt (fun _ ->
+      map fmt (decl fmt) xs)
+
 let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
   let v, t = x in
   varty fmt v t
@@ -186,8 +211,10 @@ let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
   funname fmt f;
   parens fmt args
 
-let function_body (fmt : PP.formatter) : unit =
-  braces fmt (fun _ -> cut fmt);
+let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
+  braces fmt (fun _ ->
+      if b <> [] then indented_block fmt b;
+      cut fmt);
   cut fmt
 
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
@@ -196,7 +223,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header fmt (Some t) f (fun _ -> formals fmt args);
           nbsp fmt;
-          function_body fmt;
+          function_body fmt b;
           cut fmt
       | Decl_FunType (f, ps, args, t, loc) ->
           function_header fmt (Some t) f (fun _ -> formals fmt args);
@@ -206,7 +233,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_ProcDefn (f, ps, args, b, loc) ->
           function_header fmt None f (fun _ -> formals fmt args);
           nbsp fmt;
-          function_body fmt;
+          function_body fmt b;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
           function_header fmt None f (fun _ -> formals fmt args);

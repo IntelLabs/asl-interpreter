@@ -55,6 +55,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() end";
   check_declaration tcenv decls "few params, empty body"
     "func f(p1 :: integer, p2 :: integer) end";
+  check_declaration tcenv decls "uninitialized variables"
+    "func f() var i1, i2 :: integer; end";
   ()
 
 let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
