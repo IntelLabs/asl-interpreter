@@ -250,6 +250,14 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
            ( AST.Unknown,
              "statement: type of variable unknown",
              fun fmt -> FMTAST.varname fmt v ))
+  | Stmt_FunReturn (e, loc) ->
+      kw_return fmt;
+      nbsp fmt;
+      expr fmt e;
+      semicolon fmt
+  | Stmt_ProcReturn loc ->
+      kw_return fmt;
+      semicolon fmt
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
@@ -266,9 +274,7 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_Case _
   | Stmt_DecodeExecute _
   | Stmt_For _
-  | Stmt_FunReturn _
   | Stmt_If _
-  | Stmt_ProcReturn _
   | Stmt_Repeat _
   | Stmt_TCall _
   | Stmt_Throw _

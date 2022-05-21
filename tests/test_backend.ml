@@ -51,6 +51,8 @@ let test_fun_defn (tcenv : TC.GlobalEnv.t)
     "func f() => integer end";
   check_declaration tcenv decls "few params, empty body"
     "func f(p1 :: integer, p2 :: integer) => integer end";
+  check_declaration tcenv decls "statement (return)"
+    "func f() => integer return 0; end";
   ()
 
 let test_proc_decl (tcenv : TC.GlobalEnv.t)
@@ -76,6 +78,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() let i :: bits(8) = '1111 0000'; end";
   check_declaration tcenv decls "expression (variable)"
     "func f() var i :: integer = 0; var j = i; end";
+  check_declaration tcenv decls "statement (return)"
+    "func f() return; end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)
