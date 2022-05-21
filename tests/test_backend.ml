@@ -31,6 +31,14 @@ let test_builtin_fun (tcenv : TC.GlobalEnv.t)
   check_declaration tcenv decls "ignored" "__builtin func f() => integer;";
   ()
 
+let test_enum (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
+    : unit =
+  check_declaration tcenv decls "boolean (ignored)"
+    "enumeration boolean { FALSE, TRUE };";
+  check_declaration tcenv decls "few enum literals"
+    "enumeration signal { LOW, HIGH };";
+  ()
+
 let test_fun_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "no params, empty body" "func f() => integer;";
@@ -74,6 +82,7 @@ let test_cases (decls : AST.declaration list -> unit) :
   let tcenv = TC.env0 in
   [
     ("built-in function", `Quick, test_builtin_fun tcenv decls);
+    ("enumeration", `Quick, test_enum tcenv decls);
     ("function declaration", `Quick, test_fun_decl tcenv decls);
     ("function definition", `Quick, test_fun_defn tcenv decls);
     ("procedure declaration", `Quick, test_proc_decl tcenv decls);

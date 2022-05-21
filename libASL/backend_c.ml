@@ -34,6 +34,7 @@ let ident (fmt : PP.formatter) (x : AST.ident) : unit =
   | Ident s -> ident_str fmt (mangle s)
   | FIdent (s, t) -> ident_str fmt (s ^ "_" ^ string_of_int t)
 
+let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
@@ -298,6 +299,19 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
+      | Decl_Enum (tc, es, loc) ->
+          if tc = Ident "boolean" then (* is in C99 stdbool.h *) ()
+          else (
+            kw_typedef fmt;
+            nbsp fmt;
+            kw_enum fmt;
+            nbsp fmt;
+            braces fmt (fun _ -> commasep fmt (varname fmt) es);
+            nbsp fmt;
+            tycon fmt tc;
+            semicolon fmt;
+            cut fmt;
+            cut fmt)
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header fmt (Some t) f (fun _ -> formals fmt args);
           nbsp fmt;
