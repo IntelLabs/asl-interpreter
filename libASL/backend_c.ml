@@ -126,12 +126,20 @@ let kw_while (fmt : PP.formatter) : unit = keyword fmt "while"
 let kw_assert (fmt : PP.formatter) : unit = keyword fmt "assert"
 let kw_bool (fmt : PP.formatter) : unit = keyword fmt "bool"
 let kw_false (fmt : PP.formatter) : unit = keyword fmt "false"
+let kw_int16 (fmt : PP.formatter) : unit = keyword fmt "int16_t"
+let kw_int32 (fmt : PP.formatter) : unit = keyword fmt "int32_t"
 let kw_int64 (fmt : PP.formatter) : unit = keyword fmt "int64_t"
+let kw_int8 (fmt : PP.formatter) : unit = keyword fmt "int8_t"
 let kw_true (fmt : PP.formatter) : unit = keyword fmt "true"
 let kw_uint16 (fmt : PP.formatter) : unit = keyword fmt "uint16_t"
 let kw_uint32 (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
+
+(* C functions defined elsewhere *)
+let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "cvt_bits_sint"
+let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "is_pow2"
+let fn_replicate_bits (fmt : PP.formatter) : unit = keyword fmt "replicate_bits"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
@@ -160,16 +168,29 @@ let const_int_expr (x : AST.expr) : int =
   | VInt i -> Z.to_int i
   | _ -> failwith "const_int_expr: integer expected"
 
-let bits (fmt : PP.formatter) (width : int) : unit =
+let uint (fmt : PP.formatter) (width : int) : unit =
   if width <= 8 then kw_uint8 fmt
   else if width <= 16 then kw_uint16 fmt
   else if width <= 32 then kw_uint32 fmt
   else if width <= 64 then kw_uint64 fmt
-  else failwith "type: bitvector of length > 64"
+  else
+    raise
+      (Unimplemented
+         (AST.Unknown, "uint width: " ^ string_of_int width, fun fmt -> ()))
+
+let sint (fmt : PP.formatter) (width : int) : unit =
+  if width <= 8 then kw_int8 fmt
+  else if width <= 16 then kw_int16 fmt
+  else if width <= 32 then kw_int32 fmt
+  else if width <= 64 then kw_int64 fmt
+  else
+    raise
+      (Unimplemented
+         (AST.Unknown, "sint width: " ^ string_of_int width, fun fmt -> ()))
 
 let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
-  | Type_Bits n -> bits fmt (const_int_expr n)
+  | Type_Bits n -> uint fmt (const_int_expr n)
   | Type_Constructor tc -> (
       match tc with
       | Ident "boolean" -> kw_bool fmt
@@ -193,6 +214,55 @@ let rec apply (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
   f ();
   parens fmt (fun _ -> exprs fmt args)
 
+and make_cast (fmt : PP.formatter) (t : unit -> unit) (x : unit -> unit)
+    : unit =
+  parens fmt t;
+  x ()
+
+and make_binop (fmt : PP.formatter) (op : unit -> unit) (x : unit -> unit)
+    (y : unit -> unit) : unit =
+  parens fmt (fun _ ->
+      x ();
+      nbsp fmt;
+      op ();
+      nbsp fmt;
+      y ())
+
+and make_unop (fmt : PP.formatter) (op : unit -> unit) (x : unit -> unit) : unit
+    =
+  parens fmt (fun _ ->
+      op ();
+      x ())
+
+and pow2_int (fmt : PP.formatter) (x : AST.expr) : unit =
+  make_binop fmt
+    (fun _ -> lt_lt fmt)
+    (fun _ ->
+      (* TODO determine correct type width. For now use uint64. *)
+      make_cast fmt (fun _ -> kw_uint64 fmt) (fun _ -> intLit fmt "1"))
+    (fun _ -> expr fmt x)
+
+(* Calculate mask with x ones *)
+and mask_int (fmt : PP.formatter) (x : AST.expr) : unit =
+  make_binop fmt
+    (fun _ -> minus fmt)
+    (fun _ -> pow2_int fmt x)
+    (fun _ -> intLit fmt "1")
+
+and binop (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
+  match args with
+  | [ x; y ] ->
+      make_binop fmt
+        (fun _ -> delimiter fmt op)
+        (fun _ -> expr fmt x)
+        (fun _ -> expr fmt y)
+  | _ -> raise (Unimplemented (AST.Unknown, "binop: " ^ op, fun fmt -> ()))
+
+and unop (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
+  match args with
+  | [ x ] -> make_unop fmt (fun _ -> delimiter fmt op) (fun _ -> expr fmt x)
+  | _ -> raise (Unimplemented (AST.Unknown, "unop: " ^ op, fun fmt -> ()))
+
 and cond_cont (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
     (y : unit -> unit) : unit =
   parens fmt (fun _ ->
@@ -206,6 +276,10 @@ and cond_cont (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
       nbsp fmt;
       y ())
 
+and cond (fmt : PP.formatter) (c : AST.expr) (x : AST.expr) (y : AST.expr) :
+    unit =
+  cond_cont fmt c x (fun _ -> expr fmt y)
+
 and conds (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) (e : AST.expr)
     : unit =
   match cts with
@@ -215,6 +289,128 @@ and conds (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) (e : AST.expr)
 and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
+  (* Boolean builtin functions *)
+  | FIdent ("and_bool", _), _ -> binop fmt "&&" args
+  | FIdent ("eq_bool", _), _ | FIdent ("equiv_bool", _), _ ->
+      binop fmt "==" args
+  | FIdent ("implies_bool", _), [ x; y ] ->
+      cond fmt x y (AST.Expr_Var (Ident "TRUE"))
+  | FIdent ("ne_bool", _), _ -> binop fmt "!=" args
+  | FIdent ("not_bool", _), _ -> unop fmt "!" args
+  | FIdent ("or_bool", _), _ -> binop fmt "||" args
+  (* Integer builtin functions *)
+  | FIdent ("add_int", _), _ -> binop fmt "+" args
+  | FIdent ("align_int", _), [ x; y ] ->
+      make_binop fmt
+        (fun _ -> amp fmt)
+        (fun _ -> expr fmt x)
+        (fun _ -> make_unop fmt (fun _ -> tilde fmt) (fun _ -> mask_int fmt y))
+  | FIdent ("eq_int", _), _ -> binop fmt "==" args
+  | FIdent ("ge_int", _), _ -> binop fmt ">=" args
+  | FIdent ("gt_int", _), _ -> binop fmt ">" args
+  | FIdent ("is_pow2_int", _), _ -> apply fmt (fun _ -> fn_is_pow2_int fmt) args
+  | FIdent ("le_int", _), _ -> binop fmt "<=" args
+  | FIdent ("lt_int", _), _ -> binop fmt "<" args
+  | FIdent ("mod_pow2_int", _), [ x; y ] ->
+      make_binop fmt
+        (fun _ -> amp fmt)
+        (fun _ -> expr fmt x)
+        (fun _ -> mask_int fmt y)
+  | FIdent ("mul_int", _), _ -> binop fmt "*" args
+  | FIdent ("ne_int", _), _ -> binop fmt "!=" args
+  | FIdent ("neg_int", _), _ -> unop fmt "-" args
+  | FIdent ("pow2_int", _), [ x ] -> pow2_int fmt x
+  | FIdent ("shl_int", _), _ -> binop fmt "<<" args
+  | FIdent ("shr_int", _), _ -> binop fmt ">>" args
+  | FIdent ("sub_int", _), _ -> binop fmt "-" args
+  | FIdent ("zdiv_int", _), _ -> binop fmt "/" args
+  | FIdent ("zrem_int", _), _ -> binop fmt "%" args
+  | FIdent ("fdiv_int", _), _ | FIdent ("frem_int", _), _ ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "integer builtin function",
+             fun fmt -> FMTAST.funname fmt f ))
+  (* Real builtin functions *)
+  | FIdent ("add_real", _), _
+  | FIdent ("cvt_int_real", _), _
+  | FIdent ("divide_real", _), _
+  | FIdent ("eq_real", _), _
+  | FIdent ("ge_real", _), _
+  | FIdent ("gt_real", _), _
+  | FIdent ("le_real", _), _
+  | FIdent ("lt_real", _), _
+  | FIdent ("mul_real", _), _
+  | FIdent ("ne_real", _), _
+  | FIdent ("neg_real", _), _
+  | FIdent ("pow2_real", _), _
+  | FIdent ("round_down_real", _), _
+  | FIdent ("round_tozero_real", _), _
+  | FIdent ("round_up_real", _), _
+  | FIdent ("sqrt_real", _), _
+  | FIdent ("sub_real", _), _ ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "real builtin function",
+             fun fmt -> FMTAST.funname fmt f ))
+  (* Bitvector builtin functions *)
+  | FIdent ("add_bits", _), _ -> binop fmt "+" args
+  | FIdent ("and_bits", _), _ -> binop fmt "&" args
+  | FIdent ("cvt_bits_sint", _), [ x ] -> (
+      let x_width = const_int_expr (List.hd tes) in
+      match x_width with
+      | 64 | 32 | 16 | 8 ->
+          make_cast fmt (fun _ -> sint fmt x_width) (fun _ -> expr fmt x)
+      | _ -> apply fmt (fun _ -> fn_cvt_bits_sint fmt) (args @ [ List.hd tes ]))
+  | FIdent ("cvt_bits_uint", _), [ x ] ->
+      (* TODO determine correct type width. For now use uint64. *)
+      make_cast fmt (fun _ -> kw_uint64 fmt) (fun _ -> expr fmt x)
+  | FIdent ("cvt_int_bits", _), [ x; n ] ->
+      make_binop fmt
+        (fun _ -> amp fmt)
+        (fun _ -> expr fmt x)
+        (fun _ -> mask_int fmt n)
+  | FIdent ("eor_bits", _), _ -> binop fmt "^" args
+  | FIdent ("eq_bits", _), _ -> binop fmt "==" args
+  | FIdent ("frem_bits_int", _), _
+  | FIdent ("in_mask", _), _
+  | FIdent ("notin_mask", _), _ ->
+      raise
+        (Unimplemented
+           (AST.Unknown, "bitvector builtin function", fun fmt -> FMTAST.funname fmt f))
+  | FIdent ("mul_bits", _), _ -> binop fmt "*" args
+  | FIdent ("ne_bits", _), _ -> binop fmt "!=" args
+  | FIdent ("not_bits", _), _ -> unop fmt "~" args
+  | FIdent ("ones_bits", _), [] ->
+      let x = List.hd tes in
+      bitsLit fmt (String.make (const_int_expr x) '1')
+  | FIdent ("or_bits", _), _ -> binop fmt "|" args
+  | FIdent ("replicate_bits", _), _ ->
+      let x_width = List.nth tes 1 in
+      apply fmt (fun _ -> fn_replicate_bits fmt) (args @ [x_width])
+  | FIdent ("sub_bits", _), _ -> binop fmt "-" args
+  | FIdent ("zeros_bits", _), [] ->
+      let x = List.hd tes in
+      bitsLit fmt (String.make (const_int_expr x) '0')
+  (* String builtin functions *)
+  | FIdent ("append_str_str", _), _
+  | FIdent ("cvt_bits_str", _), _
+  | FIdent ("cvt_bool_str", _), _
+  | FIdent ("cvt_int_decstr", _), _
+  | FIdent ("cvt_int_hexstr", _), _
+  | FIdent ("cvt_real_str", _), _
+  | FIdent ("eq_str", _), _
+  | FIdent ("ne_str", _), _ ->
+      raise
+        (Unimplemented
+           (AST.Unknown, "string builtin function", fun fmt -> FMTAST.funname fmt f))
+  | FIdent ("print_bits", _), _
+  | FIdent ("print_char", _), [ _ ]
+  | FIdent ("print_str", _), _ ->
+      raise
+        (Unimplemented
+           (AST.Unknown, "print builtin function", fun fmt -> FMTAST.funname fmt f))
   | _ -> apply fmt (fun _ -> funname fmt f) args
 
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
