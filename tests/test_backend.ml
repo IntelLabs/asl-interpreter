@@ -80,6 +80,10 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() var i :: integer = 0; var j = i; end";
   check_declaration tcenv decls "statement (return)"
     "func f() return; end";
+  check_declaration tcenv decls "statement (procedure invocation)"
+    "func b(); func f() b(); end";
+  check_declaration tcenv decls "statement (procedure invocation with arg)"
+    "func b(i :: integer); func f() b(0); end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)

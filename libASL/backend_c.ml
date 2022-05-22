@@ -177,7 +177,17 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   | Type_Tuple _ ->
       raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
 
-let expr (fmt : PP.formatter) (x : AST.expr) : unit =
+let rec apply (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
+    unit =
+  f ();
+  parens fmt (fun _ -> exprs fmt args)
+
+and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
+    (args : AST.expr list) (loc : AST.l) =
+  match (f, args) with
+  | _ -> apply fmt (fun _ -> funname fmt f) args
+
+and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_LitBits l -> bitsLit fmt l
   | Expr_LitHex l -> hexLit fmt l
@@ -205,6 +215,9 @@ let expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Unop _ ->
       raise
         (Unimplemented (AST.Unknown, "expression", fun fmt -> FMTAST.expr fmt x))
+
+and exprs (fmt : PP.formatter) (es : AST.expr list) : unit =
+  commasep fmt (expr fmt) es
 
 let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
@@ -258,6 +271,9 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_ProcReturn loc ->
       kw_return fmt;
       semicolon fmt
+  | Stmt_TCall (f, tes, args, loc) ->
+      funcall fmt f tes args loc;
+      semicolon fmt
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
@@ -276,7 +292,6 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_For _
   | Stmt_If _
   | Stmt_Repeat _
-  | Stmt_TCall _
   | Stmt_Throw _
   | Stmt_Try _
   | Stmt_While _ ->
