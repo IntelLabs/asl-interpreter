@@ -227,6 +227,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitString l -> strLit fmt l
   | Expr_Parens e -> expr fmt e
+  | Expr_TApply (f, tes, es) -> funcall fmt f tes es AST.Unknown
   | Expr_Var v -> (
       match v with
       | Ident "TRUE" -> kw_true fmt
@@ -245,7 +246,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitReal _
   | Expr_RecordInit _
   | Expr_Slices _
-  | Expr_TApply _
   | Expr_Tuple _
   | Expr_Unknown _
   | Expr_Unop _ ->

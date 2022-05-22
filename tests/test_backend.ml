@@ -88,6 +88,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() var i = if FALSE then 0 elsif FALSE then 0 else 0; end";
   check_declaration tcenv decls "expression (parentheses)"
     "func f() var i :: integer = ( 0 ); end";
+  check_declaration tcenv decls "expression (function invocation)"
+    "func b() => integer; func f() var i = b(); end";
   check_declaration tcenv decls "statement (return)"
     "func f() return; end";
   check_declaration tcenv decls "statement (procedure invocation)"
