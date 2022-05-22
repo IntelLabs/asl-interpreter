@@ -246,8 +246,10 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
              fun fmt -> FMTAST.varname fmt v ))
   | _ -> ()
 
-let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
+let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
+  | Stmt_Block (ss, _) ->
+      braces fmt (fun _ -> indented_block fmt ss; cut fmt)
   | Stmt_ConstDecl (v, Some t, i, loc) ->
       kw_const fmt;
       nbsp fmt;
@@ -286,7 +288,6 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       semicolon fmt
   | Stmt_Assert _
   | Stmt_Assign _
-  | Stmt_Block _
   | Stmt_Case _
   | Stmt_DecodeExecute _
   | Stmt_For _
@@ -298,10 +299,11 @@ let stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       raise
         (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
 
-let indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
-  indented fmt (fun _ ->
-      map fmt (decl fmt) xs;
-      cutsep fmt (stmt fmt) xs)
+and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
+  if xs <> [] then
+    indented fmt (fun _ ->
+        map fmt (decl fmt) xs;
+        cutsep fmt (stmt fmt) xs)
 
 let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
   let v, t = x in
@@ -319,7 +321,7 @@ let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
 
 let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
   braces fmt (fun _ ->
-      if b <> [] then indented_block fmt b;
+      indented_block fmt b;
       cut fmt);
   cut fmt
 
