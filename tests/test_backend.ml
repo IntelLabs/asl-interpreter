@@ -173,6 +173,10 @@ let test_cases_stmt : test_case list  =
       [ Backend_C ],
       "func F() - = 0; end" );
 
+    ( "assignment to array element",
+      [ Backend_C; Backend_Verilog ],
+      "func F() var x :: array [1] of bits(1); x[0] = '0'; end" );
+
     ( "procedure call",
       [ Backend_C; Backend_Verilog ],
       "func B() end func F() B(); end" );
