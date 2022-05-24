@@ -218,6 +218,30 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
 and exprs (fmt : PP.formatter) (es : AST.expr list) : unit =
   commasep fmt (expr fmt) es
 
+let assign (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
+  l ();
+  nbsp fmt;
+  eq fmt;
+  nbsp fmt;
+  expr fmt r;
+  semicolon fmt
+
+let lexpr (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
+  match x with
+  | LExpr_Var v -> assign fmt (fun _ -> varname fmt v) r
+  | LExpr_Array _
+  | LExpr_BitTuple _
+  | LExpr_Field _
+  | LExpr_Fields _
+  | LExpr_ReadWrite _
+  | LExpr_Slices _
+  | LExpr_Tuple _
+  | LExpr_Wildcard
+  | LExpr_Write _ ->
+      raise
+        (Unimplemented
+           (AST.Unknown, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
+
 let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
   | _ ->
@@ -257,6 +281,7 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
+  | Stmt_Assign (l, r, loc) -> lexpr fmt l r
   | Stmt_Block (ss, _) ->
       braces fmt (fun _ -> indented_block fmt ss; cut fmt)
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
@@ -284,7 +309,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
   | Stmt_Assert _
-  | Stmt_Assign _
   | Stmt_Case _
   | Stmt_DecodeExecute _
   | Stmt_For _

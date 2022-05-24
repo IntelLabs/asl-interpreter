@@ -86,6 +86,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func b(i :: integer); func f() b(0); end";
   check_declaration tcenv decls "statement (block)"
     "func f() begin end end";
+  check_declaration tcenv decls "statement (assignment)"
+    "func f() var i, j :: integer; i = j; end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)
