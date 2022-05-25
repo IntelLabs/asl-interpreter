@@ -33,6 +33,7 @@ class type aslVisitor =
     method vtype : ty -> ty visitAction
     method vlvar : ident -> ident visitAction
     method vlexpr : lexpr -> lexpr visitAction
+    method vdeclitem : decl_item -> decl_item visitAction
     method vstmt : stmt -> stmt visitAction
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
@@ -328,19 +329,38 @@ let with_locals (ls : ident list) (vis : aslVisitor) (f : aslVisitor -> 'a) : 'a
   vis#leave_scope ls;
   result
 
-let locals_of (x : stmt) : ident list =
+let rec locals_of_declitem (x : decl_item) : ident list =
+  match x with
+  | DeclItem_Var (v, _) -> [ v ]
+  | DeclItem_Tuple dis -> List.concat_map locals_of_declitem dis
+  | DeclItem_Wildcard _ -> []
+
+let locals_of_stmt (x : stmt) : ident list =
   match x with
   | Stmt_VarDeclsNoInit (vs, ty, loc) -> vs
-  | Stmt_VarDecl (v, oty, i, loc) -> [ v ]
-  | Stmt_ConstDecl (v, oty, i, loc) -> [ v ]
+  | Stmt_VarDecl (dis, i, loc) -> locals_of_declitem dis
+  | Stmt_ConstDecl (dis, i, loc) -> locals_of_declitem dis
   | _ -> []
+
+let rec visit_decl_item (vis : aslVisitor) (x : decl_item) : decl_item =
+  match x with
+  | DeclItem_Var (v, oty) ->
+      let v' = visit_lvar vis v in
+      let oty' = mapOptionNoCopy (visit_type vis) oty in
+      if v == v' && oty == oty' then x else DeclItem_Var (v', oty')
+  | DeclItem_Tuple dis ->
+      let dis' = mapNoCopy (visit_decl_item vis) dis in
+      if dis == dis' then x else DeclItem_Tuple dis'
+  | DeclItem_Wildcard oty ->
+      let oty' = mapOptionNoCopy (visit_type vis) oty in
+      if oty == oty' then x else DeclItem_Wildcard oty'
 
 (* todo: should probably make this more like cil visitor and allow
  * visit_stmt to generate a list of statements and provide a mechanism to emit
  * statements to be inserted before/after the statement being transformed
  *)
 let rec visit_stmts (vis : aslVisitor) (xs : stmt list) : stmt list =
-  with_locals (List.concat_map locals_of xs) vis (fun vis ->
+  with_locals (List.concat_map locals_of_stmt xs) vis (fun vis ->
       mapNoCopy (visit_stmt vis) xs)
 
 and visit_stmt (vis : aslVisitor) (x : stmt) : stmt =
@@ -350,18 +370,14 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt =
         let ty' = visit_type vis ty in
         let vs' = mapNoCopy (visit_lvar vis) vs in
         if ty == ty' && vs == vs' then x else Stmt_VarDeclsNoInit (vs', ty', loc)
-    | Stmt_VarDecl (v, oty, i, loc) ->
-        let oty' = mapOptionNoCopy (visit_type vis) oty in
-        let v' = visit_lvar vis v in
+    | Stmt_VarDecl (di, i, loc) ->
+        let di' = visit_decl_item vis di in
         let i' = visit_expr vis i in
-        if oty == oty' && v == v' && i == i' then x
-        else Stmt_VarDecl (v', oty', i', loc)
-    | Stmt_ConstDecl (v, oty, i, loc) ->
-        let oty' = mapOptionNoCopy (visit_type vis) oty in
-        let v' = visit_lvar vis v in
+        if di == di' && i == i' then x else Stmt_VarDecl (di', i', loc)
+    | Stmt_ConstDecl (di, i, loc) ->
+        let di' = visit_decl_item vis di in
         let i' = visit_expr vis i in
-        if oty == oty' && v == v' && i == i' then x
-        else Stmt_ConstDecl (v', oty', i', loc)
+        if di == di' && i == i' then x else Stmt_ConstDecl (di', i', loc)
     | Stmt_Assign (l, r, loc) ->
         let l' = visit_lexpr vis l in
         let r' = visit_expr vis r in
@@ -759,6 +775,7 @@ class nopAslVisitor : aslVisitor =
     method vtype (_ : ty) = DoChildren
     method vlvar (_ : ident) = DoChildren
     method vlexpr (_ : lexpr) = DoChildren
+    method vdeclitem (_ : decl_item) = DoChildren
     method vstmt (_ : stmt) = DoChildren
     method vs_elsif (_ : s_elsif) = DoChildren
     method valt (_ : alt) = DoChildren

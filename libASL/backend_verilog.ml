@@ -609,6 +609,22 @@ let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
       nbsp fmt;
       varname fmt v
 
+let rec declitem (fmt : PP.formatter) (x : AST.decl_item) =
+  match x with
+  | DeclItem_Var (v, Some t) ->
+      varty fmt v t;
+      semicolon fmt
+  | DeclItem_Tuple dis -> cutsep fmt (declitem fmt) dis
+  | DeclItem_Var (v, None) ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "decl: type of variable unknown",
+             fun fmt -> FMTAST.varname fmt v ))
+  | DeclItem_Wildcard _ ->
+      raise
+        (Unimplemented (AST.Unknown, "decl: use of wildcard", fun fmt -> ()))
+
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
@@ -617,16 +633,12 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       varnames fmt vs;
       semicolon fmt;
       cut fmt
-  | Stmt_VarDecl (v, Some t, i, loc) | Stmt_ConstDecl (v, Some t, i, loc) ->
-      varty fmt v t;
-      semicolon fmt;
+  | Stmt_VarDecl (di, i, loc) ->
+      declitem fmt di;
       cut fmt
-  | Stmt_VarDecl (v, None, i, loc) | Stmt_ConstDecl (v, None, i, loc) ->
-      raise
-        (Unimplemented
-           ( AST.Unknown,
-             "decl: type of variable unknown",
-             fun fmt -> FMTAST.varname fmt v ))
+  | Stmt_ConstDecl (di, i, loc) ->
+      declitem fmt di;
+      cut fmt
   | _ -> ()
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
@@ -634,15 +646,14 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
-  | Stmt_VarDecl (v, t, i, loc) ->
+  | Stmt_VarDecl (DeclItem_Var (v, _), i, loc) ->
       varname fmt v;
       nbsp fmt;
       eq fmt;
       nbsp fmt;
       expr fmt i;
       semicolon fmt
-  | Stmt_ConstDecl (v, t, i, loc) ->
-      (* kw_constant fmt; nbsp fmt; *)
+  | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
       varname fmt v;
       nbsp fmt;
       eq fmt;
@@ -739,6 +750,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           cut fmt;
           kw_endcase fmt)
   (* unimplemented *)
+  | Stmt_VarDecl _
+  | Stmt_ConstDecl _
   | Stmt_Throw (_, _)
   | Stmt_DecodeExecute (_, _, _)
   | Stmt_For (_, _, _, _, _, _)

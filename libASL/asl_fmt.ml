@@ -590,6 +590,12 @@ let varoty (fmt : PP.formatter) (v : AST.ident) (ot : AST.ty option) : unit =
 let direction (fmt : PP.formatter) (x : AST.direction) : unit =
   match x with Direction_Up -> kw_to fmt | Direction_Down -> kw_downto fmt
 
+let rec decl_item (fmt : PP.formatter) (x : AST.decl_item) : unit =
+  match x with
+  | DeclItem_Var (v, ot) -> varoty fmt v ot
+  | DeclItem_Tuple dis -> parens fmt (fun _ -> commasep fmt (decl_item fmt) dis)
+  | DeclItem_Wildcard ot -> varoty fmt (Ident "-") ot
+
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
@@ -603,22 +609,22 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ty fmt t;
       semicolon fmt;
       comment_start fmt loc
-  | Stmt_VarDecl (v, ot, i, loc) ->
+  | Stmt_VarDecl (di, i, loc) ->
       comments_before fmt loc;
       kw_var fmt;
       nbsp fmt;
-      varoty fmt v ot;
+      decl_item fmt di;
       nbsp fmt;
       eq fmt;
       nbsp fmt;
       expr fmt i;
       semicolon fmt;
       comment_start fmt loc
-  | Stmt_ConstDecl (v, ot, i, loc) ->
+  | Stmt_ConstDecl (di, i, loc) ->
       comments_before fmt loc;
       kw_let fmt;
       nbsp fmt;
-      varoty fmt v ot;
+      decl_item fmt di;
       nbsp fmt;
       eq fmt;
       nbsp fmt;

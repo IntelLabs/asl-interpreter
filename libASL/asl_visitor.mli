@@ -25,6 +25,7 @@ class type aslVisitor =
     method vtype : ty -> ty visitAction
     method vlvar : ident -> ident visitAction
     method vlexpr : lexpr -> lexpr visitAction
+    method vdeclitem : decl_item -> decl_item visitAction
     method vstmt : stmt -> stmt visitAction
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
@@ -49,6 +50,7 @@ val visit_constraint_range : aslVisitor -> constraint_range -> constraint_range
 val visit_constraints :
   aslVisitor -> constraint_range list -> constraint_range list
 
+val visit_decl_item : aslVisitor -> decl_item -> decl_item
 val visit_decl : aslVisitor -> declaration -> declaration
 val visit_decode_alt : aslVisitor -> decode_alt -> decode_alt
 val visit_decode_body : aslVisitor -> decode_body -> decode_body

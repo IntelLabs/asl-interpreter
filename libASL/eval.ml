@@ -293,6 +293,24 @@ end = struct
       (ScopeStack.bindings env.locals)
 end
 
+let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
+  match (x, i) with
+  | (DeclItem_Var (v, _), i) ->
+      if is_const then
+        Env.addLocalConst loc env v i
+      else
+        Env.addLocalVar loc env v i
+  | (DeclItem_Tuple dis, VTuple is) ->
+      assert (List.length dis = List.length is);
+      List.iter2 (add_decl_item_vars loc env is_const) dis is
+  | (DeclItem_Tuple dis, _) ->
+      raise
+        (EvalError
+           ( loc,
+             "add_decl_item_vars should be a tuple " ^ pp_value i))
+  | (DeclItem_Wildcard _, _) ->
+      ()
+
 (****************************************************************)
 (** {2 Evaluation functions}                                    *)
 (****************************************************************)
@@ -610,12 +628,12 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
       List.iter
         (fun v -> Env.addLocalVar loc env v (mk_uninitialized loc env ty))
         vs
-  | Stmt_VarDecl (v, ty, i, loc) ->
+  | Stmt_VarDecl (di, i, loc) ->
       let i' = eval_expr loc env i in
-      Env.addLocalVar loc env v i'
-  | Stmt_ConstDecl (v, ty, i, loc) ->
+      add_decl_item_vars loc env false di i'
+  | Stmt_ConstDecl (di, i, loc) ->
       let i' = eval_expr loc env i in
-      Env.addLocalConst loc env v i'
+      add_decl_item_vars loc env true di i'
   | Stmt_Assign (l, r, loc) ->
       let r' = eval_expr loc env r in
       eval_lexpr loc env l r'

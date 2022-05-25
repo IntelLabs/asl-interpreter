@@ -346,6 +346,32 @@ let rec xform_pattern (env : Env.t) (x : AST.pattern) : AST.pattern =
 and xform_patterns (env : Env.t) (ps : AST.pattern list) : AST.pattern list =
   List.map (xform_pattern env) ps
 
+let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
+    (r : AST.expr option) : AST.decl_item =
+  match (x, r) with
+  | DeclItem_Var (v, oty), _ ->
+      let oty' = map_option (xform_ty env) oty in
+      let r' = map_option (expr_value env) r in
+      let _ =
+        map_option
+          (fun r'' ->
+            if isConst then Env.addLocalConst env v r''
+            else Env.addLocalVar env v r'')
+          r'
+      in
+      DeclItem_Var (v, oty')
+  | DeclItem_Tuple dis, Some (Expr_Tuple rs) ->
+      let dis' =
+        List.map2 (fun di r -> xform_declitem env isConst di (Some r)) dis rs
+      in
+      DeclItem_Tuple dis'
+  | DeclItem_Tuple dis, _ ->
+      let dis' = List.map (fun di -> xform_declitem env isConst di None) dis in
+      DeclItem_Tuple dis'
+  | DeclItem_Wildcard oty, _ ->
+      let oty' = map_option (xform_ty env) oty in
+      DeclItem_Wildcard oty'
+
 let rec xform_stmts (env : Env.t) (xs : AST.stmt list) : AST.stmt list =
   let rec xform e (ss : AST.stmt list) : AST.stmt list list =
     match ss with
@@ -365,17 +391,15 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       let ty' = xform_ty env ty in
       List.iter (fun v -> Env.addLocalVar env v Values.bottom) vs;
       [ Stmt_VarDeclsNoInit (vs, ty', loc) ]
-  | Stmt_VarDecl (v, oty, i, loc) ->
-      let oty' = map_option (xform_ty env) oty in
+  | Stmt_VarDecl (di, i, loc) ->
       let i' = xform_expr env i in
-      Env.addLocalVar env v (expr_value env i');
-      [ Stmt_VarDecl (v, oty', i', loc) ]
-  | Stmt_ConstDecl (v, oty, i, loc) ->
-      let oty' = map_option (xform_ty env) oty in
+      let di' = xform_declitem env false di (Some i') in
+      [ Stmt_VarDecl (di', i', loc) ]
+  | Stmt_ConstDecl (di, i, loc) ->
       let i' = xform_expr env i in
-      Env.addLocalConst env v (expr_value env i');
+      let di' = xform_declitem env true di (Some i') in
       (* todo: we should always be able to delete this declaration *)
-      [ Stmt_ConstDecl (v, oty', i', loc) ]
+      [ Stmt_ConstDecl (di', i', loc) ]
   | Stmt_Assign (l, r, loc) ->
       let r' = xform_expr env r in
       let l' = xform_lexpr env l (expr_value env r') in

@@ -498,10 +498,22 @@ block :: 'Block_' ::=
 
 assignment_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
-    | var ident1 , .... , identn '::' ty ;  :: :: VarDeclsNoInit
-    | var ident ty_opt = expr ;             :: :: VarDecl
-    | let ident ty_opt = expr ;             :: :: ConstDecl
-    | lexpr = expr ;                        :: :: Assign
+    | var ident , ident1 , .. , identn '::' ty ; :: S :: VarDeclsNoInit_
+                                                         {{ ocaml Stmt_VarDeclsNoInit ( [[ident]] :: [[ident1 .. identn]],
+                                                                                        [[ty]],
+                                                                                        Range($symbolstartpos, $endpos)) }}
+    | var ident '::' ty ;                        :: S :: VarDeclNoInit
+                                                         {{ ocaml Stmt_VarDeclsNoInit ( [ [[ident]] ],
+                                                                                        [[ty]],
+                                                                                        Range($symbolstartpos, $endpos)) }}
+    | var decl_item = expr ;                     ::   :: VarDecl
+    | let decl_item = expr ;                     ::   :: ConstDecl
+    | lexpr = expr ;                             ::   :: Assign
+
+decl_item :: 'DeclItem_' ::=
+    | ident ty_opt                        :: :: Var
+    | ( decl_item1 , ... , decl_itemn )   :: :: Tuple
+    | - ty_opt                            :: :: Wildcard
 
 lexpr :: 'LExpr_' ::=
     | -                                   ::   :: Wildcard
@@ -530,6 +542,7 @@ simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
 
 stmt_spice :: 'Stmt_' ::= {{ quotient-with stmt }}
     | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}
+    | var ident1 .. identn '::' ty ;                           ::   :: VarDeclsNoInit
 
 conditional_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}

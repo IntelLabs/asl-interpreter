@@ -110,6 +110,25 @@ let tests : unit Alcotest.test_case list =
       "type T of bits(32) { [ 31:16 ] hi, [15:0] lo };\n\
       \                      let t :: T = 0x12345678[31:0];\n\
       \                     " "t.hi";
+    test_static globals false "var decls"
+      "func F(x :: bits(8*N))
+           var a :: bits(8*N) = UNKNOWN :: bits(8*N);
+           var b :: bits(8*N) = Zeros(8*N);
+           var c :: bits(8*N);
+           var d = UNKNOWN :: bits(8*N);
+           var _ = 1;
+           var (f, g) = (1, TRUE);
+           var (h :: integer, i :: boolean) = (1, TRUE);
+           var (j :: integer, _ :: boolean) = (1, TRUE);
+
+           let m :: bits(8*N) = UNKNOWN :: bits(8*N);
+           let n :: bits(8*N) = Zeros(8*N);
+           let o = UNKNOWN :: bits(8*N);
+           let _ = 1;
+           let (p, q) = (1, TRUE);
+           let (r :: integer, s :: boolean) = (1, TRUE);
+           let (t :: integer, _ :: boolean) = (1, TRUE);
+       end" "1";
     ("operators (boolean)", `Quick, test_primop_boolean globals env);
     ("operators (integer)", `Quick, test_primop_string globals env);
     ("operators (integer)", `Quick, test_primop_integer globals env);

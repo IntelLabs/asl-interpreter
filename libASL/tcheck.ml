@@ -1159,6 +1159,9 @@ let unify_subst_le (s : expr Bindings.t) (x : AST.lexpr) : AST.lexpr =
 (** Apply substitutions to a type *)
 let unify_subst_ty (s : expr Bindings.t) (x : AST.ty) : AST.ty = subst_type s x
 
+(** Apply substitutions to a decl_item *)
+let unify_subst_di (s : expr Bindings.t) (x : AST.decl_item) : AST.decl_item = subst_decl_item s x
+
 (** Replace all type variables in function type with fresh variables *)
 let mkfresh_funtype (u : unifier) (fty : funtype) : funtype =
   let f, isArr, ps, cs, atys, rty = fty in
@@ -2013,6 +2016,38 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       | _ -> raise (TypeError (loc, "subscript of non-array")))
   | _ -> raise (InternalError "tc_lexpr")
 
+let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (x : AST.decl_item) : unit =
+  match x with
+  | DeclItem_Var (v, Some ty) ->
+      Env.addLocalVar env loc v ty
+  | DeclItem_Tuple dis ->
+      List.iter (add_decl_item_vars env loc) dis
+  | DeclItem_Wildcard oty ->
+      ()
+  | DeclItem_Var (v, None) ->
+      raise (InternalError "visit_declitem")
+
+(* typecheck a decl_item using the type `ity` of the initializer *)
+let rec tc_decl_item (env : Env.t) (u : unifier) (loc : AST.l) (ity : AST.ty) (x : AST.decl_item) : AST.decl_item =
+  match (ity, x) with
+  | (ity, DeclItem_Var (v, None)) ->
+    DeclItem_Var (v, Some ity)
+  | (ity, DeclItem_Var (v, Some ty)) ->
+      let ty' = tc_type env loc ty in
+      check_type env u loc ty' ity;
+      DeclItem_Var (v, Some ity)
+  | (Type_Tuple itys, DeclItem_Tuple dis) when List.length dis = List.length itys ->
+      let dis' = List.map2 (tc_decl_item env u loc) itys dis in
+      DeclItem_Tuple dis'
+  | (_, DeclItem_Tuple dis) ->
+      raise (IsNotA (loc, "tuple of length ?", pp_type ity))
+  | (ity, DeclItem_Wildcard None) ->
+      DeclItem_Wildcard (Some ity)
+  | (ity, DeclItem_Wildcard (Some ty)) ->
+      let ty' = tc_type env loc ty in
+      check_type env u loc ty' ity;
+      DeclItem_Wildcard (Some ity)
+
 (** Typecheck list of statements *)
 let rec tc_stmts (env : Env.t) (loc : AST.l) (xs : AST.stmt list) :
     AST.stmt list =
@@ -2064,46 +2099,36 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let ty' = tc_type env loc ty in
       List.iter (fun v -> Env.addLocalVar env loc v ty') vs;
       Stmt_VarDeclsNoInit (vs, ty', loc)
-  | Stmt_VarDecl (v, oty, i, loc) ->
-      let s, (ty', i') =
+  | Stmt_VarDecl (di, i, loc) ->
+      let s, (di', i') =
         with_unify env loc (fun u ->
             let i', ity = tc_expr env u loc i in
-            let ty' =
-              match oty with
-              | None -> ity
-              | Some ty ->
-                  let ty' = tc_type env loc ty in
-                  check_type env u loc ty' ity;
-                  ty'
-            in
-            (ty', i'))
+            let di' = tc_decl_item env u loc ity di in
+            (di', i'))
       in
-      let ty'' = unify_subst_ty s ty' in
+      let di'' = unify_subst_di s di' in
       let i'' = unify_subst_e s i' in
-
-      Env.addLocalVar env loc v ty'';
-      Stmt_VarDecl (v, Some ty'', i'', loc)
-  | Stmt_ConstDecl (v, oty, i, loc) ->
-      let s, (ty', i') =
+      add_decl_item_vars env loc di'';
+      Stmt_VarDecl (di'', i'', loc)
+  | Stmt_ConstDecl (di, i, loc) ->
+      let s, (di', i') =
         with_unify env loc (fun u ->
             let i', ity = tc_expr env u loc i in
-            let ty' =
-              match oty with
-              | None -> ity
-              | Some ty ->
-                  let ty' = tc_type env loc ty in
-                  check_type env u loc ty' ity;
-                  ty'
-            in
-            (ty', i'))
+            let di' = tc_decl_item env u loc ity di in
+            (di', i'))
       in
-      let ty'' = unify_subst_ty s ty' in
+      let di'' = unify_subst_di s di' in
       let i'' = unify_subst_e s i' in
+      add_decl_item_vars env loc di'';
 
-      Env.addLocalVar env loc v ty'';
-      if ty'' = type_integer then
-        Env.addConstraint env loc (mk_eq_int (Expr_Var v) i'');
-      Stmt_ConstDecl (v, Some ty'', i'', loc)
+      (* add integer constants to type environment *)
+      (match di'' with
+      | DeclItem_Var (v, Some ty) ->
+          if ty = type_integer then
+            Env.addConstraint env loc (mk_eq_int (Expr_Var v) i'')
+      | _ -> ());
+
+      Stmt_ConstDecl (di'', i'', loc)
   | Stmt_Assign (l, r, loc) ->
       let s, (r', rty, l', imps) =
         with_unify env loc (fun u ->

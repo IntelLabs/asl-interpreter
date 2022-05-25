@@ -808,6 +808,10 @@ let subst_type (s : expr Bindings.t) (x : ty) : ty =
   let subst = new substClass s in
   visit_type subst x
 
+let subst_decl_item (s : expr Bindings.t) (x : decl_item) : decl_item =
+  let subst = new substClass s in
+  visit_decl_item subst x
+
 (** More flexible substitution class - takes a function instead
     of a binding set.
  *)
