@@ -7,7 +7,6 @@
 
 {
 open Asl_parser       (* The type token is defined in parser.mli *)
-open Asl_ast
 
 exception Eof
 
@@ -136,10 +135,7 @@ rule token = parse
     | ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm {
            ( match List.assoc_opt lxm keywords with
            | Some x -> x
-           | None   -> if isTypeIdent(lxm) then TYPEID(lxm)
-                       else if String.equal lxm "AArch32" then QUALIFIER(lxm)
-                       else if String.equal lxm "AArch64" then QUALIFIER(lxm)
-                       else ID(lxm)
+           | None   -> ID(lxm)
            )
     }
 

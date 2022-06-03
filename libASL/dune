@@ -1,7 +1,8 @@
 (ocamllex lexer)
 
 (menhir
- (modules asl_parser))
+ (modules asl_parser)
+ (flags --explain))
 
 (rule
  (targets asl_parser.mly asl_lexer.mll asl_ast.ml)

@@ -103,7 +103,6 @@ let string_of_token (t: Asl_parser.token): string =
     | PLUS                -> "plus"
     | PLUS_PLUS           -> "plusplus"
     | PLUS_COLON          -> "pluscolon"
-    | QUALIFIER(x)        -> "qualifier:"^x
     | QUOT                -> "quot"
     | RBRACE              -> "rbrace"
     | RBRACK              -> "rbrack"
@@ -119,7 +118,6 @@ let string_of_token (t: Asl_parser.token): string =
     | STRINGLIT(x)        -> "string:" ^ x
     | THEN                -> "then"
     | THROW               -> "throw"
-    | TYPEID(x)           -> "tident:"^x
     | TO                  -> "to"
     | TRY                 -> "try"
     | TYPE                -> "type"
