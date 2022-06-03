@@ -86,9 +86,11 @@ val kw_and                             : formatter -> unit
 val kw_array                           : formatter -> unit
 val kw_as                              : formatter -> unit
 val kw_assert                          : formatter -> unit
+val kw_begin                           : formatter -> unit
 val kw_bits                            : formatter -> unit
 val kw_case                            : formatter -> unit
 val kw_catch                           : formatter -> unit
+val kw_config                          : formatter -> unit
 val kw_constant                        : formatter -> unit
 val kw_div                             : formatter -> unit
 val kw_do                              : formatter -> unit
@@ -125,7 +127,6 @@ val kw_typeof                          : formatter -> unit
 val kw_underscore_array                : formatter -> unit
 val kw_underscore_builtin              : formatter -> unit
 val kw_underscore_conditional          : formatter -> unit
-val kw_underscore_config               : formatter -> unit
 val kw_underscore_decode               : formatter -> unit
 val kw_underscore_encoding             : formatter -> unit
 val kw_underscore_event                : formatter -> unit
@@ -150,6 +151,7 @@ val kw_underscore_unpredictable_unless : formatter -> unit
 val kw_underscore_write                : formatter -> unit
 val kw_unknown                         : formatter -> unit
 val kw_until                           : formatter -> unit
+val kw_var                             : formatter -> unit
 val kw_when                            : formatter -> unit
 val kw_while                           : formatter -> unit
 
