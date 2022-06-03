@@ -11,7 +11,7 @@ __builtin type __mask; // todo: should have a type parameter
 __builtin type __Exception;
 __builtin type __RAM; // todo: should have a type parameter
 
-type bit = bits(1);
+type bit of bits(1);
 
 enumeration boolean { FALSE, TRUE };
 enumeration signal { LOW, HIGH };

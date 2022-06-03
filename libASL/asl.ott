@@ -201,7 +201,7 @@ type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     | __builtin type ident ;                            ::   :: BuiltinType
     | type ident ;                                      ::   :: Forward % says there is a type decl elsewhere
     | record ident { field1 ... fieldn } ;              ::   :: Record
-    | type ident = ty ;                                 ::   :: Typedef
+    | type ident of ty ;                                ::   :: Typedef
     | enumeration ident { ident1 , .. , identn } ;      ::   :: Enum
 
 field_ns :: 'FieldNS_' ::=

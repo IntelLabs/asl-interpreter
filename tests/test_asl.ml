@@ -85,7 +85,7 @@ let tests : unit Alcotest.test_case list =
         (test_static globals true "expressions (UNKNOWN)" "" "UNKNOWN :: bits(4)");
         (test_static globals true "expressions (IMPDEF)" "" "IMPLEMENTATION_DEFINED \"MaxAddr\" :: bits(64)");
         (test_static globals false "expressions (bitfields)"
-                     "type T = bits(32) { [ 31:16 ] hi, [15:0] lo };
+                     "type T of bits(32) { [ 31:16 ] hi, [15:0] lo };
                       let t :: T = 0x12345678[31:0];
                      "
                      "t.hi");

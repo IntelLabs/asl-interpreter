@@ -706,7 +706,7 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     semicolon fmt
   | Decl_Typedef (tc, t, loc) ->
     comments_before fmt loc;
-    kw_type fmt; nbsp fmt; tycon fmt tc; nbsp fmt; eq fmt; nbsp fmt; ty fmt t; semicolon fmt
+    kw_type fmt; nbsp fmt; tycon fmt tc; nbsp fmt; kw_of fmt; nbsp fmt; ty fmt t; semicolon fmt
   | Decl_Enum (tc, es, loc) ->
     comments_before fmt loc;
     kw_enumeration fmt; nbsp fmt; tycon fmt tc; nbsp fmt;
