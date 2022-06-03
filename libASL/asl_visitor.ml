@@ -378,19 +378,6 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
             | Stmt_Assert (e, loc) ->
                     let e' = visit_expr vis e in
                     if e == e' then x else Stmt_Assert (e', loc)
-            | Stmt_Unpred (_) -> x
-            | Stmt_ConstrainedUnpred(_) -> x
-            | Stmt_ImpDef (v, loc) ->
-                    let v' = visit_var vis v in
-                    if v == v' then x else Stmt_ImpDef (v', loc)
-            | Stmt_Undefined (_) -> x
-            | Stmt_ExceptionTaken (_) -> x
-            | Stmt_Dep_Unpred (_) -> x
-            | Stmt_Dep_ImpDef (_, _) -> x
-            | Stmt_Dep_Undefined (_) -> x
-            | Stmt_See (e, loc) ->
-                    let e' = visit_expr vis e in
-                    if e == e' then x else Stmt_See (e', loc)
             | Stmt_Throw (v, loc) ->
                     let v' = visit_var vis v in
                     if v == v' then x else Stmt_Throw (v', loc)

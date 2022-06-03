@@ -32,12 +32,25 @@ let test_static tcenv (test_fmt : bool) (name : string) (expr : string) : unit A
 
 let check_int what l r = Alcotest.check value what l (Value.VInt (Z.of_int r))
 
+let check_bool what l r = Alcotest.check value what l (Value.VBool r)
+
 let eval tcenv env (input : string): Value.value =
     let loc = AST.Unknown in
     let e = LoadASL.read_expr tcenv loc input in
     Eval.eval_expr loc env e
 
-let test_arith tcenv env () : unit =
+let test_primop_boolean tcenv env () : unit =
+    check_bool "implies" (eval tcenv env "FALSE --> FALSE") true;
+    check_bool "implies" (eval tcenv env "FALSE --> TRUE") true;
+    check_bool "implies" (eval tcenv env "TRUE --> FALSE") false;
+    check_bool "implies" (eval tcenv env "TRUE --> TRUE") true;
+    check_bool "iff" (eval tcenv env "FALSE <-> FALSE") true;
+    check_bool "iff" (eval tcenv env "FALSE <-> TRUE") false;
+    check_bool "iff" (eval tcenv env "TRUE <-> FALSE") false;
+    check_bool "iff" (eval tcenv env "TRUE <-> TRUE") true;
+    ()
+
+let test_primop_integer tcenv env () : unit =
     check_int "1+1 == 2" (eval tcenv env "1+1") 2;
     check_int "5 DIV 3 == 1" (eval tcenv env "5 DIV 3") 1
 
@@ -50,7 +63,8 @@ let tests : unit Alcotest.test_case list =
         (test_static tcenv true "literals (real)" "10.0");
         (test_static tcenv true "literals (bits)" "'1111 0000'");
         (test_static tcenv true "UNKNOWN" "UNKNOWN :: bits(4)");
-        ("arith", `Quick, test_arith tcenv env)
+        ("operators (boolean)", `Quick, test_primop_boolean tcenv env);
+        ("operators (integer)", `Quick, test_primop_integer tcenv env)
     ]
 
 let () = Alcotest.run "libASL" [("asl", tests)]

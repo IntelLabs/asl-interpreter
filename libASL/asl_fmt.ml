@@ -52,7 +52,9 @@ let lparen             (fmt: PP.formatter): unit = delimiter fmt "("
 let lt                 (fmt: PP.formatter): unit = delimiter fmt "<"
 let lt_eq              (fmt: PP.formatter): unit = delimiter fmt "<="
 let lt_lt              (fmt: PP.formatter): unit = delimiter fmt "<<"
+let lt_minus_gt        (fmt: PP.formatter): unit = delimiter fmt "<->"
 let minus              (fmt: PP.formatter): unit = delimiter fmt "-"
+let minus_minus_gt     (fmt: PP.formatter): unit = delimiter fmt "-->"
 let plus               (fmt: PP.formatter): unit = delimiter fmt "+"
 let plus_colon         (fmt: PP.formatter): unit = delimiter fmt "+:"
 let plus_plus          (fmt: PP.formatter): unit = delimiter fmt "++"
@@ -68,8 +70,6 @@ let star               (fmt: PP.formatter): unit = delimiter fmt "*"
 let kw_and                             (fmt: PP.formatter): unit = delimiter fmt "AND"
 let kw_div                             (fmt: PP.formatter): unit = delimiter fmt "DIV"
 let kw_eor                             (fmt: PP.formatter): unit = delimiter fmt "EOR"
-let kw_iff                             (fmt: PP.formatter): unit = delimiter fmt "iff"
-let kw_implies                         (fmt: PP.formatter): unit = delimiter fmt "implies"
 let kw_in                              (fmt: PP.formatter): unit = delimiter fmt "IN"
 let kw_mod                             (fmt: PP.formatter): unit = delimiter fmt "MOD"
 let kw_not                             (fmt: PP.formatter): unit = delimiter fmt "NOT"
@@ -84,7 +84,6 @@ let kw_bits                            (fmt: PP.formatter): unit = keyword fmt "
 let kw_case                            (fmt: PP.formatter): unit = keyword fmt "case"
 let kw_catch                           (fmt: PP.formatter): unit = keyword fmt "catch"
 let kw_constant                        (fmt: PP.formatter): unit = keyword fmt "constant"
-let kw_constrained_unpredictable       (fmt: PP.formatter): unit = keyword fmt "CONSTRAINED_UNPREDICTABLE"
 let kw_do                              (fmt: PP.formatter): unit = keyword fmt "do"
 let kw_downto                          (fmt: PP.formatter): unit = keyword fmt "downto"
 let kw_else                            (fmt: PP.formatter): unit = keyword fmt "else"
@@ -96,7 +95,7 @@ let kw_getter                          (fmt: PP.formatter): unit = keyword fmt "
 let kw_for                             (fmt: PP.formatter): unit = keyword fmt "for"
 let kw_if                              (fmt: PP.formatter): unit = keyword fmt "if"
 let kw_implementation_defined          (fmt: PP.formatter): unit = keyword fmt "IMPLEMENTATION_DEFINED"
-let kw_is                              (fmt: PP.formatter): unit = keyword fmt "is"
+let kw_let                             (fmt: PP.formatter): unit = keyword fmt "let"
 let kw_of                              (fmt: PP.formatter): unit = keyword fmt "of"
 let kw_otherwise                       (fmt: PP.formatter): unit = keyword fmt "otherwise"
 let kw_record                          (fmt: PP.formatter): unit = keyword fmt "record"
@@ -110,7 +109,6 @@ let kw_to                              (fmt: PP.formatter): unit = keyword fmt "
 let kw_try                             (fmt: PP.formatter): unit = keyword fmt "try"
 let kw_type                            (fmt: PP.formatter): unit = keyword fmt "type"
 let kw_typeof                          (fmt: PP.formatter): unit = keyword fmt "typeof"
-let kw_undefined                       (fmt: PP.formatter): unit = keyword fmt "UNDEFINED"
 let kw_underscore_array                (fmt: PP.formatter): unit = keyword fmt "__array"
 let kw_underscore_builtin              (fmt: PP.formatter): unit = keyword fmt "__builtin"
 let kw_underscore_conditional          (fmt: PP.formatter): unit = keyword fmt "__conditional"
@@ -118,7 +116,6 @@ let kw_underscore_config               (fmt: PP.formatter): unit = keyword fmt "
 let kw_underscore_decode               (fmt: PP.formatter): unit = keyword fmt "__decode"
 let kw_underscore_encoding             (fmt: PP.formatter): unit = keyword fmt "__encoding"
 let kw_underscore_event                (fmt: PP.formatter): unit = keyword fmt "__event"
-let kw_underscore_exceptiontaken       (fmt: PP.formatter): unit = keyword fmt "__ExceptionTaken"
 let kw_underscore_execute              (fmt: PP.formatter): unit = keyword fmt "__execute"
 let kw_underscore_field                (fmt: PP.formatter): unit = keyword fmt "__field"
 let kw_underscore_guard                (fmt: PP.formatter): unit = keyword fmt "__guard"
@@ -139,7 +136,6 @@ let kw_underscore_unpredictable        (fmt: PP.formatter): unit = keyword fmt "
 let kw_underscore_unpredictable_unless (fmt: PP.formatter): unit = keyword fmt "__unpredictable_unless"
 let kw_underscore_write                (fmt: PP.formatter): unit = keyword fmt "__write"
 let kw_unknown                         (fmt: PP.formatter): unit = keyword fmt "UNKNOWN"
-let kw_unpredictable                   (fmt: PP.formatter): unit = keyword fmt "UNPREDICTABLE"
 let kw_until                           (fmt: PP.formatter): unit = keyword fmt "until"
 let kw_when                            (fmt: PP.formatter): unit = keyword fmt "when"
 let kw_while                           (fmt: PP.formatter): unit = keyword fmt "while"
@@ -246,8 +242,8 @@ let binop (fmt: PP.formatter) (x: AST.binop): unit =
   | Binop_ShiftR      -> gt_gt      fmt
   | Binop_BoolAnd     -> amp_amp    fmt
   | Binop_BoolOr      -> bar_bar    fmt
-  | Binop_BoolIff     -> kw_iff     fmt
-  | Binop_BoolImplies -> kw_implies fmt
+  | Binop_BoolIff     -> lt_minus_gt fmt
+  | Binop_BoolImplies -> minus_minus_gt fmt
   | Binop_BitOr       -> kw_or      fmt
   | Binop_BitEor      -> kw_eor     fmt
   | Binop_BitAnd      -> kw_and     fmt
@@ -462,46 +458,6 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
   | Stmt_Assert (e, loc) ->
     comments_before fmt loc;
     kw_assert fmt; nbsp fmt; expr fmt e; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Unpred (loc) ->
-    comments_before fmt loc;
-    kw_unpredictable fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ConstrainedUnpred(loc) ->
-    comments_before fmt loc;
-    kw_constrained_unpredictable fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ImpDef (v, loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; parens fmt (fun _ -> varname fmt v); semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Undefined (loc) ->
-    comments_before fmt loc;
-    kw_undefined fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ExceptionTaken (loc) ->
-    comments_before fmt loc;
-    kw_underscore_exceptiontaken fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_Unpred (loc) ->
-    comments_before fmt loc;
-    kw_unpredictable fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_ImpDef ("", loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_ImpDef (s, loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; parens fmt (fun _ -> strLit fmt s); semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_Undefined (loc) ->
-    comments_before fmt loc;
-    kw_undefined fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_See (e, loc) ->
-    comments_before fmt loc;
-    kw_see fmt; nbsp fmt; parens fmt (fun _ -> expr fmt e); semicolon fmt;
     comment_start fmt loc
   | Stmt_Throw (v, loc) ->
     comments_before fmt loc;

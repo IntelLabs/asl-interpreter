@@ -13,23 +13,16 @@ exception Eof
 
 let keywords : (string * Asl_parser.token) list = [
     ("AND",                    AND);
-    ("CONSTRAINED_UNPREDICTABLE", CONSTRAINED_UNDERSCORE_UNPREDICTABLE);
     ("DIV",                    DIV);
     ("EOR",                    EOR);
     ("IMPLEMENTATION_DEFINED", IMPLEMENTATION_UNDERSCORE_DEFINED);
     ("IN",                     IN);
-    ("iff",                    IFF);
-    ("implies",                IMPLIES);
     ("MOD",                    MOD);
     ("NOT",                    NOT);
     ("OR",                     OR);
     ("QUOT",                   QUOT);
     ("REM",                    REM);
-    ("SEE",                    SEE);
-    ("UNDEFINED",              UNDEFINED);
     ("UNKNOWN",                UNKNOWN);
-    ("UNPREDICTABLE",          UNPREDICTABLE);
-    ("__ExceptionTaken",       UNDERSCORE_UNDERSCORE_EXCEPTIONTAKEN);
     ("__NOP",                  UNDERSCORE_UNDERSCORE_NOP);
     ("__UNALLOCATED",          UNDERSCORE_UNDERSCORE_UNALLOCATED);
     ("__UNPREDICTABLE",        UNDERSCORE_UNDERSCORE_UNPREDICTABLE);
@@ -75,7 +68,6 @@ let keywords : (string * Asl_parser.token) list = [
     ("getter",                 GETTER);
     ("if",                     IF);
     ("integer",                INTEGER);
-    ("is",                     IS);
     ("let",                    LET);
     ("of",                     OF);
     ("otherwise",              OTHERWISE);
@@ -160,6 +152,7 @@ rule token = parse
     | '+' ':'        { PLUS_COLON }
     | ','            { COMMA      }
     | '-'            { MINUS      }
+    | '-' '-' '>'    { MINUS_MINUS_GT }
     | '.'            { DOT        }
     | '.' '.'        { DOT_DOT    }
     | '/'            { SLASH      }
@@ -168,6 +161,7 @@ rule token = parse
     | ';'            { SEMICOLON  }
     | '<'            { LT         }
     | '<' '<'        { LT_LT      }
+    | '<' '-' '>'    { LT_MINUS_GT }
     | '<' '='        { LT_EQ      }
     | '='            { EQ         }
     | '=' '='        { EQ_EQ      }

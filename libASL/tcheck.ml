@@ -2054,24 +2054,6 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
     | Stmt_Assert(e, loc) ->
             let e' = check_expr env loc type_bool e in
             Stmt_Assert(e', loc)
-    | Stmt_Unpred(loc) ->
-            Stmt_Unpred(loc)
-    | Stmt_ConstrainedUnpred(loc) ->
-            Stmt_ConstrainedUnpred(loc)
-    | Stmt_ImpDef(s, loc) ->
-            Stmt_ImpDef(s, loc)
-    | Stmt_Undefined(loc) ->
-            Stmt_Undefined(loc)
-    | Stmt_ExceptionTaken(loc) ->
-            Stmt_ExceptionTaken(loc)
-    | Stmt_Dep_Unpred(loc) ->
-            Stmt_Dep_Unpred(loc)
-    | Stmt_Dep_ImpDef(s, loc) ->
-            Stmt_Dep_ImpDef(s, loc)
-    | Stmt_Dep_Undefined(loc) ->
-            Stmt_Dep_Undefined(loc)
-    | Stmt_See(e, loc) ->
-            Stmt_See(e, loc)
     | Stmt_Throw(v, loc) ->
             let _ = with_unify env loc (fun u ->
                 let (v', ty) = check_var env loc v in

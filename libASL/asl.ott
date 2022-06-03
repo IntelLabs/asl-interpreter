@@ -231,7 +231,6 @@ type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     | __builtin type tidentdecl ;                           ::   :: BuiltinType
     | type tidentdecl ;                                     ::   :: Forward % says there is a type decl elsewhere
     | record tidentdecl { field1 ... fieldn } ;             ::   :: Record
-    | type tidentdecl is ( field_ns1 , ... , field_nsn )    :: S :: Dep_Record {{ ocaml Decl_Record([[tidentdecl]], [[field_ns1 ... field_nsn]], Range($symbolstartpos,$endpos)) }} {{ com DEPRECATED }}
     | type tidentdecl = ty ;                                ::   :: Typedef
     | enumeration tidentdecl { ident1 , .. , identn } ;     ::   :: Enum
 
@@ -580,18 +579,6 @@ simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     | return expr ;                       ::   :: FunReturn {{ com function return }}
     | return ;                            ::   :: ProcReturn {{ com procedure return }}
     | assert expr ;                       ::   :: Assert {{ com assertion }}
-    | UNPREDICTABLE ( ) ;                 ::   :: Unpred {{ com underspecified behaviour }}
-    | CONSTRAINED_UNPREDICTABLE ;         ::   :: ConstrainedUnpred
-    | IMPLEMENTATION_DEFINED ( ident ) ;  ::   :: ImpDef {{ com underspecified behaviour }}
-    | UNDEFINED ( ) ;                     ::   :: Undefined
-    | __ExceptionTaken ( ) ;              ::   :: ExceptionTaken
-    | UNPREDICTABLE ;                     ::   :: Dep_Unpred      {{ com DEPRECATED }}
-    | IMPLEMENTATION_DEFINED stringLit ;  ::   :: Dep_ImpDef      {{ com DEPRECATED }}
-    | IMPLEMENTATION_DEFINED ;            :: S :: Dep_ImpDefNoStr {{ com DEPRECATED }} {{ ocaml Stmt_Dep_ImpDef("", Range($symbolstartpos,$endpos)) }}
-    | UNDEFINED ;                         ::   :: Dep_Undefined   {{ com DEPRECATED }}
-    | SEE ( expr ) ;                      ::   :: See
-    | SEE stringLit ;                     :: S :: Dep_SeeString {{ ocaml Stmt_See(Expr_LitString([[stringLit]]), Range($symbolstartpos, $endpos)) }} {{ com DEPRECATED }}
-    | SEE ident ;                         :: S :: Dep_SeeIdent  {{ ocaml Stmt_See(Expr_LitString(pprint_ident [[ident]]), Range($symbolstartpos, $endpos)) }} {{ com DEPRECATED }}
     | throw ident ;                       ::   :: Throw
     | __decode ident expr ;               ::   :: DecodeExecute {{ com decode and execute instruction }}
 
@@ -735,8 +722,8 @@ binop :: 'Binop_' ::=
     | >>      :: :: ShiftR
     | &&      :: :: BoolAnd
     | ||      :: :: BoolOr
-    | iff     :: :: BoolIff
-    | implies :: :: BoolImplies
+    | <->     :: :: BoolIff
+    | -->     :: :: BoolImplies
     | OR      :: :: BitOr
     | EOR     :: :: BitEor
     | AND     :: :: BitAnd

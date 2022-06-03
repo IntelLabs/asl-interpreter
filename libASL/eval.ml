@@ -651,25 +651,6 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
     | Stmt_Assert(e, loc) ->
             if not (to_bool loc (eval_expr loc env e)) then
                 raise (EvalError (loc, "assertion failure"))
-    | Stmt_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_ConstrainedUnpred(loc) ->
-            raise (Throw (loc, Exc_ConstrainedUnpredictable))
-    | Stmt_ImpDef(v, loc) ->
-            raise (Throw (loc, Exc_ImpDefined (pprint_ident v)))
-    | Stmt_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_ExceptionTaken(loc) ->
-            raise (Throw (loc, Exc_ExceptionTaken))
-    | Stmt_Dep_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_Dep_ImpDef(s, loc) ->
-            raise (Throw (loc, Exc_ImpDefined s))
-    | Stmt_Dep_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_See(e, loc) ->
-            let s = to_string loc (eval_expr loc env e) in
-            raise (Throw (loc, Exc_SEE s))
     | Stmt_Throw(v, loc) ->
             let ex = to_exc loc (Env.getVar loc env v) in
             raise (Throw ex)

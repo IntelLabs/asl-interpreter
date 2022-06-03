@@ -199,8 +199,8 @@ end
 __operator1 !       = not_bool;
 __operator2 &&      = and_bool;
 __operator2 ||      = or_bool;
-__operator2 iff     = equiv_bool;
-__operator2 implies = implies_bool;
+__operator2 <->     = equiv_bool;
+__operator2 -->     = implies_bool;
 
 // omit since they are auto-generated
 // __operator2 == = eq_bool;

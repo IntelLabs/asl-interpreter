@@ -573,15 +573,6 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
     )
 
   (* unimplemented *)
-  | Stmt_Unpred _
-  | Stmt_ConstrainedUnpred _
-  | Stmt_ImpDef (_, _)
-  | Stmt_Undefined _
-  | Stmt_ExceptionTaken _
-  | Stmt_Dep_Unpred _
-  | Stmt_Dep_ImpDef (_, _)
-  | Stmt_Dep_Undefined _
-  | Stmt_See (_, _)
   | Stmt_Throw (_, _)
   | Stmt_DecodeExecute (_, _, _)
   | Stmt_For (_, _, _, _, _, _)
