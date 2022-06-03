@@ -43,7 +43,6 @@ let string_of_token (t: Asl_parser.token): string =
     | UNDERSCORE_UNDERSCORE_OPERATOR_TWO                    -> "__operator2"
     | UNDERSCORE_UNDERSCORE_POSTDECODE                      -> "__postdecode"
     | UNDERSCORE_UNDERSCORE_READWRITE                       -> "__readwrite"
-    | UNDERSCORE_UNDERSCORE_REGISTER                        -> "__register"
     | UNDERSCORE_UNDERSCORE_UNALLOCATED                     -> "__UNALLOCATED"
     | UNDERSCORE_UNDERSCORE_UNPREDICTABLE_UNDERSCORE_UNLESS -> "__unpredictable_unless"
     | UNDERSCORE_UNDERSCORE_UNPREDICTABLE                   -> "__UNPREDICTABLE"

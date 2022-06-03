@@ -45,7 +45,6 @@ let keywords : (string * Asl_parser.token) list = [
     ("__opcode",               UNDERSCORE_UNDERSCORE_OPCODE);
     ("__postdecode",           UNDERSCORE_UNDERSCORE_POSTDECODE);
     ("__readwrite",            UNDERSCORE_UNDERSCORE_READWRITE);
-    ("__register",             UNDERSCORE_UNDERSCORE_REGISTER);
     ("__unpredictable_unless", UNDERSCORE_UNDERSCORE_UNPREDICTABLE_UNDERSCORE_UNLESS);
     ("__write",                UNDERSCORE_UNDERSCORE_WRITE);
     ("array",                  ARRAY);

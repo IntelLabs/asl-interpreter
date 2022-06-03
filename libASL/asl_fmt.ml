@@ -131,7 +131,6 @@ let kw_underscore_operator1            (fmt: PP.formatter): unit = keyword fmt "
 let kw_underscore_operator2            (fmt: PP.formatter): unit = keyword fmt "__operator2"
 let kw_underscore_postdecode           (fmt: PP.formatter): unit = keyword fmt "__postdecode"
 let kw_underscore_readwrite            (fmt: PP.formatter): unit = keyword fmt "__readwrite"
-let kw_underscore_register             (fmt: PP.formatter): unit = keyword fmt "__register"
 let kw_underscore_unallocated          (fmt: PP.formatter): unit = keyword fmt "__UNALLOCATED"
 let kw_underscore_unpredictable        (fmt: PP.formatter): unit = keyword fmt "__UNPREDICTABLE"
 let kw_underscore_unpredictable_unless (fmt: PP.formatter): unit = keyword fmt "__unpredictable_unless"
@@ -292,7 +291,7 @@ let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
   | Type_App(tc, es) -> tycon fmt tc; parens fmt (fun _ -> exprs fmt es)
   | Type_OfExpr(e) -> kw_typeof fmt; parens fmt (fun _ -> expr fmt e)
   | Type_Register(wd, fs) ->
-    kw_underscore_register fmt; nbsp fmt; intLit fmt wd;
+    tycon fmt (Ident "bits"); parens fmt (fun _ -> expr fmt wd); nbsp fmt;
     braces fmt (fun _ ->
       indented fmt (fun _ ->
         cutsep fmt (regfield fmt) fs
@@ -319,7 +318,7 @@ and constraints (fmt: PP.formatter) (x: AST.constraint_range list): unit =
     braces fmt (fun _ -> commasep fmt (constraint_range fmt) x)
 
 and regfield (fmt: PP.formatter) (rf: (AST.slice list * AST.ident)): unit =
-  commasep fmt (slice fmt) (fst rf); nbsp fmt; fieldname fmt (snd rf)
+  brackets fmt (fun _ -> commasep fmt (slice fmt) (fst rf)); nbsp fmt; fieldname fmt (snd rf)
 
 and slice (fmt: PP.formatter) (x: AST.slice): unit =
   (match x with

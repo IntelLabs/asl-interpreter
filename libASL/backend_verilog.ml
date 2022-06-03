@@ -182,7 +182,7 @@ let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
   | Type_Integer _ -> kw_integer fmt
   | Type_Bits(n) -> kw_bit fmt; nbsp fmt; brackets fmt (fun _ -> constant fmt (string_of_int (const_int_expr n - 1)); colon fmt; intLit fmt "0")
   | Type_OfExpr(e) -> fn_typeof fmt; parens fmt (fun _ -> expr fmt e)
-  | Type_Register (n, _) -> kw_bit fmt; nbsp fmt; brackets fmt (fun _ -> constant fmt (n^"-1"); colon fmt; intLit fmt "0")
+  | Type_Register(n, _) -> kw_bit fmt; nbsp fmt; brackets fmt (fun _ -> constant fmt (string_of_int (const_int_expr n - 1)); colon fmt; intLit fmt "0")
 
   (* unimplemented *)
   | Type_App (_, _)

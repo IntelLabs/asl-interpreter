@@ -478,7 +478,7 @@ ty :: 'Type_' ::=
     | bits ( expr )                   :: :: Bits
     | tident ( expr1 , ... , exprn )  :: :: App
     | typeof ( expr )                 :: :: OfExpr
-    | __register intLit { regfields } :: :: Register
+    | bits ( expr ) { regfields }     :: :: Register
     | array [ ixtype ] of ty          :: :: Array
     % I would prefer not to have a tuple type and restrict it to return types.
     | ( ty1 , .. , tyn )              :: :: Tuple
@@ -512,7 +512,7 @@ regfield :: 'RegField_' ::=
     {{ phantom }} {{ ocaml slice list * ident }}
     {{ pp-raw rf = string "([ "^^ separate (string ";\n") (List.map pp_raw_slice (fst rf)) ^^ string " ], " ^^ pp_raw_ident (snd rf) ^^ string ")" }}
     {{ pp rf = separate (string "\n") (List.map pp_slice (fst rf)) ^^ string " " ^^ pp_ident (snd rf) }}
-    | slice1 , ... , slicen ident     :: :: Field {{ ocaml ([[slice1...slicen]], [[ident]]) }}
+    | [ slice1 , ... , slicen ] ident     :: :: Field {{ ocaml ([[slice1...slicen]], [[ident]]) }}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Statements

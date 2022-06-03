@@ -1086,9 +1086,9 @@ let rec unify_type (env: GlobalEnv.t) (u: unifier) (ty1: AST.ty) (ty2: AST.ty): 
     | (Type_App (c1, es1),        Type_App (c2, es2))        -> u#addEqualities es1 es2
     | (Type_OfExpr e1,            Type_OfExpr e2)            -> raise (InternalError "unify_type: typeof")
     (* todo: this is equating the types, not subtyping them *)
-    | (Type_Bits(e1),             Type_Register (w2, _))     -> u#addEquality e1 (Expr_LitInt w2)
-    | (Type_Register (w1, _),     Type_Bits(e2))             -> u#addEquality (Expr_LitInt w1) e2
-    | (Type_Register (w1, _),     Type_Register (w2, _))     -> u#addEquality (Expr_LitInt w1) (Expr_LitInt w2)
+    | (Type_Bits(e1),             Type_Register (e2, _))     -> u#addEquality e1 e2
+    | (Type_Register (e1, _),     Type_Bits(e2))             -> u#addEquality e1 e2
+    | (Type_Register (e1, _),     Type_Register (e2, _))     -> u#addEquality e1 e2
     | (Type_Array (ixty1, elty1), Type_Array (ixty2, elty2)) -> unify_ixtype u ixty1 ixty2; unify_type env u elty1 elty2
     | (Type_Tuple tys1,           Type_Tuple tys2)           -> List.iter2 (unify_type env u) tys1 tys2
     | _ -> ()

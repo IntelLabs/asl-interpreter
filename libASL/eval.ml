@@ -344,7 +344,7 @@ and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
     | Type_Integer _ -> eval_unknown_integer ()
     (* bitvectors and registers should really track whether a bit is initialized individually *)
     | Type_Bits(n) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
-    | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
+    | Type_Register(n, _) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | _ ->
             VUninitialized (* should only be used for scalar types *)
     )
@@ -379,7 +379,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
             raise (EvalError (loc, "eval_unknown App " ^ pp_type x))
     | Type_OfExpr(e) ->
             raise (EvalError (loc, "eval_unknown typeof " ^ pp_type x))
-    | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
+    | Type_Register(n, _) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | Type_Array(Index_Enum(tc),ety) ->
             Value.empty_array (eval_unknown loc env ety)
     | Type_Array(Index_Range(lo,hi),ety) ->

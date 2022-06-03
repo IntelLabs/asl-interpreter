@@ -144,7 +144,6 @@ val kw_underscore_operator1            : formatter -> unit
 val kw_underscore_operator2            : formatter -> unit
 val kw_underscore_postdecode           : formatter -> unit
 val kw_underscore_readwrite            : formatter -> unit
-val kw_underscore_register             : formatter -> unit
 val kw_underscore_unallocated          : formatter -> unit
 val kw_underscore_unpredictable        : formatter -> unit
 val kw_underscore_unpredictable_unless : formatter -> unit
