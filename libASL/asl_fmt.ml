@@ -347,8 +347,9 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   | Expr_Concat(es) -> brackets fmt (fun _ -> exprs fmt es)
   | Expr_Unop(op, e) -> unop fmt op; nbsp fmt; expr fmt e
   | Expr_Unknown(t) -> kw_unknown fmt; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
-  | Expr_ImpDef(t, os) ->
-    ty fmt t; nbsp fmt; kw_implementation_defined fmt; PP.pp_print_option strLit fmt os
+  | Expr_ImpDef(os, t) ->
+    kw_implementation_defined fmt; nbsp fmt; PP.pp_print_option strLit fmt os;
+    nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
   | Expr_Array(a, e) -> expr fmt a; brackets fmt (fun _ -> expr fmt e)
   | Expr_LitInt    l -> intLit  fmt l
   | Expr_LitHex    l -> hexLit fmt l

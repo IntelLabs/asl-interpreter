@@ -62,7 +62,8 @@ let tests : unit Alcotest.test_case list =
         (test_static tcenv true "literals (int)" "1234");
         (test_static tcenv true "literals (real)" "10.0");
         (test_static tcenv true "literals (bits)" "'1111 0000'");
-        (test_static tcenv true "UNKNOWN" "UNKNOWN :: bits(4)");
+        (test_static tcenv true "expressions (UNKNOWN)" "UNKNOWN :: bits(4)");
+        (test_static tcenv true "expressions (IMPDEF)" "IMPLEMENTATION_DEFINED \"MaxAddr\" :: bits(64)");
         ("operators (boolean)", `Quick, test_primop_boolean tcenv env);
         ("operators (integer)", `Quick, test_primop_integer tcenv env)
     ]

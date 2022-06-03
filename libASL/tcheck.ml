@@ -1550,9 +1550,9 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
     | Expr_Unknown(t) ->
             let ty' = tc_type env loc t in
             (Expr_Unknown(ty'),  ty')
-    | Expr_ImpDef(t, os) ->
+    | Expr_ImpDef(os, t) ->
             let ty' = tc_type env loc t in
-            (Expr_ImpDef(ty', os),  ty')
+            (Expr_ImpDef(os, ty'),  ty')
     | Expr_Array(a, e) ->
             let (a', ty) = tc_expr env u loc a in
             (match derefType (Env.globals env) ty with

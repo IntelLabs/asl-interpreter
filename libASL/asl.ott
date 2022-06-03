@@ -751,7 +751,7 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | ( expr1 , .... , exprn )                   ::   :: Tuple     {{ com tuple }}
     | [ expr1 , .... , exprn ]                   ::   :: Concat    {{ com bitvector concatenation }}
     | UNKNOWN '::' ty                            ::   :: Unknown
-    | ty IMPLEMENTATION_DEFINED opt_stringLit    ::   :: ImpDef
+    | IMPLEMENTATION_DEFINED opt_stringLit '::' ty :: :: ImpDef
     | aexpr as constraints                       ::   :: AsConstraint
     | aexpr as ty                                ::   :: AsType
 

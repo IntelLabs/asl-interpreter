@@ -189,9 +189,9 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
             | Expr_Unknown(t) ->
                     let t' = visit_type vis t in
                     if t == t' then x else Expr_Unknown t'
-            | Expr_ImpDef(t, os) ->
+            | Expr_ImpDef(os, t) ->
                     let t' = visit_type vis t in
-                    if t == t' then x else Expr_ImpDef(t', os)
+                    if t == t' then x else Expr_ImpDef(os, t')
             | Expr_Array(a, e) ->
                     let a' = visit_expr vis a in
                     let e' = visit_expr vis e in
