@@ -945,13 +945,7 @@ let build_constant_environment (ds: AST.declaration list): GlobalEnv.t = begin
                 GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_ArraySetterDefn(f, ps, atys, v, ty, body, loc) ->
                 let tvs  = List.map fst ps in
-                let name_of (x: AST.sformal): ident =
-                    (match x with
-                    | Formal_In (nm, _) -> nm
-                    | Formal_InOut (nm, _) -> nm
-                    )
-                in
-                let args = List.map name_of atys in
+                let args = List.map fst atys in
                 GlobalEnv.addFun loc genv f (tvs, List.append args [v], loc, body)
         | Decl_InstructionDefn(nm, encs, opost, conditional, exec, loc) ->
                 (* Instructions are looked up by their encoding name *)

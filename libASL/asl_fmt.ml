@@ -596,14 +596,6 @@ let formal (fmt: PP.formatter) (x: (AST.ident * AST.ty)): unit =
 
 let formals (fmt: PP.formatter) (xs: (AST.ident * AST.ty) list): unit = commasep fmt (formal fmt) xs
 
-let sformal (fmt: PP.formatter) (x: AST.sformal): unit =
-  (match x with
-  | Formal_In (v, t) -> varty fmt v t;
-  | Formal_InOut (v, t) -> amp fmt; varty fmt v t
-  )
-
-let sformals (fmt: PP.formatter) (xs: AST.sformal list): unit = commasep fmt (sformal fmt) xs
-
 let instr_field (fmt: PP.formatter) (x: AST.instr_field): unit =
   (match x with
   | IField_Field(f, lo, wd) ->
@@ -789,14 +781,14 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
-    brackets fmt (fun _ -> sformals fmt args);
+    brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
-    brackets fmt (fun _ -> sformals fmt args);
+    brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     indented_block fmt b;
     cut fmt; kw_end fmt

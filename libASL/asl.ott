@@ -286,14 +286,10 @@ getter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
 
 setter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | setter ident1 parameters_opt = ident2 '::' ty ;                                       :: :: VarSetterType
-    | setter ident1 parameters_opt = ident2 '::' ty block end                               :: :: VarSetterDefn
-    | setter ident1 parameters_opt [ sformal1 , .. , sformaln ] = ident2 '::' ty ;          :: :: ArraySetterType
-    | setter ident1 parameters_opt [ sformal1 , .. , sformaln ] = ident2 '::' ty block end  :: :: ArraySetterDefn
-
-sformal :: 'Formal_' ::=
-    |   ident '::' ty       :: :: In
-    | & ident '::' ty       :: :: InOut
+    | setter ident1 parameters_opt = ident2 '::' ty ;                          :: :: VarSetterType
+    | setter ident1 parameters_opt = ident2 '::' ty block end                  :: :: VarSetterDefn
+    | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty ;          :: :: ArraySetterType
+    | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty block end  :: :: ArraySetterDefn
 
 instruction_definition :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}

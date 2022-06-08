@@ -30,7 +30,6 @@ class type aslVisitor = object
     method valt      : alt            -> alt            visitAction
     method vcatcher  : catcher        -> catcher        visitAction
     method vmapfield : mapfield       -> mapfield       visitAction
-    method vsformal  : sformal        -> sformal        visitAction
     method vdpattern : decode_pattern -> decode_pattern visitAction
     method vencoding : encoding       -> encoding       visitAction
     method vdcase    : decode_case    -> decode_case    visitAction
@@ -66,7 +65,6 @@ val visit_parameters       : aslVisitor -> (ident * ty option) list -> (ident * 
 val visit_pattern          : aslVisitor -> pattern                  -> pattern
 val visit_patterns         : aslVisitor -> pattern list             -> pattern list
 val visit_s_elsif          : aslVisitor -> s_elsif                  -> s_elsif
-val visit_sformal          : aslVisitor -> sformal                  -> sformal
 val visit_slice            : aslVisitor -> slice                    -> slice
 val visit_stmt             : aslVisitor -> stmt                     -> stmt
 val visit_stmts            : aslVisitor -> stmt list                -> stmt list

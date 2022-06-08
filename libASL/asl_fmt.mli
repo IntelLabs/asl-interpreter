@@ -29,7 +29,6 @@ val stmt           : formatter -> AST.stmt              -> unit
 val indented_block : formatter -> AST.stmt list         -> unit
 val parameters     : formatter -> (AST.ident * AST.ty option) list -> unit
 val formals        : formatter -> (AST.ident * AST.ty) list -> unit
-val sformals       : formatter -> AST.sformal list      -> unit
 val declaration    : formatter -> AST.declaration       -> unit
 val declarations   : formatter -> AST.declaration list  -> unit
 

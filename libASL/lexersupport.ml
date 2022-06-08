@@ -12,7 +12,6 @@ open Asl_parser
 
 let string_of_token (t: Asl_parser.token): string =
     ( match t with
-    | AMPERSAND           -> "amp"
     | AMPERSAND_AMPERSAND -> "ampamp"
     | AND                 -> "and"
     | ARRAY               -> "array"

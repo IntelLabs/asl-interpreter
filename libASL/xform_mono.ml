@@ -94,7 +94,7 @@ class monoClass (genv: Eval.GlobalEnv.t) (ds: AST.declaration list) = object(sel
                 instances <- Instances.add key d' instances;
                 Some f'
             | Decl_ArraySetterDefn (f, ps, atys, v, t, body, loc) ->
-                let atys' = List.map (map_sformal (Xform_constprop.xform_ty env)) atys in
+                let atys' = List.map (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty)) atys in
                 let t'    = Xform_constprop.xform_ty env t in
                 let body' = Xform_constprop.xform_stmts env body in
                 let d' = AST.Decl_ArraySetterDefn(f', ps, atys', v, t', body', loc) in

@@ -143,7 +143,6 @@ rule token = parse
     | '!'            { BANG       }
     | '!' '='        { BANG_EQ    }
     | '&' '&'        { AMPERSAND_AMPERSAND }
-    | '&'            { AMPERSAND  }
     | '('            { LPAREN     }
     | ')'            { RPAREN     }
     | '*'            { STAR       }

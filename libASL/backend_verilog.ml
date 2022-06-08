@@ -596,18 +596,6 @@ let formal (fmt: PP.formatter) (x: (AST.ident * AST.ty)): unit =
 
 let formals (fmt: PP.formatter) (xs: (AST.ident * AST.ty) list): unit = commasep fmt (formal fmt) xs
 
-let sformal (fmt: PP.formatter) (x: AST.sformal): unit =
-  ( match x with
-  | Formal_In(v, t) ->
-      kw_input fmt; nbsp fmt;
-      varty fmt v t
-  | Formal_InOut(v, t) ->
-      kw_inout fmt; nbsp fmt;
-      varty fmt v t
-  )
-
-let sformals (fmt: PP.formatter) (xs: AST.sformal list): unit = commasep fmt (sformal fmt) xs
-
 let function_header (fmt: PP.formatter) (ot: AST.ty option) (f: AST.ident) (args: unit -> unit): unit =
     kw_function fmt; nbsp fmt;
     kw_automatic fmt; nbsp fmt;
@@ -691,7 +679,7 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     cut fmt;
     cut fmt
   | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
-    function_header fmt None f (fun _ -> sformals fmt (args @ [Formal_In(v, t)]));
+    function_header fmt None f (fun _ -> formals fmt (args @ [(v, t)]));
     indented_block fmt b;
     cut fmt;
     kw_endfunction fmt; nbsp fmt; colon fmt; nbsp fmt; funname fmt f;
