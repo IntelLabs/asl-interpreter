@@ -254,7 +254,7 @@ let prim_is_unpred_exc     (x: exc): bool = (match x with Exc_Unpredictable  -> 
 let prim_eq_str         (x: string) (y: string): bool   = x = y
 let prim_ne_str         (x: string) (y: string): bool   = x <> y
 let prim_append_str     (x: string) (y: string): string = x ^ y
-let prim_cvt_int_hexstr (x: bigint): string = Z.format "%x" x
+let prim_cvt_int_hexstr (x: bigint): string = "0x" ^ Z.format "%x" x
 let prim_cvt_int_decstr (x: bigint): string = Z.to_string x
 let prim_cvt_bool_str   (x: bool): string = if x then "TRUE" else "FALSE"
 

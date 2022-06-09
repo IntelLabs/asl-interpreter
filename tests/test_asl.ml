@@ -72,6 +72,7 @@ let test_primop_string (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit =
 
 let test_primop_integer (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit =
     let tcenv = TC.Env.mkEnv globals in
+    check_string "HexStr(15) == \"0xf\"" (eval tcenv env "HexStr(15)") "0xf";
     check_int "1+1 == 2" (eval tcenv env "1+1") 2;
     check_int "5 DIV 3 == 1" (eval tcenv env "5 DIV 3") 1
 
