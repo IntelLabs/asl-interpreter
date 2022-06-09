@@ -123,7 +123,12 @@ rule token = parse
     | '/' '*'                     { comment 1 lexbuf }
 
     (* numbers, strings and identifiers *)
-    | '"' [^'"']* '"'                        as lxm { STRINGLIT(String.sub lxm 1 (String.length lxm - 2)) }
+    | '"'                         { let startpos = Lexing.lexeme_start_p lexbuf in
+                                    let buffer   = Buffer.create 10 in
+                                    ignore (string buffer lexbuf);
+                                    lexbuf.lex_start_p <- startpos;
+                                    STRINGLIT(Buffer.contents buffer) }
+
     | '\'' ['0' '1' ' ']* '\''               as lxm { BITSLIT(String.sub lxm 1 (String.length lxm - 2)) }
     | '\'' ['0' '1' 'x' ' ']* '\''           as lxm { MASKLIT(String.sub lxm 1 (String.length lxm - 2)) }
     | '0''x'['0'-'9' 'A' - 'F' 'a'-'f' '_']+ as lxm { HEXLIT(String.sub lxm 2 (String.length lxm - 2)) }
@@ -187,6 +192,14 @@ and comment depth = parse
     | '*' '/' { if depth = 1 then token lexbuf else comment (depth-1) lexbuf }
     | '\n'    { Lexing.new_line lexbuf; comment depth lexbuf }
     | _       { comment depth lexbuf }
+
+and string b = parse
+  | '\\' 'n'                  { Buffer.add_char b '\n'; string b lexbuf }
+  | '\\' 't'                  { Buffer.add_char b '\t'; string b lexbuf }
+  | '\\' '\\'                 { Buffer.add_char b '\\'; string b lexbuf }
+  | '\\' '"'                  { Buffer.add_char b '"'; string b lexbuf }
+  | '"'                       { () }
+  | _ as c                    { Buffer.add_char b c; string b lexbuf }
 
 (****************************************************************
  * End
