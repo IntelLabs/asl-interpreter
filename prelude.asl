@@ -368,6 +368,11 @@ func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
     return [Zeros(N-M), x];
 end
 
+func Extend{M}(x :: bits(M), N :: integer, unsigned :: boolean) => bits(N)
+    assert N >= M;
+    return (if unsigned then ZeroExtend(x, N) else SignExtend(x, N));
+end
+
 func Sqrt(x :: real) => real
     return sqrt_real(x);
 end
@@ -424,6 +429,94 @@ func Align(x :: integer, y :: integer) => integer
     return align_int(x, y);
 end
 
+func Min(x :: integer, y :: integer) => integer
+    return if x <= y then x else y;
+end
+
+func Max(x :: integer, y :: integer) => integer
+    return if x >= y then x else y;
+end
+
+func Abs(x :: integer) => integer
+    if x >= 0 then
+        return x;
+    else
+        return -x;
+    end
+end
+
+func SignedSat(x :: integer, N :: integer) => bits(N)
+    let r = if x >= 2^(N-1) then 2^(N-1) - 1
+            elsif x < - 2^(N-1) then - 2^(N-1)
+            else x;
+    return r[0 +: N];
+end
+
+func UnsignedSat(x :: integer, N :: integer) => bits(N)
+    let r = if x >= 2^N then 2^N - 1
+            elsif x < 0 then 0
+            else x;
+    return r[0 +: N];
+end
+
+func BitCount(x :: bits(N)) => integer
+    var result :: integer = 0;
+    for i = 0 to N-1 do
+        if x[i] == '1' then
+            result = result + 1;
+        end
+    end
+    return result;
+end
+
+func LowestSetBit(x :: bits(N)) => integer
+    for i = 0 to N-1 do
+        if x[i] == '1' then
+            return i;
+        end
+    end
+    return N;
+end
+
+func HighestSetBit(x :: bits(N)) => integer
+    for i = N-1 downto 0 do
+        if x[i] == '1' then
+            return i;
+        end
+    end
+    return -1;
+end
+
+func CountLeadingZeroBits(x :: bits(N)) => integer
+    return N - 1 - HighestSetBit(x);
+end
+
+func CountLeadingSignBits(x :: bits(N)) => integer
+    return CountLeadingZeroBits(x[N-1:1] EOR x[N-2:0]);
+end
+
+func ShiftLeft(x :: bits(N), distance :: integer) => bits(N)
+    assert distance IN {0 .. N-1};
+    return [x, Zeros(N)][N-distance +: N];
+end
+
+func ShiftRightLogical(x :: bits(N), distance :: integer) => bits(N)
+    assert distance IN {0 .. N-1};
+    return ZeroExtend(x, 2*N)[distance +: N];
+end
+
+func ShiftRightArithmetic(x :: bits(N), distance :: integer) => bits(N)
+    assert distance IN {0 .. N-1};
+    return SignExtend(x, 2*N)[distance +: N];
+end
+
+func ParityEven(x :: bits(N)) => boolean
+    var r :: bit = '0';
+    for i = 0 to N - 1 do
+        r = r EOR x[i];
+    end
+    return r == '0';
+end
 
 ////////////////////////////////////////////////////////////////
 // End
