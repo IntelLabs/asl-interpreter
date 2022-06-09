@@ -45,6 +45,8 @@ let test_static (tcenv : TC.GlobalEnv.t) (test_fmt : bool) (name : string) (decl
 
 let check_int what l r = Alcotest.check value what l (Value.VInt (Z.of_int r))
 
+let check_string what l r = Alcotest.check value what l (Value.VString r)
+
 let check_bool what l r = Alcotest.check value what l (Value.VBool r)
 
 let eval tcenv env (input : string): Value.value =
@@ -63,6 +65,10 @@ let test_primop_boolean (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit 
     check_bool "iff" (eval tcenv env "TRUE <-> FALSE") false;
     check_bool "iff" (eval tcenv env "TRUE <-> TRUE") true;
     ()
+
+let test_primop_string (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit =
+    let tcenv = TC.Env.mkEnv globals in
+    check_string "cvt_bits_str(1, '0') == \"'0'\"" (eval tcenv env "cvt_bits_str(1, '0')") "'0'"
 
 let test_primop_integer (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit =
     let tcenv = TC.Env.mkEnv globals in
@@ -93,6 +99,7 @@ let tests : unit Alcotest.test_case list =
                      "
                      "t.hi");
         ("operators (boolean)", `Quick, test_primop_boolean globals env);
+        ("operators (integer)", `Quick, test_primop_string globals env);
         ("operators (integer)", `Quick, test_primop_integer globals env)
     ]
 

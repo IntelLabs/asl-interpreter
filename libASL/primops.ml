@@ -264,7 +264,7 @@ let prim_cvt_bits_str   (n: bigint) (x: bitvector): string =
     end else begin
         let s = Z.format "%0b" x.v in
         let pad = String.make (Z.to_int n - String.length s) '0' in
-        Z.to_string n ^ "'" ^ pad ^ s ^ "'"
+        "'" ^ pad ^ s ^ "'"
     end
 
 let prim_cvt_real_str   (x: real): string =
