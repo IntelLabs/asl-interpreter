@@ -18,6 +18,7 @@ let opt_filenames : string list ref = ref []
 let opt_print_version = ref false
 let opt_print_spec = ref false
 let opt_verbose = ref false
+let opt_show_banner = ref true
 
 let help_msg =
   [
@@ -140,6 +141,7 @@ let options =
       ("--print_spec", Arg.Set opt_print_spec, "       Print ASL spec");
       ("-v", Arg.Set opt_verbose, "       Verbose output");
       ("--version", Arg.Set opt_print_version, "       Print version");
+      ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
     ]
 
 let version = "ASL 0.2.0 alpha"
@@ -166,8 +168,9 @@ let main () =
   let paths = String.split_on_char ':' paths in
   if !opt_print_version then Printf.printf "%s\n" version
   else (
-    List.iter print_endline banner;
-    print_endline "\nType :? for help";
+    if !opt_show_banner then (
+      List.iter print_endline banner;
+      print_endline "\nType :? for help");
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
     let ts =
       List.map
