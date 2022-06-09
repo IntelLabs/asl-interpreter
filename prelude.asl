@@ -366,18 +366,6 @@ func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
     return [Zeros(N-M), x];
 end
 
-// The existence of SignExtend and ZeroExtend makes the
-// typesystem considerably more complex because we cannot
-// determine the value of 'N' just from the types of the
-// arguments.
-func SignExtend{M, N}(x :: bits(M)) => bits(N)
-    return SignExtend(x, N);
-end
-
-func ZeroExtend{M, N}(x :: bits(M)) => bits(N)
-    return ZeroExtend(x, N);
-end
-
 func Sqrt(x :: real) => real
     return sqrt_real(x);
 end
