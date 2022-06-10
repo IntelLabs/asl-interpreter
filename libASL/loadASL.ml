@@ -93,7 +93,7 @@ let read_file (filename : string) (isPrelude: bool) (verbose: bool): AST.declara
     let t' =
         report_type_error (fun _ -> exit 1) (fun _ ->
             if verbose then Printf.printf "- Typechecking %s\n" filename;
-            TC.tc_declarations isPrelude t
+            TC.tc_declarations TC.env0 isPrelude t
         )
     in
 

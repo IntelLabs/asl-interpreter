@@ -275,6 +275,7 @@ module Operators2 = Map.Make(Operator2)
 module GlobalEnv : sig
     type t
     val mkempty             : unit -> t
+    val clone               : t -> t
     val addType             : t -> AST.l -> AST.ident -> typedef -> unit
     val getType             : t -> AST.ident -> typedef option
     val isType              : t -> AST.ident -> bool
@@ -315,6 +316,17 @@ end = struct
         encodings   = IdentSet.empty;
         globals     = Bindings.empty;
         constants   = Bindings.empty;
+    }
+
+    let clone (env : t) : t = {
+        types       = env.types;
+        functions   = env.functions;
+        setters     = env.setters;
+        operators1  = env.operators1;
+        operators2  = env.operators2;
+        encodings   = env.encodings;
+        globals     = env.globals;
+        constants   = env.constants;
     }
 
     let addType (env: t) (loc: AST.l) (qid: AST.ident) (t: typedef): unit =
@@ -2620,7 +2632,7 @@ let genPrototypes (ds: AST.declaration list): (AST.declaration list * AST.declar
 let env0 = GlobalEnv.mkempty ()
 
 (** Typecheck a list of declarations - main entrypoint into typechecker *)
-let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaration list =
+let tc_declarations (env : GlobalEnv.t) (isPrelude: bool) (ds: AST.declaration list): AST.declaration list =
     if verbose then Format.fprintf fmt "  - Using Z3 %s\n" Z3.Version.to_string;
     (* Process declarations, starting by moving all function definitions to the
      * end of the list and replacing them with function prototypes.
@@ -2632,8 +2644,8 @@ let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaratio
      *)
     let (pre, post) = if isPrelude then (ds, []) else genPrototypes ds in
     if verbose then Format.fprintf fmt "  - Typechecking %d phase 1 declarations\n" (List.length pre);
-    let pre'  = List.map (tc_declaration env0) pre  in
-    let post' = List.map (tc_declaration env0) post in
+    let pre'  = List.map (tc_declaration env) pre  in
+    let post' = List.map (tc_declaration env) post in
     (* if verbose then List.iter (fun ds -> List.iter (fun d -> Format.fprintf fmt "\nTypechecked %s\n" (Utils.to_string (PP.pp_declaration d))) ds) post'; *)
     if verbose then Format.fprintf fmt "  - Typechecking %d phase 2 declarations\n" (List.length post);
     List.append (List.concat pre') (List.concat post')
