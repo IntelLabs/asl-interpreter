@@ -18,14 +18,35 @@ let test_builtin_fun (decls : AST.declaration list -> unit) () : unit =
        (AST.Ident "id", [], [], AST.Type_Constructor (AST.Ident "id"), AST.Unknown))
 
 let test_fun_defn (decls : AST.declaration list -> unit) () : unit =
-  check_decl decls "no params, empty body"
-    (AST.Decl_FunDefn
-       (AST.Ident "name", [], [], AST.Type_Integer None, [], AST.Unknown))
+  let fun_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
+    AST.Decl_FunDefn
+      (AST.Ident "name", [], params, AST.Type_Integer None, body, AST.Unknown)
+  in
+
+  check_decl decls "no params, empty body" (fun_defn [] []);
+
+  let params =
+    [
+      (AST.Ident "p1", AST.Type_Integer None);
+      (AST.Ident "p2", AST.Type_Integer None);
+    ]
+  in
+  check_decl decls "few params, empty body" (fun_defn params [])
 
 let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
-  check_decl decls "no params, empty body"
-    (AST.Decl_ProcDefn
-       (AST.Ident "name", [], [], [], AST.Unknown))
+  let proc_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
+    AST.Decl_ProcDefn (AST.Ident "name", [], params, body, AST.Unknown)
+  in
+
+  check_decl decls "no params, empty body" (proc_defn [] []);
+
+  let params =
+    [
+      (AST.Ident "p1", AST.Type_Integer None);
+      (AST.Ident "p2", AST.Type_Integer None);
+    ]
+  in
+  check_decl decls "few params, empty body" (proc_defn params [])
 
 let test_cases (decls : AST.declaration list -> unit) :
     unit Alcotest.test_case list =

@@ -32,6 +32,7 @@ let ident (fmt : PP.formatter) (x : AST.ident) : unit =
   | FIdent (s, t) -> ident_str fmt (s ^ "_" ^ string_of_int t)
 
 let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
+let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 
 (* C delimiters *)
 
@@ -138,6 +139,13 @@ let braces (fmt : PP.formatter) (pp : unit -> unit) =
 let parens (fmt : PP.formatter) (pp : unit -> unit) =
   surround fmt lparen rparen pp
 
+let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
+  sepby fmt
+    (fun _ ->
+      comma fmt;
+      nbsp fmt)
+    pp xs
+
 let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
   (* TODO implement integer range analysis to determine the correct type width.
@@ -151,6 +159,20 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   | Type_Register (_, _)
   | Type_Tuple _ ->
       raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
+
+let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
+  match t with
+  | _ ->
+      ty fmt t;
+      nbsp fmt;
+      varname fmt v
+
+let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
+  let v, t = x in
+  varty fmt v t
+
+let formals (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
+  commasep fmt (formal fmt) xs
 
 let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
     (args : unit -> unit) : unit =
@@ -167,12 +189,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
-          function_header fmt (Some t) f (fun _ -> ());
+          function_header fmt (Some t) f (fun _ -> formals fmt args);
           nbsp fmt;
           function_body fmt;
           cut fmt
       | Decl_ProcDefn (f, ps, args, b, loc) ->
-          function_header fmt None f (fun _ -> ());
+          function_header fmt None f (fun _ -> formals fmt args);
           nbsp fmt;
           function_body fmt;
           cut fmt
