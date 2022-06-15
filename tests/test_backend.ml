@@ -108,6 +108,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() begin end end";
   check_declaration tcenv decls "statement (assignment)"
     "func f() var i, j :: integer; i = j; end";
+  check_declaration tcenv decls "statement (assignment to slice)"
+    "func f() var i :: bits(8); i[4 +: 2] = '10'; end";
   check_declaration tcenv decls "statement (assert)"
     "func f() assert FALSE; end";
   check_declaration tcenv decls "statement (if)"

@@ -142,6 +142,8 @@ let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "ASL_is_pow2"
 let fn_replicate_bits (fmt : PP.formatter) : unit = keyword fmt "ASL_replicate_bits"
 let fn_slice_lowd (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd"
 let fn_slice_hilo (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo"
+let fn_slice_lowd_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd_w"
+let fn_slice_hilo_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo_w"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
@@ -422,6 +424,16 @@ and slice (fmt : PP.formatter) (e : AST.expr) (s : AST.slice) : unit =
   | Slice_Single lo ->
       apply fmt (fun _ -> fn_slice_lowd fmt) [ e; lo; Expr_LitInt "1" ]
 
+and lslice (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s : AST.slice) :
+    unit =
+  match s with
+  | Slice_HiLo (hi, lo) ->
+      apply fmt (fun _ -> fn_slice_hilo_w fmt) [ v; e; hi; lo ]
+  | Slice_LoWd (lo, wd) ->
+      apply fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
+  | Slice_Single lo ->
+      apply fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; Expr_LitInt "1" ]
+
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_If (c, t, els, e) ->
@@ -489,6 +501,9 @@ let assign (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
 
 let lexpr (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
   match x with
+  | LExpr_Slices (LExpr_Var v, [ s ]) ->
+      lslice fmt r (Expr_Var v) s;
+      semicolon fmt
   | LExpr_Var v -> assign fmt (fun _ -> varname fmt v) r
   | LExpr_Array _
   | LExpr_BitTuple _
