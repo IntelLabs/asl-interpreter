@@ -48,12 +48,17 @@ let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
   in
   check_decl decls "few params, empty body" (proc_defn params [])
 
+let test_var (decls : AST.declaration list -> unit) () : unit =
+  check_decl decls "integer"
+    (AST.Decl_Var (AST.Ident "id", AST.Type_Integer None, AST.Unknown))
+
 let test_cases (decls : AST.declaration list -> unit) :
     unit Alcotest.test_case list =
   [
     ("built-in function", `Quick, test_builtin_fun decls);
     ("function definition", `Quick, test_fun_defn decls);
     ("procedure definition", `Quick, test_proc_defn decls);
+    ("variable", `Quick, test_var decls);
   ]
 
 let () =

@@ -198,6 +198,11 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           function_body fmt;
           cut fmt
+      | Decl_Var (v, ty, loc) ->
+          varty fmt v ty;
+          semicolon fmt;
+          cut fmt;
+          cut fmt
       | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
       | _ ->
           raise
