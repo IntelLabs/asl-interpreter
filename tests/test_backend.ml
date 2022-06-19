@@ -49,6 +49,8 @@ let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
   check_decl decls "few params, empty body" (proc_defn params [])
 
 let test_var (decls : AST.declaration list -> unit) () : unit =
+  check_decl decls "bits"
+    (AST.Decl_Var (AST.Ident "id", AST.Type_Bits (Expr_LitInt "8"), AST.Unknown));
   check_decl decls "integer"
     (AST.Decl_Var (AST.Ident "id", AST.Type_Integer None, AST.Unknown))
 

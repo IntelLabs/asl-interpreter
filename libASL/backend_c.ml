@@ -10,6 +10,7 @@
 module AST = Asl_ast
 module FMTAST = Asl_fmt
 module PP = Format
+module V = Value
 open Format_utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
@@ -146,14 +147,37 @@ let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
       nbsp fmt)
     pp xs
 
+let const_expr (x : AST.expr) : V.value =
+  match x with
+  | Expr_LitBits b -> V.from_bitsLit b
+  | Expr_LitHex i -> V.from_hexLit i
+  | Expr_LitInt i -> V.from_intLit i
+  | Expr_LitMask b -> V.from_maskLit b
+  | Expr_LitReal r -> V.from_realLit r
+  | Expr_LitString s -> V.from_stringLit s
+  | _ ->
+      failwith ("const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'")
+
+let const_int_expr (x : AST.expr) : int =
+  match const_expr x with
+  | VInt i -> Z.to_int i
+  | _ -> failwith "const_int_expr: integer expected"
+
+let bits (fmt : PP.formatter) (width : int) : unit =
+  if width <= 8 then kw_uint8 fmt
+  else if width <= 16 then kw_uint16 fmt
+  else if width <= 32 then kw_uint32 fmt
+  else if width <= 64 then kw_uint64 fmt
+  else failwith "type: bitvector of length > 64"
+
 let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
+  | Type_Bits n -> bits fmt (const_int_expr n)
   (* TODO implement integer range analysis to determine the correct type width.
    * For now use int64. *)
   | Type_Integer _ -> kw_int64 fmt
   | Type_App (_, _)
   | Type_Array (_, _)
-  | Type_Bits _
   | Type_Constructor _
   | Type_OfExpr _
   | Type_Register (_, _)
