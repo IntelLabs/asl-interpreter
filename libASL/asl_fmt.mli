@@ -33,7 +33,6 @@ val declarations : formatter -> AST.declaration list -> unit
 val braces : formatter -> (unit -> unit) -> unit
 val parens : formatter -> (unit -> unit) -> unit
 val brackets : formatter -> (unit -> unit) -> unit
-val commasep : formatter -> ('a -> unit) -> 'a list -> unit
 val delimiter : formatter -> string -> unit
 val keyword : formatter -> string -> unit
 val amp : formatter -> unit
@@ -44,7 +43,6 @@ val bar_bar : formatter -> unit
 val caret : formatter -> unit
 val colon : formatter -> unit
 val coloncolon : formatter -> unit
-val comma : formatter -> unit
 val dot : formatter -> unit
 val dot_dot : formatter -> unit
 val eq : formatter -> unit

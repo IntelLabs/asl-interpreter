@@ -183,7 +183,8 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
       FMT.kw_enumeration fmt;
       FMTUtils.nbsp fmt;
       FMT.braces fmt (fun _ ->
-          FMTUtils.vbox fmt (fun _ -> FMT.commasep fmt (FMT.varname fmt) es))
+          FMTUtils.vbox fmt (fun _ ->
+              FMTUtils.commasep fmt (FMT.varname fmt) es))
   | Type_Abbreviation ty -> FMT.ty fmt ty
 
 type funtype =

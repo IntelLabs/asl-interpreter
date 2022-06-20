@@ -47,7 +47,7 @@ let fieldname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
  *)
 let int_width = 66
 
-(* All the Verilog delimiters *)
+(* Verilog delimiters *)
 
 let amp_amp (fmt : PP.formatter) : unit = delimiter fmt "&&"
 let bang (fmt : PP.formatter) : unit = delimiter fmt "!"
@@ -55,7 +55,6 @@ let bang_eq (fmt : PP.formatter) : unit = delimiter fmt "!="
 let bar_bar (fmt : PP.formatter) : unit = delimiter fmt "||"
 let caret (fmt : PP.formatter) : unit = delimiter fmt "^"
 let colon (fmt : PP.formatter) : unit = delimiter fmt ":"
-let comma (fmt : PP.formatter) : unit = delimiter fmt ","
 let dot (fmt : PP.formatter) : unit = delimiter fmt "."
 let dot_dot (fmt : PP.formatter) : unit = delimiter fmt ".."
 let eq (fmt : PP.formatter) : unit = delimiter fmt "="
@@ -151,13 +150,6 @@ let parens (fmt : PP.formatter) (pp : unit -> unit) =
 
 let brackets (fmt : PP.formatter) (pp : unit -> unit) =
   surround fmt lbrack rbrack pp
-
-let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
-  sepby fmt
-    (fun _ ->
-      comma fmt;
-      nbsp fmt)
-    pp xs
 
 let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
   commasep fmt (varname fmt) xs

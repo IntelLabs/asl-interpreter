@@ -16,6 +16,7 @@ let flush (fmt : PP.formatter) = PP.pp_print_flush fmt ()
 let space (fmt : PP.formatter) : unit = PP.pp_print_space fmt ()
 let cut (fmt : PP.formatter) : unit = PP.pp_print_cut fmt ()
 let nbsp (fmt : PP.formatter) : unit = PP.pp_print_string fmt " "
+let comma (fmt : PP.formatter) : unit = PP.pp_print_string fmt ","
 
 let vbox (fmt : PP.formatter) (pp : unit -> unit) =
   PP.pp_open_vbox fmt 0;
@@ -61,6 +62,13 @@ let surround (fmt : PP.formatter) (l : PP.formatter -> unit)
   l fmt;
   m ();
   r fmt
+
+let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
+  sepby fmt
+    (fun _ ->
+      comma fmt;
+      nbsp fmt)
+    pp xs
 
 (****************************************************************
  * End

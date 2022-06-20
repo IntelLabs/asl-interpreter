@@ -16,6 +16,7 @@ val flush : formatter -> unit
 val space : formatter -> unit
 val cut : formatter -> unit
 val nbsp : formatter -> unit
+val comma : formatter -> unit
 val sepby : formatter -> (unit -> unit) -> ('a -> unit) -> 'a list -> unit
 val cutsep : formatter -> ('a -> unit) -> 'a list -> unit
 val map : formatter -> ('a -> unit) -> 'a list -> unit
@@ -29,6 +30,7 @@ val surround :
   unit
 
 val with_color : formatter -> ColorT.color4 -> (unit -> unit) -> unit
+val commasep : formatter -> ('a -> unit) -> 'a list -> unit
 
 (*****************************************
  * End

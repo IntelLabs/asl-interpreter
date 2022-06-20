@@ -40,7 +40,7 @@ let varname (fmt : PP.formatter) (x : AST.ident) : unit =
 let fieldname (fmt : PP.formatter) (x : AST.ident) : unit =
   ident fmt ColorT.yellow x
 
-(* All the ASL delimiters *)
+(* ASL delimiters *)
 
 let amp (fmt : PP.formatter) : unit = delimiter fmt "&"
 let amp_amp (fmt : PP.formatter) : unit = delimiter fmt "&&"
@@ -50,7 +50,6 @@ let bar_bar (fmt : PP.formatter) : unit = delimiter fmt "||"
 let caret (fmt : PP.formatter) : unit = delimiter fmt "^"
 let colon (fmt : PP.formatter) : unit = delimiter fmt ":"
 let coloncolon (fmt : PP.formatter) : unit = delimiter fmt "::"
-let comma (fmt : PP.formatter) : unit = delimiter fmt ","
 let dot (fmt : PP.formatter) : unit = delimiter fmt "."
 let dot_dot (fmt : PP.formatter) : unit = delimiter fmt ".."
 let eq (fmt : PP.formatter) : unit = delimiter fmt "="
@@ -194,13 +193,6 @@ let parens (fmt : PP.formatter) (pp : unit -> unit) =
 
 let brackets (fmt : PP.formatter) (pp : unit -> unit) =
   surround fmt lbrack rbrack pp
-
-let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
-  sepby fmt
-    (fun _ ->
-      comma fmt;
-      nbsp fmt)
-    pp xs
 
 type comment = Lexing.position * Lexing.position * string
 

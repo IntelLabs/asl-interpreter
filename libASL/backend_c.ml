@@ -48,7 +48,6 @@ let bar_eq              (fmt : PP.formatter) : unit = delimiter fmt "|="
 let caret               (fmt : PP.formatter) : unit = delimiter fmt "^"
 let caret_eq            (fmt : PP.formatter) : unit = delimiter fmt "^="
 let colon               (fmt : PP.formatter) : unit = delimiter fmt ":"
-let comma               (fmt : PP.formatter) : unit = delimiter fmt ","
 let dot                 (fmt : PP.formatter) : unit = delimiter fmt "."
 let dot_dot_dot         (fmt : PP.formatter) : unit = delimiter fmt "..."
 let eq                  (fmt : PP.formatter) : unit = delimiter fmt "="
@@ -139,13 +138,6 @@ let braces (fmt : PP.formatter) (pp : unit -> unit) =
 
 let parens (fmt : PP.formatter) (pp : unit -> unit) =
   surround fmt lparen rparen pp
-
-let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
-  sepby fmt
-    (fun _ ->
-      comma fmt;
-      nbsp fmt)
-    pp xs
 
 let const_expr (x : AST.expr) : V.value =
   match x with
