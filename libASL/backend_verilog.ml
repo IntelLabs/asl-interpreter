@@ -63,9 +63,6 @@ let eq_gt (fmt : PP.formatter) : unit = delimiter fmt "=>"
 let gt (fmt : PP.formatter) : unit = delimiter fmt ">"
 let gt_eq (fmt : PP.formatter) : unit = delimiter fmt ">="
 let gt_gt (fmt : PP.formatter) : unit = delimiter fmt ">>"
-let lbrace (fmt : PP.formatter) : unit = delimiter fmt "{"
-let lbrack (fmt : PP.formatter) : unit = delimiter fmt "["
-let lparen (fmt : PP.formatter) : unit = delimiter fmt "("
 let lt (fmt : PP.formatter) : unit = delimiter fmt "<"
 let lt_eq (fmt : PP.formatter) : unit = delimiter fmt "<="
 let lt_lt (fmt : PP.formatter) : unit = delimiter fmt "<<"
@@ -141,15 +138,6 @@ let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 (* ASL symbols : todo - this is a hacky, unreliable way of referring to them *)
 let asl_false = AST.Expr_Var (Ident "FALSE")
 let asl_true = AST.Expr_Var (Ident "TRUE")
-
-let braces (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lbrace rbrace pp
-
-let parens (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lparen rparen pp
-
-let brackets (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lbrack rbrack pp
 
 let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
   commasep fmt (varname fmt) xs

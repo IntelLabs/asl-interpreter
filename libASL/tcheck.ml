@@ -168,7 +168,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
   | Type_Record fs ->
       FMT.kw_record fmt;
       FMTUtils.nbsp fmt;
-      FMT.braces fmt (fun _ ->
+      FMTUtils.braces fmt (fun _ ->
           FMTUtils.vbox fmt (fun _ ->
               FMTUtils.cutsep fmt
                 (fun (f, ty) ->
@@ -182,7 +182,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
   | Type_Enumeration es ->
       FMT.kw_enumeration fmt;
       FMTUtils.nbsp fmt;
-      FMT.braces fmt (fun _ ->
+      FMTUtils.braces fmt (fun _ ->
           FMTUtils.vbox fmt (fun _ ->
               FMTUtils.commasep fmt (FMT.varname fmt) es))
   | Type_Abbreviation ty -> FMT.ty fmt ty
@@ -202,10 +202,10 @@ let pp_funtype ((f, isArr, ps, cs, atys, rty) : funtype) : unit =
   FMTUtils.nbsp fmt;
   FMT.coloncolon fmt;
   FMTUtils.nbsp fmt;
-  FMT.braces fmt (fun _ -> FMT.parameters fmt ps);
-  FMT.braces fmt (fun _ -> FMT.exprs fmt cs);
-  if isArr then FMT.brackets fmt (fun _ -> FMT.formals fmt atys)
-  else FMT.parens fmt (fun _ -> FMT.formals fmt atys);
+  FMTUtils.braces fmt (fun _ -> FMT.parameters fmt ps);
+  FMTUtils.braces fmt (fun _ -> FMT.exprs fmt cs);
+  if isArr then FMTUtils.brackets fmt (fun _ -> FMT.formals fmt atys)
+  else FMTUtils.parens fmt (fun _ -> FMT.formals fmt atys);
   FMTUtils.nbsp fmt;
   FMT.eq_gt fmt;
   FMTUtils.nbsp fmt;

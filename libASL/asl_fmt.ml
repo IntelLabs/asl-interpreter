@@ -58,10 +58,7 @@ let eq_gt (fmt : PP.formatter) : unit = delimiter fmt "=>"
 let gt (fmt : PP.formatter) : unit = delimiter fmt ">"
 let gt_eq (fmt : PP.formatter) : unit = delimiter fmt ">="
 let gt_gt (fmt : PP.formatter) : unit = delimiter fmt ">>"
-let lbrace (fmt : PP.formatter) : unit = delimiter fmt "{"
 let lbrace_lbrace (fmt : PP.formatter) : unit = delimiter fmt "{{"
-let lbrack (fmt : PP.formatter) : unit = delimiter fmt "["
-let lparen (fmt : PP.formatter) : unit = delimiter fmt "("
 let lt (fmt : PP.formatter) : unit = delimiter fmt "<"
 let lt_eq (fmt : PP.formatter) : unit = delimiter fmt "<="
 let lt_lt (fmt : PP.formatter) : unit = delimiter fmt "<<"
@@ -71,10 +68,7 @@ let minus_minus_gt (fmt : PP.formatter) : unit = delimiter fmt "-->"
 let plus (fmt : PP.formatter) : unit = delimiter fmt "+"
 let plus_colon (fmt : PP.formatter) : unit = delimiter fmt "+:"
 let plus_plus (fmt : PP.formatter) : unit = delimiter fmt "++"
-let rbrace (fmt : PP.formatter) : unit = delimiter fmt "}"
 let rbrace_rbrace (fmt : PP.formatter) : unit = delimiter fmt "}}"
-let rbrack (fmt : PP.formatter) : unit = delimiter fmt "]"
-let rparen (fmt : PP.formatter) : unit = delimiter fmt ")"
 let semicolon (fmt : PP.formatter) : unit = delimiter fmt ";"
 let slash (fmt : PP.formatter) : unit = delimiter fmt "/"
 let star (fmt : PP.formatter) : unit = delimiter fmt "*"
@@ -184,15 +178,6 @@ let kw_until (fmt : PP.formatter) : unit = keyword fmt "until"
 let kw_var (fmt : PP.formatter) : unit = keyword fmt "var"
 let kw_when (fmt : PP.formatter) : unit = keyword fmt "when"
 let kw_while (fmt : PP.formatter) : unit = keyword fmt "while"
-
-let braces (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lbrace rbrace pp
-
-let parens (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lparen rparen pp
-
-let brackets (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lbrack rbrack pp
 
 type comment = Lexing.position * Lexing.position * string
 

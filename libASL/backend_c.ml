@@ -58,9 +58,6 @@ let gt_gt               (fmt : PP.formatter) : unit = delimiter fmt ">>"
 let gt_gt_eq            (fmt : PP.formatter) : unit = delimiter fmt ">>="
 let hash                (fmt : PP.formatter) : unit = delimiter fmt "#"
 let hash_hash           (fmt : PP.formatter) : unit = delimiter fmt "##"
-let lbrace              (fmt : PP.formatter) : unit = delimiter fmt "{"
-let lbrack              (fmt : PP.formatter) : unit = delimiter fmt "["
-let lparen              (fmt : PP.formatter) : unit = delimiter fmt "("
 let lt                  (fmt : PP.formatter) : unit = delimiter fmt "<"
 let lt_eq               (fmt : PP.formatter) : unit = delimiter fmt "<="
 let lt_lt               (fmt : PP.formatter) : unit = delimiter fmt "<<"
@@ -75,9 +72,6 @@ let plus                (fmt : PP.formatter) : unit = delimiter fmt "+"
 let plus_eq             (fmt : PP.formatter) : unit = delimiter fmt "+="
 let plus_plus           (fmt : PP.formatter) : unit = delimiter fmt "++"
 let qmark               (fmt : PP.formatter) : unit = delimiter fmt "?"
-let rbrace              (fmt : PP.formatter) : unit = delimiter fmt "}"
-let rbrack              (fmt : PP.formatter) : unit = delimiter fmt "]"
-let rparen              (fmt : PP.formatter) : unit = delimiter fmt ")"
 let semicolon           (fmt : PP.formatter) : unit = delimiter fmt ";"
 let slash               (fmt : PP.formatter) : unit = delimiter fmt "/"
 let slash_eq            (fmt : PP.formatter) : unit = delimiter fmt "/="
@@ -132,12 +126,6 @@ let kw_uint16           (fmt : PP.formatter) : unit = keyword fmt "uint16_t"
 let kw_uint32           (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64           (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8            (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
-
-let braces (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lbrace rbrace pp
-
-let parens (fmt : PP.formatter) (pp : unit -> unit) =
-  surround fmt lparen rparen pp
 
 let const_expr (x : AST.expr) : V.value =
   match x with

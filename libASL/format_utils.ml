@@ -17,6 +17,12 @@ let space (fmt : PP.formatter) : unit = PP.pp_print_space fmt ()
 let cut (fmt : PP.formatter) : unit = PP.pp_print_cut fmt ()
 let nbsp (fmt : PP.formatter) : unit = PP.pp_print_string fmt " "
 let comma (fmt : PP.formatter) : unit = PP.pp_print_string fmt ","
+let lbrace (fmt : PP.formatter) : unit = PP.pp_print_string fmt "{"
+let rbrace (fmt : PP.formatter) : unit = PP.pp_print_string fmt "}"
+let lbrack (fmt : PP.formatter) : unit = PP.pp_print_string fmt "["
+let rbrack (fmt : PP.formatter) : unit = PP.pp_print_string fmt "]"
+let lparen (fmt : PP.formatter) : unit = PP.pp_print_string fmt "("
+let rparen (fmt : PP.formatter) : unit = PP.pp_print_string fmt ")"
 
 let vbox (fmt : PP.formatter) (pp : unit -> unit) =
   PP.pp_open_vbox fmt 0;
@@ -69,6 +75,15 @@ let commasep (fmt : PP.formatter) (pp : 'a -> unit) (xs : 'a list) : unit =
       comma fmt;
       nbsp fmt)
     pp xs
+
+let braces (fmt : PP.formatter) (pp : unit -> unit) =
+  surround fmt lbrace rbrace pp
+
+let brackets (fmt : PP.formatter) (pp : unit -> unit) =
+  surround fmt lbrack rbrack pp
+
+let parens (fmt : PP.formatter) (pp : unit -> unit) =
+  surround fmt lparen rparen pp
 
 (****************************************************************
  * End

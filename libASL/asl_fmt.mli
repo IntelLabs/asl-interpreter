@@ -30,9 +30,6 @@ val parameters : formatter -> (AST.ident * AST.ty option) list -> unit
 val formals : formatter -> (AST.ident * AST.ty) list -> unit
 val declaration : formatter -> AST.declaration -> unit
 val declarations : formatter -> AST.declaration list -> unit
-val braces : formatter -> (unit -> unit) -> unit
-val parens : formatter -> (unit -> unit) -> unit
-val brackets : formatter -> (unit -> unit) -> unit
 val delimiter : formatter -> string -> unit
 val keyword : formatter -> string -> unit
 val amp : formatter -> unit
@@ -51,10 +48,7 @@ val eq_gt : formatter -> unit
 val gt : formatter -> unit
 val gt_eq : formatter -> unit
 val gt_gt : formatter -> unit
-val lbrace : formatter -> unit
 val lbrace_lbrace : formatter -> unit
-val lbrack : formatter -> unit
-val lparen : formatter -> unit
 val lt : formatter -> unit
 val lt_eq : formatter -> unit
 val lt_lt : formatter -> unit
@@ -62,10 +56,7 @@ val minus : formatter -> unit
 val plus : formatter -> unit
 val plus_colon : formatter -> unit
 val plus_plus : formatter -> unit
-val rbrace : formatter -> unit
 val rbrace_rbrace : formatter -> unit
-val rbrack : formatter -> unit
-val rparen : formatter -> unit
 val semicolon : formatter -> unit
 val slash : formatter -> unit
 val star : formatter -> unit
