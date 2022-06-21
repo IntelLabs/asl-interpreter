@@ -42,6 +42,8 @@ let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let fieldname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
+let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+  commasep fmt (varname fmt) xs
 
 (* integer representation is a signed value of some width
  * this width should be large enough that data does not overflow
@@ -139,9 +141,6 @@ let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 (* ASL symbols : todo - this is a hacky, unreliable way of referring to them *)
 let asl_false = AST.Expr_Var (Ident "FALSE")
 let asl_true = AST.Expr_Var (Ident "TRUE")
-
-let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
-  commasep fmt (varname fmt) xs
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 
