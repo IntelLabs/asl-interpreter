@@ -8,54 +8,27 @@
 module ColorT = Ocolor_types
 open Format
 
-val vbox     : formatter -> (unit -> unit) -> unit
-val hbox     : formatter -> (unit -> unit) -> unit
-val hvbox    : formatter -> (unit -> unit) -> unit
+val vbox : formatter -> (unit -> unit) -> unit
+val hbox : formatter -> (unit -> unit) -> unit
+val hvbox : formatter -> (unit -> unit) -> unit
 val indented : formatter -> (unit -> unit) -> unit
+val flush : formatter -> unit
+val space : formatter -> unit
+val cut : formatter -> unit
+val nbsp : formatter -> unit
+val sepby : formatter -> (unit -> unit) -> ('a -> unit) -> 'a list -> unit
+val cutsep : formatter -> ('a -> unit) -> 'a list -> unit
+val map : formatter -> ('a -> unit) -> 'a list -> unit
+val hlist : formatter -> (unit -> unit) -> ('a -> unit) -> 'a list -> unit
 
-val flush     : formatter -> unit
-val space     : formatter -> unit
-val cut       : formatter -> unit
-val nbsp      : formatter -> unit
+val surround :
+  formatter ->
+  (formatter -> unit) ->
+  (formatter -> unit) ->
+  (unit -> unit) ->
+  unit
 
-val sepby
-    :  formatter
-    -> (unit -> unit)
-    -> ('a -> unit)
-    -> 'a list
-    -> unit
-
-val cutsep
-    :  formatter
-    -> ('a -> unit)
-    -> 'a list
-    -> unit
-
-val map
-    :  formatter
-    -> ('a -> unit)
-    -> 'a list
-    -> unit
-
-val hlist
-    :  formatter
-    -> (unit -> unit)
-    -> ('a -> unit)
-    -> 'a list
-    -> unit
-
-val surround
-    : formatter
-    -> (formatter -> unit)
-    -> (formatter -> unit)
-    -> (unit -> unit)
-    -> unit
-
-val with_color
-    : formatter
-    -> ColorT.color4
-    -> (unit -> unit)
-    -> unit
+val with_color : formatter -> ColorT.color4 -> (unit -> unit) -> unit
 
 (*****************************************
  * End

@@ -6,42 +6,26 @@
 
 (rule
  (targets asl_parser.mly asl_lexer.mll asl_ast.ml)
- (deps   asl.ott)
+ (deps asl.ott)
  (action
-   (progn
-     (run ott -aux_style_rules false -tex_wrap true -quotient_rules false -i asl.ott -o asl_parser_head.mly -o asl_lexer.mll -o asl_ast.ml)
-     (with-stdout-to asl_parser_tail.mly (bash "grep -v '^%%' `opam config var ott:share`/menhir_library_extra.mly"))
-     (with-stdout-to asl_parser.mly (run cat asl_parser_head.mly asl_parser_tail.mly)))))
+  (progn
+   (run ott -aux_style_rules false -tex_wrap true -quotient_rules false -i
+     asl.ott -o asl_parser_head.mly -o asl_lexer.mll -o asl_ast.ml)
+   (with-stdout-to
+    asl_parser_tail.mly
+    (bash
+      "grep -v '^%%' `opam config var ott:share`/menhir_library_extra.mly"))
+   (with-stdout-to
+    asl_parser.mly
+    (run cat asl_parser_head.mly asl_parser_tail.mly)))))
 
 (library
  (name libASL)
  (public_name asli.libASL)
  (flags
   (:standard -w -27 -cclib -lstdc++))
-
-(modules
- asl_ast
- asl_fmt
- asl_parser
- asl_utils
- asl_visitor
- backend_c
- backend_verilog
- cpu
- elf
- eval
- format_utils
- lattice
- lexer
- lexersupport
- loadASL
- primops
- tcheck
- utils
- value
- visitor
- xform_casesplit
- xform_constprop
- xform_mono
- )
+ (modules asl_ast asl_fmt asl_parser asl_utils asl_visitor backend_c
+   backend_verilog cpu elf eval format_utils lattice lexer lexersupport
+   loadASL primops tcheck utils value visitor xform_casesplit xform_constprop
+   xform_mono)
  (libraries ocolor pprint zarith z3))

@@ -15,7 +15,11 @@ let check_decl (decls : AST.declaration list -> unit) (name : string)
 let test_builtin_fun (decls : AST.declaration list -> unit) () : unit =
   check_decl decls "ignored"
     (AST.Decl_BuiltinFunction
-       (AST.Ident "id", [], [], AST.Type_Constructor (AST.Ident "id"), AST.Unknown))
+       ( AST.Ident "id",
+         [],
+         [],
+         AST.Type_Constructor (AST.Ident "id"),
+         AST.Unknown ))
 
 let test_fun_defn (decls : AST.declaration list -> unit) () : unit =
   let fun_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =

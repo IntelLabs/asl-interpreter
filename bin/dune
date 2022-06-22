@@ -3,7 +3,8 @@
  (public_name asli)
  (modes exe)
  (modules asli)
- (flags (-cclib -lstdc++))
+ (flags
+  (-cclib -lstdc++))
  (libraries libASL linenoise pprint))
 
 (executable
@@ -11,7 +12,8 @@
  (public_name asl2v)
  (modes exe)
  (modules asl2v)
- (flags (-cclib -lstdc++))
+ (flags
+  (-cclib -lstdc++))
  (libraries libASL linenoise pprint))
 
 (executable
@@ -19,5 +21,6 @@
  (modes exe)
  ; (public_name test_asl_lexer)
  (modules testlexer)
- (flags (-cclib -lstdc++))
+ (flags
+  (-cclib -lstdc++))
  (libraries libASL))
