@@ -29,7 +29,6 @@ val stmt           : formatter -> AST.stmt              -> unit
 val indented_block : formatter -> AST.stmt list         -> unit
 val parameters     : formatter -> (AST.ident * AST.ty option) list -> unit
 val formals        : formatter -> (AST.ident * AST.ty) list -> unit
-val sformals       : formatter -> AST.sformal list      -> unit
 val declaration    : formatter -> AST.declaration       -> unit
 val declarations   : formatter -> AST.declaration list  -> unit
 
@@ -86,11 +85,12 @@ val kw_and                             : formatter -> unit
 val kw_array                           : formatter -> unit
 val kw_as                              : formatter -> unit
 val kw_assert                          : formatter -> unit
+val kw_begin                           : formatter -> unit
 val kw_bits                            : formatter -> unit
 val kw_case                            : formatter -> unit
 val kw_catch                           : formatter -> unit
+val kw_config                          : formatter -> unit
 val kw_constant                        : formatter -> unit
-val kw_constrained_unpredictable       : formatter -> unit
 val kw_div                             : formatter -> unit
 val kw_do                              : formatter -> unit
 val kw_downto                          : formatter -> unit
@@ -103,11 +103,8 @@ val kw_for                             : formatter -> unit
 val kw_func                            : formatter -> unit
 val kw_getter                          : formatter -> unit
 val kw_if                              : formatter -> unit
-val kw_iff                             : formatter -> unit
-val kw_implementation_defined          : formatter -> unit
-val kw_implies                         : formatter -> unit
 val kw_in                              : formatter -> unit
-val kw_is                              : formatter -> unit
+val kw_let                             : formatter -> unit
 val kw_mod                             : formatter -> unit
 val kw_not                             : formatter -> unit
 val kw_of                              : formatter -> unit
@@ -126,15 +123,12 @@ val kw_to                              : formatter -> unit
 val kw_try                             : formatter -> unit
 val kw_type                            : formatter -> unit
 val kw_typeof                          : formatter -> unit
-val kw_undefined                       : formatter -> unit
 val kw_underscore_array                : formatter -> unit
 val kw_underscore_builtin              : formatter -> unit
 val kw_underscore_conditional          : formatter -> unit
-val kw_underscore_config               : formatter -> unit
 val kw_underscore_decode               : formatter -> unit
 val kw_underscore_encoding             : formatter -> unit
 val kw_underscore_event                : formatter -> unit
-val kw_underscore_exceptiontaken       : formatter -> unit
 val kw_underscore_execute              : formatter -> unit
 val kw_underscore_field                : formatter -> unit
 val kw_underscore_guard                : formatter -> unit
@@ -149,14 +143,13 @@ val kw_underscore_operator1            : formatter -> unit
 val kw_underscore_operator2            : formatter -> unit
 val kw_underscore_postdecode           : formatter -> unit
 val kw_underscore_readwrite            : formatter -> unit
-val kw_underscore_register             : formatter -> unit
 val kw_underscore_unallocated          : formatter -> unit
 val kw_underscore_unpredictable        : formatter -> unit
 val kw_underscore_unpredictable_unless : formatter -> unit
 val kw_underscore_write                : formatter -> unit
 val kw_unknown                         : formatter -> unit
-val kw_unpredictable                   : formatter -> unit
 val kw_until                           : formatter -> unit
+val kw_var                             : formatter -> unit
 val kw_when                            : formatter -> unit
 val kw_while                           : formatter -> unit
 

@@ -74,6 +74,7 @@ This interpreter consists of a single directory organized as follows
           * `libASL/prelude.asl`     - builtin types and functions
       * Programs
           * `bin/asli.ml`         - interactive ASL tool
+          * `bin/asl2v.ml`        - Verilog generation tool
           * `bin/testlexer.ml`    - test program that converts ASL code to list of tokens
       * Misc
           * `libASL/utils.ml`        - utility code

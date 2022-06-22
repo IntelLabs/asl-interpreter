@@ -6,8 +6,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 metavar id        ::= {{ ocaml string }} {{ ocamllex ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*  }}
-metavar typeid    ::= {{ ocaml string }} {{ ocamllex ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*  }}
-metavar qualifier ::= {{ phantom }} {{ ocaml string }} {{ ocamllex-remove }} %{{ ocamllex ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*  }}
 metavar intLit    ::= {{ ocaml string }}  {{ ocamllex ['0'-'9']+  }}
 metavar bitsLit   ::= {{ ocaml string }}  {{ ocamllex '\'' ['0' '1'     ' ']* '\''  }}
 metavar maskLit   ::= {{ ocaml string }}  {{ ocamllex '\'' ['0' '1' 'x' ' ']* '\''  }}
@@ -105,12 +103,6 @@ let name_of_FIdent (x: ident): string =
     )
 
 
-let addQualifier (p: string) (x: ident): ident =
-    (match x with
-    | Ident(s)    -> Ident (p ^ "." ^ s)
-    | FIdent(_,_) -> failwith "addQualifier"
-    )
-
 let addPrefix (p: string) (x: ident): ident =
     (match x with
     | Ident(q)    -> Ident (p ^ "." ^ q)
@@ -159,19 +151,6 @@ module Id = struct
         )
 end
 
-(** Type Identifiers *)
-
-module StringSet = Set.Make(String)
-
-let typeIdents = ref StringSet.empty
-
-let addTypeIdent (x: ident): unit = begin
-    (* ignore (Printf.printf "New type identifier %s\n" (pprint_ident x)); *)
-    typeIdents := StringSet.add (pprint_ident x) !typeIdents
-end
-
-let isTypeIdent (x: string): bool = StringSet.mem x !typeIdents
-
 }}
 
 grammar
@@ -196,15 +175,6 @@ ident :: '' ::=        {{ phantom }}
                        {{ pp-raw l = PPrintEngine.string (pprint_ident l) }}
   | id                 :: :: Ident {{ ocaml Ident [[id]] }}
 
-typeident :: '' ::=    {{ phantom }}
-                       {{ ocaml ident }}
-                       {{ com Type Identifier }}
-                       {{ pp     l = PPrintEngine.string (pprint_ident l) }}
-                       {{ pp-raw l = PPrintEngine.string (pprint_ident l) }}
-  | typeid             :: :: TypeIdent {{ ocaml Ident [[typeid]] }}
-
-grammar
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Declarations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -228,12 +198,11 @@ declaration :: 'Decl_' ::=
 
 type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __builtin type tidentdecl ;                           ::   :: BuiltinType
-    | type tidentdecl ;                                     ::   :: Forward % says there is a type decl elsewhere
-    | record tidentdecl { field1 ... fieldn } ;             ::   :: Record
-    | type tidentdecl is ( field_ns1 , ... , field_nsn )    :: S :: Dep_Record {{ ocaml Decl_Record([[tidentdecl]], [[field_ns1 ... field_nsn]], Range($symbolstartpos,$endpos)) }} {{ com DEPRECATED }}
-    | type tidentdecl = ty ;                                ::   :: Typedef
-    | enumeration tidentdecl { ident1 , .. , identn } ;     ::   :: Enum
+    | __builtin type ident ;                            ::   :: BuiltinType
+    | type ident ;                                      ::   :: Forward % says there is a type decl elsewhere
+    | record ident { field1 ... fieldn } ;              ::   :: Record
+    | type ident of ty ;                                ::   :: Typedef
+    | enumeration ident { ident1 , .. , identn } ;      ::   :: Enum
 
 field_ns :: 'FieldNS_' ::=
     {{ phantom }} {{ ocaml ident * ty }}
@@ -249,24 +218,24 @@ field :: 'Field_' ::=
 
 variable_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | var qualident '::' ty ;                    ::   :: Var
-    | constant qualident '::' ty = expr ;        ::   :: Const
-    | let qualident '::' ty = expr ;             :: S :: Const2{{ ocaml Decl_Const([[qualident]], [[ty]], [[expr]], Range($symbolstartpos,$endpos)) }}
+    | var ident '::' ty ;                    ::   :: Var
+    | constant ident '::' ty = expr ;        ::   :: Const
+    | let ident '::' ty = expr ;             :: S :: Const2{{ ocaml Decl_Const([[ident]], [[ty]], [[expr]], Range($symbolstartpos,$endpos)) }}
 
 ixtype :: 'Index_' ::=
-    | tident                        :: :: Enum
+    | ident                         :: :: Enum
     | expr1 '..' expr2              :: :: Range
 
 function_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | __builtin func qualident parameters_opt ( formal_list ) => ty ;   :: :: BuiltinFunction
-    | func qualident parameters_opt ( formal_list ) => ty ;             :: :: FunType
-    | func qualident parameters_opt ( formal_list ) => ty block end     :: :: FunDefn
+    | __builtin func ident parameters_opt ( formal_list ) => ty ;   :: :: BuiltinFunction
+    | func ident parameters_opt ( formal_list ) => ty ;             :: :: FunType
+    | func ident parameters_opt ( formal_list ) => ty block end     :: :: FunDefn
 
 procedure_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | func qualident parameters_opt ( formal_list ) ;                       :: :: ProcType
-    | func qualident parameters_opt ( formal_list ) block end               :: :: ProcDefn
+    | func ident parameters_opt ( formal_list ) ;                   :: :: ProcType
+    | func ident parameters_opt ( formal_list ) block end           :: :: ProcDefn
 
 parameters_opt :: 'Parameters_Opt_' ::=
     {{ phantom }} {{ ocaml (ident * ty option) list }}
@@ -310,21 +279,17 @@ getter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
     % Note: VarGetterType is an unofficial extension because ASL has no official way
     % to declare a getter because syntax would be same as declaring a variable
-    | getter qualident parameters_opt => ty ;                                      :: :: VarGetterType
-    | getter qualident parameters_opt => ty block end                              :: :: VarGetterDefn
-    | getter qualident parameters_opt [ formal_list ] => ty ;                      :: :: ArrayGetterType
-    | getter qualident parameters_opt [ formal_list ] => ty block end              :: :: ArrayGetterDefn
+    | getter ident parameters_opt => ty ;                                      :: :: VarGetterType
+    | getter ident parameters_opt => ty block end                              :: :: VarGetterDefn
+    | getter ident parameters_opt [ formal_list ] => ty ;                      :: :: ArrayGetterType
+    | getter ident parameters_opt [ formal_list ] => ty block end              :: :: ArrayGetterDefn
 
 setter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
-    | setter qualident parameters_opt = ident '::' ty ;                                       :: :: VarSetterType
-    | setter qualident parameters_opt = ident '::' ty block end                               :: :: VarSetterDefn
-    | setter qualident parameters_opt [ sformal1 , .. , sformaln ] = ident '::' ty ;          :: :: ArraySetterType
-    | setter qualident parameters_opt [ sformal1 , .. , sformaln ] = ident '::' ty block end  :: :: ArraySetterDefn
-
-sformal :: 'Formal_' ::=
-    |   ident '::' ty       :: :: In
-    | & ident '::' ty       :: :: InOut
+    | setter ident1 parameters_opt = ident2 '::' ty ;                          :: :: VarSetterType
+    | setter ident1 parameters_opt = ident2 '::' ty block end                  :: :: VarSetterDefn
+    | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty ;          :: :: ArraySetterType
+    | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty block end  :: :: ArraySetterDefn
 
 instruction_definition :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
@@ -425,11 +390,11 @@ internal_definition :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}
     | __operator1 unop  = ident1 , ... , identn ;                                     :: :: Operator1
     | __operator2 binop = ident1 , ... , identn ;                                     :: :: Operator2
-    | __newevent qualident parameters_opt ( formal_list ) ;                           :: :: NewEventDefn
-    | __event    qualident block end                                                  :: :: EventClause
-    | __newmap qualident parameters_opt ( formal_list ) => ty block end               :: :: NewMapDefn
-    | __map qualident mapfield1 , .. , mapfieldn optmapcond then block end            :: :: MapClause
-    | config qualident '::' ty = expr ;                                               :: :: Config
+    | __newevent ident parameters_opt ( formal_list ) ;                               :: :: NewEventDefn
+    | __event    ident block end                                                      :: :: EventClause
+    | __newmap ident parameters_opt ( formal_list ) => ty block end                   :: :: NewMapDefn
+    | __map ident mapfield1 , .. , mapfieldn optmapcond then block end                :: :: MapClause
+    | config ident '::' ty = expr ;                                                   :: :: Config
 
 operator :: 'Operator_' ::=
     {{ phantom }} {{ ocaml string }}
@@ -450,36 +415,16 @@ mapfield :: 'MapField_' ::=
     | ident = pattern :: :: Field
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Identifiers
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-qualident :: 'QIdent_' ::=
-    {{ phantom }} {{ ocaml ident }}
-    {{ pp-raw x = pp_raw_ident x }}
-    {{ pp     x = pp_ident     x }}
-    | ident             :: :: Plain      {{ ocaml [[ident]] }}
-    | qualifier . ident :: :: Decorated  {{ ocaml addQualifier [[qualifier]] [[ident]] }}
-
-tidentdecl :: 'QIdent_' ::= {{ quotient-with qualident }}
-    | typeident             :: :: Plain2 {{ quotient-remove }} {{ ocaml [[typeident]] }}
-    | ident                 :: :: Plain3 {{ quotient-remove }} {{ ocaml addTypeIdent([[ident]]); [[ident]] }}
-    | qualifier . ident     :: :: Decorated2 {{ quotient-remove }} {{ ocaml addTypeIdent([[ident]]); addQualifier [[qualifier]] [[ident]] }}
-
-tident :: 'QIdent_' ::= {{ quotient-with qualident }}
-    | typeident             :: :: Plain4 {{ quotient-remove }} {{ ocaml [[typeident]] }}
-    | qualifier . typeident :: :: Decorated3 {{ quotient-remove }} {{ ocaml addQualifier [[qualifier]] [[typeident]] }}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Types
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ty :: 'Type_' ::=
-    | tident                          :: :: Constructor
+    | ident                           :: :: Constructor
     | integer constraint_opt          :: :: Integer
     | bits ( expr )                   :: :: Bits
-    | tident ( expr1 , ... , exprn )  :: :: App
+    | ident ( expr1 , ... , exprn )   :: :: App
     | typeof ( expr )                 :: :: OfExpr
-    | __register intLit { regfields } :: :: Register
+    | bits ( expr ) { regfields }     :: :: Register
     | array [ ixtype ] of ty          :: :: Array
     % I would prefer not to have a tuple type and restrict it to return types.
     | ( ty1 , .. , tyn )              :: :: Tuple
@@ -513,7 +458,7 @@ regfield :: 'RegField_' ::=
     {{ phantom }} {{ ocaml slice list * ident }}
     {{ pp-raw rf = string "([ "^^ separate (string ";\n") (List.map pp_raw_slice (fst rf)) ^^ string " ], " ^^ pp_raw_ident (snd rf) ^^ string ")" }}
     {{ pp rf = separate (string "\n") (List.map pp_slice (fst rf)) ^^ string " " ^^ pp_ident (snd rf) }}
-    | slice1 , ... , slicen ident     :: :: Field {{ ocaml ([[slice1...slicen]], [[ident]]) }}
+    | [ slice1 , ... , slicen ] ident     :: :: Field {{ ocaml ([[slice1...slicen]], [[ident]]) }}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Statements
@@ -560,7 +505,7 @@ assignment_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
 
 lexpr :: 'LExpr_' ::=
     | -                                   ::   :: Wildcard
-    | qualident                           ::   :: Var
+    | ident                               ::   :: Var
     | lexpr . ident                       ::   :: Field
     | lexpr . [ ident1 , ... , identn ]   ::   :: Fields
     | lexpr [ slice1 , .. , slicen ]      ::   :: Slices
@@ -576,27 +521,15 @@ lexpr_spice :: 'LExpr_' ::= {{ quotient-with lexpr }}
 simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
     | assignment_stmt                     :: :: Assignment {{ quotient-remove }} {{ ocaml [[assignment_stmt]] }}
-    | qualident ( expr1 , .. , exprn ) ;  :: S :: Call   {{ com procedure call }} {{ ocaml Stmt_TCall([[qualident]], [], [[expr1 .. exprn]], Range($symbolstartpos,$endpos)) }}
+    | ident ( expr1 , .. , exprn ) ;      :: S :: Call   {{ com procedure call }} {{ ocaml Stmt_TCall([[ident]], [], [[expr1 .. exprn]], Range($symbolstartpos,$endpos)) }}
     | return expr ;                       ::   :: FunReturn {{ com function return }}
     | return ;                            ::   :: ProcReturn {{ com procedure return }}
     | assert expr ;                       ::   :: Assert {{ com assertion }}
-    | UNPREDICTABLE ( ) ;                 ::   :: Unpred {{ com underspecified behaviour }}
-    | CONSTRAINED_UNPREDICTABLE ;         ::   :: ConstrainedUnpred
-    | IMPLEMENTATION_DEFINED ( ident ) ;  ::   :: ImpDef {{ com underspecified behaviour }}
-    | UNDEFINED ( ) ;                     ::   :: Undefined
-    | __ExceptionTaken ( ) ;              ::   :: ExceptionTaken
-    | UNPREDICTABLE ;                     ::   :: Dep_Unpred      {{ com DEPRECATED }}
-    | IMPLEMENTATION_DEFINED stringLit ;  ::   :: Dep_ImpDef      {{ com DEPRECATED }}
-    | IMPLEMENTATION_DEFINED ;            :: S :: Dep_ImpDefNoStr {{ com DEPRECATED }} {{ ocaml Stmt_Dep_ImpDef("", Range($symbolstartpos,$endpos)) }}
-    | UNDEFINED ;                         ::   :: Dep_Undefined   {{ com DEPRECATED }}
-    | SEE ( expr ) ;                      ::   :: See
-    | SEE stringLit ;                     :: S :: Dep_SeeString {{ ocaml Stmt_See(Expr_LitString([[stringLit]]), Range($symbolstartpos, $endpos)) }} {{ com DEPRECATED }}
-    | SEE ident ;                         :: S :: Dep_SeeIdent  {{ ocaml Stmt_See(Expr_LitString(pprint_ident [[ident]]), Range($symbolstartpos, $endpos)) }} {{ com DEPRECATED }}
     | throw ident ;                       ::   :: Throw
     | __decode ident expr ;               ::   :: DecodeExecute {{ com decode and execute instruction }}
 
 stmt_spice :: 'Stmt_' ::= {{ quotient-with stmt }}
-    | qualident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}
+    | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}
 
 conditional_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     {{ aux _ l }}
@@ -657,7 +590,7 @@ pattern :: 'Pat_' ::=
     | hexLit                             :: :: LitHex
     | bitsLit                            :: :: LitBits
     | maskLit                            :: :: LitMask
-    | qualident                          :: :: Const
+    | ident                              :: :: Const
     | -                                  :: :: Wildcard
     | ( pattern1  , .... , patternn )    :: :: Tuple
     | { apattern1 , ..   , apatternn }   :: :: Set
@@ -735,8 +668,8 @@ binop :: 'Binop_' ::=
     | >>      :: :: ShiftR
     | &&      :: :: BoolAnd
     | ||      :: :: BoolOr
-    | iff     :: :: BoolIff
-    | implies :: :: BoolImplies
+    | <->     :: :: BoolIff
+    | -->     :: :: BoolImplies
     | OR      :: :: BitOr
     | EOR     :: :: BitEor
     | AND     :: :: BitAnd
@@ -753,24 +686,24 @@ fexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | fexpr . ident                              :: :: Field   {{ com field selection }}
     | fexpr . [ ident1 , ... , identn ]          :: :: Fields  {{ com multiple field selection }}
     | fexpr   [ slice1 , .. , slicen ]           :: :: Slices  {{ com bitslice }}
-    | tident { field_assignment1 , ... , field_assignmentn } :: :: RecordInit
+    | ident { field_assignment1 , ... , field_assignmentn } :: :: RecordInit
     | fexpr 'IN' pattern                         :: :: In      {{ com pattern match }}
     | aexpr                                      :: :: AExpr   {{ quotient-remove }} {{ ocaml [[aexpr]] }}
 
 aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | literal_expression                         ::   :: Lit {{ quotient-remove }} {{ ocaml [[literal_expression]] }}
-    | qualident                                  ::   :: Var
-    | qualident ( expr1 , .. , exprn )           :: S :: Apply   {{ ocaml Expr_TApply([[qualident]], [], [[expr1 .. exprn]]) }}
+    | ident                                      ::   :: Var
+    | ident ( expr1 , .. , exprn )               :: S :: Apply   {{ ocaml Expr_TApply([[ident]], [], [[expr1 .. exprn]]) }}
     | ( expr )                                   ::   :: Parens
     | ( expr1 , .... , exprn )                   ::   :: Tuple     {{ com tuple }}
     | [ expr1 , .... , exprn ]                   ::   :: Concat    {{ com bitvector concatenation }}
     | UNKNOWN '::' ty                            ::   :: Unknown
-    | ty IMPLEMENTATION_DEFINED opt_stringLit    ::   :: ImpDef
+    | IMPLEMENTATION_DEFINED opt_stringLit '::' ty :: :: ImpDef
     | aexpr as constraints                       ::   :: AsConstraint
     | aexpr as ty                                ::   :: AsType
 
 expr_spice :: 'Expr_' ::= {{ quotient-with expr }}
-    | qualident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
+    | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
     | __array expr1 [ expr2 ]                    ::   :: Array     {{ com spice for desugaring array accesses }}
 
 field_assignment :: 'Field_Assignment_' ::=

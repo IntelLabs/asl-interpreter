@@ -405,15 +405,6 @@ let fv_type (x: ty): IdentSet.t =
 let fv_args (atys: (ident * ty) list): IdentSet.t =
     unionSets (List.map (fun (_, ty) -> fv_type ty) atys)
 
-let fv_sformal (x: sformal): IdentSet.t =
-    (match x with
-    | Formal_In(v, ty) -> fv_type ty
-    | Formal_InOut(v, ty) -> fv_type ty
-    )
-
-let fv_sformals (atys: sformal list): IdentSet.t =
-    unionSets (List.map fv_sformal atys)
-
 let fv_stmts stmts =
     let fvs = new freevarClass in
     ignore (visit_stmts (fvs :> aslVisitor) stmts);
@@ -946,13 +937,6 @@ let masklength (x: string): int =
     let r = ref 0 in
     String.iter (function ' ' -> () | _ -> r := !r + 1) x;
     !r
-
-(** transform the type of a formal *)
-let map_sformal (f: AST.ty -> AST.ty) (sf: sformal): sformal =
-    ( match sf with
-    | Formal_In (id, ty) -> Formal_In (id, f ty)
-    | Formal_InOut (id, ty) -> Formal_InOut (id, f ty)
-    )
 
 (****************************************************************
  * End

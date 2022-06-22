@@ -87,10 +87,10 @@ let width_of_type (ty: AST.ty): AST.expr =
 let one = Expr_LitInt "1"
 
 let mk_bits_select (w: AST.expr) (n: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
-    Expr_TApply (FIdent ("asl_bits_select",0), [w; n], [w; x; lo])
+    Expr_TApply (FIdent ("asl_extract_bits",0), [w; n], [x; lo; w])
 
 let mk_int_select (w: AST.expr) (x: AST.expr) (lo: AST.expr): AST.expr =
-    Expr_TApply (FIdent ("asl_int_select",0), [w], [w; x; lo])
+    Expr_TApply (FIdent ("asl_extract_int",0), [w], [x; lo; w])
 
 (* Lower bit slice expression *)
 let mk_expr_slices (x: AST.expr) (ss: AST.slice list) (ty: AST.ty): AST.expr =
@@ -220,39 +220,6 @@ let pp_funtype ((f, isArr, ps, cs, atys, rty): funtype): unit =
     else FMT.parens fmt (fun _ -> FMT.formals fmt atys));
     FMTUtils.nbsp fmt; FMT.eq_gt fmt; FMTUtils.nbsp fmt; FMT.ty fmt rty
 
-(* type of setter function *)
-type sfuntype = (AST.ident * (AST.ident * AST.ty option) list * AST.expr list * AST.sformal list * AST.ty)
-
-let sft_id ((f, _, _, _, _): sfuntype): AST.ident = f
-
-let pp_sfuntype fmt ((f, ps, cs, atys, rty): sfuntype): unit =
-    FMT.varname fmt f; FMTUtils.nbsp fmt; FMT.coloncolon fmt; FMTUtils.nbsp fmt;
-    FMT.braces fmt (fun _ -> FMT.parameters fmt ps);
-    FMT.braces fmt (fun _ -> FMT.exprs fmt cs);
-    FMT.brackets fmt (fun _ -> FMT.sformals fmt atys);
-    FMTUtils.nbsp fmt; FMT.eq_gt fmt; FMTUtils.nbsp fmt; FMT.ty fmt rty
-
-let sformal_var (x: sformal): AST.ident =
-    ( match x with
-    | Formal_In    (v, _) -> v
-    | Formal_InOut (v, _) -> v
-    )
-
-let sformal_type (x: sformal): AST.ty =
-    ( match x with
-    | Formal_In    (_, ty) -> ty
-    | Formal_InOut (_, ty) -> ty
-    )
-
-let formal_of_sformal (x: AST.sformal): (AST.ident * AST.ty) =
-    ( match x with
-    | Formal_In    (v, ty) -> (v, ty)
-    | Formal_InOut (v, ty) -> (v, ty)
-    )
-
-let funtype_of_sfuntype ((f, tvs, cs, atys, rty): sfuntype): funtype =
-    (f, true, tvs, cs, List.map formal_of_sformal atys, rty)
-
 module Operator1 = struct
     type t = AST.unop
     let compare x y = Stdlib.compare x y
@@ -275,6 +242,7 @@ module Operators2 = Map.Make(Operator2)
 module GlobalEnv : sig
     type t
     val mkempty             : unit -> t
+    val clone               : t -> t
     val addType             : t -> AST.l -> AST.ident -> typedef -> unit
     val getType             : t -> AST.ident -> typedef option
     val isType              : t -> AST.ident -> bool
@@ -282,8 +250,8 @@ module GlobalEnv : sig
     val isEnum              : t -> AST.ident -> bool
     val addFuns             : t -> AST.l -> AST.ident -> funtype list -> unit
     val getFuns             : t -> AST.ident -> funtype list
-    val addSetterFuns       : t -> AST.ident -> sfuntype list -> unit
-    val getSetterFun        : t -> AST.ident -> sfuntype list
+    val addSetterFuns       : t -> AST.ident -> funtype list -> unit
+    val getSetterFun        : t -> AST.ident -> funtype list
     val addOperators1       : t -> AST.l -> AST.unop  -> funtype list -> unit
     val getOperators1       : t -> AST.l -> AST.unop  -> funtype list
     val addOperators2       : t -> AST.l -> AST.binop -> funtype list -> unit
@@ -298,7 +266,7 @@ end = struct
     type t = {
         mutable types       : typedef Bindings.t;
         mutable functions   : (funtype list) Bindings.t;
-        mutable setters     : (sfuntype list) Bindings.t;
+        mutable setters     : (funtype list) Bindings.t;
         mutable operators1  : (funtype list) Operators1.t;
         mutable operators2  : (funtype list) Operators2.t;
         mutable encodings   : IdentSet.t;
@@ -315,6 +283,17 @@ end = struct
         encodings   = IdentSet.empty;
         globals     = Bindings.empty;
         constants   = Bindings.empty;
+    }
+
+    let clone (env : t) : t = {
+        types       = env.types;
+        functions   = env.functions;
+        setters     = env.setters;
+        operators1  = env.operators1;
+        operators2  = env.operators2;
+        encodings   = env.encodings;
+        globals     = env.globals;
+        constants   = env.constants;
     }
 
     let addType (env: t) (loc: AST.l) (qid: AST.ident) (t: typedef): unit =
@@ -345,10 +324,10 @@ end = struct
         | Some tys -> tys
         )
 
-    let addSetterFuns (env: t) (qid: AST.ident) (ftys: sfuntype list): unit =
+    let addSetterFuns (env: t) (qid: AST.ident) (ftys: funtype list): unit =
         env.setters <- Bindings.add qid ftys env.setters
 
-    let getSetterFun (env: t) (qid: AST.ident): sfuntype list =
+    let getSetterFun (env: t) (qid: AST.ident): funtype list =
         (match Bindings.find_opt qid env.setters with
         | None -> []
         | Some tys -> tys
@@ -1074,9 +1053,9 @@ let rec unify_type (env: GlobalEnv.t) (u: unifier) (ty1: AST.ty) (ty2: AST.ty): 
     | (Type_App (c1, es1),        Type_App (c2, es2))        -> u#addEqualities es1 es2
     | (Type_OfExpr e1,            Type_OfExpr e2)            -> raise (InternalError "unify_type: typeof")
     (* todo: this is equating the types, not subtyping them *)
-    | (Type_Bits(e1),             Type_Register (w2, _))     -> u#addEquality e1 (Expr_LitInt w2)
-    | (Type_Register (w1, _),     Type_Bits(e2))             -> u#addEquality (Expr_LitInt w1) e2
-    | (Type_Register (w1, _),     Type_Register (w2, _))     -> u#addEquality (Expr_LitInt w1) (Expr_LitInt w2)
+    | (Type_Bits(e1),             Type_Register (e2, _))     -> u#addEquality e1 e2
+    | (Type_Register (e1, _),     Type_Bits(e2))             -> u#addEquality e1 e2
+    | (Type_Register (e1, _),     Type_Register (e2, _))     -> u#addEquality e1 e2
     | (Type_Array (ixty1, elty1), Type_Array (ixty2, elty2)) -> unify_ixtype u ixty1 ixty2; unify_type env u elty1 elty2
     | (Type_Tuple tys1,           Type_Tuple tys2)           -> List.iter2 (unify_type env u) tys1 tys2
     | _ -> ()
@@ -1116,36 +1095,6 @@ let mkfresh_funtype (u: unifier) (fty: funtype): funtype =
     let cs'   = List.map (subst_expr s) cs in
     let rty'  = subst_type s rty in
     (f, isArr, ps', cs', atys', rty')
-
-(** Replace all type variables in setter function type with fresh variables *)
-let mkfresh_sfuntype (u: unifier) (fty: sfuntype): sfuntype =
-    let (f, ps, cs, atys, rty) = fty in
-
-    (* generate renamings for all type variables *)
-    let rns = List.map (fun (tv, _) -> (tv, u#fresh)) ps in
-    let s   = mk_bindings (List.map (fun (v, w) -> (v, Expr_Var w)) rns) in
-
-    let ps' = List.map (fun (a, oty) ->
-        let ty  = Option.get oty in
-        let ty' = subst_type s ty in
-        let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-        (a', Some ty')
-    ) ps in
-    let atys' = List.map (fun aty ->
-        (match aty with
-        | Formal_In(a, ty) ->
-            let ty' = subst_type s ty in
-            let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-            Formal_In(a', ty')
-        | Formal_InOut(a, ty) ->
-            let ty' = subst_type s ty in
-            let a'  = from_option (List.assoc_opt a rns) (fun _ -> a) in
-            Formal_InOut(a', ty')
-        )
-    ) atys in
-    let cs'   = List.map (subst_expr s) cs in
-    let rty' = subst_type s rty in
-    (f, ps', cs', atys', rty')
 
 (** Check that ty2 is a subtype of ty1: ty1 >= ty2 *)
 let check_type (env: Env.t) (u: unifier) (loc: AST.l) (ty1: AST.ty) (ty2: AST.ty): unit =
@@ -1214,31 +1163,6 @@ let chooseFunction (env: GlobalEnv.t) (loc: AST.l) (what: string) (nm: string) (
             raise (Ambiguous (loc, what, nm))
     )
 
-(** Check whether a list of function argument types is compatible with the
-    type of a setter function.
-
-    One function type is compatible with another if they have the same number
-    of arguments and each argument has the same base type
- *)
-let isCompatibleSetterFunction (env: GlobalEnv.t) (tys: AST.ty list) (ft: sfuntype): bool =
-    let nargs = List.length tys in
-    let (_, _, _, atys, _) = ft in
-    (List.length atys = nargs) && List.for_all2 (cmp_type env) (List.map sformal_type atys) tys
-
-(** Disambiguate a setter function name based on the number and type of arguments *)
-let chooseSetterFunction (env: GlobalEnv.t) (loc: AST.l) (what: string) (nm: ident) (tys: AST.ty list) (funs: sfuntype list): sfuntype option =
-    let funs' = List.filter (isCompatibleSetterFunction env tys) funs in
-    (match nub funs' with
-    | []  -> None
-    | [r] -> Some r
-    | fs  ->
-            (* todo: it would probably be better to detect ambiguity when functions are
-             * defined instead of waiting until they are called
-             *)
-            reportChoices loc what (pprint_ident nm) tys (List.map funtype_of_sfuntype fs);
-            raise (Ambiguous (loc, what, pprint_ident nm))
-    )
-
 (** Instantiate type of function using unifier 'u' *)
 let instantiate_fun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: funtype) (es: AST.expr list) (tys: AST.ty list): (AST.ident * AST.expr list * AST.ty) =
     let (f, _, ps, cs, atys, rty) = mkfresh_funtype u fty in
@@ -1253,24 +1177,6 @@ let instantiate_fun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: funtype) 
 
     let tes = List.map (fun (tv, _) -> Expr_Var tv) ps in
     (f, tes, rty)
-
-(** Instantiate type of setter function using unifier 'u' *)
-let instantiate_sfun (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (fty: sfuntype) (es: AST.expr list) (tys: AST.ty list): (AST.ident * AST.expr list * AST.ty) =
-    let (f, ps, cs, atys, rty) = mkfresh_sfuntype u fty in
-
-    (* Add bindings for every explicit type argument *)
-    assert ((List.length atys) = (List.length es) + 1);
-    List.iter2 (fun aty e ->
-        let v = sformal_var aty in
-        if List.mem_assoc v ps then u#addEquality (Expr_Var v) (subst_consts_expr env e)
-    ) (List.tl atys) es;
-
-    (* unify argument types *)
-    List.iter2 (unify_type env u) (List.map sformal_type atys) (List.tl tys);
-
-    let tes = List.map (fun (tv, _) -> Expr_Var tv) ps in
-    (f, tes, rty)
-
 
 (** Disambiguate and typecheck application of a function to a list of arguments *)
 let tc_apply (env: GlobalEnv.t) (u: unifier) (loc: AST.l) (what: string) (f: AST.ident) (es: AST.expr list) (tys: AST.ty list): (AST.ident * AST.expr list * AST.ty) =
@@ -1566,9 +1472,9 @@ and tc_expr (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.expr): (AST.expr * AS
     | Expr_Unknown(t) ->
             let ty' = tc_type env loc t in
             (Expr_Unknown(ty'),  ty')
-    | Expr_ImpDef(t, os) ->
+    | Expr_ImpDef(os, t) ->
             let ty' = tc_type env loc t in
-            (Expr_ImpDef(ty', os),  ty')
+            (Expr_ImpDef(os, ty'),  ty')
     | Expr_Array(a, e) ->
             let (a', ty) = tc_expr env u loc a in
             (match derefType (Env.globals env) ty with
@@ -1766,13 +1672,12 @@ and tc_lexpr2 (env: Env.t) (u: unifier) (loc: AST.l) (x: AST.lexpr): (AST.lexpr 
             let getters = GlobalEnv.getFuns (Env.globals env) (addSuffix a "read") in
             let setters = GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set") in
             let ogetters = chooseFunction (Env.globals env) loc "getter function" (pprint_ident a) true tys getters in
-            let osetters = chooseSetterFunction (Env.globals env) loc "setter function" a tys setters in
+            let osetters = chooseFunction (Env.globals env) loc "setter function" (pprint_ident a) true tys setters in
             (match (ogetters, osetters) with
             | (Some fty, Some gty) when all_single ->
-                (* todo: check for Formal_InOut and check that corresponding argument is a legal lexpr *)
                 let es = List.map (function (Slice_Single a, _) -> a | _ -> raise (InternalError "Expr_Slices")) ss' in
                 let (f', tes', rty) = instantiate_fun (Env.globals env) u loc fty es tys in
-                (LExpr_ReadWrite(f', sft_id gty, tes', es), rty)
+                (LExpr_ReadWrite(f', ft_id gty, tes', es), rty)
             | (None,   Some _) -> raise (UnknownObject(loc, "getter function", pprint_ident a))
             | (Some _, None)   -> raise (UnknownObject(loc, "setter function", pprint_ident a))
             | _ -> tc_slice_lexpr env u loc e ss'
@@ -1871,13 +1776,12 @@ let rec tc_lexpr (env: Env.t) (u: unifier) (loc: AST.l) (ty: AST.ty) (x: AST.lex
             | LExpr_Var(a) ->
                 let tys = ty :: List.map (function (_, ty) -> ty) ss' in
                 let setters = GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set") in
-                let osetters = chooseSetterFunction (Env.globals env) loc "setter function" a tys setters in
+                let osetters = chooseFunction (Env.globals env) loc "setter function" (pprint_ident a) true tys setters in
                 (match osetters with
                 | Some gty when all_single ->
-                    (* todo: check for Formal_InOut and check that corresponding argument is a legal lexpr *)
                     let es = List.map (function (Slice_Single a, _) -> a | _ -> raise (InternalError "Expr_Slices1")) ss' in
-                    let (g', tes', _) = instantiate_sfun (Env.globals env) u loc gty es (ty :: tys) in
-                    (LExpr_Write(sft_id gty, tes', es), ty)
+                    let (g', tes', _) = instantiate_fun (Env.globals env) u loc gty es (ty :: tys) in
+                    (LExpr_Write(ft_id gty, tes', es), ty)
                 | _ ->
                     let getters = GlobalEnv.getFuns (Env.globals env) (addSuffix a "read") in
                     let setters = GlobalEnv.getFuns (Env.globals env) (addSuffix a "write") in
@@ -2070,24 +1974,6 @@ and tc_stmt (env: Env.t) (x: AST.stmt): AST.stmt =
     | Stmt_Assert(e, loc) ->
             let e' = check_expr env loc type_bool e in
             Stmt_Assert(e', loc)
-    | Stmt_Unpred(loc) ->
-            Stmt_Unpred(loc)
-    | Stmt_ConstrainedUnpred(loc) ->
-            Stmt_ConstrainedUnpred(loc)
-    | Stmt_ImpDef(s, loc) ->
-            Stmt_ImpDef(s, loc)
-    | Stmt_Undefined(loc) ->
-            Stmt_Undefined(loc)
-    | Stmt_ExceptionTaken(loc) ->
-            Stmt_ExceptionTaken(loc)
-    | Stmt_Dep_Unpred(loc) ->
-            Stmt_Dep_Unpred(loc)
-    | Stmt_Dep_ImpDef(s, loc) ->
-            Stmt_Dep_ImpDef(s, loc)
-    | Stmt_Dep_Undefined(loc) ->
-            Stmt_Dep_Undefined(loc)
-    | Stmt_See(e, loc) ->
-            Stmt_See(e, loc)
     | Stmt_Throw(v, loc) ->
             let _ = with_unify env loc (fun u ->
                 let (v', ty) = check_var env loc v in
@@ -2199,38 +2085,6 @@ let tc_arguments
     Env.setReturnType env rty';
     (ps', args', rty')
 
-(** Typecheck setter procedure argument *)
-let tc_sformal (env: Env.t) (loc: AST.l) (x: sformal): sformal =
-    ( match x with
-    | Formal_In(v, ty) ->
-            let ty' = tc_type env loc ty in
-            Env.addLocalVar env loc v ty';
-            Formal_In(v, ty')
-    | Formal_InOut(v, ty) ->
-            let ty' = tc_type env loc ty in
-            Env.addLocalVar env loc v ty';
-            Formal_InOut(v, ty')
-    )
-
-(** Typecheck list of setter procedure arguments *)
-let tc_sformals
-    (env: Env.t)
-    (loc: AST.l)
-    (ps: (AST.ident * AST.ty option) list)
-    (args: sformal list)
-    : ((AST.ident * AST.ty option) list * sformal list)
-    =
-    (* If no parameter list was supplied, use freevars from arg/return type *)
-    let ps = if Utils.is_null ps then
-            let fvs = fv_sformals args |> removeConsts (Env.globals env) in
-            List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
-        else
-            ps
-    in
-    let ps' = List.map (tc_parameter env loc) ps in
-    let args' = List.map (tc_sformal env loc) args in
-    (ps', args')
-
 (** Add function definition to environment *)
 let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (ps: (AST.ident * AST.ty option) list) (args: (AST.ident * AST.ty) list) (rty: AST.ty): funtype =
     let argtys   = List.map (fun (_, ty) -> ty) args in
@@ -2254,11 +2108,11 @@ let addFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (isArr: bool) (
         failwith "addFunction"
     )
 
-let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (ps: (AST.ident * AST.ty option) list) (args: AST.sformal list) (vty: AST.ty): sfuntype =
-    let argtys   = List.map sformal_type args in
+let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (ps: (AST.ident * AST.ty option) list) (args: (AST.ident * AST.ty) list) (vty: AST.ty): funtype =
+    let argtys   = List.map snd args in
     let funs     = GlobalEnv.getSetterFun env qid in
     let num_funs = List.length funs in
-    (match List.filter (isCompatibleSetterFunction env argtys) funs with
+    (match List.filter (isCompatibleFunction env true argtys) funs with
     | [] -> (* not defined yet *)
         (* ASL allows multiple functions to share the same name.
          * The typechecker disambiguates functions for the benefit of other parts of the
@@ -2267,7 +2121,7 @@ let addSetterFunction (env: GlobalEnv.t) (loc: AST.l) (qid: AST.ident) (ps: (AST
          *)
         let tag  = num_funs in
         let qid' = addTag qid tag in
-        let fty: sfuntype = (qid', ps, [], args, type_unit) in
+        let fty: funtype = (qid', true, ps, [], args, type_unit) in
         GlobalEnv.addSetterFuns env qid (fty :: funs);
         fty
     | [fty] -> (* already defined *)
@@ -2488,28 +2342,22 @@ let tc_declaration (env: GlobalEnv.t) (d: AST.declaration): AST.declaration list
             [Decl_VarSetterDefn(qid', ps', v, ty', b', loc)]
     | Decl_ArraySetterType(qid, ps, atys, v, ty, loc) ->
             let locals = Env.mkEnv env in
-            let (ps', atys') = tc_sformals locals loc ps (Formal_In(v, ty)::atys) in
-            let (v', ty') = ( match atys' with
-                            | (Formal_In(v', ty') :: _) -> (v', ty')
-                            | _ -> raise (InternalError "arraysetter")
-                            ) in
+            let (ps', atys', _) = tc_arguments locals loc ps ((v, ty)::atys) type_unit in
+            let (v', ty') = List.hd atys' in
             (* todo: check that if a getter function exists, it has a compatible type *)
             let qid' = addSetterFunction env loc (addSuffix qid "set") ps' atys' ty' in
-            [Decl_ArraySetterType(sft_id qid', ps', atys', v, ty', loc)]
+            [Decl_ArraySetterType(ft_id qid', ps', List.tl atys', v, ty', loc)]
     | Decl_ArraySetterDefn(qid, ps, atys, v, ty, b, loc) ->
             let locals = Env.mkEnv env in
-            let (ps', atys') = tc_sformals locals loc ps (Formal_In(v, ty)::atys) in
-            let (v', ty') = ( match atys' with
-                            | (Formal_In(v', ty') :: _) -> (v', ty')
-                            | _ -> raise (InternalError "arraysetter")
-                            ) in
+            let (ps', atys', _) = tc_arguments locals loc ps ((v, ty)::atys) type_unit in
+            let (v', ty') = List.hd atys' in
             (* todo: should I use name mangling or define an enumeration to select
              * which namespace to do lookup in?
              *)
             (* todo: check that if a getter function exists, it has a compatible type *)
             let qid' = addSetterFunction env loc (addSuffix qid "set") ps' atys' ty' in
             let b' = tc_body locals loc b in
-            [Decl_ArraySetterDefn(sft_id qid', ps', atys', v, ty', b', loc)]
+            [Decl_ArraySetterDefn(ft_id qid', ps', List.tl atys', v, ty', b', loc)]
     | Decl_InstructionDefn(nm, encs, opost, conditional, exec, loc) ->
             let locals = Env.mkEnv env in
             let (encs', vss) = List.split (List.map (tc_encoding locals) encs) in
@@ -2654,7 +2502,7 @@ let genPrototypes (ds: AST.declaration list): (AST.declaration list * AST.declar
 let env0 = GlobalEnv.mkempty ()
 
 (** Typecheck a list of declarations - main entrypoint into typechecker *)
-let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaration list =
+let tc_declarations (env : GlobalEnv.t) (isPrelude: bool) (ds: AST.declaration list): AST.declaration list =
     if verbose then Format.fprintf fmt "  - Using Z3 %s\n" Z3.Version.to_string;
     (* Process declarations, starting by moving all function definitions to the
      * end of the list and replacing them with function prototypes.
@@ -2666,8 +2514,8 @@ let tc_declarations (isPrelude: bool) (ds: AST.declaration list): AST.declaratio
      *)
     let (pre, post) = if isPrelude then (ds, []) else genPrototypes ds in
     if verbose then Format.fprintf fmt "  - Typechecking %d phase 1 declarations\n" (List.length pre);
-    let pre'  = List.map (tc_declaration env0) pre  in
-    let post' = List.map (tc_declaration env0) post in
+    let pre'  = List.map (tc_declaration env) pre  in
+    let post' = List.map (tc_declaration env) post in
     (* if verbose then List.iter (fun ds -> List.iter (fun d -> Format.fprintf fmt "\nTypechecked %s\n" (Utils.to_string (PP.pp_declaration d))) ds) post'; *)
     if verbose then Format.fprintf fmt "  - Typechecking %d phase 2 declarations\n" (List.length post);
     List.append (List.concat pre') (List.concat post')

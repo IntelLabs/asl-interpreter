@@ -11,7 +11,7 @@ __builtin type __mask; // todo: should have a type parameter
 __builtin type __Exception;
 __builtin type __RAM; // todo: should have a type parameter
 
-type bit = bits(1);
+type bit of bits(1);
 
 enumeration boolean { FALSE, TRUE };
 enumeration signal { LOW, HIGH };
@@ -199,8 +199,8 @@ end
 __operator1 !       = not_bool;
 __operator2 &&      = and_bool;
 __operator2 ||      = or_bool;
-__operator2 iff     = equiv_bool;
-__operator2 implies = implies_bool;
+__operator2 <->     = equiv_bool;
+__operator2 -->     = implies_bool;
 
 // omit since they are auto-generated
 // __operator2 == = eq_bool;
@@ -364,18 +364,6 @@ end
 func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
     assert N >= M;
     return [Zeros(N-M), x];
-end
-
-// The existence of SignExtend and ZeroExtend makes the
-// typesystem considerably more complex because we cannot
-// determine the value of 'N' just from the types of the
-// arguments.
-func SignExtend{M, N}(x :: bits(M)) => bits(N)
-    return SignExtend(x, N);
-end
-
-func ZeroExtend{M, N}(x :: bits(M)) => bits(N)
-    return ZeroExtend(x, N);
 end
 
 func Sqrt(x :: real) => real

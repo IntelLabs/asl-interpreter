@@ -1,7 +1,8 @@
 (ocamllex lexer)
 
 (menhir
- (modules asl_parser))
+ (modules asl_parser)
+ (flags --explain))
 
 (rule
  (targets asl_parser.mly asl_lexer.mll asl_ast.ml)
@@ -24,10 +25,13 @@
  asl_parser
  asl_utils
  asl_visitor
+ backend_c
+ backend_verilog
  cpu
  elf
  eval
  format_utils
+ lattice
  lexer
  lexersupport
  loadASL
@@ -35,5 +39,9 @@
  tcheck
  utils
  value
- visitor)
+ visitor
+ xform_casesplit
+ xform_constprop
+ xform_mono
+ )
  (libraries ocolor pprint zarith z3))

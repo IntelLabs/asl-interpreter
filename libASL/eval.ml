@@ -344,7 +344,7 @@ and mk_uninitialized (loc: l) (env: Env.t) (x: AST.ty): value =
     | Type_Integer _ -> eval_unknown_integer ()
     (* bitvectors and registers should really track whether a bit is initialized individually *)
     | Type_Bits(n) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
-    | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
+    | Type_Register(n, _) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | _ ->
             VUninitialized (* should only be used for scalar types *)
     )
@@ -379,7 +379,7 @@ and eval_unknown (loc: l) (env: Env.t) (x: AST.ty): value =
             raise (EvalError (loc, "eval_unknown App " ^ pp_type x))
     | Type_OfExpr(e) ->
             raise (EvalError (loc, "eval_unknown typeof " ^ pp_type x))
-    | Type_Register(wd, _) -> eval_unknown_bits (Z.of_string wd)
+    | Type_Register(n, _) -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
     | Type_Array(Index_Enum(tc),ety) ->
             Value.empty_array (eval_unknown loc env ety)
     | Type_Array(Index_Range(lo,hi),ety) ->
@@ -519,9 +519,9 @@ and eval_expr (loc: l) (env: Env.t) (x: AST.expr): value =
             raise (EvalError (loc, "unary operation should have been removed"))
     | Expr_Unknown(t) ->
             eval_unknown loc env t
-    | Expr_ImpDef(t, Some(s)) ->
+    | Expr_ImpDef(Some(s), t) ->
             GlobalEnv.getImpdef loc (Env.globals env) s
-    | Expr_ImpDef(t, None) ->
+    | Expr_ImpDef(None, t) ->
             raise (EvalError (loc, "unnamed IMPLEMENTATION_DEFINED behavior"))
     | Expr_Array(a, i) ->
             let a' = eval_expr loc env a in
@@ -653,25 +653,6 @@ and eval_stmt (env: Env.t) (x: AST.stmt): unit =
     | Stmt_Assert(e, loc) ->
             if not (to_bool loc (eval_expr loc env e)) then
                 raise (EvalError (loc, "assertion failure"))
-    | Stmt_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_ConstrainedUnpred(loc) ->
-            raise (Throw (loc, Exc_ConstrainedUnpredictable))
-    | Stmt_ImpDef(v, loc) ->
-            raise (Throw (loc, Exc_ImpDefined (pprint_ident v)))
-    | Stmt_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_ExceptionTaken(loc) ->
-            raise (Throw (loc, Exc_ExceptionTaken))
-    | Stmt_Dep_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_Dep_ImpDef(s, loc) ->
-            raise (Throw (loc, Exc_ImpDefined s))
-    | Stmt_Dep_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_See(e, loc) ->
-            let s = to_string loc (eval_expr loc env e) in
-            raise (Throw (loc, Exc_SEE s))
     | Stmt_Throw(v, loc) ->
             let ex = to_exc loc (Env.getVar loc env v) in
             raise (Throw ex)
@@ -964,13 +945,7 @@ let build_constant_environment (ds: AST.declaration list): GlobalEnv.t = begin
                 GlobalEnv.addFun loc genv f (tvs, args, loc, body)
         | Decl_ArraySetterDefn(f, ps, atys, v, ty, body, loc) ->
                 let tvs  = List.map fst ps in
-                let name_of (x: AST.sformal): ident =
-                    (match x with
-                    | Formal_In (nm, _) -> nm
-                    | Formal_InOut (nm, _) -> nm
-                    )
-                in
-                let args = List.map name_of atys in
+                let args = List.map fst atys in
                 GlobalEnv.addFun loc genv f (tvs, List.append args [v], loc, body)
         | Decl_InstructionDefn(nm, encs, opost, conditional, exec, loc) ->
                 (* Instructions are looked up by their encoding name *)

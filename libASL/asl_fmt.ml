@@ -52,7 +52,9 @@ let lparen             (fmt: PP.formatter): unit = delimiter fmt "("
 let lt                 (fmt: PP.formatter): unit = delimiter fmt "<"
 let lt_eq              (fmt: PP.formatter): unit = delimiter fmt "<="
 let lt_lt              (fmt: PP.formatter): unit = delimiter fmt "<<"
+let lt_minus_gt        (fmt: PP.formatter): unit = delimiter fmt "<->"
 let minus              (fmt: PP.formatter): unit = delimiter fmt "-"
+let minus_minus_gt     (fmt: PP.formatter): unit = delimiter fmt "-->"
 let plus               (fmt: PP.formatter): unit = delimiter fmt "+"
 let plus_colon         (fmt: PP.formatter): unit = delimiter fmt "+:"
 let plus_plus          (fmt: PP.formatter): unit = delimiter fmt "++"
@@ -68,8 +70,6 @@ let star               (fmt: PP.formatter): unit = delimiter fmt "*"
 let kw_and                             (fmt: PP.formatter): unit = delimiter fmt "AND"
 let kw_div                             (fmt: PP.formatter): unit = delimiter fmt "DIV"
 let kw_eor                             (fmt: PP.formatter): unit = delimiter fmt "EOR"
-let kw_iff                             (fmt: PP.formatter): unit = delimiter fmt "iff"
-let kw_implies                         (fmt: PP.formatter): unit = delimiter fmt "implies"
 let kw_in                              (fmt: PP.formatter): unit = delimiter fmt "IN"
 let kw_mod                             (fmt: PP.formatter): unit = delimiter fmt "MOD"
 let kw_not                             (fmt: PP.formatter): unit = delimiter fmt "NOT"
@@ -80,11 +80,12 @@ let kw_rem                             (fmt: PP.formatter): unit = delimiter fmt
 let kw_array                           (fmt: PP.formatter): unit = keyword fmt "array"
 let kw_as                              (fmt: PP.formatter): unit = delimiter fmt "as"
 let kw_assert                          (fmt: PP.formatter): unit = keyword fmt "assert"
+let kw_begin                           (fmt: PP.formatter): unit = keyword fmt "begin"
 let kw_bits                            (fmt: PP.formatter): unit = keyword fmt "bits"
 let kw_case                            (fmt: PP.formatter): unit = keyword fmt "case"
 let kw_catch                           (fmt: PP.formatter): unit = keyword fmt "catch"
+let kw_config                          (fmt: PP.formatter): unit = keyword fmt "config"
 let kw_constant                        (fmt: PP.formatter): unit = keyword fmt "constant"
-let kw_constrained_unpredictable       (fmt: PP.formatter): unit = keyword fmt "CONSTRAINED_UNPREDICTABLE"
 let kw_do                              (fmt: PP.formatter): unit = keyword fmt "do"
 let kw_downto                          (fmt: PP.formatter): unit = keyword fmt "downto"
 let kw_else                            (fmt: PP.formatter): unit = keyword fmt "else"
@@ -96,7 +97,7 @@ let kw_getter                          (fmt: PP.formatter): unit = keyword fmt "
 let kw_for                             (fmt: PP.formatter): unit = keyword fmt "for"
 let kw_if                              (fmt: PP.formatter): unit = keyword fmt "if"
 let kw_implementation_defined          (fmt: PP.formatter): unit = keyword fmt "IMPLEMENTATION_DEFINED"
-let kw_is                              (fmt: PP.formatter): unit = keyword fmt "is"
+let kw_let                             (fmt: PP.formatter): unit = keyword fmt "let"
 let kw_of                              (fmt: PP.formatter): unit = keyword fmt "of"
 let kw_otherwise                       (fmt: PP.formatter): unit = keyword fmt "otherwise"
 let kw_record                          (fmt: PP.formatter): unit = keyword fmt "record"
@@ -110,15 +111,12 @@ let kw_to                              (fmt: PP.formatter): unit = keyword fmt "
 let kw_try                             (fmt: PP.formatter): unit = keyword fmt "try"
 let kw_type                            (fmt: PP.formatter): unit = keyword fmt "type"
 let kw_typeof                          (fmt: PP.formatter): unit = keyword fmt "typeof"
-let kw_undefined                       (fmt: PP.formatter): unit = keyword fmt "UNDEFINED"
 let kw_underscore_array                (fmt: PP.formatter): unit = keyword fmt "__array"
 let kw_underscore_builtin              (fmt: PP.formatter): unit = keyword fmt "__builtin"
 let kw_underscore_conditional          (fmt: PP.formatter): unit = keyword fmt "__conditional"
-let kw_underscore_config               (fmt: PP.formatter): unit = keyword fmt "__config"
 let kw_underscore_decode               (fmt: PP.formatter): unit = keyword fmt "__decode"
 let kw_underscore_encoding             (fmt: PP.formatter): unit = keyword fmt "__encoding"
 let kw_underscore_event                (fmt: PP.formatter): unit = keyword fmt "__event"
-let kw_underscore_exceptiontaken       (fmt: PP.formatter): unit = keyword fmt "__ExceptionTaken"
 let kw_underscore_execute              (fmt: PP.formatter): unit = keyword fmt "__execute"
 let kw_underscore_field                (fmt: PP.formatter): unit = keyword fmt "__field"
 let kw_underscore_guard                (fmt: PP.formatter): unit = keyword fmt "__guard"
@@ -133,14 +131,13 @@ let kw_underscore_operator1            (fmt: PP.formatter): unit = keyword fmt "
 let kw_underscore_operator2            (fmt: PP.formatter): unit = keyword fmt "__operator2"
 let kw_underscore_postdecode           (fmt: PP.formatter): unit = keyword fmt "__postdecode"
 let kw_underscore_readwrite            (fmt: PP.formatter): unit = keyword fmt "__readwrite"
-let kw_underscore_register             (fmt: PP.formatter): unit = keyword fmt "__register"
 let kw_underscore_unallocated          (fmt: PP.formatter): unit = keyword fmt "__UNALLOCATED"
 let kw_underscore_unpredictable        (fmt: PP.formatter): unit = keyword fmt "__UNPREDICTABLE"
 let kw_underscore_unpredictable_unless (fmt: PP.formatter): unit = keyword fmt "__unpredictable_unless"
 let kw_underscore_write                (fmt: PP.formatter): unit = keyword fmt "__write"
 let kw_unknown                         (fmt: PP.formatter): unit = keyword fmt "UNKNOWN"
-let kw_unpredictable                   (fmt: PP.formatter): unit = keyword fmt "UNPREDICTABLE"
 let kw_until                           (fmt: PP.formatter): unit = keyword fmt "until"
+let kw_var                             (fmt: PP.formatter): unit = keyword fmt "var"
 let kw_when                            (fmt: PP.formatter): unit = keyword fmt "when"
 let kw_while                           (fmt: PP.formatter): unit = keyword fmt "while"
 
@@ -246,8 +243,8 @@ let binop (fmt: PP.formatter) (x: AST.binop): unit =
   | Binop_ShiftR      -> gt_gt      fmt
   | Binop_BoolAnd     -> amp_amp    fmt
   | Binop_BoolOr      -> bar_bar    fmt
-  | Binop_BoolIff     -> kw_iff     fmt
-  | Binop_BoolImplies -> kw_implies fmt
+  | Binop_BoolIff     -> lt_minus_gt fmt
+  | Binop_BoolImplies -> minus_minus_gt fmt
   | Binop_BitOr       -> kw_or      fmt
   | Binop_BitEor      -> kw_eor     fmt
   | Binop_BitAnd      -> kw_and     fmt
@@ -268,7 +265,18 @@ let bitsLit (fmt: PP.formatter) (x: AST.bitsLit): unit = constant fmt ("'" ^ x ^
 let maskLit (fmt: PP.formatter) (x: AST.maskLit): unit = constant fmt ("'" ^ x ^ "'")
 let realLit (fmt: PP.formatter) (x: AST.realLit): unit = constant fmt x
 let hexLit  (fmt: PP.formatter) (x: AST.hexLit): unit = constant fmt x
-let strLit  (fmt: PP.formatter) (x: string): unit = constant fmt ("\"" ^ x ^ "\"")
+
+let strLit  (fmt: PP.formatter) (x: string): unit =
+  let escape (c : char) : unit =
+      if c == '\n' then constant fmt "\\n"
+      else if c == '\t' then constant fmt "\\t"
+      else if c == '\\' then constant fmt "\\\\"
+      else if c == '\"' then constant fmt "\\\""
+      else constant fmt (String.make 1 c)
+  in
+  constant fmt "\"";
+  String.iter escape x;
+  constant fmt "\""
 
 let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
   ( match x with
@@ -283,11 +291,12 @@ let rec ty (fmt: PP.formatter) (x: AST.ty): unit =
   | Type_App(tc, es) -> tycon fmt tc; parens fmt (fun _ -> exprs fmt es)
   | Type_OfExpr(e) -> kw_typeof fmt; parens fmt (fun _ -> expr fmt e)
   | Type_Register(wd, fs) ->
-    kw_underscore_register fmt; nbsp fmt; intLit fmt wd;
+    tycon fmt (Ident "bits"); parens fmt (fun _ -> expr fmt wd); nbsp fmt;
     braces fmt (fun _ ->
       indented fmt (fun _ ->
         cutsep fmt (regfield fmt) fs
-      )
+      );
+      cut fmt
     )
   | Type_Array(ixty, ety) ->
     kw_array fmt; nbsp fmt;
@@ -309,7 +318,7 @@ and constraints (fmt: PP.formatter) (x: AST.constraint_range list): unit =
     braces fmt (fun _ -> commasep fmt (constraint_range fmt) x)
 
 and regfield (fmt: PP.formatter) (rf: (AST.slice list * AST.ident)): unit =
-  commasep fmt (slice fmt) (fst rf); nbsp fmt; fieldname fmt (snd rf)
+  brackets fmt (fun _ -> commasep fmt (slice fmt) (fst rf)); nbsp fmt; fieldname fmt (snd rf)
 
 and slice (fmt: PP.formatter) (x: AST.slice): unit =
   (match x with
@@ -351,9 +360,10 @@ and expr (fmt: PP.formatter) (x: AST.expr): unit =
   | Expr_Tuple(es) -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat(es) -> brackets fmt (fun _ -> exprs fmt es)
   | Expr_Unop(op, e) -> unop fmt op; nbsp fmt; expr fmt e
-  | Expr_Unknown(t) -> ty fmt t; nbsp fmt; kw_unknown fmt
-  | Expr_ImpDef(t, os) ->
-    ty fmt t; nbsp fmt; kw_implementation_defined fmt; PP.pp_print_option strLit fmt os
+  | Expr_Unknown(t) -> kw_unknown fmt; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
+  | Expr_ImpDef(os, t) ->
+    kw_implementation_defined fmt; nbsp fmt; PP.pp_print_option strLit fmt os;
+    nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t
   | Expr_Array(a, e) -> expr fmt a; brackets fmt (fun _ -> expr fmt e)
   | Expr_LitInt    l -> intLit  fmt l
   | Expr_LitHex    l -> hexLit fmt l
@@ -435,15 +445,17 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
   (match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
     comments_before fmt loc;
+    kw_var fmt; nbsp fmt;
     varnames fmt vs; nbsp fmt; coloncolon fmt; nbsp fmt; ty fmt t; semicolon fmt;
     comment_start fmt loc
   | Stmt_VarDecl (v, ot, i, loc) ->
     comments_before fmt loc;
+    kw_var fmt; nbsp fmt;
     varoty fmt v ot; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
     comment_start fmt loc
   | Stmt_ConstDecl (v, ot, i, loc) ->
     comments_before fmt loc;
-    kw_constant fmt; nbsp fmt;
+    kw_let fmt; nbsp fmt;
     varoty fmt v ot; nbsp fmt; eq fmt; nbsp fmt; expr fmt i; semicolon fmt;
     comment_start fmt loc
   | Stmt_Assign (l, r, loc) ->
@@ -469,46 +481,6 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
     comments_before fmt loc;
     kw_assert fmt; nbsp fmt; expr fmt e; semicolon fmt;
     comment_start fmt loc
-  | Stmt_Unpred (loc) ->
-    comments_before fmt loc;
-    kw_unpredictable fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ConstrainedUnpred(loc) ->
-    comments_before fmt loc;
-    kw_constrained_unpredictable fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ImpDef (v, loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; parens fmt (fun _ -> varname fmt v); semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Undefined (loc) ->
-    comments_before fmt loc;
-    kw_undefined fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_ExceptionTaken (loc) ->
-    comments_before fmt loc;
-    kw_underscore_exceptiontaken fmt; lparen fmt; rparen fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_Unpred (loc) ->
-    comments_before fmt loc;
-    kw_unpredictable fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_ImpDef ("", loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_ImpDef (s, loc) ->
-    comments_before fmt loc;
-    kw_implementation_defined fmt; parens fmt (fun _ -> strLit fmt s); semicolon fmt;
-    comment_start fmt loc
-  | Stmt_Dep_Undefined (loc) ->
-    comments_before fmt loc;
-    kw_undefined fmt; semicolon fmt;
-    comment_start fmt loc
-  | Stmt_See (e, loc) ->
-    comments_before fmt loc;
-    kw_see fmt; nbsp fmt; parens fmt (fun _ -> expr fmt e); semicolon fmt;
-    comment_start fmt loc
   | Stmt_Throw (v, loc) ->
     comments_before fmt loc;
     kw_throw fmt; nbsp fmt; varname fmt v;
@@ -519,11 +491,10 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
     comment_start fmt loc
   | Stmt_Block (ss, loc) ->
     comments_before fmt loc;
-    lbrace fmt;
+    kw_begin fmt;
     comment_start fmt loc;
     indented_block fmt ss;
-    cut fmt;
-    rbrace fmt
+    cut fmt; kw_end fmt
   | Stmt_If (c, t, els, (e, el), loc) ->
     comments_before fmt loc;
     vbox fmt (fun _ ->
@@ -543,7 +514,7 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
         comment_start fmt el;
         indented_block fmt e
       end;
-      kw_end fmt
+      cut fmt; kw_end fmt
     )
   | Stmt_Case (e, alts, ob, loc) ->
     comments_before fmt loc;
@@ -562,7 +533,7 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
           cut fmt; kw_otherwise fmt; comment_start fmt bl; indented_block fmt b
         ) fmt ob
       );
-      kw_end fmt
+      cut fmt; kw_end fmt
     )
   | Stmt_For (v, f, dir, t, b, loc) ->
     comments_before fmt loc;
@@ -571,16 +542,16 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
     expr fmt f;
     nbsp fmt; direction fmt dir; nbsp fmt;
     expr fmt t;
-    kw_do fmt;
+    nbsp fmt; kw_do fmt;
     comment_start fmt loc;
     indented_block fmt b;
-    kw_end fmt
+    cut fmt; kw_end fmt
   | Stmt_While (c, b, loc) ->
     comments_before fmt loc;
     kw_while fmt; nbsp fmt; expr fmt c; nbsp fmt; kw_do fmt;
     comment_start fmt loc;
     indented_block fmt b;
-    kw_end fmt
+    cut fmt; kw_end fmt
   | Stmt_Repeat (b, c, pos, loc) ->
     comments_before fmt loc;
     kw_repeat fmt;
@@ -604,7 +575,7 @@ let rec stmt (fmt: PP.formatter) (x: AST.stmt): unit =
       ) cs;
       PP.pp_print_option (fun _ (b, bl) -> cut fmt; kw_otherwise fmt; comment_start fmt bl; indented_block fmt b) fmt ob
     );
-    kw_end fmt
+    cut fmt; kw_end fmt
   )
 
 and indented_block (fmt: PP.formatter) (xs: AST.stmt list): unit =
@@ -624,14 +595,6 @@ let formal (fmt: PP.formatter) (x: (AST.ident * AST.ty)): unit =
   varty fmt v t
 
 let formals (fmt: PP.formatter) (xs: (AST.ident * AST.ty) list): unit = commasep fmt (formal fmt) xs
-
-let sformal (fmt: PP.formatter) (x: AST.sformal): unit =
-  (match x with
-  | Formal_In (v, t) -> varty fmt v t;
-  | Formal_InOut (v, t) -> amp fmt; varty fmt v t
-  )
-
-let sformals (fmt: PP.formatter) (xs: AST.sformal list): unit = commasep fmt (sformal fmt) xs
 
 let instr_field (fmt: PP.formatter) (x: AST.instr_field): unit =
   (match x with
@@ -715,7 +678,7 @@ let function_header (fmt: PP.formatter) (ot: AST.ty option) (f: AST.ident) (ps: 
     funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
     parens fmt args;
-    PP.pp_print_option (fun _ t -> eq_gt fmt; ty fmt t; nbsp fmt) fmt ot
+    PP.pp_print_option (fun _ t -> nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t) fmt ot
 
 let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   vbox fmt (fun _ ->
@@ -741,7 +704,7 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     semicolon fmt
   | Decl_Typedef (tc, t, loc) ->
     comments_before fmt loc;
-    kw_type fmt; nbsp fmt; tycon fmt tc; nbsp fmt; eq fmt; nbsp fmt; ty fmt t; semicolon fmt
+    kw_type fmt; nbsp fmt; tycon fmt tc; nbsp fmt; kw_of fmt; nbsp fmt; ty fmt t; semicolon fmt
   | Decl_Enum (tc, es, loc) ->
     comments_before fmt loc;
     kw_enumeration fmt; nbsp fmt; tycon fmt tc; nbsp fmt;
@@ -749,9 +712,11 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     semicolon fmt
   | Decl_Var (v, t, loc) ->
     comments_before fmt loc;
+    kw_var fmt; nbsp fmt;
     varty fmt v t; semicolon fmt
   | Decl_Const (v, t, e, loc) ->
     comments_before fmt loc;
+    kw_constant fmt; nbsp fmt;
     varty fmt v t; nbsp fmt; eq fmt; nbsp fmt; expr fmt e; semicolon fmt
   | Decl_BuiltinFunction (f, ps, args, t, loc) ->
     comments_before fmt loc;
@@ -765,7 +730,8 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   | Decl_FunDefn (f, ps, args, t, b, loc) ->
     comments_before fmt loc;
     kw_func fmt; nbsp fmt;
-    function_header fmt (Some t) f ps (fun _ -> formals fmt args); indented_block fmt b
+    function_header fmt (Some t) f ps (fun _ -> formals fmt args); indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_ProcType (f, ps, args, loc) ->
     comments_before fmt loc;
     kw_func fmt; nbsp fmt;
@@ -773,14 +739,16 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
   | Decl_ProcDefn (f, ps, args, b, loc) ->
     comments_before fmt loc;
     kw_func fmt; nbsp fmt;
-    function_header fmt None f ps (fun _ -> formals fmt args); indented_block fmt b
+    function_header fmt None f ps (fun _ -> formals fmt args); indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_VarGetterType (f, ps, t, loc) ->
     kw_getter fmt; nbsp fmt; funname fmt f; nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_VarGetterDefn (f, ps, t, b, loc) ->
     comments_before fmt loc;
     kw_getter fmt; nbsp fmt; funname fmt f; nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_ArrayGetterType (f, ps, args, t, loc) ->
     comments_before fmt loc;
     kw_getter fmt; nbsp fmt; funname fmt f;
@@ -794,7 +762,8 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     braces fmt (fun _ -> parameters fmt ps);
     brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq_gt fmt; nbsp fmt; ty fmt t;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_VarSetterType (f, ps, v, t, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
@@ -806,21 +775,23 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     kw_setter fmt; nbsp fmt; funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_ArraySetterType (f, ps, args, v, t, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
-    brackets fmt (fun _ -> sformals fmt args);
+    brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
     semicolon fmt
   | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
     comments_before fmt loc;
     kw_setter fmt; nbsp fmt; funname fmt f;
     braces fmt (fun _ -> parameters fmt ps);
-    brackets fmt (fun _ -> sformals fmt args);
+    brackets fmt (fun _ -> formals fmt args);
     nbsp fmt; eq fmt; nbsp fmt; varname fmt v; nbsp fmt; ty fmt t;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_InstructionDefn (d, es, opd, c, ex, loc) ->
     comments_before fmt loc;
     kw_underscore_instruction fmt; nbsp fmt; varname fmt d;
@@ -832,13 +803,15 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
       ) fmt opd;
       kw_underscore_execute fmt; (if c then kw_underscore_conditional fmt; nbsp fmt);
       indented_block fmt ex
-    )
+    );
+    cut fmt; kw_end fmt
   | Decl_DecoderDefn (d, dc, loc) ->
     comments_before fmt loc;
     kw_underscore_decode fmt; varname fmt d;
     indented fmt (fun _ ->
       decode_case fmt dc
-    )
+    );
+    cut fmt; kw_end fmt
   | Decl_Operator1 (op, fs, loc) ->
     comments_before fmt loc;
     kw_underscore_operator1 fmt; nbsp fmt; unop fmt op;
@@ -860,12 +833,14 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
     comments_before fmt loc;
     kw_underscore_event fmt; nbsp fmt;
     funname fmt f;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_NewMapDefn(f, ps, args, t, b, loc) ->
     comments_before fmt loc;
     kw_underscore_newevent fmt; nbsp fmt;
     function_header fmt (Some t) f ps (fun _ -> formals fmt args);
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_MapClause(f, fs, oc, b, loc) ->
     comments_before fmt loc;
     kw_underscore_event fmt; nbsp fmt;
@@ -876,10 +851,11 @@ let declaration (fmt: PP.formatter) (x: AST.declaration): unit =
       ) fs
     );
     PP.pp_print_option (fun _ c -> kw_when fmt; expr fmt c) fmt oc; kw_then fmt;
-    indented_block fmt b
+    indented_block fmt b;
+    cut fmt; kw_end fmt
   | Decl_Config(v, t, e, loc) ->
     comments_before fmt loc;
-    kw_underscore_config fmt; nbsp fmt;
+    kw_config fmt; nbsp fmt;
     varty fmt v t; nbsp fmt; eq fmt; nbsp fmt; expr fmt e; semicolon fmt
   )
   )

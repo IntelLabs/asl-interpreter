@@ -38,7 +38,6 @@ class type aslVisitor = object
     method valt      : alt            -> alt            visitAction
     method vcatcher  : catcher        -> catcher        visitAction
     method vmapfield : mapfield       -> mapfield       visitAction
-    method vsformal  : sformal        -> sformal        visitAction
     method vdpattern : decode_pattern -> decode_pattern visitAction
     method vencoding : encoding       -> encoding       visitAction
     method vdcase    : decode_case    -> decode_case    visitAction
@@ -192,9 +191,9 @@ let rec visit_exprs (vis: aslVisitor) (xs: expr list): expr list =
             | Expr_Unknown(t) ->
                     let t' = visit_type vis t in
                     if t == t' then x else Expr_Unknown t'
-            | Expr_ImpDef(t, os) ->
+            | Expr_ImpDef(os, t) ->
                     let t' = visit_type vis t in
-                    if t == t' then x else Expr_ImpDef(t', os)
+                    if t == t' then x else Expr_ImpDef(os, t')
             | Expr_Array(a, e) ->
                     let a' = visit_expr vis a in
                     let e' = visit_expr vis e in
@@ -388,19 +387,6 @@ let rec visit_stmts (vis: aslVisitor) (xs: stmt list): stmt list =
             | Stmt_Assert (e, loc) ->
                     let e' = visit_expr vis e in
                     if e == e' then x else Stmt_Assert (e', loc)
-            | Stmt_Unpred (_) -> x
-            | Stmt_ConstrainedUnpred(_) -> x
-            | Stmt_ImpDef (v, loc) ->
-                    let v' = visit_var vis v in
-                    if v == v' then x else Stmt_ImpDef (v', loc)
-            | Stmt_Undefined (_) -> x
-            | Stmt_ExceptionTaken (_) -> x
-            | Stmt_Dep_Unpred (_) -> x
-            | Stmt_Dep_ImpDef (_, _) -> x
-            | Stmt_Dep_Undefined (_) -> x
-            | Stmt_See (e, loc) ->
-                    let e' = visit_expr vis e in
-                    if e == e' then x else Stmt_See (e', loc)
             | Stmt_Throw (v, loc) ->
                     let v' = visit_var vis v in
                     if v == v' then x else Stmt_Throw (v', loc)
@@ -492,21 +478,6 @@ let visit_mapfield (vis: aslVisitor) (x: mapfield): mapfield =
         in
         doVisit vis (vis#vmapfield x) aux x
 
-let visit_sformal (vis: aslVisitor) (x: sformal): sformal =
-        let aux (vis: aslVisitor) (x: sformal): sformal =
-            (match x with
-            | Formal_In (v, ty) ->
-                    let ty' = visit_type vis ty in
-                    let v' = visit_lvar vis v in
-                    if ty == ty' && v == v' then x else Formal_In (v', ty')
-            | Formal_InOut(v, ty) ->
-                    let ty' = visit_type vis ty in
-                    let v' = visit_lvar vis v in
-                    if ty == ty' && v == v' then x else Formal_InOut (v', ty')
-            )
-        in
-        doVisit vis (vis#vsformal x) aux x
-
 let rec visit_dpattern (vis: aslVisitor) (x: decode_pattern): decode_pattern =
         let aux (vis: aslVisitor) (x: decode_pattern): decode_pattern =
             (match x with
@@ -590,11 +561,6 @@ let visit_arg (vis: aslVisitor) (x: (ident * ty)): (ident * ty) =
 
 let visit_args (vis: aslVisitor) (xs: (ident * ty) list): (ident * ty) list =
         mapNoCopy (visit_arg vis) xs
-
-let arg_of_sformal (sf: sformal): (ident * ty) =
-    match sf with
-    | Formal_In (id, ty)
-    | Formal_InOut (id, ty) -> (id, ty)
 
 let arg_of_ifield (IField_Field (id, _, wd)): (ident * ty) =
     (id, Type_Bits (Expr_LitInt (string_of_int wd)))
@@ -720,7 +686,7 @@ let visit_decl (vis: aslVisitor) (x: declaration): declaration =
             | Decl_ArraySetterType (f, ps, args, v, ty, loc) ->
                     let f'    = visit_var vis f in
                     let ps'   = visit_parameters vis ps in
-                    let args' = mapNoCopy (visit_sformal vis) args in
+                    let args' = visit_args vis args in
                     let ty'   = visit_type vis ty in
                     let v'    = visit_var vis v in
                     if f == f' && ps == ps' && args == args' && ty == ty' && v == v' then x else
@@ -728,11 +694,10 @@ let visit_decl (vis: aslVisitor) (x: declaration): declaration =
             | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) ->
                     let f'    = visit_var vis f in
                     let ps'   = visit_parameters vis ps in
-                    let args' = mapNoCopy (visit_sformal vis) args in
+                    let args' = visit_args vis args in
                     let ty'   = visit_type vis ty in
                     let v'    = visit_var vis v in
-                    let lvars = List.map arg_of_sformal args' @ [(v', ty')] in
-                    let b'    = with_locals (List.map fst lvars) vis visit_stmts b in
+                    let b'    = with_locals (List.map fst args' @ [v']) vis visit_stmts b in
                     if f == f' && args == args' && ty == ty' && v == v' && b == b' then x else
                     Decl_ArraySetterDefn (f', ps', args', v', ty', b', loc)
             | Decl_InstructionDefn (d, es, opd, c, ex, loc) ->
@@ -820,7 +785,6 @@ class nopAslVisitor : aslVisitor = object
     method valt      (_: alt)            = DoChildren
     method vcatcher  (_: catcher)        = DoChildren
     method vmapfield (_: mapfield)       = DoChildren
-    method vsformal  (_: sformal)        = DoChildren
     method vdpattern (_: decode_pattern) = DoChildren
     method vencoding (_: encoding)       = DoChildren
     method vdcase    (_: decode_case)    = DoChildren

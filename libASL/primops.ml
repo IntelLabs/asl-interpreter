@@ -254,7 +254,7 @@ let prim_is_unpred_exc     (x: exc): bool = (match x with Exc_Unpredictable  -> 
 let prim_eq_str         (x: string) (y: string): bool   = x = y
 let prim_ne_str         (x: string) (y: string): bool   = x <> y
 let prim_append_str     (x: string) (y: string): string = x ^ y
-let prim_cvt_int_hexstr (x: bigint): string = Z.format "%x" x
+let prim_cvt_int_hexstr (x: bigint): string = "0x" ^ Z.format "%x" x
 let prim_cvt_int_decstr (x: bigint): string = Z.to_string x
 let prim_cvt_bool_str   (x: bool): string = if x then "TRUE" else "FALSE"
 
@@ -264,7 +264,7 @@ let prim_cvt_bits_str   (n: bigint) (x: bitvector): string =
     end else begin
         let s = Z.format "%0b" x.v in
         let pad = String.make (Z.to_int n - String.length s) '0' in
-        Z.to_string n ^ "'" ^ pad ^ s ^ "'"
+        "'" ^ pad ^ s ^ "'"
     end
 
 let prim_cvt_real_str   (x: real): string =
