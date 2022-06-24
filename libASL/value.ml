@@ -153,7 +153,11 @@ let mkrecord (fs : (AST.ident * value) list) : value = VRecord (mk_bindings fs)
 
 let get_field (loc : AST.l) (x : value) (f : AST.ident) : value =
   match x with
-  | VRecord fs -> Bindings.find f fs
+  | VRecord fs ->
+      ( match Bindings.find_opt f fs with
+      | Some r -> r
+      | None -> raise (EvalError (loc, "Field " ^ AST.pprint_ident f ^ " not found in " ^ pp_value x))
+      )
   | _ -> raise (EvalError (loc, "record expected. Got " ^ pp_value x))
 
 let set_field (loc : AST.l) (x : value) (f : AST.ident) (v : value) : value =
