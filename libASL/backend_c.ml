@@ -16,7 +16,8 @@ open Format_utils
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
 let mangle (s : string) : string =
-  (* TODO this should detect whether s is a reserved name in C and rename to avoid conflict *)
+  (* TODO this should detect whether s is a reserved name in C and rename to
+     avoid conflict *)
   s
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =

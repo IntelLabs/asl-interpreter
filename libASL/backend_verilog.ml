@@ -16,7 +16,8 @@ open Format_utils
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
 let mangle (s : string) : string =
-  (* todo: this should detect whether s is a reserved name in System Verilog and rename to avoid conflict *)
+  (* todo: this should detect whether s is a reserved name in System Verilog and
+     rename to avoid conflict *)
   s
 
 let comment (fmt : PP.formatter) (x : string) : unit =

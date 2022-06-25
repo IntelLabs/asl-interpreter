@@ -98,7 +98,8 @@ let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
       let w = mk_add_int (mk_sub_int hi lo) one in
       mk_bits_select w n x lo
   | _, [ Slice_LoWd (lo, wd) ] -> mk_bits_select wd n x lo
-  (* todo: currently don't have a good story for lowering the multi-slice case *)
+  (* todo: currently don't have a good story for lowering the multi-slice
+     case *)
   | _ -> Expr_Slices (x, ss)
 
 (* Lower int slice expression *)
@@ -112,7 +113,8 @@ let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
       let w = mk_add_int (mk_sub_int hi lo) one in
       mk_int_select w x lo
   | _, [ Slice_LoWd (lo, wd) ] -> mk_int_select wd x lo
-  (* todo: currently don't have a good story for lowering the multi-slice case *)
+  (* todo: currently don't have a good story for lowering the multi-slice
+     case *)
   | _ -> Expr_Slices (x, ss)
 
 let slice_width (x : AST.slice) : AST.expr =
@@ -935,8 +937,10 @@ class unifier (loc : AST.l) (assumptions : expr list) =
         IdentSet.is_empty (IdentSet.filter self#isFresh (fv_expr x))
       in
 
-      (* todo: memoize close_ident to improve performance  - should probably profile first *)
-      (* search for a closed binding for a variable x by testing whether any of the available bindings can be closed *)
+      (* todo: memoize close_ident to improve performance - should probably
+         profile first *)
+      (* search for a closed binding for a variable x by testing whether any of
+         the available bindings can be closed *)
       let rec close_ident (x : ident) : expr =
         let x' = renamings#canonicalize x in
         match
@@ -957,7 +961,8 @@ class unifier (loc : AST.l) (assumptions : expr list) =
                  ( loc,
                    "Unable to infer value of type parameter " ^ pprint_ident x'
                  ))
-      (* attempt to close an expression by replacing all fresh vars with a closed expression *)
+      (* attempt to close an expression by replacing all fresh vars with a
+         closed expression *)
       and close_expr (x : expr) : expr option =
         let subst =
           new substFunClass (fun x ->
@@ -1016,7 +1021,8 @@ class unifier (loc : AST.l) (assumptions : expr list) =
 
       constraints <- List.map simplify_expr constraints;
 
-      (* as a minor optimisation and also to declutter error messages, delete equalities that are obviously satisfied *)
+      (* as a minor optimisation and also to declutter error messages, delete
+         equalities that are obviously satisfied *)
       constraints <-
         List.filter
           (function
@@ -1533,7 +1539,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
         | Some (Type_Record fs) -> fs
         | _ -> raise (IsNotA (loc, "record type", pprint_ident tc))
       in
-      (* todo: check that fas has exactly one field assignment for every field in fs *)
+      (* todo: check that fas has exactly one field assignment for every field
+         in fs *)
       let fas' =
         List.map
           (fun (f, e) ->
@@ -2270,7 +2277,8 @@ let tc_arguments (env : Env.t) (loc : AST.l)
       (* If no parameter list was supplied, use freevars from arg/return type *)
       List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
     else
-      (* If parameter list was supplied, add any arguments if they are in freevar list *)
+      (* If parameter list was supplied, add any arguments if they are in
+         freevar list *)
       let extra = List.filter (fun (v, ty) -> IdentSet.mem v fvs) args in
       let extra = List.map (fun (v, ty) -> (v, Some ty)) extra in
       List.append extra ps
@@ -2522,7 +2530,8 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_VarGetterType (qid, ps, rty, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
+      (* todo: check that if a setter function exists, it has a compatible
+         type *)
       let qid' =
         ft_id (addFunction env loc (addSuffix qid "read") false ps' atys' rty')
       in
@@ -2530,7 +2539,8 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_VarGetterDefn (qid, ps, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
+      (* todo: check that if a setter function exists, it has a compatible
+         type *)
       let qid' =
         ft_id (addFunction env loc (addSuffix qid "read") false ps' atys' rty')
       in
@@ -2542,12 +2552,14 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let qid' =
         ft_id (addFunction env loc (addSuffix qid "read") true ps' atys' rty')
       in
-      (* todo: check that if a setter function exists, it has a compatible type *)
+      (* todo: check that if a setter function exists, it has a compatible
+         type *)
       [ Decl_ArrayGetterType (qid', ps', atys', rty', loc) ]
   | Decl_ArrayGetterDefn (qid, ps, atys, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
+      (* todo: check that if a setter function exists, it has a compatible
+         type *)
       let qid' =
         ft_id (addFunction env loc (addSuffix qid "read") true ps' atys' rty')
       in
@@ -2580,7 +2592,8 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
         tc_arguments locals loc ps ((v, ty) :: atys) type_unit
       in
       let v', ty' = List.hd atys' in
-      (* todo: check that if a getter function exists, it has a compatible type *)
+      (* todo: check that if a getter function exists, it has a compatible
+         type *)
       let qid' =
         addSetterFunction env loc (addSuffix qid "set") ps' atys' ty'
       in
@@ -2594,7 +2607,8 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       (* todo: should I use name mangling or define an enumeration to select
        * which namespace to do lookup in?
        *)
-      (* todo: check that if a getter function exists, it has a compatible type *)
+      (* todo: check that if a getter function exists, it has a compatible
+         type *)
       let qid' =
         addSetterFunction env loc (addSuffix qid "set") ps' atys' ty'
       in

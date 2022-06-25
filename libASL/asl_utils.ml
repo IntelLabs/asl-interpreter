@@ -255,7 +255,8 @@ class equivalences =
       let y' = self#find_ident y in
       if x != y then y'.parent <- x'
 
-    (* Optimization: short circuit every tree so that they all point directly at root *)
+    (* Optimization: short circuit every tree so that they all point directly at
+       root *)
     method private normalize : unit = forest <- Bindings.map self#find forest
 
     (* Return mapping from identifiers to the canonical representation of their

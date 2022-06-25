@@ -264,7 +264,8 @@ class constEvalClass (env : Env.t) =
   end
 
 let xform_expr (env : Env.t) (x : AST.expr) : AST.expr =
-  (* bottom up rewrite of expression substituting constants and evaluating constant subexpressions *)
+  (* bottom up rewrite of expression substituting constants and evaluating
+     constant subexpressions *)
   let ce = new constEvalClass env in
   Asl_visitor.visit_expr (ce :> Asl_visitor.aslVisitor) x
 

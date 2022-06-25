@@ -343,7 +343,8 @@ and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
       Value.empty_array (mk_uninitialized loc env ety)
   | Type_Tuple tys -> VTuple (List.map (mk_uninitialized loc env) tys)
   | Type_Integer _ -> eval_unknown_integer ()
-  (* bitvectors and registers should really track whether a bit is initialized individually *)
+  (* bitvectors and registers should really track whether a bit is initialized
+     individually *)
   | Type_Bits n -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
   | Type_Register (n, _) ->
       eval_unknown_bits (to_integer loc (eval_expr loc env n))
@@ -793,7 +794,8 @@ and eval_decode_alt (loc : AST.l) (env : Env.t) (DecoderAlt_Alt (ps, b))
           (match opost with
           | Some post -> List.iter (eval_stmt env) post
           | None -> ());
-          (* todo: should evaluate ConditionHolds to decide whether to execute body *)
+          (* todo: should evaluate ConditionHolds to decide whether to execute
+             body *)
           List.iter (eval_stmt env) exec;
           true)
         else false
