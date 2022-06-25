@@ -9,17 +9,11 @@ open LibASL
 module AST = Asl_ast
 module TC = Tcheck
 
-let try_read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
-    AST.declaration list =
-    let lexbuf = Lexing.from_string s in
-    let t = Asl_parser.declarations_start Lexer.token lexbuf in
-    TC.tc_declarations tcenv false t
-
 let check_declaration (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit)
     (check_ext : string -> string -> unit) (name : string) (s : string) : unit =
   let tcenv = TC.GlobalEnv.clone tcenv in
-  let ds = try_read_declarations tcenv s in
+  let ds = LoadASL.read_declarations tcenv s in
   Alcotest.(check pass) name () (decls ds);
 
   let s = Format.flush_str_formatter () in

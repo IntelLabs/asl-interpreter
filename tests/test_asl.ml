@@ -27,9 +27,7 @@ let check_expr_tcheck (tcenv : TC.Env.t) (test_fmt : bool) (what : string)
 let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) : (TC.Env.t * AST.declaration list) =
   let globals = TC.GlobalEnv.clone globals in
   let tcenv = TC.Env.mkEnv globals in
-  let lexbuf = Lexing.from_string declarations in
-  let t = Asl_parser.declarations_start Lexer.token lexbuf in
-  let ds = TC.tc_declarations globals false t in
+  let ds = LoadASL.read_declarations globals declarations in
   (tcenv, ds)
 
 let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
