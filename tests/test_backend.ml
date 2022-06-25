@@ -7,6 +7,24 @@
 
 open LibASL
 module AST = Asl_ast
+module TC = Tcheck
+
+let try_read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
+    AST.declaration list =
+  LoadASL.report_type_error
+    (fun _ -> Alcotest.fail "type error")
+    (fun _ ->
+      LoadASL.report_parse_error
+        (fun _ -> Alcotest.fail "parse error")
+        (fun _ ->
+          let lexbuf = Lexing.from_string s in
+          let t = Asl_parser.declarations_start Lexer.token lexbuf in
+          TC.tc_declarations tcenv false t))
+
+let check_declaration (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) (name : string) (s : string) : unit =
+  let ds = try_read_declarations tcenv s in
+  Alcotest.(check pass) name () (decls ds)
 
 let check_decl (decls : AST.declaration list -> unit) (name : string)
     (d : AST.declaration) : unit =
@@ -52,19 +70,20 @@ let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
   in
   check_decl decls "few params, empty body" (proc_defn params [])
 
-let test_var (decls : AST.declaration list -> unit) () : unit =
-  check_decl decls "bits"
-    (AST.Decl_Var (AST.Ident "id", AST.Type_Bits (Expr_LitInt "8"), AST.Unknown));
-  check_decl decls "integer"
-    (AST.Decl_Var (AST.Ident "id", AST.Type_Integer None, AST.Unknown))
+let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
+    : unit =
+  check_declaration tcenv decls "bits" "var i :: bits(8);";
+  check_declaration tcenv decls "integer" "var i :: integer;";
+  ()
 
 let test_cases (decls : AST.declaration list -> unit) :
     unit Alcotest.test_case list =
+  let tcenv = TC.env0 in
   [
     ("built-in function", `Quick, test_builtin_fun decls);
     ("function definition", `Quick, test_fun_defn decls);
     ("procedure definition", `Quick, test_proc_defn decls);
-    ("variable", `Quick, test_var decls);
+    ("variable", `Quick, test_var tcenv decls);
   ]
 
 let () =
