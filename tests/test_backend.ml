@@ -26,59 +26,36 @@ let check_declaration (tcenv : TC.GlobalEnv.t)
   let ds = try_read_declarations tcenv s in
   Alcotest.(check pass) name () (decls ds)
 
-let check_decl (decls : AST.declaration list -> unit) (name : string)
-    (d : AST.declaration) : unit =
-  Alcotest.(check pass) name () (decls [ d ])
-
-let test_builtin_fun (decls : AST.declaration list -> unit) () : unit =
-  check_decl decls "ignored"
-    (AST.Decl_BuiltinFunction
-       ( AST.Ident "id",
-         [],
-         [],
-         AST.Type_Constructor (AST.Ident "id"),
-         AST.Unknown ))
+let test_builtin_fun (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "ignored" "__builtin func f() => integer;";
+  ()
 
 let test_fun_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "no params, empty body" "func f() => integer;";
   ()
 
-let test_fun_defn (decls : AST.declaration list -> unit) () : unit =
-  let fun_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
-    AST.Decl_FunDefn
-      (AST.Ident "name", [], params, AST.Type_Integer None, body, AST.Unknown)
-  in
-
-  check_decl decls "no params, empty body" (fun_defn [] []);
-
-  let params =
-    [
-      (AST.Ident "p1", AST.Type_Integer None);
-      (AST.Ident "p2", AST.Type_Integer None);
-    ]
-  in
-  check_decl decls "few params, empty body" (fun_defn params [])
+let test_fun_defn (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "no params, empty body"
+    "func f() => integer end";
+  check_declaration tcenv decls "few params, empty body"
+    "func f(p1 :: integer, p2 :: integer) => integer end";
+  ()
 
 let test_proc_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "no params, empty body" "func f();";
   ()
 
-let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
-  let proc_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
-    AST.Decl_ProcDefn (AST.Ident "name", [], params, body, AST.Unknown)
-  in
-
-  check_decl decls "no params, empty body" (proc_defn [] []);
-
-  let params =
-    [
-      (AST.Ident "p1", AST.Type_Integer None);
-      (AST.Ident "p2", AST.Type_Integer None);
-    ]
-  in
-  check_decl decls "few params, empty body" (proc_defn params [])
+let test_proc_defn (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "no params, empty body"
+    "func f() end";
+  check_declaration tcenv decls "few params, empty body"
+    "func f(p1 :: integer, p2 :: integer) end";
+  ()
 
 let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
     : unit =
@@ -90,11 +67,11 @@ let test_cases (decls : AST.declaration list -> unit) :
     unit Alcotest.test_case list =
   let tcenv = TC.env0 in
   [
-    ("built-in function", `Quick, test_builtin_fun decls);
+    ("built-in function", `Quick, test_builtin_fun tcenv decls);
     ("function declaration", `Quick, test_fun_decl tcenv decls);
-    ("function definition", `Quick, test_fun_defn decls);
+    ("function definition", `Quick, test_fun_defn tcenv decls);
     ("procedure declaration", `Quick, test_proc_decl tcenv decls);
-    ("procedure definition", `Quick, test_proc_defn decls);
+    ("procedure definition", `Quick, test_proc_defn tcenv decls);
     ("variable", `Quick, test_var tcenv decls);
   ]
 
