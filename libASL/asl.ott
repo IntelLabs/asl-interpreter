@@ -493,8 +493,8 @@ opt_altcond :: 'AltCond_' ::= {{ ocaml expr option }}
     {{ phantom }} {{ ocaml expr option }}
     {{ pp-raw x = match x with Some(y) -> string "Some(" ^^ pp_raw_expr y ^^ string ")" | None -> string "None" }}
     {{ pp     x = match x with Some(y) -> pp_expr y | None -> string "" }}
-    | where expr => :: :: Some {{ ocaml Some([[expr]]) }}
-    |               :: :: None {{ ocaml None }}
+    | where expr :: :: Some {{ ocaml Some([[expr]]) }}
+    |            :: :: None {{ ocaml None }}
 
 pattern :: 'Pat_' ::=
     | intLit                             :: :: LitInt

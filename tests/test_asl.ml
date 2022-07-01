@@ -141,6 +141,17 @@ let tests : unit Alcotest.test_case list =
            let (r :: integer, s :: boolean) = (1, TRUE);
            let (t :: integer, _ :: boolean) = (1, TRUE);
        end" "1";
+    test_static globals false "case statements"
+      "func F(x :: bits(3), y :: boolean) => integer
+           case x of
+               when '000': return 0;
+               when '001': return 0;
+               when '01x': return 2;
+               when '100', '111': return 4;
+               when '101' where y: return 5;
+               otherwise: return 6;
+           end
+       end" "1";
     ("operators (implies)",    `Quick, test_bool globals prelude "" "FALSE --> FALSE" true);
     ("operators (implies)",    `Quick, test_bool globals prelude "" "FALSE --> TRUE" true);
     ("operators (implies)",    `Quick, test_bool globals prelude "" "TRUE --> FALSE" false);
