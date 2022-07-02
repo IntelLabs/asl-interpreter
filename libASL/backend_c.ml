@@ -198,10 +198,20 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           function_body fmt;
           cut fmt
+      | Decl_FunType (f, ps, args, t, loc) ->
+          function_header fmt (Some t) f (fun _ -> formals fmt args);
+          semicolon fmt;
+          cut fmt;
+          cut fmt
       | Decl_ProcDefn (f, ps, args, b, loc) ->
           function_header fmt None f (fun _ -> formals fmt args);
           nbsp fmt;
           function_body fmt;
+          cut fmt
+      | Decl_ProcType (f, ps, args, loc) ->
+          function_header fmt None f (fun _ -> formals fmt args);
+          semicolon fmt;
+          cut fmt;
           cut fmt
       | Decl_Var (v, ty, loc) ->
           varty fmt v ty;

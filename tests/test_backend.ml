@@ -39,6 +39,11 @@ let test_builtin_fun (decls : AST.declaration list -> unit) () : unit =
          AST.Type_Constructor (AST.Ident "id"),
          AST.Unknown ))
 
+let test_fun_decl (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "no params, empty body" "func f() => integer;";
+  ()
+
 let test_fun_defn (decls : AST.declaration list -> unit) () : unit =
   let fun_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
     AST.Decl_FunDefn
@@ -54,6 +59,11 @@ let test_fun_defn (decls : AST.declaration list -> unit) () : unit =
     ]
   in
   check_decl decls "few params, empty body" (fun_defn params [])
+
+let test_proc_decl (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "no params, empty body" "func f();";
+  ()
 
 let test_proc_defn (decls : AST.declaration list -> unit) () : unit =
   let proc_defn (params : (AST.ident * AST.ty) list) (body : AST.stmt list) =
@@ -81,7 +91,9 @@ let test_cases (decls : AST.declaration list -> unit) :
   let tcenv = TC.env0 in
   [
     ("built-in function", `Quick, test_builtin_fun decls);
+    ("function declaration", `Quick, test_fun_decl tcenv decls);
     ("function definition", `Quick, test_fun_defn decls);
+    ("procedure declaration", `Quick, test_proc_decl tcenv decls);
     ("procedure definition", `Quick, test_proc_defn decls);
     ("variable", `Quick, test_var tcenv decls);
   ]
