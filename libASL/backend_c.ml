@@ -133,6 +133,7 @@ let kw_uint64           (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8            (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
+let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
 
 let const_expr (x : AST.expr) : V.value =
   match x with
@@ -173,6 +174,7 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
 
 let expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
+  | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
   | Expr_Array _
   | Expr_AsConstraint _
@@ -185,7 +187,6 @@ let expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_ImpDef _
   | Expr_In _
   | Expr_LitBits _
-  | Expr_LitHex _
   | Expr_LitMask _
   | Expr_LitReal _
   | Expr_LitString _

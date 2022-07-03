@@ -69,6 +69,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() var i :: integer = 0; end";
   check_declaration tcenv decls "let, literal (integer)"
     "func f() let i :: integer = 0; end";
+  check_declaration tcenv decls "let, literal (hexadecimal)"
+    "func f() let i :: integer = 0x1; end";
   ()
 
 let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
