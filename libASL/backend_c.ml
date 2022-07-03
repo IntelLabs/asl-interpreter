@@ -172,6 +172,7 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   | Type_Bits n -> bits fmt (const_int_expr n)
   | Type_Constructor tc -> (
       match tc with
+      | Ident "boolean" -> kw_bool fmt
       | Ident "string" ->
           kw_char fmt;
           nbsp fmt;
@@ -203,7 +204,11 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitString l -> strLit fmt l
-  | Expr_Var v -> varname fmt v
+  | Expr_Var v -> (
+      match v with
+      | Ident "TRUE" -> kw_true fmt
+      | Ident "FALSE" -> kw_false fmt
+      | _ -> varname fmt v)
   | Expr_Array _
   | Expr_AsConstraint _
   | Expr_AsType _
