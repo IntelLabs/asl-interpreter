@@ -102,6 +102,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func F() end";
   check_declaration tcenv decls ext "few params, empty body"
     "func F(p1 :: integer, p2 :: integer) end";
+  check_declaration tcenv decls ext "uninitialized variable"
+    "func F() var i :: integer; end";
   check_declaration tcenv decls ext "uninitialized variables"
     "func F() var i1, i2 :: integer; end";
   check_declaration tcenv decls ext "variable, literal (integer)"
