@@ -226,6 +226,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitString l -> strLit fmt l
+  | Expr_Parens e -> expr fmt e
   | Expr_Var v -> (
       match v with
       | Ident "TRUE" -> kw_true fmt
@@ -242,7 +243,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_In _
   | Expr_LitMask _
   | Expr_LitReal _
-  | Expr_Parens _
   | Expr_RecordInit _
   | Expr_Slices _
   | Expr_TApply _
