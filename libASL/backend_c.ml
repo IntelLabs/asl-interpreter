@@ -182,6 +182,7 @@ let expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitBits l -> bitsLit fmt l
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
+  | Expr_Var v -> varname fmt v
   | Expr_Array _
   | Expr_AsConstraint _
   | Expr_AsType _
@@ -201,8 +202,7 @@ let expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_TApply _
   | Expr_Tuple _
   | Expr_Unknown _
-  | Expr_Unop _
-  | Expr_Var _ ->
+  | Expr_Unop _ ->
       raise
         (Unimplemented (AST.Unknown, "expression", fun fmt -> FMTAST.expr fmt x))
 

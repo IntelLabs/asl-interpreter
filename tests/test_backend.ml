@@ -74,6 +74,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() let i :: integer = 0x1; end";
   check_declaration tcenv decls "let, literal (bits)"
     "func f() let i :: bits(8) = '1111 0000'; end";
+  check_declaration tcenv decls "expression (variable)"
+    "func f() var i :: integer = 0; var j = i; end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)
