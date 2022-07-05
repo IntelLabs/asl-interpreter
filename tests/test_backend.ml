@@ -76,6 +76,11 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() let i :: bits(8) = '1111 0000'; end";
   ()
 
+let test_type_decl (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "type declaration" "type byte of bits(8);";
+  ()
+
 let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
     : unit =
   check_declaration tcenv decls "bits" "var i :: bits(8);";
@@ -92,6 +97,7 @@ let test_cases (decls : AST.declaration list -> unit) :
     ("function definition", `Quick, test_fun_defn tcenv decls);
     ("procedure declaration", `Quick, test_proc_decl tcenv decls);
     ("procedure definition", `Quick, test_proc_defn tcenv decls);
+    ("type declaration", `Quick, test_type_decl tcenv decls);
     ("variable", `Quick, test_var tcenv decls);
   ]
 

@@ -338,6 +338,15 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           semicolon fmt;
           cut fmt;
           cut fmt
+      | Decl_Typedef (tc, t, loc) ->
+          kw_typedef fmt;
+          nbsp fmt;
+          ty fmt t;
+          nbsp fmt;
+          tycon fmt tc;
+          semicolon fmt;
+          cut fmt;
+          cut fmt
       | Decl_Var (v, ty, loc) ->
           varty fmt v ty;
           semicolon fmt;
