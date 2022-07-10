@@ -100,6 +100,10 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() var i, j :: integer; i = j; end";
   check_declaration tcenv decls "statement (assert)"
     "func f() assert FALSE; end";
+  check_declaration tcenv decls "statement (if)"
+    "func f() if FALSE then return; elsif FALSE then return; else return; end end";
+  check_declaration tcenv decls "statement (if few elsifs)"
+    "func f() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)

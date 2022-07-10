@@ -368,6 +368,35 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       nbsp fmt;
       expr fmt e;
       semicolon fmt
+  | Stmt_If (c, t, els, (e, el), loc) ->
+      vbox fmt (fun _ ->
+          kw_if fmt;
+          nbsp fmt;
+          parens fmt (fun _ -> expr fmt c);
+          nbsp fmt;
+          braces fmt (fun _ ->
+              indented_block fmt t;
+              cut fmt);
+          map fmt
+            (fun (AST.S_Elsif_Cond (c, s, loc)) ->
+              nbsp fmt;
+              kw_else fmt;
+              nbsp fmt;
+              kw_if fmt;
+              nbsp fmt;
+              parens fmt (fun _ -> expr fmt c);
+              nbsp fmt;
+              braces fmt (fun _ ->
+                  indented_block fmt s;
+                  cut fmt))
+            els;
+          if e <> [] then (
+            nbsp fmt;
+            kw_else fmt;
+            nbsp fmt;
+            braces fmt (fun _ ->
+                indented_block fmt e;
+                cut fmt)))
   | Stmt_ProcReturn loc ->
       kw_return fmt;
       semicolon fmt
@@ -380,7 +409,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
   | Stmt_Case _
-  | Stmt_If _
   | Stmt_Repeat _
   | Stmt_Throw _
   | Stmt_Try _
