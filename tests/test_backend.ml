@@ -23,6 +23,7 @@ let try_read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
 
 let check_declaration (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (name : string) (s : string) : unit =
+  let tcenv = TC.GlobalEnv.clone tcenv in
   let ds = try_read_declarations tcenv s in
   Alcotest.(check pass) name () (decls ds)
 
