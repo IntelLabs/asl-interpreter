@@ -123,6 +123,7 @@ let kw_while (fmt : PP.formatter) : unit = keyword fmt "while"
 
 (* C pseudo-keywords *)
 
+let kw_assert (fmt : PP.formatter) : unit = keyword fmt "assert"
 let kw_bool (fmt : PP.formatter) : unit = keyword fmt "bool"
 let kw_false (fmt : PP.formatter) : unit = keyword fmt "false"
 let kw_int64 (fmt : PP.formatter) : unit = keyword fmt "int64_t"
@@ -285,6 +286,10 @@ let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
+  | Stmt_Assert (e, loc) ->
+      kw_assert fmt;
+      parens fmt (fun _ -> expr fmt e);
+      semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr fmt l r
   | Stmt_Block (ss, _) ->
       braces fmt (fun _ -> indented_block fmt ss; cut fmt)
@@ -338,7 +343,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
-  | Stmt_Assert _
   | Stmt_Case _
   | Stmt_DecodeExecute _
   | Stmt_If _
