@@ -141,6 +141,9 @@ let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let integer = Z.of_string_base 2 bit_string in
   constant fmt ("0x" ^ Z.format "%x" integer)
 
+let strLit (fmt : PP.formatter) (x : string) : unit =
+  constant fmt ("\"" ^ x ^ "\"")
+
 let const_expr (x : AST.expr) : V.value =
   match x with
   | Expr_LitBits b -> V.from_bitsLit b
@@ -167,12 +170,19 @@ let bits (fmt : PP.formatter) (width : int) : unit =
 let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
   | Type_Bits n -> bits fmt (const_int_expr n)
+  | Type_Constructor tc -> (
+      match tc with
+      | Ident "string" ->
+          kw_char fmt;
+          nbsp fmt;
+          star fmt
+      | _ -> tycon fmt tc)
   (* TODO implement integer range analysis to determine the correct type width.
    * For now use int64. *)
   | Type_Integer _ -> kw_int64 fmt
   | Type_App (_, _)
   | Type_Array (_, _)
-  | Type_Constructor _ | Type_OfExpr _
+  | Type_OfExpr _
   | Type_Register (_, _)
   | Type_Tuple _ ->
       raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
@@ -192,6 +202,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitBits l -> bitsLit fmt l
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
+  | Expr_LitString l -> strLit fmt l
   | Expr_Var v -> varname fmt v
   | Expr_Array _
   | Expr_AsConstraint _
@@ -205,7 +216,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_In _
   | Expr_LitMask _
   | Expr_LitReal _
-  | Expr_LitString _
   | Expr_Parens _
   | Expr_RecordInit _
   | Expr_Slices _
