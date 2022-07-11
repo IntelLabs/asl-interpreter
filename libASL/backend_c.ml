@@ -279,6 +279,10 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       cut fmt
   | _ -> ()
 
+let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
+    unit =
+  match x with Direction_Up -> up () | Direction_Down -> down ()
+
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_Assign (l, r, loc) -> lexpr fmt l r
@@ -292,6 +296,32 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       nbsp fmt;
       expr fmt i;
       semicolon fmt
+  | Stmt_For (v, f, dir, t, b, loc) ->
+      kw_for fmt;
+      nbsp fmt;
+      parens fmt (fun _ ->
+          kw_int64 fmt;
+          nbsp fmt;
+          varname fmt v;
+          nbsp fmt;
+          eq fmt;
+          nbsp fmt;
+          expr fmt f;
+          semicolon fmt;
+          nbsp fmt;
+          varname fmt v;
+          nbsp fmt;
+          direction dir (fun _ -> lt_eq fmt) (fun _ -> gt_eq fmt);
+          nbsp fmt;
+          expr fmt t;
+          semicolon fmt;
+          nbsp fmt;
+          direction dir (fun _ -> plus_plus fmt) (fun _ -> minus_minus fmt);
+          varname fmt v);
+      nbsp fmt;
+      braces fmt (fun _ ->
+          indented_block fmt b;
+          cut fmt)
   | Stmt_FunReturn (e, loc) ->
       kw_return fmt;
       nbsp fmt;
@@ -311,7 +341,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_Assert _
   | Stmt_Case _
   | Stmt_DecodeExecute _
-  | Stmt_For _
   | Stmt_If _
   | Stmt_Repeat _
   | Stmt_Throw _
