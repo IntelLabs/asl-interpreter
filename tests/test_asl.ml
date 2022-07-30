@@ -87,6 +87,12 @@ let test_primop_integer (globals : TC.GlobalEnv.t) (env : Eval.Env.t) () : unit
   check_int "1+1 == 2" (eval tcenv env "1+1") 2;
   check_int "5 DIV 3 == 1" (eval tcenv env "5 DIV 3") 1
 
+let test_bits (globals : TC.GlobalEnv.t) (env : Eval.Env.t)
+    (l : string) (r : string) () : unit =
+  let tcenv = TC.Env.mkEnv globals in
+  let what = l ^ " == " ^ r in
+  Alcotest.check value what (eval tcenv env l) (Value.from_bitsLit r)
+
 let tests : unit Alcotest.test_case list =
   let paths = [ "../../.." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
@@ -130,8 +136,9 @@ let tests : unit Alcotest.test_case list =
            let (t :: integer, _ :: boolean) = (1, TRUE);
        end" "1";
     ("operators (boolean)", `Quick, test_primop_boolean globals env);
-    ("operators (integer)", `Quick, test_primop_string globals env);
+    ("operators (string)",  `Quick, test_primop_string globals env);
     ("operators (integer)", `Quick, test_primop_integer globals env);
+    ("prelude (mul_bits_int)", `Quick, test_bits globals env "'00111' * 3" "10101"); (* == 21 *)
   ]
 
 let () = Alcotest.run "libASL" [ ("asl", tests) ]

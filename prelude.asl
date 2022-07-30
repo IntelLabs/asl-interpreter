@@ -89,6 +89,10 @@ func sub_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
     return sub_bits(x, cvt_int_bits(y, N));
 end
 
+func mul_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
+    return mul_bits(x, cvt_int_bits(y, N));
+end
+
 // Bit slice helper functions used in some backends
 func asl_extract_int(x :: integer, lo :: integer, W :: integer) => bits(W)
     return x[lo +: W];
@@ -107,7 +111,7 @@ end
 __operator2 + = add_int, add_real, add_bits, add_bits_int;
 __operator2 - = sub_int, sub_real, sub_bits, sub_bits_int;
 __operator1 - = neg_int, neg_real;
-__operator2 * = mul_int, mul_real, mul_bits;
+__operator2 * = mul_int, mul_real, mul_bits, mul_bits_int;
 __operator2 / = divide_real;
 
 __builtin func replicate_bits{M}(x :: bits(M), N :: integer) => bits(M*N);
