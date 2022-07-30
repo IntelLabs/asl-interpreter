@@ -65,7 +65,8 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
   | [ ":elf"; file ] ->
       Printf.printf "Loading ELF file %s.\n" file;
       let entry = Elf.load_file file cpu.elfwrite in
-      Printf.printf "Entry point = 0x%Lx\n" entry
+      Printf.printf "Entry point = 0x%Lx\n" entry;
+      cpu.setPC (Z.of_int64 entry)
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       print_endline "\nFlags:";
