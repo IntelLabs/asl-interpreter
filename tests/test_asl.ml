@@ -144,6 +144,12 @@ let tests : unit Alcotest.test_case list =
     ("prelude (mul_bits_int)", `Quick, test_bits globals prelude "" "'00111' * 3" "10101"); (* == 21 *)
     ("prelude (DecStr)",       `Quick, test_string globals prelude "" "DecStr('10101')" "21");
     ("prelude (HexStr)",       `Quick, test_string globals prelude "" "HexStr('10101')" "0x15");
+    ("statements (while)",     `Quick, test_int globals prelude
+      "func TestWhile(x :: integer) => integer var i = 0; while i < x do i = i + 1; end return i; end"
+      "TestWhile(3)" 3);
+    ("statements (repeat)",    `Quick, test_int globals prelude
+      "func TestRepeat(x :: integer) => integer var i = 0; repeat i = i + 1; until i >= x; return i; end"
+      "TestRepeat(3)" 3);
   ]
 
 let () = Alcotest.run "libASL" [ ("asl", tests) ]

@@ -651,14 +651,16 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
       eval start'
   | Stmt_While (c, b, loc) ->
       let rec eval _ =
-        if to_bool loc (eval_expr loc env c) then eval_stmts env b;
-        eval ()
+        if to_bool loc (eval_expr loc env c) then begin
+            eval_stmts env b;
+            eval ()
+        end
       in
       eval ()
   | Stmt_Repeat (b, c, pos, loc) ->
       let rec eval _ =
         eval_stmts env b;
-        if to_bool loc (eval_expr loc env c) then eval ()
+        if not (to_bool loc (eval_expr loc env c)) then eval ()
       in
       eval ()
   | Stmt_Try (tb, ev, pos, catchers, odefault, loc) -> (
