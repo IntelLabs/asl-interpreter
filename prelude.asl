@@ -288,6 +288,14 @@ func DecStr(x :: integer) => string
     return cvt_int_decstr(x);
 end
 
+func HexStr(x :: bits(N)) => string
+    return HexStr(cvt_bits_uint(x));
+end
+
+func DecStr(x :: bits(N)) => string
+    return DecStr(cvt_bits_uint(x));
+end
+
 func append_str_bool(x :: string, y :: boolean) => string
     return append_str_str(x, cvt_bool_str(y));
 end
