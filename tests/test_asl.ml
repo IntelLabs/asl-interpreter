@@ -171,6 +171,9 @@ let tests : unit Alcotest.test_case list =
       "func F(x :: boolean) => integer return x; end"
       (Some "DoesNotMatch(file \"\" line 1 char 32 - 41,type,integer,boolean)")
       None;
+    test_static_error globals "#line directive"
+      "\n# 42 \"foobar.asl\"\nx == 0"
+      (Some "ParseError()") (Some "'foobar.asl' 42 0");
     test_static globals false "var decls"
       "func F(x :: bits(8*N))
            var a :: bits(8*N) = UNKNOWN :: bits(8*N);

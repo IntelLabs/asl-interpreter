@@ -96,6 +96,17 @@ let record_comment (start: Lexing.position) (finish: Lexing.position) (lxm: stri
     comments := comment :: !comments
 end
 
+let update_location lexbuf opt_file line =
+    let pos = lexbuf.Lexing.lex_curr_p in
+    let new_file = match opt_file with
+                   | None -> pos.Lexing.pos_fname
+                   | Some f -> f
+    in
+    lexbuf.Lexing.lex_curr_p <- { pos with
+        Lexing.pos_fname = new_file;
+        Lexing.pos_lnum = line;
+        Lexing.pos_bol = pos.Lexing.pos_cnum;
+    }
 }
 
 rule token = parse
@@ -103,7 +114,8 @@ rule token = parse
     | ['\n']                      { Lexing.new_line lexbuf; token lexbuf }
     | [' ' '\t']                  { token lexbuf }
     | '/' '/' [^'\n']*     as lxm { record_comment lexbuf.lex_start_p lexbuf.lex_curr_p lxm; token lexbuf }
-    | '#' [^'\n']*                { token lexbuf }
+    | "#" [' ' '\t']* (['0'-'9']+ as num) [' ' '\t']* ('\"' ([^ '\"']* as name) '\"')? [' ' '\t']* '\n'
+                                  { update_location lexbuf name (int_of_string num); token lexbuf }
     | '/' '*'                     { comment 1 lexbuf }
 
     (* numbers, strings and identifiers *)
