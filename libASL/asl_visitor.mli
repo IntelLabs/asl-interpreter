@@ -31,11 +31,6 @@ class type aslVisitor =
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
     method vmapfield : mapfield -> mapfield visitAction
-    method vdpattern : decode_pattern -> decode_pattern visitAction
-    method vencoding : encoding -> encoding visitAction
-    method vdcase : decode_case -> decode_case visitAction
-    method vdalt : decode_alt -> decode_alt visitAction
-    method vdbody : decode_body -> decode_body visitAction
     method vdecl : declaration -> declaration visitAction
     method enter_scope : ident list -> unit
     method leave_scope : ident list -> unit
@@ -52,12 +47,7 @@ val visit_constraints :
 
 val visit_decl_item : aslVisitor -> decl_item -> decl_item
 val visit_decl : aslVisitor -> declaration -> declaration
-val visit_decode_alt : aslVisitor -> decode_alt -> decode_alt
-val visit_decode_body : aslVisitor -> decode_body -> decode_body
-val visit_decode_case : aslVisitor -> decode_case -> decode_case
-val visit_dpattern : aslVisitor -> decode_pattern -> decode_pattern
 val visit_e_elsif : aslVisitor -> e_elsif -> e_elsif
-val visit_encoding : aslVisitor -> encoding -> encoding
 val visit_expr : aslVisitor -> expr -> expr
 val visit_exprs : aslVisitor -> expr list -> expr list
 val visit_lexpr : aslVisitor -> lexpr -> lexpr

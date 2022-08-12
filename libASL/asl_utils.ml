@@ -595,8 +595,6 @@ let decl_name (x : declaration) : ident option =
   | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> Some f
   | Decl_ArraySetterType (f, ps, args, v, ty, loc) -> Some f
   | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
-  | Decl_InstructionDefn (d, es, opd, c, ex, loc) -> Some d
-  | Decl_DecoderDefn (d, dc, loc) -> Some d
   | Decl_Operator1 (op, vs, loc) -> None
   | Decl_Operator2 (op, vs, loc) -> None
   | Decl_NewEventDefn (v, ps, args, loc) -> Some v

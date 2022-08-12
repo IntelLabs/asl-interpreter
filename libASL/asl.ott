@@ -193,7 +193,6 @@ declaration :: 'Decl_' ::=
     | procedure_declaration     :: :: PDecl {{ quotient-remove }} {{ ocaml [[procedure_declaration]] }}
     | getter_declaration        :: :: GDecl {{ quotient-remove }} {{ ocaml [[getter_declaration]] }}
     | setter_declaration        :: :: SDecl {{ quotient-remove }} {{ ocaml [[setter_declaration]] }}
-    | instruction_definition    :: :: IDecl {{ quotient-remove }} {{ ocaml [[instruction_definition]] }}
     | internal_definition       :: :: ADecl {{ quotient-remove }} {{ ocaml [[internal_definition]] }}
 
 type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
@@ -203,12 +202,6 @@ type_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     | record ident { field1 ... fieldn } ;              ::   :: Record
     | type ident of ty ;                                ::   :: Typedef
     | enumeration ident { ident1 , .. , identn } ;      ::   :: Enum
-
-field_ns :: 'FieldNS_' ::=
-    {{ phantom }} {{ ocaml ident * ty }}
-    {{ pp-raw f = string "(" ^^ pp_raw_ident (fst f) ^^ string ", " ^^ pp_raw_ty (snd f) ^^ string ")" }}
-    {{ pp f     = pp_ident (fst f) ^^ string " " ^^ pp_ty (snd f) }}
-    | ident '::' ty         :: :: Field {{ ocaml ([[ident]], [[ty]]) }}
 
 field :: 'Field_' ::=
     {{ phantom }} {{ ocaml ident * ty }}
@@ -290,100 +283,6 @@ setter_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     | setter ident1 parameters_opt = ident2 '::' ty block end                  :: :: VarSetterDefn
     | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty ;          :: :: ArraySetterType
     | setter ident1 parameters_opt [ formal_list ] = ident2 '::' ty block end  :: :: ArraySetterDefn
-
-instruction_definition :: 'Decl_' ::= {{ quotient-with declaration }}
-    {{ aux _ l }}
-    | __instruction ident
-          encoding1 ... encodingn
-          opt_postdecode
-          __execute opt_conditional block
-      end
-      :: :: InstructionDefn
-    | __decode ident
-          decode_case
-      end
-      :: :: DecoderDefn
-
-encoding :: 'Encoding_' ::=
-    {{ aux _ l }}
-    | __encoding ident1
-          __instruction_set ident2
-          instr_field1 .. instr_fieldm
-          __opcode opcode_value
-          __guard expr
-          instr_unpred1 .. instr_unpredn
-          __decode block
-      end
-      :: :: Block
-
-opt_conditional :: 'OptConditional_' ::=
-    {{ phantom }} {{ ocaml bool }}
-    {{ pp-raw x = if x then string "__conditional" else string "" }}
-    {{ pp     x = if x then string "__conditional" else string "" }}
-    | __conditional :: :: True  {{ ocaml true  }}
-    |               :: :: False {{ ocaml false }}
-
-opt_postdecode :: 'OptPostDecode_' ::=
-    {{ phantom }} {{ ocaml (stmt list) option }}
-    {{ pp-raw x = match x with Some(ys) -> string "Some(" ^^ separate (string "\n") (List.map pp_raw_stmt ys) ^^ string ")" | None -> string "None" }}
-    {{ pp     x = match x with Some(ys) -> string "postdecode" ^^ hardline
-                                           ^^ (nest 4 (separate (string "\n") (List.map pp_stmt ys)))
-                             | None -> string "" }}
-    | __postdecode block end        :: :: Some {{ ocaml Some([[block]]) }}
-    |                               :: :: None {{ ocaml None }}
-
-instr_field :: 'IField_' ::=
-    | __field ident offset1 +: offset2 :: :: Field
-
-% OTT workaround: I can't write "intlit1 : intLit2" in a rule
-% because intLit is a terminal not a non-terminal
-offset :: 'Offset_' ::=
-    {{ phantom }} {{ ocaml int }}
-    {{ pp-raw x = string "??" }}
-    {{ pp     x = string "??" }}
-    | intLit :: :: Int {{ ocaml int_of_string [[intLit]] }}
-
-opcode_value :: 'Opcode_' ::=
-    | bitsLit :: :: Bits
-    | maskLit :: :: Mask
-
-instr_unpred :: 'Instr_Unpred_' ::=
-    {{ phantom }} {{ ocaml (int * bitsLit) }}
-    {{ pp-raw x = string "??" }}
-    {{ pp     x = string "??" }}
-    | __unpredictable_unless intLit == bitsLit :: :: Unpred {{ ocaml (int_of_string [[intLit]], [[bitsLit]]) }}
-
-decode_case :: 'DecoderCase_' ::=
-    {{ aux _ l }}
-    | case ( decode_slice1 , .. , decode_slicem ) of
-          decode_alt1 ... decode_altn
-      end
-      :: :: Case
-
-decode_slice :: 'DecoderSlice_' ::=
-    | offset1 +: offset2     :: :: Slice
-    | ident                  :: :: FieldName
-    | ident1 : .... : identn :: :: Concat
-
-decode_alt :: 'DecoderAlt_' ::=
-    | when ( decode_pattern1 , .. , decode_patternm ) => decode_body :: :: Alt
-
-decode_pattern :: 'DecoderPattern_' ::=
-    | bitsLit          :: :: Bits
-    | maskLit          :: :: Mask
-    | ident            :: :: Wildcard {{ com todo: wildcard should be underscore }}
-    | ! decode_pattern :: :: Not
-
-decode_body :: 'DecoderBody_' ::=
-    {{ aux _ l }}
-    | __UNPREDICTABLE  :: :: UNPRED
-    | __UNALLOCATED    :: :: UNALLOC
-    | __NOP            :: :: NOP
-    | __encoding ident :: :: Encoding
-    |     instr_field1 .. instr_fieldm
-          decode_case
-      end
-      :: :: Decoder
 
 % features not found in published ASL but potentially used in glue code
 internal_definition :: 'Decl_' ::= {{ quotient-with declaration }}
@@ -538,7 +437,6 @@ simple_stmt :: 'Stmt_' ::= {{ quotient-with stmt }}
     | return ;                            ::   :: ProcReturn {{ com procedure return }}
     | assert expr ;                       ::   :: Assert {{ com assertion }}
     | throw ident ;                       ::   :: Throw
-    | __decode ident expr ;               ::   :: DecodeExecute {{ com decode and execute instruction }}
 
 stmt_spice :: 'Stmt_' ::= {{ quotient-with stmt }}
     | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ;  ::   :: TCall  {{ com spice for procedure call with explicit type parameters }}

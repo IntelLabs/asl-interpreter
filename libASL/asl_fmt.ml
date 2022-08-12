@@ -123,33 +123,13 @@ let kw_typeof (fmt : PP.formatter) : unit = keyword fmt "typeof"
 let kw_underscore_array (fmt : PP.formatter) : unit = keyword fmt "__array"
 let kw_underscore_builtin (fmt : PP.formatter) : unit = keyword fmt "__builtin"
 
-let kw_underscore_conditional (fmt : PP.formatter) : unit =
-  keyword fmt "__conditional"
-
-let kw_underscore_decode (fmt : PP.formatter) : unit = keyword fmt "__decode"
-
-let kw_underscore_encoding (fmt : PP.formatter) : unit =
-  keyword fmt "__encoding"
-
 let kw_underscore_event (fmt : PP.formatter) : unit = keyword fmt "__event"
-let kw_underscore_execute (fmt : PP.formatter) : unit = keyword fmt "__execute"
-let kw_underscore_field (fmt : PP.formatter) : unit = keyword fmt "__field"
-let kw_underscore_guard (fmt : PP.formatter) : unit = keyword fmt "__guard"
-
-let kw_underscore_instruction (fmt : PP.formatter) : unit =
-  keyword fmt "__instruction"
-
-let kw_underscore_instruction_set (fmt : PP.formatter) : unit =
-  keyword fmt "__instruction_set"
 
 let kw_underscore_map (fmt : PP.formatter) : unit = keyword fmt "__map"
 
-let kw_underscore_newevent (fmt : PP.formatter) : unit =
-  keyword fmt "__newevent"
+let kw_underscore_newevent (fmt : PP.formatter) : unit = keyword fmt "__newevent"
 
 let kw_underscore_newmap (fmt : PP.formatter) : unit = keyword fmt "__newmap"
-let kw_underscore_nop (fmt : PP.formatter) : unit = keyword fmt "__NOP"
-let kw_underscore_opcode (fmt : PP.formatter) : unit = keyword fmt "__opcode"
 
 let kw_underscore_operator1 (fmt : PP.formatter) : unit =
   keyword fmt "__operator1"
@@ -157,20 +137,8 @@ let kw_underscore_operator1 (fmt : PP.formatter) : unit =
 let kw_underscore_operator2 (fmt : PP.formatter) : unit =
   keyword fmt "__operator2"
 
-let kw_underscore_postdecode (fmt : PP.formatter) : unit =
-  keyword fmt "__postdecode"
-
 let kw_underscore_readwrite (fmt : PP.formatter) : unit =
   keyword fmt "__readwrite"
-
-let kw_underscore_unallocated (fmt : PP.formatter) : unit =
-  keyword fmt "__UNALLOCATED"
-
-let kw_underscore_unpredictable (fmt : PP.formatter) : unit =
-  keyword fmt "__UNPREDICTABLE"
-
-let kw_underscore_unpredictable_unless (fmt : PP.formatter) : unit =
-  keyword fmt "__unpredictable_unless"
 
 let kw_underscore_write (fmt : PP.formatter) : unit = keyword fmt "__write"
 let kw_unknown (fmt : PP.formatter) : unit = keyword fmt "UNKNOWN"
@@ -295,7 +263,6 @@ let unop (fmt : PP.formatter) (x : AST.unop) : unit =
   | Unop_BoolNot -> bang fmt
   | Unop_BitsNot -> kw_not fmt
 
-let int (fmt : PP.formatter) (x : int) : unit = constant fmt (string_of_int x)
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
@@ -675,15 +642,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       nbsp fmt;
       varname fmt v;
       comment_start fmt loc
-  | Stmt_DecodeExecute (i, e, loc) ->
-      comments_before fmt loc;
-      kw_underscore_decode fmt;
-      nbsp fmt;
-      varname fmt i;
-      nbsp fmt;
-      expr fmt e;
-      semicolon fmt;
-      comment_start fmt loc
   | Stmt_Block (ss, loc) ->
       comments_before fmt loc;
       kw_begin fmt;
@@ -842,116 +800,6 @@ let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
 
 let formals (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
   commasep fmt (formal fmt) xs
-
-let instr_field (fmt : PP.formatter) (x : AST.instr_field) : unit =
-  match x with
-  | IField_Field (f, lo, wd) ->
-      kw_underscore_field fmt;
-      nbsp fmt;
-      fieldname fmt f;
-      nbsp fmt;
-      int fmt lo;
-      nbsp fmt;
-      plus_colon fmt;
-      nbsp fmt;
-      int fmt wd
-
-let opcode_value (fmt : PP.formatter) (x : AST.opcode_value) : unit =
-  match x with Opcode_Bits b -> bitsLit fmt b | Opcode_Mask m -> maskLit fmt m
-
-let encoding (fmt : PP.formatter) (x : AST.encoding) : unit =
-  match x with
-  | Encoding_Block (nm, iset, fs, op, e, ups, b, loc) ->
-      kw_underscore_encoding fmt;
-      nbsp fmt;
-      varname fmt nm;
-      indented fmt (fun _ ->
-          kw_underscore_instruction_set fmt;
-          nbsp fmt;
-          varname fmt iset;
-          cut fmt;
-          map fmt
-            (fun f ->
-              instr_field fmt f;
-              cut fmt)
-            fs;
-          kw_underscore_opcode fmt;
-          nbsp fmt;
-          opcode_value fmt op;
-          cut fmt;
-          kw_underscore_guard fmt;
-          nbsp fmt;
-          expr fmt e;
-          cut fmt;
-          map fmt
-            (fun (i, b) ->
-              kw_underscore_unpredictable_unless fmt;
-              nbsp fmt;
-              int fmt i;
-              nbsp fmt;
-              eq_eq fmt;
-              nbsp fmt;
-              bitsLit fmt b;
-              cut fmt)
-            ups;
-          kw_underscore_decode fmt;
-          indented_block fmt b)
-
-let decode_slice (fmt : PP.formatter) (x : AST.decode_slice) : unit =
-  match x with
-  | DecoderSlice_Slice (lo, wd) ->
-      int fmt lo;
-      nbsp fmt;
-      plus_colon fmt;
-      nbsp fmt;
-      int fmt wd
-  | DecoderSlice_FieldName f -> fieldname fmt f
-  | DecoderSlice_Concat fs -> sepby fmt (fun _ -> colon fmt) (fieldname fmt) fs
-
-let rec decode_pattern (fmt : PP.formatter) (x : AST.decode_pattern) : unit =
-  match x with
-  | DecoderPattern_Bits b -> bitsLit fmt b
-  | DecoderPattern_Mask m -> maskLit fmt m
-  | DecoderPattern_Wildcard _ -> delimiter fmt "_"
-  | DecoderPattern_Not p ->
-      bang fmt;
-      decode_pattern fmt p
-
-let rec decode_body (fmt : PP.formatter) (x : AST.decode_body) : unit =
-  match x with
-  | DecoderBody_UNPRED loc -> kw_underscore_unpredictable fmt
-  | DecoderBody_UNALLOC loc -> kw_underscore_unallocated fmt
-  | DecoderBody_NOP loc -> kw_underscore_nop fmt
-  | DecoderBody_Encoding (e, loc) ->
-      kw_underscore_encoding fmt;
-      nbsp fmt;
-      varname fmt e
-  | DecoderBody_Decoder (fs, c, loc) ->
-      indented fmt (fun _ ->
-          map fmt
-            (fun f ->
-              instr_field fmt f;
-              cut fmt)
-            fs;
-          decode_case fmt c)
-
-and decode_case (fmt : PP.formatter) (x : AST.decode_case) : unit =
-  match x with
-  | DecoderCase_Case (ss, alts, loc) ->
-      kw_case fmt;
-      nbsp fmt;
-      parens fmt (fun _ -> commasep fmt (decode_slice fmt) ss);
-      nbsp fmt;
-      kw_of fmt;
-      indented fmt (fun _ ->
-          cutsep fmt
-            (fun (AST.DecoderAlt_Alt (ps, b)) ->
-              kw_when fmt;
-              parens fmt (fun _ -> commasep fmt (decode_pattern fmt) ps);
-              nbsp fmt;
-              eq_gt fmt;
-              decode_body fmt b)
-            alts)
 
 let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
     (ps : (AST.ident * AST.ty option) list) (args : unit -> unit) : unit =
@@ -1172,31 +1020,6 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           ty fmt t;
           indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_InstructionDefn (d, es, opd, c, ex, loc) ->
-          comments_before fmt loc;
-          kw_underscore_instruction fmt;
-          nbsp fmt;
-          varname fmt d;
-          indented fmt (fun _ ->
-              cutsep fmt (encoding fmt) es;
-              PP.pp_print_option
-                (fun _ pd ->
-                  kw_underscore_postdecode fmt;
-                  indented_block fmt pd)
-                fmt opd;
-              kw_underscore_execute fmt;
-              if c then kw_underscore_conditional fmt;
-              nbsp fmt;
-              indented_block fmt ex);
-          cut fmt;
-          kw_end fmt
-      | Decl_DecoderDefn (d, dc, loc) ->
-          comments_before fmt loc;
-          kw_underscore_decode fmt;
-          varname fmt d;
-          indented fmt (fun _ -> decode_case fmt dc);
           cut fmt;
           kw_end fmt
       | Decl_Operator1 (op, fs, loc) ->

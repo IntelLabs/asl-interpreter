@@ -444,10 +444,6 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
     | Stmt_Throw(v, loc) ->
             let ex = to_exc (Env.getVar env v) in
             raise (Throw ex)
-    | Stmt_DecodeExecute(i, e, loc) ->
-            let dec = Env.getDecoder env i in
-            let op  = xform_expr env e in
-            xform_decode_case env dec op
     *)
   | Stmt_Block (ss, loc) -> [ Stmt_Block (xform_stmts env ss, loc) ]
   | Stmt_If (c, t, els, (e, el), loc) -> (

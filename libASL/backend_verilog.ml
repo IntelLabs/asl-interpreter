@@ -745,7 +745,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
   | Stmt_Throw (_, _)
-  | Stmt_DecodeExecute (_, _, _)
   | Stmt_For (_, _, _, _, _, _)
   | Stmt_While (_, _, _)
   | Stmt_Repeat (_, _, _, _)

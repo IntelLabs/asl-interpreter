@@ -90,22 +90,22 @@ let read_file (paths : string list) (filename : string) (isPrelude : bool)
     FMT.declarations Format.std_formatter t;
     Format.pp_print_flush Format.std_formatter ());
   if verbose then
-    Printf.printf "  - Got %d declarations from %s\n" (List.length t) filename;
+    Printf.printf "  - Got %d declarations from %s\n%!" (List.length t) filename;
 
   let t' =
     report_type_error
       (fun _ -> exit 1)
       (fun _ ->
-        if verbose then Printf.printf "- Typechecking %s\n" filename;
+        if verbose then Printf.printf "- Typechecking %s\n%!" filename;
         TC.tc_declarations TC.env0 isPrelude t)
   in
 
   if false then FMT.declarations Format.std_formatter t';
   if verbose then
-    Printf.printf "  - Got %d typechecked declarations from %s\n"
+    Printf.printf "  - Got %d typechecked declarations from %s\n%!"
       (List.length t') filename;
 
-  if verbose then Printf.printf "Finished %s\n" filename;
+  if verbose then Printf.printf "Finished %s\n%!" filename;
   flush stdout;
   t'
 

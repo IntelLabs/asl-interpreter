@@ -251,8 +251,6 @@ module GlobalEnv : sig
   val getOperators1 : t -> AST.l -> AST.unop -> funtype list
   val addOperators2 : t -> AST.l -> AST.binop -> funtype list -> unit
   val getOperators2 : t -> AST.l -> AST.binop -> funtype list
-  val addEncoding : t -> AST.ident -> unit
-  val isEncoding : t -> AST.ident -> bool
   val addGlobalVar : t -> AST.l -> AST.ident -> AST.ty -> bool -> unit
   val getGlobalVar : t -> AST.ident -> AST.ty option
   val addConstant : t -> AST.ident -> AST.expr -> unit
@@ -264,7 +262,6 @@ end = struct
     mutable setters : funtype list Bindings.t;
     mutable operators1 : funtype list Operators1.t;
     mutable operators2 : funtype list Operators2.t;
-    mutable encodings : IdentSet.t;
     mutable globals : AST.ty Bindings.t;
     mutable constants : AST.expr Bindings.t;
   }
@@ -276,7 +273,6 @@ end = struct
       setters = Bindings.empty;
       operators1 = Operators1.empty;
       operators2 = Operators2.empty;
-      encodings = IdentSet.empty;
       globals = Bindings.empty;
       constants = Bindings.empty;
     }
@@ -288,7 +284,6 @@ end = struct
       setters = env.setters;
       operators1 = env.operators1;
       operators2 = env.operators2;
-      encodings = env.encodings;
       globals = env.globals;
       constants = env.constants;
     }
@@ -357,12 +352,6 @@ end = struct
 
   let getOperators2 (env : t) (loc : AST.l) (op : AST.binop) : funtype list =
     from_option (Operators2.find_opt op env.operators2) (fun _ -> [])
-
-  let addEncoding (env : t) (qid : AST.ident) : unit =
-    env.encodings <- IdentSet.add qid env.encodings
-
-  let isEncoding (env : t) (qid : AST.ident) : bool =
-    IdentSet.mem qid env.encodings
 
   let addGlobalVar (env : t) (loc : AST.l) (qid : AST.ident) (ty : AST.ty)
       (isConstant : bool) : unit =
@@ -2201,15 +2190,6 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
             check_type env u loc type_exn ty)
       in
       Stmt_Throw (v, loc)
-  | Stmt_DecodeExecute (i, e, loc) ->
-      let ty =
-        match pprint_ident i with
-        | "A64" | "A32" | "T32" -> type_bitsK "32"
-        | "T16" -> type_bitsK "16"
-        | _ -> raise (UnknownObject (loc, "instruction set", pprint_ident i))
-      in
-      let e' = check_expr env loc ty e in
-      Stmt_DecodeExecute (i, e', loc)
   | Stmt_Block (ss, loc) ->
       let ss' = tc_stmts env loc ss in
       Stmt_Block (ss', loc)
@@ -2366,113 +2346,6 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
   | ftys ->
       (* internal error: multiple definitions *)
       failwith "addFunction"
-
-(****************************************************************)
-(** {2 Typecheck instruction}                                   *)
-(****************************************************************)
-
-(** Typecheck instruction encoding *)
-let tc_encoding (env : Env.t) (x : encoding) :
-    encoding * (AST.ident * AST.ty) list =
-  match x with
-  | Encoding_Block (nm, iset, fields, opcode, guard, unpreds, b, loc) ->
-      GlobalEnv.addEncoding (Env.globals env) nm;
-      List.iter
-        (fun (IField_Field (fnm, lo, wd)) ->
-          Env.addLocalVar env loc fnm
-            (type_bits (Expr_LitInt (string_of_int wd))))
-        fields;
-      let guard' = check_expr env loc type_bool guard in
-      (* let (b', bs) = Env.nest_with_bindings (fun env' -> List.map (tc_stmt env') b) env in *)
-      let b', bs =
-        Env.nest_with_bindings
-          (fun env' ->
-            let b' = List.map (tc_stmt env') b in
-            let imps = Env.getAllImplicits env in
-            List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
-            let decls = declare_implicits loc imps in
-            (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
-            List.append decls b')
-          env
-      in
-      (Encoding_Block (nm, iset, fields, opcode, guard', unpreds, b', loc), bs)
-
-(** Typecheck bitslice of instruction opcode *)
-let tc_decode_slice (env : int Bindings.t) (loc : AST.l) (x : AST.decode_slice)
-    : AST.decode_slice * int =
-  match x with
-  | DecoderSlice_Slice (lo, wd) -> (DecoderSlice_Slice (lo, wd), wd)
-  | DecoderSlice_FieldName f ->
-      let wd =
-        match Bindings.find_opt f env with
-        | Some wd -> wd
-        | None ->
-            raise (UnknownObject (loc, "instruction field", pprint_ident f))
-      in
-      (DecoderSlice_FieldName f, wd)
-  | DecoderSlice_Concat fs ->
-      let wds = List.map (fun f -> Bindings.find f env) fs in
-      let sum xs = List.fold_left (fun a b -> a + b) 0 xs in
-      (DecoderSlice_Concat fs, sum wds)
-
-let check_width (loc : AST.l) (wd1 : int) (wd2 : int) : unit =
-  if wd1 != wd2 then
-    raise
-      (DoesNotMatch (loc, "width of field", string_of_int wd1, string_of_int wd2))
-
-(** Typecheck instruction decode pattern match *)
-let rec tc_decode_pattern (loc : AST.l) (wd : int) (x : decode_pattern) :
-    decode_pattern =
-  match x with
-  | DecoderPattern_Bits b ->
-      check_width loc wd (masklength b);
-      x
-  | DecoderPattern_Mask m ->
-      check_width loc wd (masklength m);
-      x
-  | DecoderPattern_Wildcard _ -> x
-  | DecoderPattern_Not p ->
-      let p' = tc_decode_pattern loc wd p in
-      DecoderPattern_Not p'
-
-(** Typecheck instruction decode body *)
-let rec tc_decode_body (env : GlobalEnv.t) (x : decode_body) : decode_body =
-  match x with
-  | DecoderBody_UNPRED _ -> x
-  | DecoderBody_UNALLOC _ -> x
-  | DecoderBody_NOP _ -> x
-  | DecoderBody_Encoding (enc, loc) ->
-      if not (GlobalEnv.isEncoding env enc) then
-        raise (UnknownObject (loc, "encoding", pprint_ident enc));
-      x
-  | DecoderBody_Decoder (fs, case, loc) ->
-      let case' = tc_decode_case env loc fs case in
-      DecoderBody_Decoder (fs, case', loc)
-
-(** Typecheck instruction decode case alternative *)
-and tc_decode_alt (env : GlobalEnv.t) (loc : AST.l) (wds : int list)
-    (x : decode_alt) : decode_alt =
-  match x with
-  | DecoderAlt_Alt (pats, body) ->
-      let pats' = List.map2 (tc_decode_pattern loc) wds pats in
-      let body' = tc_decode_body env body in
-      DecoderAlt_Alt (pats', body')
-
-(** Typecheck instruction decode case *)
-and tc_decode_case (env : GlobalEnv.t) (floc : AST.l) (fs : instr_field list)
-    (x : decode_case) : decode_case =
-  match x with
-  | DecoderCase_Case (slices, alts, loc) ->
-      let fenv =
-        List.fold_left
-          (fun r (IField_Field (fnm, lo, wd)) -> Bindings.add fnm wd r)
-          Bindings.empty fs
-      in
-      let slices', wds =
-        List.split (List.map (tc_decode_slice fenv loc) slices)
-      in
-      let alts' = List.map (tc_decode_alt env loc wds) alts in
-      DecoderCase_Case (slices', alts', loc)
 
 (****************************************************************)
 (** {2 Typecheck global declaration}                            *)
@@ -2639,35 +2512,6 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       in
       let b' = tc_body locals loc b in
       [ Decl_ArraySetterDefn (ft_id qid', ps', List.tl atys', v, ty', b', loc) ]
-  | Decl_InstructionDefn (nm, encs, opost, conditional, exec, loc) ->
-      let locals = Env.mkEnv env in
-      let encs', vss = List.split (List.map (tc_encoding locals) encs) in
-
-      (* todo: check consistency of bindings from different encodings *)
-      (* todo: ponder what to do when encodings don't all define the same variables *)
-      List.iter
-        (fun vs ->
-          List.iter (fun (v, ty) -> Env.addLocalVar locals loc v ty) vs)
-        vss;
-
-      let opost', pvs =
-        match opost with
-        | Some b ->
-            let b', vs =
-              Env.nest_with_bindings
-                (fun env' -> List.map (tc_stmt env') b)
-                locals
-            in
-            (Some b', vs)
-        | None -> (None, [])
-      in
-      List.iter (fun (v, ty) -> Env.addLocalVar locals loc v ty) pvs;
-
-      let exec' = tc_body locals loc exec in
-      [ Decl_InstructionDefn (nm, encs', opost', conditional, exec', loc) ]
-  | Decl_DecoderDefn (nm, case, loc) ->
-      let case' = tc_decode_case env loc [] case in
-      [ Decl_DecoderDefn (nm, case', loc) ]
   | Decl_Operator1 (op, funs, loc) ->
       let funs' =
         List.concat

@@ -29,7 +29,6 @@ let help_msg =
   [
     {|:? :help                       Show this help message|};
     {|:elf <file>                    Load an ELF file|};
-    {|:opcode <instr-set> <int>      Decode and execute opcode|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
     {|:run                           Execute instructions|};
@@ -45,7 +44,6 @@ let flags =
     ("trace:write", Eval.trace_write);
     ("trace:fun", Eval.trace_funcall);
     ("trace:prim", Eval.trace_primop);
-    ("trace:instr", Eval.trace_instruction);
   ]
 
 let mkLoc (fname : string) (input : string) : AST.l =
@@ -74,12 +72,6 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
       List.iter
         (fun (nm, v) -> Printf.printf "  %s%s\n" (if !v then "+" else "-") nm)
         flags
-  | [ ":opcode"; iset; opcode ] ->
-      (* todo: make this code more robust *)
-      let op = Z.of_int (int_of_string opcode) in
-      Printf.printf "Decoding and executing instruction %s %s\n" iset
-        (Z.format "%x" op);
-      cpu.opcode iset op
   | ":set" :: "impdef" :: rest ->
       let cmd = String.concat " " rest in
       let loc = mkLoc fname cmd in

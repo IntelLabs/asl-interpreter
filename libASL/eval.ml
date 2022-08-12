@@ -28,9 +28,6 @@ let trace_funcall = ref false
 (** Debugging output on every primitive function or function call *)
 let trace_primop = ref false
 
-(** Debugging output on every instruction execution *)
-let trace_instruction = ref false
-
 (** It is an error to have multiple function definitions with conflicting types.
  *  But, for historical reasons, we still allow multiple definitions and later
  *  definitions override earlier definitions.
@@ -83,26 +80,11 @@ module GlobalEnv : sig
   val addFun :
     AST.l -> t -> ident -> ident list * ident list * AST.l * stmt list -> unit
 
-  val getInstruction :
-    AST.l -> t -> ident -> encoding * stmt list option * bool * stmt list
-
-  val addInstruction :
-    AST.l ->
-    t ->
-    ident ->
-    encoding * stmt list option * bool * stmt list ->
-    unit
-
-  val getDecoder : t -> ident -> decode_case
-  val addDecoder : t -> ident -> decode_case -> unit
   val setImpdef : t -> string -> value -> unit
   val getImpdef : AST.l -> t -> string -> value
   val pp : t -> unit
 end = struct
   type t = {
-    mutable instructions :
-      (encoding * stmt list option * bool * stmt list) Bindings.t;
-    mutable decoders : decode_case Bindings.t;
     mutable functions :
       (ident list * ident list * AST.l * stmt list) Bindings.t;
     mutable enums : value list Bindings.t;
@@ -118,8 +100,6 @@ end = struct
 
   let empty =
     {
-      decoders = Bindings.empty;
-      instructions = Bindings.empty;
       functions = Bindings.empty;
       enums = Bindings.empty;
       enumEqs = IdentSet.empty;
@@ -179,20 +159,6 @@ end = struct
           (pp_loc loc) (pprint_ident x)
       else raise (TC.Ambiguous (loc, "function definition", pprint_ident x));
     env.functions <- Bindings.add x def env.functions
-
-  let getInstruction (loc : AST.l) (env : t) (x : ident) :
-      encoding * stmt list option * bool * stmt list =
-    Bindings.find x env.instructions
-
-  let addInstruction (loc : AST.l) (env : t) (x : ident)
-      (instr : encoding * stmt list option * bool * stmt list) : unit =
-    env.instructions <- Bindings.add x instr env.instructions
-
-  let getDecoder (env : t) (x : ident) : decode_case =
-    Bindings.find x env.decoders
-
-  let addDecoder (env : t) (x : ident) (d : decode_case) : unit =
-    env.decoders <- Bindings.add x d env.decoders
 
   let setImpdef (env : t) (x : string) (v : value) : unit =
     env.impdefs <- ImpDefs.add x v env.impdefs
@@ -314,23 +280,6 @@ let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AS
 (****************************************************************)
 (** {2 Evaluation functions}                                    *)
 (****************************************************************)
-
-(** Evaluate bitslice of instruction opcode *)
-let eval_decode_slice (loc : l) (env : Env.t) (x : decode_slice) (op : value) :
-    value =
-  match x with
-  | DecoderSlice_Slice (lo, wd) -> extract_bits' loc op lo wd
-  | DecoderSlice_FieldName f -> Env.getVar loc env f
-  | DecoderSlice_Concat fs -> eval_concat loc (List.map (Env.getVar loc env) fs)
-
-(** Evaluate instruction decode pattern match *)
-let rec eval_decode_pattern (loc : AST.l) (x : decode_pattern) (op : value) :
-    bool =
-  match x with
-  | DecoderPattern_Bits b -> eval_eq loc op (from_bitsLit b)
-  | DecoderPattern_Mask m -> eval_inmask loc op (from_maskLit m)
-  | DecoderPattern_Wildcard _ -> true
-  | DecoderPattern_Not p -> not (eval_decode_pattern loc p op)
 
 (** Evaluate list of expressions *)
 let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
@@ -651,10 +600,6 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
   | Stmt_Throw (v, loc) ->
       let ex = to_exc loc (Env.getVar loc env v) in
       raise (Throw ex)
-  | Stmt_DecodeExecute (i, e, loc) ->
-      let dec = GlobalEnv.getDecoder (Env.globals env) i in
-      let op = eval_expr loc env e in
-      eval_decode_case loc env dec op
   | Stmt_Block (b, loc) -> eval_stmts env b
   | Stmt_If (c, t, els, (e, el), loc) ->
       let rec eval css d =
@@ -782,84 +727,6 @@ and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
   | Return (Some (VTuple [])) -> ()
   | Throw (l, ex) -> raise (Throw (l, ex))
 
-(** Evaluate instruction decode case *)
-and eval_decode_case (loc : AST.l) (env : Env.t) (x : decode_case) (op : value)
-    : unit =
-  match x with
-  | DecoderCase_Case (ss, alts, loc) ->
-      let vs = List.map (fun s -> eval_decode_slice loc env s op) ss in
-      let rec eval alts =
-        match alts with
-        | alt :: alts' ->
-            if eval_decode_alt loc env alt vs op then () else eval alts'
-        | [] -> raise (EvalError (loc, "unmatched decode pattern"))
-      in
-      eval alts
-
-(** Evaluate instruction decode case alternative *)
-and eval_decode_alt (loc : AST.l) (env : Env.t) (DecoderAlt_Alt (ps, b))
-    (vs : value list) (op : value) : bool =
-  if List.for_all2 (eval_decode_pattern loc) ps vs then (
-    match b with
-    | DecoderBody_UNPRED loc -> raise (Throw (loc, Exc_Unpredictable))
-    | DecoderBody_UNALLOC loc -> raise (Throw (loc, Exc_Undefined))
-    | DecoderBody_NOP loc -> true
-    | DecoderBody_Encoding (enc, l) ->
-        let enc, opost, cond, exec =
-          GlobalEnv.getInstruction loc (Env.globals env) enc
-        in
-        if eval_encoding env enc op then (
-          (match opost with
-          | Some post -> List.iter (eval_stmt env) post
-          | None -> ());
-          (* todo: should evaluate ConditionHolds to decide whether to execute
-             body *)
-          List.iter (eval_stmt env) exec;
-          true)
-        else false
-    | DecoderBody_Decoder (fs, c, loc) ->
-        Env.nestTop env (fun env ->
-            List.iter
-              (function
-                | IField_Field (f, lo, wd) ->
-                    Env.addLocalVar loc env f (extract_bits' loc op lo wd))
-              fs;
-            eval_decode_case loc env c op);
-        true)
-  else false
-
-(** Evaluate instruction encoding *)
-and eval_encoding (env : Env.t) (x : encoding) (op : value) : bool =
-  let (Encoding_Block (nm, iset, fields, opcode, guard, unpreds, b, loc)) = x in
-  (* todo: consider checking iset *)
-  (* Printf.printf "Checking opcode match %s == %s\n" (Utils.to_string (PP.pp_opcode_value opcode)) (pp_value op); *)
-  let ok =
-    match opcode with
-    | Opcode_Bits b -> eval_eq loc op (from_bitsLit b)
-    | Opcode_Mask m -> eval_inmask loc op (from_maskLit m)
-  in
-  if ok then (
-    if !trace_instruction then
-      Printf.printf "TRACE: instruction %s\n" (pprint_ident nm);
-    List.iter
-      (function
-        | IField_Field (f, lo, wd) ->
-            let v = extract_bits' loc op lo wd in
-            if !trace_instruction then
-              Printf.printf "      %s = %s\n" (pprint_ident f) (pp_value v);
-            Env.addLocalVar loc env f v)
-      fields;
-    if to_bool loc (eval_expr loc env guard) then (
-      List.iter
-        (fun (i, b) ->
-          if eval_eq loc (extract_bits' loc op i 1) (from_bitsLit b) then
-            raise (Throw (loc, Exc_Unpredictable)))
-        unpreds;
-      List.iter (eval_stmt env) b;
-      true)
-    else false)
-  else false
-
 (****************************************************************)
 (** {2 Creating environment from global declarations}           *)
 (****************************************************************)
@@ -923,15 +790,6 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           let tvs = List.map fst ps in
           let args = List.map fst atys in
           GlobalEnv.addFun loc genv f (tvs, List.append args [ v ], loc, body)
-      | Decl_InstructionDefn (nm, encs, opost, conditional, exec, loc) ->
-          (* Instructions are looked up by their encoding name *)
-          List.iter
-            (fun enc ->
-              let (Encoding_Block (nm, _, _, _, _, _, _, _)) = enc in
-              GlobalEnv.addInstruction loc genv nm
-                (enc, opost, conditional, exec))
-            encs
-      | Decl_DecoderDefn (nm, case, loc) -> GlobalEnv.addDecoder genv nm case
       | Decl_NewMapDefn (f, ps, atys, rty, body, loc) ->
           let tvs = List.map fst ps in
           let args = List.map fst atys in

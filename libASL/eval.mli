@@ -21,7 +21,6 @@ module GlobalEnv : sig
     AST.ident ->
     (AST.ident list * AST.ident list * AST.l * AST.stmt list) option
 
-  val getDecoder : t -> AST.ident -> AST.decode_case
   val setImpdef : t -> string -> Value.value -> unit
   val pp : t -> unit
 end
@@ -45,9 +44,6 @@ val trace_funcall : bool ref
 val trace_primop : bool ref
 (** Debugging output on every primitive function or function call *)
 
-val trace_instruction : bool ref
-(** Debugging output on every instruction execution *)
-
 val eval_expr : AST.l -> Env.t -> AST.expr -> Value.value
 val eval_stmt : Env.t -> AST.stmt -> unit
 
@@ -63,9 +59,6 @@ val eval_funcall :
   Value.value list ->
   Value.value
 (** Evaluate call to function *)
-
-val eval_decode_case : AST.l -> Env.t -> AST.decode_case -> Value.value -> unit
-(** Evaluate instruction decode case *)
 
 val build_evaluation_environment : AST.declaration list -> Env.t
 val build_constant_environment : AST.declaration list -> GlobalEnv.t

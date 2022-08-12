@@ -170,11 +170,6 @@ __builtin func sleep_request() => ();
 __builtin func wakeup_request() => ();
 __builtin func program_end() => ();
 
-__builtin func decodeInstr_A64(instr :: bits(32)) => ();
-__builtin func decodeInstr_A32(instr :: bits(32)) => ();
-__builtin func decodeInstr_T32(instr :: bits(32)) => ();
-__builtin func decodeInstr_T16(instr :: bits(16)) => ();
-
 func print{N}(x :: bits(N))
     print_bits(x);
 end

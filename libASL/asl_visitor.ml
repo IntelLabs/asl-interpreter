@@ -39,11 +39,6 @@ class type aslVisitor =
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
     method vmapfield : mapfield -> mapfield visitAction
-    method vdpattern : decode_pattern -> decode_pattern visitAction
-    method vencoding : encoding -> encoding visitAction
-    method vdcase : decode_case -> decode_case visitAction
-    method vdalt : decode_alt -> decode_alt visitAction
-    method vdbody : decode_body -> decode_body visitAction
     method vdecl : declaration -> declaration visitAction
     method enter_scope : ident list -> unit
     method leave_scope : ident list -> unit
@@ -398,9 +393,6 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt =
     | Stmt_Throw (v, loc) ->
         let v' = visit_var vis v in
         if v == v' then x else Stmt_Throw (v', loc)
-    | Stmt_DecodeExecute (i, e, loc) ->
-        let e' = visit_expr vis e in
-        if e == e' then x else Stmt_DecodeExecute (i, e', loc)
     | Stmt_Block (b, loc) ->
         let b' = visit_stmts vis b in
         if b == b' then x else Stmt_Block (b', loc)
@@ -488,62 +480,6 @@ let visit_mapfield (vis : aslVisitor) (x : mapfield) : mapfield =
   in
   doVisit vis (vis#vmapfield x) aux x
 
-let rec visit_dpattern (vis : aslVisitor) (x : decode_pattern) : decode_pattern
-    =
-  let aux (vis : aslVisitor) (x : decode_pattern) : decode_pattern =
-    match x with
-    | DecoderPattern_Bits _ -> x
-    | DecoderPattern_Mask _ -> x
-    | DecoderPattern_Wildcard _ -> x
-    | DecoderPattern_Not p ->
-        let p' = visit_dpattern vis p in
-        if p == p' then x else DecoderPattern_Not p'
-  in
-  doVisit vis (vis#vdpattern x) aux x
-
-let visit_encoding (vis : aslVisitor) (x : encoding) : encoding =
-  let aux (vis : aslVisitor) (x : encoding) : encoding =
-    match x with
-    | Encoding_Block (nm, iset, fs, op, e, ups, b, loc) ->
-        let e' = visit_expr vis e in
-        let b' = visit_stmts vis b in
-        if e == e' && b == b' then x
-        else Encoding_Block (nm, iset, fs, op, e, ups, b', loc)
-  in
-  doVisit vis (vis#vencoding x) aux x
-
-let rec visit_decode_case (vis : aslVisitor) (x : decode_case) : decode_case =
-  let aux (vis : aslVisitor) (x : decode_case) : decode_case =
-    match x with
-    | DecoderCase_Case (ss, alts, loc) ->
-        let alts' = mapNoCopy (visit_decode_alt vis) alts in
-        if alts == alts' then x else DecoderCase_Case (ss, alts', loc)
-  in
-  doVisit vis (vis#vdcase x) aux x
-
-and visit_decode_alt (vis : aslVisitor) (x : decode_alt) : decode_alt =
-  let aux (vis : aslVisitor) (x : decode_alt) : decode_alt =
-    match x with
-    | DecoderAlt_Alt (ps, b) ->
-        let ps' = mapNoCopy (visit_dpattern vis) ps in
-        let b' = visit_decode_body vis b in
-        if ps == ps' && b == b' then x else DecoderAlt_Alt (ps', b')
-  in
-  doVisit vis (vis#vdalt x) aux x
-
-and visit_decode_body (vis : aslVisitor) (x : decode_body) : decode_body =
-  let aux (vis : aslVisitor) (x : decode_body) : decode_body =
-    match x with
-    | DecoderBody_UNPRED _ -> x
-    | DecoderBody_UNALLOC _ -> x
-    | DecoderBody_NOP _ -> x
-    | DecoderBody_Encoding _ -> x
-    | DecoderBody_Decoder (fs, c, loc) ->
-        let c' = visit_decode_case vis c in
-        if c == c' then x else DecoderBody_Decoder (fs, c', loc)
-  in
-  doVisit vis (vis#vdbody x) aux x
-
 let visit_parameter (vis : aslVisitor) (x : ident * ty option) :
     ident * ty option =
   match x with
@@ -565,13 +501,6 @@ let visit_arg (vis : aslVisitor) (x : ident * ty) : ident * ty =
 
 let visit_args (vis : aslVisitor) (xs : (ident * ty) list) : (ident * ty) list =
   mapNoCopy (visit_arg vis) xs
-
-let arg_of_ifield (IField_Field (id, _, wd)) : ident * ty =
-  (id, Type_Bits (Expr_LitInt (string_of_int wd)))
-
-let args_of_encoding (Encoding_Block (_, _, fs, _, _, _, _, _)) :
-    (ident * ty) list =
-  List.map arg_of_ifield fs
 
 let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
   let aux (vis : aslVisitor) (x : declaration) : declaration =
@@ -699,20 +628,6 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
         let b' = with_locals (List.map fst args' @ [ v' ]) vis visit_stmts b in
         if f == f' && args == args' && ty == ty' && v == v' && b == b' then x
         else Decl_ArraySetterDefn (f', ps', args', v', ty', b', loc)
-    | Decl_InstructionDefn (d, es, opd, c, ex, loc) ->
-        let d' = visit_var vis d in
-        let es' = mapNoCopy (visit_encoding vis) es in
-        let lvars = List.concat (List.map args_of_encoding es) in
-        let opd' =
-          mapOptionNoCopy (with_locals (List.map fst lvars) vis visit_stmts) opd
-        in
-        let ex' = with_locals (List.map fst lvars) vis visit_stmts ex in
-        if d == d' && es == es' && opd == opd' && ex == ex' then x
-        else Decl_InstructionDefn (d', es', opd', c, ex', loc)
-    | Decl_DecoderDefn (d, dc, loc) ->
-        let d' = visit_var vis d in
-        let dc' = visit_decode_case vis dc in
-        if d == d' && dc == dc' then x else Decl_DecoderDefn (d', dc', loc)
     | Decl_Operator1 (op, vs, loc) ->
         let vs' = mapNoCopy (visit_var vis) vs in
         if vs == vs' then x else Decl_Operator1 (op, vs', loc)
@@ -781,11 +696,6 @@ class nopAslVisitor : aslVisitor =
     method valt (_ : alt) = DoChildren
     method vcatcher (_ : catcher) = DoChildren
     method vmapfield (_ : mapfield) = DoChildren
-    method vdpattern (_ : decode_pattern) = DoChildren
-    method vencoding (_ : encoding) = DoChildren
-    method vdcase (_ : decode_case) = DoChildren
-    method vdalt (_ : decode_alt) = DoChildren
-    method vdbody (_ : decode_body) = DoChildren
     method vdecl (_ : declaration) = DoChildren
     method enter_scope _ = ()
     method leave_scope _ = ()
