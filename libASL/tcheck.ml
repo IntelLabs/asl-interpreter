@@ -479,59 +479,6 @@ let get_regfields (loc : AST.l) (rfs : (AST.slice list * ident) list)
 (** {3 Environment (aka the Local+Global Symbol Table)}         *)
 (****************************************************************)
 
-(* The handling of implicitly declared variables is complex.
- *
- * The typechecker inserts a variable declaration for any variable
- * that is assigned to for which there is no explicit declaration.
- *
- * To match the way that ASL is written, the declaration doesn't
- * always go in the current (i.e., innermost) scope because
- * a lot of ASL code requires that the variable should still
- * exist after the current scope has ended.
- *
- * At the same time, the declaration must:
- * - be legal: any variables used in the type of the declaration
- *   must be in scope
- * - mean the same: any variables used in the type of the declaration
- *   must have the same values
- * - be unique: there must be at most one declaration of each variable
- *   name (implicit or explicit) within a function
- *   (Note that this also means that we cannot explicitly declare two
- *   variables with the same name in different scopes - even if they have
- *   the same type.)
- *
- * So the rule for deciding where to put an implicit variable declaration is:
- * - it must occur before the initial assignment(s)
- * - there must be no assignment to any dependent variables between
- *   the declaration and the initial assignment(s)
- *
- * To implement this, the environment tracks:
- * - the set of all local variables (implicit or explicit) in this function
- * - the set of variables assigned to so far in each scope
- * - the list of pending implicit declarations waiting to be emitted
- *   (this is a list to make it easier to emit declarations in order)
- * And we maintain the invariant that none of the pending implicit declarations
- * have dependencies that are modified in the current (innermost) scope.
- *
- * New variables (both implicitly declared and explicitly declared) are
- * checked against the set of all local variables for conflicts.
- *
- * New implicitly declared variables either:
- * - have declarations inserted immediately before their assignment
- *   (if their type depends on variables modified in the current scope)
- * or
- * - are added to the list of implicit declarations
- *
- * On leaving scope I for scope O:
- * - explicit declarations are inserted for any pending implicit declarations that
- *   depend on variables modified in scope O
- *)
-
-type implicitVars = (AST.ident * AST.ty) list
-
-let declare_implicits (loc : AST.l) (imps : implicitVars) : AST.stmt list =
-  List.map (fun (v, ty) -> Stmt_VarDeclsNoInit ([ v ], ty, loc)) imps
-
 module Env : sig
   type t
 
@@ -540,9 +487,6 @@ module Env : sig
   val nest : (t -> 'a) -> t -> 'a
   val nest_with_bindings : (t -> 'a) -> t -> 'a * (AST.ident * AST.ty) list
   val addLocalVar : t -> AST.l -> AST.ident -> AST.ty -> unit
-  val addLocalImplicitVar : t -> AST.l -> AST.ident -> AST.ty -> unit
-  val getAllImplicits : t -> implicitVars
-  val getImplicits : t -> implicitVars
   val getVar : t -> AST.ident -> (AST.ident * AST.ty) option
   val markModified : t -> AST.ident -> unit
   val addConstraint : t -> AST.l -> AST.expr -> unit
@@ -557,7 +501,6 @@ end = struct
     (* Invariant: the stack is never empty *)
     mutable locals : AST.ty Bindings.t list;
     mutable modified : IdentSet.t;
-    mutable implicits : AST.ty Bindings.t ref;
     (* constraints collected while typechecking current expression/assignment *)
     mutable constraints : AST.expr list;
   }
@@ -568,7 +511,6 @@ end = struct
       rty = None;
       locals = [ Bindings.empty ];
       modified = IdentSet.empty;
-      implicits = ref Bindings.empty;
       constraints = [];
     }
 
@@ -584,7 +526,6 @@ end = struct
         rty = parent.rty;
         locals = Bindings.empty :: parent.locals;
         modified = IdentSet.empty;
-        implicits = parent.implicits;
         constraints = parent.constraints;
       }
     in
@@ -600,15 +541,13 @@ end = struct
         rty = parent.rty;
         locals = Bindings.empty :: parent.locals;
         modified = IdentSet.empty;
-        implicits = parent.implicits;
         constraints = parent.constraints;
       }
     in
     let r = k child in
     parent.modified <- IdentSet.union parent.modified child.modified;
     let locals = Bindings.bindings (List.hd child.locals) in
-    let implicits = Bindings.bindings !(child.implicits) in
-    (r, List.append implicits locals)
+    (r, locals)
 
   let addLocalVar (env : t) (loc : AST.l) (v : AST.ident) (ty : AST.ty) : unit =
     if GlobalEnv.getConstant env.globals v <> None then
@@ -620,28 +559,6 @@ end = struct
     | [] -> raise (InternalError "addLocalVar"));
     env.modified <- IdentSet.add v env.modified
 
-  let addLocalImplicitVar (env : t) (loc : AST.l) (v : AST.ident) (ty : AST.ty)
-      : unit =
-    (* Should only be called for undeclared variables *)
-    assert (GlobalEnv.getConstant env.globals v = None);
-    (* Format.fprintf fmt "New implicit: %s : %s\n" (pprint_ident v) (ppp_type ty); *)
-    env.implicits := Bindings.add v ty !(env.implicits);
-    env.modified <- IdentSet.add v env.modified
-
-  let getAllImplicits (env : t) : implicitVars =
-    let imps = !(env.implicits) in
-    env.implicits := Bindings.empty;
-    Bindings.bindings imps
-
-  let getImplicits (env : t) : implicitVars =
-    let unconflicted _ (ty : AST.ty) : bool =
-      let deps = fv_type ty in
-      IdentSet.is_empty (IdentSet.inter deps env.modified)
-    in
-    let good, conflicts = Bindings.partition unconflicted !(env.implicits) in
-    env.implicits := good;
-    Bindings.bindings conflicts
-
   let getVar (env : t) (v : AST.ident) : (AST.ident * AST.ty) option =
     (* Format.fprintf fmt "Looking for variable %s\n" (pprint_ident v); *)
     let rec search (bss : AST.ty Bindings.t list) : AST.ty option =
@@ -649,8 +566,7 @@ end = struct
       | bs :: bss' ->
           orelse_option (Bindings.find_opt v bs) (fun _ -> search bss')
       | [] ->
-          orelse_option (Bindings.find_opt v !(env.implicits)) (fun _ ->
-              GlobalEnv.getGlobalVar env.globals v)
+          GlobalEnv.getGlobalVar env.globals v
     in
     map_option (fun ty -> (v, ty)) (search env.locals)
 
@@ -1847,18 +1763,19 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
     Return set of variables assigned to in this expression
  *)
 let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
-    (x : AST.lexpr) : AST.lexpr * implicitVars =
+    (x : AST.lexpr) : AST.lexpr =
   match x with
-  | LExpr_Wildcard -> (LExpr_Wildcard, [])
+  | LExpr_Wildcard ->
+      LExpr_Wildcard
   | LExpr_Var v when v = Ident "_" ->
       (* treat '_' as wildcard token *)
-      (LExpr_Wildcard, [])
+      LExpr_Wildcard
   | LExpr_Var v -> (
       match Env.getVar env v with
       | Some (_, ty') ->
           check_type env u loc ty' ty;
           Env.markModified env v;
-          (LExpr_Var v, [])
+          LExpr_Var v
       | None -> (
           let setters =
             GlobalEnv.getFuns (Env.globals env) (addSuffix v "write")
@@ -1874,11 +1791,11 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
               let g', tes', rty =
                 instantiate_fun (Env.globals env) u loc gty [ dummy_arg ] [ ty ]
               in
-              (LExpr_Write (gty.funname, tes', []), [])
+              LExpr_Write (gty.funname, tes', [])
           | None ->
-              (* Implicitly declared variable *)
-              Env.markModified env v;
-              (LExpr_Var v, [ (v, ty) ])))
+              raise (UnknownObject (loc, "variable", pprint_ident v))
+          )
+      )
   | LExpr_Field (l, f) ->
       let l', rty = tc_lexpr2 env u loc l in
       let r, ty' =
@@ -1889,7 +1806,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
             (LExpr_Slices (l', ss), ty')
       in
       check_type env u loc ty' ty;
-      (r, [])
+      r
   | LExpr_Fields (l, fs) ->
       let l', lty = tc_lexpr2 env u loc l in
       let r, ty' =
@@ -1902,7 +1819,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
             (LExpr_Slices (l', ss), ty')
       in
       check_type env u loc ty' ty;
-      (r, [])
+      r
   | LExpr_Slices (e, ss) ->
       let all_single =
         List.for_all (function Slice_Single _ -> true | _ -> false) ss
@@ -1973,27 +1890,27 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
         | _ -> tc_slice_lexpr env u loc e ss'
       in
       check_type env u loc ty' ty;
-      (e', [])
+      e'
   | LExpr_BitTuple ls ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
       let ty' = mk_concat_tys tys in
       check_type env u loc ty' ty;
-      (LExpr_BitTuple ls', [])
+      LExpr_BitTuple ls'
   | LExpr_Tuple ls ->
-      let ls', iss =
+      let ls' =
         match ty with
         | Type_Tuple tys when List.length ls = List.length tys ->
-            List.split (List.map2 (tc_lexpr env u loc) tys ls)
+            List.map2 (tc_lexpr env u loc) tys ls
         | _ -> raise (IsNotA (loc, "tuple of length ?", pp_type ty))
       in
-      (LExpr_Tuple ls', List.concat iss)
+      LExpr_Tuple ls'
   | LExpr_Array (a, e) -> (
       let a', ty = tc_lexpr2 env u loc a in
       match derefType (Env.globals env) ty with
       | Type_Array (ixty, elty) ->
           let e', ety = tc_expr env u loc e in
           check_type env u loc (ixtype_basetype ixty) ety;
-          (LExpr_Array (a', e'), [])
+          LExpr_Array (a', e')
       | _ -> raise (TypeError (loc, "subscript of non-array")))
   | _ -> raise (InternalError "tc_lexpr")
 
@@ -2032,21 +1949,9 @@ let rec tc_decl_item (env : Env.t) (u : unifier) (loc : AST.l) (ity : AST.ty) (x
 (** Typecheck list of statements *)
 let rec tc_stmts (env : Env.t) (loc : AST.l) (xs : AST.stmt list) :
     AST.stmt list =
-  let rss =
-    Env.nest
-      (fun env' ->
-        List.map
-          (fun s ->
-            let s' = tc_stmt env' s in
-            let imps = Env.getImplicits env' in
-            List.iter (fun (v, ty) -> Env.addLocalVar env' loc v ty) imps;
-            let decls = declare_implicits loc imps in
-            (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
-            List.append decls [ s' ])
-          xs)
-      env
-  in
-  List.concat rss
+  Env.nest
+    (fun env' -> List.map (tc_stmt env') xs)
+    env
 
 (** Typecheck 'if expr then stmt' *)
 and tc_s_elsif (env : Env.t) (x : AST.s_elsif) : AST.s_elsif =
@@ -2111,39 +2016,17 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
 
       Stmt_ConstDecl (di'', i'', loc)
   | Stmt_Assign (l, r, loc) ->
-      let s, (r', rty, l', imps) =
+      let s, (r', rty, l') =
         with_unify env loc (fun u ->
             let r', rty = tc_expr env u loc r in
-            let l', imps = tc_lexpr env u loc rty l in
+            let l' = tc_lexpr env u loc rty l in
             if verbose then
               Format.fprintf fmt "    - Typechecking %s <- %s : %s\n"
                 (pp_lexpr l') (pp_expr r') (pp_type rty);
-            (r', rty, l', imps))
+            (r', rty, l'))
       in
       let l'' = unify_subst_le s l' in
       let r'' = unify_subst_e s r' in
-      List.iter
-        (fun (v, ty) ->
-          let ty' = unify_subst_ty s ty in
-          (* todo: note that type potentially involves local variables
-           * eg in assignments like "x = address[31:N] : Zeros(N);"
-           * whose "obvious" type is "bits(((31-N)+1)+N)"
-           *
-           * We could attempt to simplify the type (in this example,
-           * it could be simplified to "bits(32)"), this would be somewhat
-           * fragile (unless we can guarantee that the simplified expression
-           * does not involve any variables that it does not need to involve).
-           *
-           * So, we do not simplify the expression and, instead, we
-           * declare the variable in the outermost scope in which all
-           * free variables are in scope.
-           *
-           * (That said, it may be a worthwhile optimization to simplify
-           * the expression before execution to avoid gratuitiously complex
-           * bitwidth calculations.)
-           *)
-          Env.addLocalImplicitVar env loc v ty')
-        imps;
       Stmt_Assign (l'', r'', loc)
   | Stmt_TCall (f, tes, es, loc) ->
       let s, (f', tes'', es') =
@@ -2210,8 +2093,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
             tc_stmts env' loc b)
           env
       in
-      let b'' = List.append (declare_implicits loc (Env.getImplicits env)) b' in
-      Stmt_For (v, start', dir, stop', b'', loc)
+      Stmt_For (v, start', dir, stop', b', loc)
   | Stmt_While (c, b, loc) ->
       let c' = check_expr env loc type_bool c in
       let b' = tc_stmts env loc b in
@@ -2238,11 +2120,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
 
 (** Typecheck function body (list of statements) *)
 let tc_body (env : Env.t) (loc : AST.l) (xs : AST.stmt list) : AST.stmt list =
-  let xs' = tc_stmts env loc xs in
-  let imps = Env.getAllImplicits env in
-  let decls = declare_implicits loc imps in
-  (* if verbose && decls <> [] then Printf.printf "Implicit decls: %s %s" (pp_loc loc) (Utils.to_string (PP.pp_block decls)); *)
-  List.append decls xs'
+  tc_stmts env loc xs
 
 (** Typecheck function parameter *)
 let tc_parameter (env : Env.t) (loc : AST.l)
