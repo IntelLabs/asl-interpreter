@@ -338,11 +338,6 @@ func Replicate{M}(x :: bits(M), N :: integer) => bits(M*N)
     return replicate_bits(x, N);
 end
 
-func Replicate{M, N}(x :: bits(M)) => bits(N)
-    assert N MOD M == 0;
-    return replicate_bits(x, N DIV M);
-end
-
 func Zeros(N :: integer) => bits(N)
     return zeros_bits();
 end
