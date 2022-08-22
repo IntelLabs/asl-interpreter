@@ -57,6 +57,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
   let input = String.trim input0 in
   match String.split_on_char ' ' input with
   | [ "" ] -> ()
+  | ("//"::_) -> () (* comment *)
   | [ ":elf"; file ] ->
       Printf.printf "Loading ELF file %s.\n" file;
       let entry = Elf.load_file file cpu.elfwrite in
