@@ -20,6 +20,11 @@ let opt_print_spec = ref false
 let opt_verbose = ref false
 let opt_show_banner = ref true
 
+let projects : string list ref = ref []
+
+let add_project (prj : string): unit =
+  projects := List.append !projects [prj]
+
 let help_msg =
   [
     {|:? :help                       Show this help message|};
@@ -54,7 +59,7 @@ let mkLoc (fname : string) (input : string) : AST.l =
   AST.Range (start, finish)
 
 let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
-    (input0 : string) : unit =
+  (input0 : string) : unit =
   let input = String.trim input0 in
   match String.split_on_char ' ' input with
   | [ "" ] -> ()
@@ -89,13 +94,8 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
       match List.assoc_opt (Utils.stringDrop 1 flag) flags with
       | None -> Printf.printf "Unknown flag %s\n" flag
       | Some f -> f := false)
-  | [ ":project"; prj ] -> (
-      let inchan = open_in prj in
-      try
-        while true do
-          process_command tcenv cpu prj (input_line inchan)
-        done
-      with End_of_file -> close_in inchan)
+  | [ ":project"; prj ] ->
+      load_project tcenv cpu prj
   | [ ":q" ] | [ ":quit" ] -> exit 0
   | [ ":run" ] -> (
       try
@@ -113,6 +113,14 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         let e = LoadASL.read_expr tcenv loc input in
         let v = Eval.eval_expr loc cpu.env e in
         print_endline (Value.pp_value v)
+
+and load_project (tcenv : TC.Env.t) (cpu : Cpu.cpu) (prj : string) : unit =
+  let inchan = open_in prj in
+  try
+    while true do
+      process_command tcenv cpu prj (input_line inchan)
+    done
+  with End_of_file -> close_in inchan
 
 let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
   flush stdout;
@@ -142,6 +150,7 @@ let options =
       ("-v", Arg.Set opt_verbose, "       Verbose output");
       ("--version", Arg.Set opt_print_version, "       Print version");
       ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
+      ("--project", Arg.String add_project,     "       Execute project file");
     ]
 
 let version = "ASL 0.2.0 alpha"
@@ -197,9 +206,14 @@ let main () =
     in
     if !opt_verbose then Printf.printf "Built evaluation environment\n";
 
+    let tcenv = TC.Env.mkEnv TC.env0 in
+    let cpu = Cpu.mkCPU env in
+
+    List.iter (load_project tcenv cpu) !projects;
+
     LNoise.history_load ~filename:"asl_history" |> ignore;
     LNoise.history_set ~max_length:100 |> ignore;
-    repl (TC.Env.mkEnv TC.env0) (Cpu.mkCPU env))
+    repl tcenv cpu)
 
 let _ = ignore (main ())
 
