@@ -813,6 +813,17 @@ let typedef (fmt : PP.formatter) (tc : AST.ident) (pp : unit -> unit) : unit =
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
+      | Decl_Const (v, ty, e, loc) ->
+          kw_const fmt;
+          nbsp fmt;
+          varty loc fmt v ty;
+          nbsp fmt;
+          eq fmt;
+          nbsp fmt;
+          expr loc fmt e;
+          semicolon fmt;
+          cut fmt;
+          cut fmt
       | Decl_Enum (tc, es, loc) ->
           if tc = Ident "boolean" then (* is in C99 stdbool.h *) ()
           else (

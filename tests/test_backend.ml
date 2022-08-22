@@ -216,10 +216,19 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func F() while TRUE do return; end end";
   ()
 
+let test_var_c_only (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
+    unit =
+  check_declaration tcenv decls ext "const integer" "let i :: integer = 0;";
+  ()
+
 let test_cases_c_only (decls : AST.declaration list -> unit)
     (ext : string -> string -> unit) : unit Alcotest.test_case list =
   let tcenv = TC.env0 in
-  [ ("procedure definition", `Quick, test_proc_defn_c_only tcenv decls ext) ]
+  [
+    ("procedure definition", `Quick, test_proc_defn_c_only tcenv decls ext);
+    ("variable", `Quick, test_var_c_only tcenv decls ext);
+  ]
 
 let () =
   let paths = [ "../../.." ] in
