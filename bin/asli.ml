@@ -39,13 +39,6 @@ let help_msg =
     {|<stmt> ;                       Execute ASL statement|};
   ]
 
-let flags =
-  [
-    ("trace:write", Eval.trace_write);
-    ("trace:fun", Eval.trace_funcall);
-    ("trace:prim", Eval.trace_primop);
-  ]
-
 let mkLoc (fname : string) (input : string) : AST.l =
   let len = String.length input in
   let start : Lexing.position =
@@ -70,25 +63,30 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       print_endline "\nFlags:";
-      List.iter
-        (fun (nm, v) -> Printf.printf "  %s%s\n" (if !v then "+" else "-") nm)
-        flags
+      Flags.FlagMap.iter
+        (fun nm (v, desc) -> Printf.printf "  %s%-27s %s\n" (if !v then "+" else "-") nm desc)
+        !Flags.flags
   | ":set" :: "impdef" :: rest ->
       let cmd = String.concat " " rest in
       let loc = mkLoc fname cmd in
       let x, e = LoadASL.read_impdef tcenv loc cmd in
       let v = Eval.eval_expr loc cpu.env e in
       cpu.setImpdef x v
-  | [ ":set"; flag ] when Utils.startswith flag "+" -> (
-      match List.assoc_opt (Utils.stringDrop 1 flag) flags with
-      | None -> Printf.printf "Unknown flag %s\n" flag
-      | Some f -> f := true)
-  | [ ":set"; flag ] when Utils.startswith flag "-" -> (
-      match List.assoc_opt (Utils.stringDrop 1 flag) flags with
-      | None -> Printf.printf "Unknown flag %s\n" flag
-      | Some f -> f := false)
-  | [ ":project"; prj ] ->
-      load_project tcenv cpu prj
+ | [ ":set"; flag ] when Utils.startswith flag "+" -> (
+     match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
+     | None -> Printf.printf "Unknown flag %s\n" flag
+     | Some (f, _) -> f := true)
+ | [ ":set"; flag ] when Utils.startswith flag "-" -> (
+     match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
+     | None -> Printf.printf "Unknown flag %s\n" flag
+     | Some (f, _) -> f := false)
+  | [ ":project"; prj ] -> (
+      let inchan = open_in prj in
+      try
+        while true do
+          process_command tcenv cpu prj (input_line inchan)
+        done
+      with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
   | [ ":run" ] -> (
       try

@@ -158,13 +158,35 @@ func __WriteRAM(A :: integer, N :: integer, ram :: __RAM(A), address :: bits(A),
     ram_write(A, N, ram, address, val);
 end
 
-__builtin func trace_memory_write{A}(N :: integer, address :: bits(A), val :: bits(8*N)) => ();
-__builtin func trace_memory_read{A}(N :: integer, address :: bits(A), val :: bits(8*N)) => ();
-__builtin func trace_event(event :: string) => ();
+// Advance trace to next instruction
+__builtin func __TraceNext() => ();
 
-func __tarmacEvent(event :: string)
-    trace_event(event);
-end
+// Trace a read/write of data/instruction from a physical memory address
+__builtin func __TracePhysicalMemory
+    (is_read :: boolean, is_data :: boolean, PA :: integer, N :: integer,
+    physical_address :: bits(PA), val :: bits(N)
+    ) => ();
+
+// Trace a read/write of data/instruction from a virtual memory address
+// providing both the context ID and the physical address that the access maps to.
+__builtin func __TraceVirtualMemory
+    (is_read :: boolean, is_data :: boolean, VA :: integer, PA :: integer, N :: integer,
+    context :: bits(C), virtual_address :: bits(VA), physical_address :: bits(PA), val :: bits(N)
+    ) => ();
+
+// Trace a read of a page table entry from a physical address
+// providing both the context ID and the level of this entry in the page table tree.
+__builtin func __TracePageTableWalk
+    (PA :: integer, N :: integer,
+    context :: bits(C), level :: integer,
+    physical_address :: bits(PA), val :: bits(N)
+    ) => ();
+
+// Emit an error message to trace
+__builtin func __TraceError(kind :: string, event :: string) => ();
+
+// Emit an informational memory to trace
+__builtin func __TraceEvent(kind :: string, event :: string) => ();
 
 __builtin func sleep_request() => ();
 __builtin func wakeup_request() => ();

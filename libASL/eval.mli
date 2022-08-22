@@ -35,15 +35,6 @@ module Env : sig
   val pp : Format.formatter -> t -> unit
 end
 
-val trace_write : bool ref
-(** Debugging output on every variable write *)
-
-val trace_funcall : bool ref
-(** Debugging output on every function call *)
-
-val trace_primop : bool ref
-(** Debugging output on every primitive function or function call *)
-
 val eval_expr : AST.l -> Env.t -> AST.expr -> Value.value
 val eval_stmt : Env.t -> AST.stmt -> unit
 

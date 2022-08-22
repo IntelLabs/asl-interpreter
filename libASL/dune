@@ -25,7 +25,7 @@
  (flags
   (:standard -w -27 -cclib -lstdc++))
  (modules asl_ast asl_fmt asl_parser asl_utils asl_visitor backend_c
-   backend_verilog cpu elf eval format_utils lattice lexer lexersupport
+   backend_verilog cpu elf eval flags format_utils lattice lexer lexersupport
    loadASL primops tcheck utils value visitor
    xform_casesplit xform_constprop xform_mono xform_tuples)
  (libraries ocolor pprint zarith z3))

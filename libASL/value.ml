@@ -2,6 +2,7 @@
  * ASL interpreter values
  *
  * Copyright Arm Limited (c) 2017-2019
+ * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -242,6 +243,180 @@ let from_stringLit (x : string) : value =
   VString !r
 
 (****************************************************************)
+(** {2 Control over trace generation}                           *)
+(****************************************************************)
+
+(** Debugging output on every instruction fetch *)
+let enable_trace_memory_insn = ref false
+
+(** Debugging output on every page table access *)
+let enable_trace_memory_pte = ref false
+
+(** Debugging output on every memory read *)
+let enable_trace_memory_read = ref false
+
+(** Debugging output on every memory write *)
+let enable_trace_memory_write = ref false
+
+(** Debugging output on every local variable read *)
+let enable_trace_local_read = ref false
+
+(** Debugging output on every global variable read *)
+let enable_trace_global_read = ref false
+
+(** Debugging output on every local variable write *)
+let enable_trace_local_write = ref false
+
+(** Debugging output on every global variable write *)
+let enable_trace_global_write = ref false
+
+(** Debugging output on every function call *)
+let enable_trace_functions = ref false
+
+(** Debugging output on every primitive function call *)
+let enable_trace_primops = ref false
+
+(** Debugging output: errors *)
+let enable_trace_errors = ref false
+
+(** Debugging output: user-defined events *)
+let enable_trace_events = ref false
+
+let _ = begin
+  Flags.registerFlag "trace:global_read" enable_trace_global_read "Instruction trace: register reads";
+  Flags.registerFlag "trace:global_write" enable_trace_global_write "Instruction trace: register writes";
+  Flags.registerFlag "trace:memory_read" enable_trace_memory_read "Instruction trace: data memory reads";
+  Flags.registerFlag "trace:memory_write" enable_trace_memory_write "Instruction trace: data memory writes";
+  Flags.registerFlag "trace:instruction_fetch" enable_trace_memory_insn "Instruction trace: instruction memory reads";
+  Flags.registerFlag "trace:page_table_entry" enable_trace_memory_pte "Instruction trace: page table accesses";
+  Flags.registerFlag "trace:error" enable_trace_errors "Instruction trace: errors";
+  Flags.registerFlag "trace:event" enable_trace_events "Instruction trace: user defined events";
+  Flags.registerFlag "trace:local_read" enable_trace_local_read "ASL trace: local variable reads";
+  Flags.registerFlag "trace:local_write" enable_trace_local_write "ASL trace: local variable writes";
+  Flags.registerFlag "trace:primop" enable_trace_primops "ASL trace: calls to builtin functions";
+  Flags.registerFlag "trace:function" enable_trace_functions "ASL trace: calls to functions";
+end
+
+(****************************************************************)
+(** {2 Trace generation}                                        *)
+(****************************************************************)
+
+module type Tracer = sig
+  val trace_next : unit -> unit
+
+  val trace_physical_memory : is_read:bool -> is_data:bool -> phys_addr:Z.t -> data:Primops.bitvector -> unit
+
+  val trace_virtual_memory : is_read:bool -> is_data:bool -> context:Z.t -> virt_addr:Z.t -> phys_addr:Z.t -> data:Primops.bitvector -> unit
+
+  val trace_memory_pte : context:Z.t -> level:Z.t -> phys_addr:Z.t -> data:Primops.bitvector -> unit
+
+  val trace_error : kind:string -> string list -> unit
+
+  val trace_event : kind:string -> string list -> unit
+
+  val trace_function : is_prim:bool -> is_return:bool -> Asl_ast.ident -> value list -> value list -> unit
+
+  val trace_var : is_local:bool -> is_read:bool -> Asl_ast.ident -> value -> unit
+end
+
+(** Tracer module that produces textual trace on stdout
+ *
+ * All lines of output are of the form
+ *
+ *     TRACE <cycle> <kind ..>: <args>
+ *)
+module TextTracer = struct
+  let cycle = ref 0
+
+  let trace (kind : string) (params : string list) =
+    Printf.printf "TRACE %d %s:" !cycle kind;
+    List.iter (fun p -> Printf.printf " %s" p) params;
+    Printf.printf "\n"
+
+  let trace_next (_ : unit) : unit =
+    cycle := !cycle + 1
+
+  let trace_physical_memory ~(is_read : bool) ~(is_data : bool) ~(phys_addr : Z.t) ~(data : bitvector) : unit =
+    let enabled = if is_data then
+                    (if is_read then !enable_trace_memory_read else !enable_trace_memory_write)
+                  else
+                    !enable_trace_memory_insn
+    in
+    if enabled then
+      let kind = if is_data then "D" else "I" in
+      trace
+        (if is_read then "phys_mem_read_"^kind else "phys_mem_write_"^kind)
+        [ string_of_int data.n
+        ; Z.format "%#08x" phys_addr
+        ; Z.format "%#x" data.v
+        ]
+
+  let trace_virtual_memory ~(is_read : bool) ~(is_data : bool) ~(context : Z.t) ~(virt_addr : Z.t) ~(phys_addr : Z.t) ~(data : bitvector) : unit =
+    let enabled = if is_data then
+                    (if is_read then !enable_trace_memory_read else !enable_trace_memory_write)
+                  else
+                    !enable_trace_memory_insn
+    in
+    if enabled then
+      let kind = if is_data then "D" else "I" in
+      trace
+        (if is_read then "virt_mem_read_"^kind else "phys_mem_write_"^kind)
+        [ string_of_int data.n
+        ; Z.format "%#04x" context
+        ; Z.format "%#08x" virt_addr
+        ; Z.format "%#08x" phys_addr
+        ; Z.format "%#x" data.v
+        ]
+
+  let trace_memory_pte ~(context : Z.t) ~(level : Z.t) ~(phys_addr : Z.t) ~(data : bitvector) : unit =
+    if !enable_trace_memory_pte then
+      trace
+        "memory_read_pte"
+        [ string_of_int data.n
+        ; Z.format "%#04x" context
+        ; Z.format "%d" level
+        ; Z.format "%#08x" phys_addr
+        ; Z.format "%#08x" data.v
+        ]
+
+  let trace_var ~(is_local : bool) ~(is_read : bool) (name : AST.ident) (data : value) : unit =
+    let enabled = if is_local
+                  then (if is_read then !enable_trace_local_read else !enable_trace_local_write)
+                  else (if is_read then !enable_trace_global_read else !enable_trace_global_write)
+    in
+    if enabled then
+      trace
+        ("var_" ^ (if is_local then "local_" else "global_") ^ (if is_read then "read" else "write"))
+        [ AST.pprint_ident name
+        ; pp_value data
+        ]
+
+  let trace_error ~(kind : string) (vs : string list) : unit =
+    if !enable_trace_errors then
+      trace
+        ("error " ^ kind)
+        vs
+
+  let trace_event ~(kind : string) (vs : string list) : unit =
+    if !enable_trace_events then
+      trace
+        ("event " ^ kind)
+        vs
+
+  let trace_function ~(is_prim : bool) ~(is_return : bool) (name : AST.ident) (tvs : value list) (vs : value list) : unit =
+    let enabled = if is_prim then !enable_trace_primops else !enable_trace_functions
+    in
+    if enabled then
+      trace
+        ("function_" ^ (if is_return then "return" else "call"))
+        ( AST.pprint_ident name :: "{" :: List.append (List.map pp_value tvs) ("}" :: List.map pp_value vs))
+
+end
+
+let tracer = ref (module TextTracer : Tracer)
+
+
+(****************************************************************)
 (** {2 Primop dispatch on values}                               *)
 (****************************************************************)
 
@@ -362,18 +537,26 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
       Some
         (prim_write_ram a n ram i.v x;
          VTuple [])
-  | "trace_memory_read", _, [ VInt a; VInt n; VRAM ram; VInt i; VBits x ] ->
-      Some
-        (prim_trace_memory_write a n ram i x;
-         VTuple [])
-  | "trace_memory_write", _, [ VInt a; VInt n; VRAM ram; VInt i; VBits x ] ->
-      Some
-        (prim_trace_memory_read a n ram i x;
-         VTuple [])
-  | "trace_event", _, [ VString s ] ->
-      Some
-        (prim_trace_event s;
-         VTuple [])
+
+  | "__TraceNext", _, [ ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_next (); VTuple [])
+  | "__TracePhysicalMemory", _, [ VBool is_read; VBool is_data; VInt a; VInt n; VBits pa; VBits v ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_physical_memory ~is_read ~is_data ~phys_addr:pa.v ~data:v; VTuple [])
+  | "__TraceVirtualMemory", _, [ VBool is_read; VBool is_data; VInt vw; VInt pw; VInt n; VBits ctxt; VBits va; VBits pa; VBits v ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_virtual_memory ~is_read ~is_data ~context:ctxt.v ~phys_addr:pa.v ~virt_addr:va.v ~data:v; VTuple [])
+  | "__TracePageTableWalk", _, [ VInt pw; VInt n; VBits ctxt; VInt level; VBits pa; VBits v ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_memory_pte ~context:ctxt.v ~level ~phys_addr:pa.v ~data:v; VTuple [])
+  | "__TraceError", _, [ VString kind; VString s ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_error ~kind [s]; VTuple [])
+  | "__TraceEvent", _, [ VString kind; VString s ] ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Some (Tracer.trace_event ~kind [s]; VTuple [])
+
   | "asl_file_open", _, [ VString name; VString mode ] ->
       Some (VInt (prim_open_file name mode))
   | "asl_file_write", _, [ VInt fd; VString data ] ->
@@ -419,9 +602,12 @@ let impure_prims =
     "ram_init";
     "ram_read";
     "ram_write";
-    "trace_memory_read";
-    "trace_memory_write";
-    "trace_event";
+    "__TraceNext";
+    "__TracePhysicalMemory";
+    "__TraceVirtualMemory";
+    "__TracePageTableWalk";
+    "__TraceError";
+    "__TraceEvent";
     "asl_file_open";
     "asl_file_write";
     "asl_file_getc";

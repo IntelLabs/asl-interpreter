@@ -19,15 +19,6 @@ open Value
  * Flags to control behaviour (mostly for debugging)
  ****************************************************************)
 
-(** Debugging output on every variable write *)
-let trace_write = ref false
-
-(** Debugging output on every function call *)
-let trace_funcall = ref false
-
-(** Debugging output on every primitive function or function call *)
-let trace_primop = ref false
-
 (** It is an error to have multiple function definitions with conflicting types.
  *  But, for historical reasons, we still allow multiple definitions and later
  *  definitions override earlier definitions.
@@ -223,27 +214,44 @@ end = struct
   let globals (env : t) : GlobalEnv.t = env.globalConsts
 
   let addLocalVar (loc : l) (env : t) (x : ident) (v : value) : unit =
-    if !trace_write then
-      Printf.printf "TRACE: fresh %s = %s\n" (pprint_ident x) (pp_value v);
+    let module Tracer = (val (!tracer) : Tracer) in
+    Tracer.trace_var ~is_local:true ~is_read:false x v;
     ScopeStack.add env.locals x v
 
   let addLocalConst (loc : l) (env : t) (x : ident) (v : value) : unit =
     (* todo: should constants be held separately from local vars? *)
+    let module Tracer = (val (!tracer) : Tracer) in
+    Tracer.trace_var ~is_local:true ~is_read:false x v;
     ScopeStack.add env.locals x v
 
   let addGlobalVar (env : t) (x : ident) (v : value) : unit =
     Scope.set env.globalVars x v
 
   let getVar (loc : l) (env : t) (x : ident) : value =
-    from_option (ScopeStack.get env.locals x) (fun _ ->
-        from_option (Scope.get env.globalVars x) (fun _ ->
+    match ScopeStack.get env.locals x with
+    | Some r ->
+        let module Tracer = (val (!tracer) : Tracer) in
+        Tracer.trace_var ~is_local:true ~is_read:true x r;
+        r
+    | None ->
+        match Scope.get env.globalVars x with
+        | Some r ->
+            let module Tracer = (val (!tracer) : Tracer) in
+            Tracer.trace_var ~is_local:false ~is_read:true x r;
+            r
+        | None ->
             from_option (GlobalEnv.getGlobalConstOpt env.globalConsts x)
-              (fun _ -> raise (EvalError (loc, "getVar: " ^ pprint_ident x)))))
+              (fun _ -> raise (EvalError (loc, "getVar: " ^ pprint_ident x)))
 
   let setVar (loc : l) (env : t) (x : ident) (v : value) : unit =
-    if !trace_write then
-      Printf.printf "TRACE: write %s = %s\n" (pprint_ident x) (pp_value v);
-    if ScopeStack.set env.locals x v then () else Scope.set env.globalVars x v
+    if ScopeStack.set env.locals x v then begin
+        let module Tracer = (val (!tracer) : Tracer) in
+        Tracer.trace_var ~is_local:true ~is_read:false x v
+    end else begin
+        Scope.set env.globalVars x v;
+        let module Tracer = (val (!tracer) : Tracer) in
+        Tracer.trace_var ~is_local:false ~is_read:false x v
+    end
 
   let pp (fmt : Format.formatter) (env : t) : unit =
     List.iter
@@ -684,20 +692,14 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
 (** Evaluate call to function or procedure *)
 and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
     (vs : value list) : unit =
+  let module Tracer = (val (!tracer) : Tracer) in
   match eval_prim (name_of_FIdent f) tvs vs with
   | Some r ->
-      if !trace_primop then (
-        Printf.printf "TRACE primop: %s " (pprint_ident f);
-        List.iter (fun v -> Printf.printf " [%s]" (pp_value v)) tvs;
-        List.iter (fun v -> Printf.printf " %s" (pp_value v)) vs;
-        Printf.printf " --> %s\n" (pp_value r));
+      Tracer.trace_function ~is_prim:true ~is_return:false f tvs vs;
+      Tracer.trace_function ~is_prim:true ~is_return:true f [] [r];
       raise (Return (Some r))
   | None ->
-      if !trace_funcall then (
-        Printf.printf "TRACE funcall: %s " (pprint_ident f);
-        List.iter (fun v -> Printf.printf " [%s]" (pp_value v)) tvs;
-        List.iter (fun v -> Printf.printf " %s" (pp_value v)) vs;
-        Printf.printf "\n");
+      Tracer.trace_function ~is_prim:false ~is_return:false f tvs vs;
       let targs, args, loc, b =
         Utils.from_option
           (GlobalEnv.getFun loc (Env.globals env) f)
@@ -718,16 +720,22 @@ and eval_funcall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
     eval_call loc env f tvs vs;
     raise (EvalError (loc, "no return statement"))
   with
-  | Return (Some v) -> v
+  | Return (Some v) ->
+      let module Tracer = (val (!tracer) : Tracer) in
+      Tracer.trace_function ~is_prim:false ~is_return:true f [] [v];
+      v
   | Throw (l, ex) -> raise (Throw (l, ex))
 
 (** Evaluate call to procedure *)
 and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
     (vs : value list) : unit =
-  try eval_call loc env f tvs vs with
+  ( try eval_call loc env f tvs vs with
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
   | Throw (l, ex) -> raise (Throw (l, ex))
+  );
+  let module Tracer = (val (!tracer) : Tracer) in
+  Tracer.trace_function ~is_prim:false ~is_return:true f [] []
 
 (****************************************************************)
 (** {2 Creating environment from global declarations}           *)

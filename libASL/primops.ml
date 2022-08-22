@@ -416,23 +416,6 @@ let prim_print_char (data : bigint) : unit =
 let prim_print_bits (n : bigint) (data : bitvector) : unit =
   Printf.printf "%s" (prim_cvt_bits_str n data)
 
-(****************************************************************)
-(** {2 Trace primops}                                           *)
-(****************************************************************)
-
-(** These are not part of the official ASL language but they are
-    useful when implementing the infrastructure needed in simulators.
- *)
-
-let prim_trace_memory_read (asz : bigint) (dsz : bigint) (mem : ram)
-    (addr : bigint) (v : bitvector) : unit =
-  ()
-
-let prim_trace_memory_write (asz : bigint) (dsz : bigint) (mem : ram)
-    (addr : bigint) (v : bitvector) : unit =
-  ()
-
-let prim_trace_event (msg : string) : unit = ()
 
 (****************************************************************
  * End
