@@ -338,7 +338,7 @@ let rec locals_of_declitem (x : decl_item) : ident list =
 let locals_of_stmt (x : stmt) : ident list =
   match x with
   | Stmt_VarDeclsNoInit (vs, ty, loc) -> vs
-  | Stmt_VarDecl (dis, i, loc) -> locals_of_declitem dis
+  | Stmt_VarDecl (dis, i, loc)
   | Stmt_ConstDecl (dis, i, loc) -> locals_of_declitem dis
   | _ -> []
 

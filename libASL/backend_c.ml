@@ -249,9 +249,7 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       varnames fmt vs;
       semicolon fmt;
       cut fmt
-  | Stmt_VarDecl (di, i, loc) ->
-      declitem fmt di;
-      cut fmt
+  | Stmt_VarDecl (di, i, loc)
   | Stmt_ConstDecl (di, i, loc) ->
       declitem fmt di;
       cut fmt
