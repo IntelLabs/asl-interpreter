@@ -34,6 +34,7 @@ let help_msg =
   [
     {|:? :help                       Show this help message|};
     {|:elf <file>                    Load an ELF file|};
+    {|:obj <file>                    Load an OBJ file|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
     {|:run                           Execute instructions|};
@@ -63,9 +64,12 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
   | ("//"::_) -> () (* comment *)
   | [ ":elf"; file ] ->
       Printf.printf "Loading ELF file %s.\n" file;
-      let entry = Elf.load_file file cpu.elfwrite in
+      let entry = Elf.load_file file cpu.elfwrite8 in
       Printf.printf "Entry point = 0x%Lx\n" entry;
       cpu.setPC (Z.of_int64 entry)
+  | [ ":obj"; file ] ->
+      Printf.printf "Loading OBJ32 file %s.\n" file;
+      Obj32.load_file file cpu.elfwrite32
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       print_endline "\nFlags:";

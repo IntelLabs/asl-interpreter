@@ -14,7 +14,8 @@ type cpu = {
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
   setPC : Primops.bigint -> unit;
-  elfwrite : Int64.t -> char -> unit;
+  elfwrite8 : Int64.t -> char -> unit;
+  elfwrite32 : Int64.t -> Int32.t -> unit;
 }
 
 let mkCPU (env : Eval.Env.t) : cpu =
@@ -33,12 +34,16 @@ let mkCPU (env : Eval.Env.t) : cpu =
   and setPC (x : Primops.bigint) : unit =
     let a = Value.VInt x in
     Eval.eval_proccall loc env (AST.FIdent ("__setPC", 0)) [] [ a ]
-  and elfwrite (addr : Int64.t) (b : char) : unit =
+  and elfwrite8 (addr : Int64.t) (b : char) : unit =
     let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 addr)) in
     let b = Value.VBits (Primops.mkBits 8 (Z.of_int (Char.code b))) in
     Eval.eval_proccall loc env (AST.FIdent ("__ELFWriteMemory", 0)) [] [ a; b ]
+  and elfwrite32 (addr : Int64.t) (value : Int32.t) : unit =
+    let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 addr)) in
+    let b = Value.VBits (Primops.mkBits 32 (Z.of_int32 value)) in
+    Eval.eval_proccall loc env (AST.FIdent ("__ELFWriteMemory32", 0)) [] [ a; b ]
   in
-  { env; setImpdef; reset; step; getPC; setPC; elfwrite }
+  { env; setImpdef; reset; step; getPC; setPC; elfwrite8; elfwrite32 }
 
 (****************************************************************
  * End

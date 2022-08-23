@@ -27,6 +27,7 @@
    lexer
    lexersupport
    loadASL
+   obj32
    primops
    tcheck
    utils

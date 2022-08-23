@@ -12,7 +12,8 @@ type cpu = {
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
   setPC : Primops.bigint -> unit;
-  elfwrite : Int64.t -> char -> unit;
+  elfwrite8 : Int64.t -> char -> unit;
+  elfwrite32 : Int64.t -> Int32.t -> unit;
 }
 
 val mkCPU : Eval.Env.t -> cpu
