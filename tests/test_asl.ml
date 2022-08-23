@@ -59,6 +59,51 @@ let test_static (tcenv : TC.GlobalEnv.t) (test_fmt : bool) (name : string)
   let (tcenv', _) = extend_tcenv tcenv decls in
   (name, `Quick, check_expr_tcheck tcenv' test_fmt name expr)
 
+(* Test that checks that a declaration reports the right error message at the right location
+ *
+ * Both the error message and the location are optional.
+ * If both are omitted, we just check that an error is reported.
+ *)
+let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations : string)
+    (oexpect : string option) (oloc : string option) : unit Alcotest.test_case =
+  let globals = TC.GlobalEnv.clone globals in
+  (name, `Quick, fun _ ->
+    let lexbuf = Lexing.from_string declarations in
+    let msg = try
+        let t = Asl_parser.declarations_start Lexer.token lexbuf in
+        let ds = TC.tc_declarations globals false t in
+        ignore ds;
+        Alcotest.fail "error was not detected"
+      with
+      | Asl_parser.Error -> "ParseError()"
+      | AST.Parse_error_locn(loc, msg) -> Printf.sprintf "Parse_error_locn(%s,%s)" (AST.pp_loc loc) msg
+      | AST.PrecedenceError(loc, op1, op2) ->
+        Printf.sprintf "PrecedenceError(%s,%s,%s)" (AST.pp_loc loc) (Asl_utils.pp_binop op1) (Asl_utils.pp_binop op2)
+      | Lexer.Eof -> "Eof()"
+      | TC.UnknownObject(loc, what, x) -> Printf.sprintf "UnknownObject(%s,%s,%s)" (AST.pp_loc loc) what x
+      | TC.DoesNotMatch(loc, what, x, y) -> Printf.sprintf "DoesNotMatch(%s,%s,%s,%s)" (AST.pp_loc loc) what x y
+      | TC.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (AST.pp_loc loc) what x
+      | TC.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (AST.pp_loc loc) what x
+      | TC.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (AST.pp_loc loc) msg
+      | TC.InternalError(msg) -> Printf.sprintf "InternalError(%s)" msg
+      | Value.Return(_) -> Printf.sprintf "Return(_)"
+      | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (AST.pp_loc loc) err
+      | Value.Throw(loc, _) -> Printf.sprintf "Throw(%s,_)" (AST.pp_loc loc)
+    in
+    ( match oexpect with
+    | Some expect -> Alcotest.(check string) name expect msg;
+    | _ -> ()
+    );
+    ( match oloc with
+    | Some loc ->
+        let location = Printf.sprintf "'%s' %d %d"
+            lexbuf.lex_start_p.pos_fname lexbuf.lex_start_p.pos_lnum (lexbuf.lex_start_p.pos_cnum - lexbuf.lex_start_p.pos_bol)
+        in
+        Alcotest.(check string) (name ^ " location") loc location
+    | _ -> ()
+    )
+  )
+
 let eval tcenv env (input : string) : Value.value =
   let loc = AST.Unknown in
   let e = LoadASL.read_expr tcenv loc input in
@@ -122,6 +167,10 @@ let tests : unit Alcotest.test_case list =
       "type T of bits(32) { [ 31:16 ] hi, [15:0] lo };\n\
       \                      let t :: T = 0x12345678[31:0];\n\
       \                     " "t.hi";
+    test_static_error globals "return type mismatch"
+      "func F(x :: boolean) => integer return x; end"
+      (Some "DoesNotMatch(file \"\" line 1 char 32 - 41,type,integer,boolean)")
+      None;
     test_static globals false "var decls"
       "func F(x :: bits(8*N))
            var a :: bits(8*N) = UNKNOWN :: bits(8*N);
