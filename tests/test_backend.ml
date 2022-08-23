@@ -114,6 +114,9 @@ let test_cases (decls : AST.declaration list -> unit) :
   ]
 
 let () =
+  let paths = [ "../../.." ] in
+  ignore (LoadASL.read_file paths "prelude.asl" true false);
+
   let fmt = Format.std_formatter in
   Alcotest.run "backend"
     [
