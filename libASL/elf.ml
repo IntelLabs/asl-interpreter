@@ -1,10 +1,21 @@
+(****************************************************************
+ * ELF loader
+ *
+ * Currently only handles little-endian, 64-bit
+ *
+ * Copyright Alastair Reid (c) 2019-2020
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
+(****************************************************************)
+(** {2 ELF-independent helper types and functions}              *)
+(****************************************************************)
+
 type uint64 = Int64.t
 type sint64 = Int64.t
 type uint32 = Int32.t
 type sint32 = Int32.t
 
-(* ELF64 loader *)
-(* currently only handles little-endian, 64-bit *)
 type uint8 = Int32.t
 type uint16 = Int32.t
 type sint16 = Int32.t
@@ -27,6 +38,10 @@ let get8 (b : bytes) (o : int) : uint64 =
   let x0 = Int64.of_int32 (get4 b o) in
   let x1 = Int64.of_int32 (get4 b (o + 4)) in
   Int64.add x0 (Int64.shift_left x1 32)
+
+(****************************************************************)
+(** {2 ELF-specific helper functions and offsets}               *)
+(****************************************************************)
 
 let byte (b : bytes) (o : int) : char = Bytes.get b o
 let addr (b : bytes) (o : int) : uint64 = get8 b o
@@ -101,7 +116,11 @@ let pt_HIPROC = Int32.of_int 0x7fffffff
 let pt_GNU_EH_FRAME = Int32.of_int 0x6474e550
 let pt_GNU_STACK = Int32.add pt_LOOS (Int32.of_int 0x474e551)
 
-(* load block from offset in buffer *)
+(****************************************************************)
+(** {2 ELF Loader}                                              *)
+(****************************************************************)
+
+(** load block from offset in buffer *)
 let load_block (write : uint64 -> char -> unit) (buffer : bytes) (offset : int)
     (addr : uint64) (fsz : uint64) (memsz : uint64) : unit =
   let rec copy (i : uint64) : unit =
@@ -117,7 +136,7 @@ let load_block (write : uint64 -> char -> unit) (buffer : bytes) (offset : int)
   in
   zero fsz
 
-(* load program header from offset in buffer *)
+(** load program header from offset in buffer *)
 let load_Phdr (write : uint64 -> char -> unit) (buffer : bytes) (offset : int) :
     unit =
   if word buffer (offset + p_type) = pt_LOAD then (
@@ -129,7 +148,7 @@ let load_Phdr (write : uint64 -> char -> unit) (buffer : bytes) (offset : int) :
       Printf.printf "Loading program header %Lx %Lx %Lx\n" paddr fsz memsz;
     load_block write buffer (Int64.to_int o) paddr fsz memsz)
 
-(* load a file into a buffer *)
+(** load a file into a buffer *)
 let read_file (name : string) : bytes =
   let c = open_in_bin name in
   let inc = 1000000 in
@@ -143,7 +162,7 @@ let read_file (name : string) : bytes =
   close_in c;
   !b
 
-(* load ELF file, returning entry address *)
+(** load ELF file, returning entry address *)
 let load_file (name : string) (write : uint64 -> char -> unit) : uint64 =
   let buffer = read_file name in
   let elf64 = byte buffer (e_ident + 4) = elfCLASS64 in
@@ -162,3 +181,7 @@ let load_file (name : string) (write : uint64 -> char -> unit) : uint64 =
   in
   loadPHs 0;
   addr buffer e_entry
+
+(****************************************************************
+ * End
+ ****************************************************************)
