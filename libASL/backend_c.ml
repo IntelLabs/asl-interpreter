@@ -193,6 +193,25 @@ let rec apply (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
   f ();
   parens fmt (fun _ -> exprs fmt args)
 
+and cond_cont (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
+    (y : unit -> unit) : unit =
+  parens fmt (fun _ ->
+      expr fmt c;
+      nbsp fmt;
+      delimiter fmt "?";
+      nbsp fmt;
+      expr fmt x;
+      nbsp fmt;
+      delimiter fmt ":";
+      nbsp fmt;
+      y ())
+
+and conds (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) (e : AST.expr)
+    : unit =
+  match cts with
+  | [] -> expr fmt e
+  | (c, t) :: cts' -> cond_cont fmt c t (fun _ -> conds fmt cts' e)
+
 and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
@@ -200,6 +219,9 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
 
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
+  | Expr_If (c, t, els, e) ->
+      let els1 = List.map (function AST.E_Elsif_Cond (c, e) -> (c, e)) els in
+      conds fmt ((c, t) :: els1) e
   | Expr_LitBits l -> bitsLit fmt l
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l
@@ -216,7 +238,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Concat _
   | Expr_Field _
   | Expr_Fields _
-  | Expr_If _
   | Expr_ImpDef _
   | Expr_In _
   | Expr_LitMask _
