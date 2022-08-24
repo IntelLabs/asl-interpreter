@@ -1,0 +1,10 @@
+// Test of comment in project file
+
+// Evaluate expression
+1 + 1
+
+// Evaluate statement
+println(HexStr(1 + 2));
+println("abcd");
+
+:quit
