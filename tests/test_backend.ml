@@ -122,6 +122,12 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() case 0 of when 0x0: return; when 0x1: return; end end";
   ()
 
+let test_record_decl (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) () : unit =
+  check_declaration tcenv decls "record declaration"
+    "record R { i :: integer; b :: bit; };";
+  ()
+
 let test_type_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "type declaration" "type byte of bits(8);";
@@ -143,6 +149,7 @@ let test_cases (decls : AST.declaration list -> unit) :
     ("function definition", `Quick, test_fun_defn tcenv decls);
     ("procedure declaration", `Quick, test_proc_decl tcenv decls);
     ("procedure definition", `Quick, test_proc_defn tcenv decls);
+    ("record declaration", `Quick, test_record_decl tcenv decls);
     ("type declaration", `Quick, test_type_decl tcenv decls);
     ("variable", `Quick, test_var tcenv decls);
   ]

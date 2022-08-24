@@ -759,6 +759,19 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           semicolon fmt;
           cut fmt;
           cut fmt
+      | Decl_Record (tc, fs, loc) ->
+          typedef fmt tc (fun _ ->
+              kw_struct fmt;
+              nbsp fmt;
+              braces fmt (fun _ ->
+                  indented fmt (fun _ ->
+                      cutsep fmt
+                        (fun (f, t) ->
+                          varty fmt f t;
+                          semicolon fmt)
+                        fs);
+                  cut fmt));
+          cut fmt
       | Decl_Typedef (tc, t, loc) ->
           typedef fmt tc (fun _ -> ty fmt t);
           cut fmt
