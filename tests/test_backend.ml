@@ -183,6 +183,7 @@ let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit)
     (ext : string -> string -> unit) () : unit =
   check_declaration tcenv decls ext "bits" "var i :: bits(8);";
   check_declaration tcenv decls ext "integer" "var i :: integer;";
+  check_declaration tcenv decls ext "array" "var i :: array [1] of integer;";
   ()
 
 let test_cases (decls : AST.declaration list -> unit)
