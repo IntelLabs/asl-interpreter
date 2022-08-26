@@ -104,6 +104,10 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() if FALSE then return; elsif FALSE then return; else return; end end";
   check_declaration tcenv decls "statement (if few elsifs)"
     "func f() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end";
+  check_declaration tcenv decls "statement (case)"
+    "func f() case 0 of when 0: return; otherwise: return; end end";
+  check_declaration tcenv decls "statement (case few whens)"
+    "func f() case 0 of when 0x0: return; when 0x1: return; end end";
   ()
 
 let test_type_decl (tcenv : TC.GlobalEnv.t)

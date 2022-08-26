@@ -255,6 +255,24 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
 and exprs (fmt : PP.formatter) (es : AST.expr list) : unit =
   commasep fmt (expr fmt) es
 
+let pattern (fmt : PP.formatter) (x : AST.pattern) : unit =
+  match x with
+  | Pat_LitBits l -> bitsLit fmt l
+  | Pat_LitHex l -> hexLit fmt l
+  | Pat_LitInt l -> intLit fmt l
+  | Pat_Const _ | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
+  | Pat_Tuple _ | Pat_Wildcard ->
+      raise
+        (Unimplemented (AST.Unknown, "pattern", fun fmt -> FMTAST.pattern fmt x))
+
+let patterns (fmt : PP.formatter) (ps : AST.pattern list) : unit =
+  match ps with
+  | [ p ] -> pattern fmt p
+  | _ ->
+      raise
+        (Unimplemented
+           (AST.Unknown, "patterns", fun fmt -> FMTAST.patterns fmt ps))
+
 let assign (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
   l ();
   nbsp fmt;
@@ -329,6 +347,45 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_Assign (l, r, loc) -> lexpr fmt l r
   | Stmt_Block (ss, _) ->
       braces fmt (fun _ -> indented_block fmt ss; cut fmt)
+  | Stmt_Case (e, alts, ob, loc) ->
+      vbox fmt (fun _ ->
+          kw_switch fmt;
+          nbsp fmt;
+          parens fmt (fun _ -> expr fmt e);
+          nbsp fmt;
+          braces fmt (fun _ ->
+              indented fmt (fun _ ->
+                  cutsep fmt
+                    (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
+                      kw_case fmt;
+                      nbsp fmt;
+                      patterns fmt ps;
+                      if Option.is_some oc then
+                        raise
+                          (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
+                      colon fmt;
+                      nbsp fmt;
+                      braces fmt (fun _ ->
+                          indented_block fmt ss;
+                          indented fmt (fun _ ->
+                              kw_break fmt;
+                              semicolon fmt);
+                          cut fmt))
+                    alts;
+                  PP.pp_print_option
+                    (fun _ (b, bl) ->
+                      cut fmt;
+                      kw_default fmt;
+                      colon fmt;
+                      nbsp fmt;
+                      braces fmt (fun _ ->
+                          indented_block fmt b;
+                          indented fmt (fun _ ->
+                              kw_break fmt;
+                              semicolon fmt);
+                          cut fmt))
+                    fmt ob);
+              cut fmt))
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
       varname fmt v;
@@ -408,7 +465,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
-  | Stmt_Case _
   | Stmt_Repeat _
   | Stmt_Throw _
   | Stmt_Try _
