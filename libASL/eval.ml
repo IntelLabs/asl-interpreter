@@ -725,6 +725,9 @@ and eval_funcall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
       Tracer.trace_function ~is_prim:false ~is_return:true f [] [v];
       v
   | Throw (l, ex) -> raise (Throw (l, ex))
+  | ex ->
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
+    raise ex
 
 (** Evaluate call to procedure *)
 and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
@@ -733,6 +736,9 @@ and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
   | Throw (l, ex) -> raise (Throw (l, ex))
+  | ex ->
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
+    raise ex
   );
   let module Tracer = (val (!tracer) : Tracer) in
   Tracer.trace_function ~is_prim:false ~is_return:true f [] []
