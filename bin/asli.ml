@@ -39,6 +39,7 @@ let help_msg =
     {|:q :quit                       Exit the interpreter|};
     {|:run                           Execute instructions|};
     {|:step [<count>]                Execute <count> instructions|};
+    {|:chekhov <trc> <cfg> [<ami>]   Enable chekhov tracing|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
     {|:set +<flag>                   Set flag|};
     {|:set -<flag>                   Clear flag|};
@@ -121,6 +122,10 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
         error ()
       )
+  | ":chekhov" :: trace_file :: regmap_file :: rest ->
+    let trace_chan = open_out trace_file in
+    let o_ami = match rest with [ami] -> Some ami; | _ -> None in
+    Value.tracer := Chekhov.chekhovTextTracer [] regmap_file o_ami trace_chan
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in

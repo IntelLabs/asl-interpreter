@@ -25,6 +25,7 @@ To build and run the ASL interpreter, you will need:
       * dune      - OCaml build system
       * menhir    - parser generator tool
       * linenoise - OCaml line editing library
+      * yojson    - OCaml JSON library
       * z3.4.7.1  - OCaml bindings for the Z3 SMT solver (exactly this version is required)
       * zarith    - OCaml multiprecision arithmetic library
 
@@ -101,6 +102,7 @@ Platform independent instructions:
     opam install ott
     opam install linenoise
     opam install ocolor
+    opam install yojson
     opam install z3.4.7.1
     opam install zarith
 

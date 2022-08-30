@@ -17,6 +17,7 @@
    asl_visitor
    backend_c
    backend_verilog
+   chekhov
    cpu
    elf
    error
@@ -43,4 +44,4 @@
    xform_rmw
    xform_simplify_expr
    xform_tuples)
- (libraries ocolor zarith z3))
+ (libraries ocolor yojson zarith z3))
