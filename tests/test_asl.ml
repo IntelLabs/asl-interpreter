@@ -174,6 +174,13 @@ let tests : unit Alcotest.test_case list =
     test_static_error globals "#line directive"
       "\n# 42 \"foobar.asl\"\nx == 0"
       (Some "ParseError()") (Some "'foobar.asl' 42 0");
+    test_static_error globals "function missing"
+      "func T() UndefinedFunction(); end"
+      (Some "UnknownObject(file \"\" line 1 char 9 - 29,procedure,UndefinedFunction)") None;
+    test_static_error globals "function type error (args)"
+      "func IntFunction(x :: integer) end
+       func T() IntFunction(TRUE); end"
+      (Some "TypeError(file \"\" line 2 char 16 - 34,function arguments)") None;
     test_static globals false "var decls"
       "func F(x :: bits(8*N))
            var a :: bits(8*N) = UNKNOWN :: bits(8*N);

@@ -1114,29 +1114,31 @@ let reportChoices (loc : AST.l) (what : string) (nm : string)
   FMT.loc fmt loc;
   FMT.colon fmt;
   FMTUtils.nbsp fmt;
-  if funs = [] then
-    Format.pp_print_string fmt ("Can't find matching " ^ what ^ " for " ^ nm)
-  else Format.pp_print_string fmt ("Ambiguous choice for " ^ what ^ " " ^ nm);
+  let error_message = match funs with
+      | [] -> "Can't find matching " ^ what ^ " for " ^ nm
+      | [f] -> "Type error in " ^ what ^ " arguments for " ^ nm
+      | _ -> "Ambiguous choice for " ^ what ^ " " ^ nm
+  in
+  Format.pp_print_string fmt error_message;
   FMTUtils.cut fmt;
   FMTUtils.vbox fmt (fun _ ->
       List.iter
         (fun ty ->
-          Format.fprintf fmt "Arg : ";
+          Format.fprintf fmt "  Arg : ";
           FMT.ty fmt ty;
           FMTUtils.cut fmt)
         tys;
       List.iter
         (fun fty ->
           FMT.funname fmt fty.funname;
-          FMT.colon fmt;
-          FMTUtils.nbsp fmt;
-          FMTUtils.hlist fmt
-            (fun _ -> FMTUtils.nbsp fmt)
-            (fun (_, t) -> FMT.ty fmt t)
-            fty.atys;
-          FMT.delimiter fmt " -> ";
-          FMT.ty fmt fty.rty)
-        funs)
+          FMTUtils.parens fmt (fun _ ->
+            FMT.formals fmt fty.atys
+          );
+          FMT.delimiter fmt " => ";
+          FMT.ty fmt fty.rty;
+          FMTUtils.cut fmt)
+        funs);
+  FMTUtils.flush fmt
 
 (** Check whether a list of function argument types is compatible with the
     type of a function.
@@ -1193,13 +1195,18 @@ let tc_apply (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (what : string)
     AST.ident * AST.expr list * AST.ty =
   let funs = GlobalEnv.getFuns env f in
   let nm = pprint_ident f in
-  match chooseFunction env loc "function" nm false tys funs with
-  | None ->
-      reportChoices loc what nm tys funs;
+  match funs with
+  | [] ->
       raise (UnknownObject (loc, what, nm))
-  | Some fty ->
-      (* if verbose then Format.fprintf fmt "    - Found matching %s at %s for %s = %s\n" what (pp_loc loc) nm (Utils.to_string (pp_funtype fty)); *)
-      instantiate_fun env u loc fty es tys
+  | _ ->
+      ( match chooseFunction env loc what nm false tys funs with
+      | None ->
+          reportChoices loc what nm tys funs;
+          raise (TypeError (loc, "function arguments"))
+      | Some fty ->
+          (* if verbose then Format.fprintf fmt "    - Found matching %s at %s for %s = %s\n" what (pp_loc loc) nm (Utils.to_string (pp_funtype fty)); *)
+          instantiate_fun env u loc fty es tys
+      )
 
 (** Disambiguate and typecheck application of a unary operator to argument *)
 let tc_unop (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (op : unop)
