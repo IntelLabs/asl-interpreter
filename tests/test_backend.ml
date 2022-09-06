@@ -92,6 +92,12 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func b() => integer; func f() var i = b(); end";
   check_declaration tcenv decls "expression (builtin function invocation)"
     "func f() var i = 1 + 1; end";
+  check_declaration tcenv decls "expression (slice, lowd)"
+    "func f() var i :: bits(16); var j :: bits(8); j = i[4 +: 8]; end";
+  check_declaration tcenv decls "expression (slice, hilo)"
+    "func f() var i :: bits(16); var j :: bits(8); j = i[11:4]; end";
+  check_declaration tcenv decls "expression (slice, single)"
+    "func f() var i :: bits(16); var j :: bits(1); j = i[4]; end";
   check_declaration tcenv decls "statement (return)"
     "func f() return; end";
   check_declaration tcenv decls "statement (procedure invocation)"
