@@ -166,12 +166,22 @@ let const_expr (x : AST.expr) : V.value =
   | Expr_LitReal r -> V.from_realLit r
   | Expr_LitString s -> V.from_stringLit s
   | _ ->
-      failwith ("const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'")
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
+             fun fmt -> FMTAST.expr fmt x ))
 
 let const_int_expr (x : AST.expr) : int =
-  match const_expr x with
+  let v = const_expr x in
+  match v with
   | VInt i -> Z.to_int i
-  | _ -> failwith "const_int_expr: integer expected"
+  | _ ->
+      raise
+        (Unimplemented
+           ( AST.Unknown,
+             "const_int_expr: integer expected '" ^ V.pp_value v ^ "'",
+             fun fmt -> FMTAST.expr fmt x ))
 
 let uint (fmt : PP.formatter) (width : int) : unit =
   if width <= 8 then kw_uint8 fmt
