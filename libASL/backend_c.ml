@@ -137,9 +137,9 @@ let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
 (* C functions defined elsewhere *)
-let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "cvt_bits_sint"
-let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "is_pow2"
-let fn_replicate_bits (fmt : PP.formatter) : unit = keyword fmt "replicate_bits"
+let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "ASL_cvt_bits_sint"
+let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "ASL_is_pow2"
+let fn_replicate_bits (fmt : PP.formatter) : unit = keyword fmt "ASL_replicate_bits"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
