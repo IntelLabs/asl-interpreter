@@ -134,6 +134,15 @@ To build the ASL lexer and ASL interpreter, execute this command.
 If you get a lot of linker errors involving Z3, double-check that you installed
 the right version.
 
+### Editor plugins
+
+For VIM:
+You can copy `editors/asl.vim` to `~/.vim/syntax/asl.vim` and use `:set
+syntax=asl` to enable syntax highlighting of ASL code.
+And you can add the line `au BufRead,BufNewFile *.asl set filetype=asl` to `~/.vimrc` to
+automatically use this for all asl files.
+
+
 ### Using ASL lexer
 
 This displays a list of tokens in an ASL file including the indent
