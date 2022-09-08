@@ -917,6 +917,18 @@ let masklength (x : string) : int =
   String.iter (function ' ' -> () | _ -> r := !r + 1) x;
   !r
 
+(** Test whether a function returns a tuple (of 2 or more elements). *)
+let isTupleType (t : AST.ty) : bool =
+  match t with
+  | AST.Type_Tuple (_ :: _ :: _) -> true
+  | _ -> false
+
+(** Deconstruct a tuple type (return `[t]` if not a tuple type *)
+let tupleTypes (t : AST.ty) : AST.ty list =
+  match t with
+  | AST.Type_Tuple ts -> ts
+  | _ -> [t]
+
 (****************************************************************
  * End
  ****************************************************************)

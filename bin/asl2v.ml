@@ -96,7 +96,11 @@ let main () =
 
     let ds = Xform_mono.monomorphize ds in
     if true then
-      Utils.to_file "tmp.prev.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
+    let ds = Xform_tuples.xform_decls ds in
+    if true then
+      Utils.to_file "tmp.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     Utils.to_file !output_file (fun fmt ->
         match !opt_backend with
