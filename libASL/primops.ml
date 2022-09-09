@@ -305,6 +305,11 @@ let prim_cvt_bits_str (n : bigint) (x : bitvector) : string =
     let pad = String.make (Z.to_int n - String.length s) '0' in
     "'" ^ pad ^ s ^ "'"
 
+let prim_cvt_bits_hexstr (n : bigint) (x : bitvector) : string =
+  let prefix = Printf.sprintf "%d'x" (Z.to_int n) in
+  let value = Z.format "%x" x.v in
+  prefix ^ value
+
 let prim_cvt_real_str (x : real) : string =
   let r = Q.to_string x in
   if String.contains r '/' then r else r ^ "/1"

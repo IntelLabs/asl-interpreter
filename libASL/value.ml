@@ -52,7 +52,7 @@ let rec pp_value (x : value) : string =
   | VEnum (e, _) -> AST.pprint_ident e
   | VInt i -> prim_cvt_int_decstr i
   | VReal r -> prim_cvt_real_str r
-  | VBits b -> prim_cvt_bits_str (Z.of_int b.n) b
+  | VBits b -> prim_cvt_bits_hexstr (Z.of_int b.n) b
   | VMask m -> "todo: mask"
   | VString s -> "\"" ^ s ^ "\""
   | VExc (loc, exc) ->
