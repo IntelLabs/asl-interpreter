@@ -104,6 +104,8 @@ let main () =
         | Backend_Verilog ->
             Format.pp_print_string fmt "/* verilator lint_off WIDTH */";
             Format.pp_print_cut fmt ();
+            Format.pp_print_string fmt "/* verilator lint_off UNPACKED */";
+            Format.pp_print_cut fmt ();
             Backend_verilog.declarations fmt ds)
   with
   | Backend_c.Unimplemented (loc, what, pp)

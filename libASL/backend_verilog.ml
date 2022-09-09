@@ -114,11 +114,11 @@ let kw_let (fmt : PP.formatter) : unit = keyword fmt "let"
 let kw_logic (fmt : PP.formatter) : unit = keyword fmt "logic"
 let kw_packed (fmt : PP.formatter) : unit = keyword fmt "packed"
 let kw_priority (fmt : PP.formatter) : unit = keyword fmt "priority"
-let kw_record (fmt : PP.formatter) : unit = keyword fmt "record"
 let kw_return (fmt : PP.formatter) : unit = keyword fmt "return"
 let kw_signed (fmt : PP.formatter) : unit = keyword fmt "signed"
 let kw_static (fmt : PP.formatter) : unit = keyword fmt "static"
 let kw_string (fmt : PP.formatter) : unit = keyword fmt "string"
+let kw_struct (fmt : PP.formatter) : unit = keyword fmt "struct"
 let kw_type (fmt : PP.formatter) : unit = keyword fmt "type"
 let kw_typedef (fmt : PP.formatter) : unit = keyword fmt "typedef"
 let kw_typeof (fmt : PP.formatter) : unit = keyword fmt "typeof"
@@ -495,8 +495,18 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Array (a, i) ->
       expr fmt a;
       brackets fmt (fun _ -> expr fmt i)
+  | Expr_RecordInit (tc, fas) ->
+      delimiter fmt "'";
+      braces fmt (fun _ ->
+        commasep fmt
+          (fun (f, e) ->
+            varname fmt f;
+            colon fmt;
+            nbsp fmt;
+            expr fmt e)
+          fas)
   (* unimplemented *)
-  | Expr_Slices _ | Expr_RecordInit _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
+  | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
   | Expr_ImpDef (_, _)
   | Expr_Tuple _ | Expr_Fields _ | Expr_AsConstraint _ | Expr_AsType _ ->
       raise
@@ -799,19 +809,18 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                    (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
           )
       | Decl_Record (tc, fs, loc) ->
-          kw_record fmt;
-          nbsp fmt;
-          tycon fmt tc;
-          braces fmt (fun _ ->
+          typedef fmt tc (fun _ ->
+            kw_struct fmt;
+            nbsp fmt;
+            braces fmt (fun _ ->
               indented fmt (fun _ ->
                   cutsep fmt
                     (fun (f, t) ->
                       varty fmt f t;
                       semicolon fmt)
                     fs);
-              cut fmt);
-          semicolon fmt;
-          cut fmt;
+              cut fmt)
+          );
           cut fmt
       | Decl_Typedef (tc, t, loc) ->
           kw_typedef fmt;
