@@ -836,11 +836,14 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_record fmt;
           nbsp fmt;
           tycon fmt tc;
+          nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
                   cutsep fmt
                     (fun (f, t) ->
                       fieldname fmt f;
+                      nbsp fmt;
+                      coloncolon fmt;
                       nbsp fmt;
                       ty fmt t;
                       semicolon fmt)
