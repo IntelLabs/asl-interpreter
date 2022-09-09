@@ -34,7 +34,7 @@ class type aslVisitor =
     method vlvar : ident -> ident visitAction
     method vlexpr : lexpr -> lexpr visitAction
     method vdeclitem : decl_item -> decl_item visitAction
-    method vstmt : stmt -> stmt visitAction
+    method vstmt : stmt -> stmt list visitAction
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
@@ -356,9 +356,9 @@ let rec visit_decl_item (vis : aslVisitor) (x : decl_item) : decl_item =
  *)
 let rec visit_stmts (vis : aslVisitor) (xs : stmt list) : stmt list =
   with_locals (List.concat_map locals_of_stmt xs) vis (fun vis ->
-      mapNoCopy (visit_stmt vis) xs)
+      mapNoCopyList (visit_stmt vis) xs)
 
-and visit_stmt (vis : aslVisitor) (x : stmt) : stmt =
+and visit_stmt (vis : aslVisitor) (x : stmt) : stmt list =
   let aux (vis : aslVisitor) (x : stmt) : stmt =
     match x with
     | Stmt_VarDeclsNoInit (vs, ty, loc) ->
@@ -436,7 +436,7 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt =
         if b == b' && v == v' && cs == cs' && ob == ob' then x
         else Stmt_Try (b', v', pos, cs', ob', loc)
   in
-  doVisit vis (vis#vstmt x) aux x
+  doVisitList vis (vis#vstmt x) aux x
 
 and visit_s_elsif (vis : aslVisitor) (x : s_elsif) : s_elsif =
   let aux (vis : aslVisitor) (x : s_elsif) : s_elsif =

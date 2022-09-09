@@ -26,7 +26,7 @@ class type aslVisitor =
     method vlvar : ident -> ident visitAction
     method vlexpr : lexpr -> lexpr visitAction
     method vdeclitem : decl_item -> decl_item visitAction
-    method vstmt : stmt -> stmt visitAction
+    method vstmt : stmt -> stmt list visitAction
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
@@ -63,7 +63,7 @@ val visit_pattern : aslVisitor -> pattern -> pattern
 val visit_patterns : aslVisitor -> pattern list -> pattern list
 val visit_s_elsif : aslVisitor -> s_elsif -> s_elsif
 val visit_slice : aslVisitor -> slice -> slice
-val visit_stmt : aslVisitor -> stmt -> stmt
+val visit_stmt : aslVisitor -> stmt -> stmt list
 val visit_stmts : aslVisitor -> stmt list -> stmt list
 val visit_type : aslVisitor -> ty -> ty
 val visit_types : aslVisitor -> ty list -> ty list

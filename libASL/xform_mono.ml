@@ -173,7 +173,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                        (fun f' ->
                          Some
                            (ChangeDoChildrenPost
-                              (AST.Stmt_TCall (f', [], args, loc), Fun.id)))))
+                              ([AST.Stmt_TCall (f', [], args, loc)], Fun.id)))))
                 (fun _ -> DoChildren)
           | None -> DoChildren)
       | _ -> DoChildren
