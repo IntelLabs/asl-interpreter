@@ -9,6 +9,17 @@
 
 module AST = Asl_ast
 
+(****************************************************************
+ * Flags to control behaviour (mostly for debugging)
+ ****************************************************************)
+
+(** Display bitvectors in binary (not hex) by default *)
+let trace_bitvectors_binary = ref false
+
+let _ = begin
+  Flags.registerFlag "trace:bitvectors_binary" trace_bitvectors_binary "Display bitvectors in binary (not hex)";
+end
+
 (****************************************************************)
 (** {2 Boolean primops}                                         *)
 (****************************************************************)
@@ -275,11 +286,15 @@ let prim_cvt_int_decstr (x : bigint) : string = Z.to_string x
 let prim_cvt_bool_str (x : bool) : string = if x then "TRUE" else "FALSE"
 
 let prim_cvt_bits_str (n : bigint) (x : bitvector) : string =
-  if Z.equal n Z.zero then "''"
-  else
-    let s = Z.format "%0b" x.v in
-    let pad = String.make (Z.to_int n - String.length s) '0' in
-    "'" ^ pad ^ s ^ "'"
+  if !trace_bitvectors_binary then begin
+    if Z.equal n Z.zero then "''"
+    else
+      let s = Z.format "%0b" x.v in
+      let pad = String.make (Z.to_int n - String.length s) '0' in
+      "'" ^ pad ^ s ^ "'"
+  end else begin
+    Z.format "%x" x.v
+  end
 
 let prim_cvt_bits_hexstr (n : bigint) (x : bitvector) : string =
   let prefix = Printf.sprintf "%d'x" (Z.to_int n) in
