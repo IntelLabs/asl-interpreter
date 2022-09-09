@@ -105,8 +105,8 @@ let name_of_FIdent (x: ident): string =
 
 let addPrefix (p: string) (x: ident): ident =
     (match x with
-    | Ident(q)    -> Ident (p ^ "." ^ q)
-    | FIdent(_,_) -> failwith "addPrefix"
+    | Ident(q)    -> Ident (p ^ "_" ^ q)
+    | FIdent(q,t) -> FIdent (p ^ "_" ^ q, t)
     )
 
 let addSuffix (x: ident) (s: string): ident =
