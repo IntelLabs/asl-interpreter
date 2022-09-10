@@ -437,6 +437,23 @@ and lslice (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s : AST.slice) :
 
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
+  | Expr_Concat (ws, es) ->
+      let _, shifts =
+        List.fold_right
+          (fun w (acc, shifts) -> (acc + const_int_expr w, acc :: shifts))
+          ws (0, [])
+      in
+      sepby fmt
+        (fun _ ->
+          nbsp fmt;
+          bar fmt;
+          nbsp fmt)
+        (fun (sh, e) ->
+          make_binop fmt
+            (fun _ -> lt_lt fmt)
+            (fun _ -> expr fmt e)
+            (fun _ -> intLit fmt (string_of_int sh)))
+        (List.combine shifts es)
   | Expr_Field (e, f) ->
       expr fmt e;
       dot fmt;
@@ -474,7 +491,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_AsConstraint _
   | Expr_AsType _
   | Expr_Binop _
-  | Expr_Concat _
   | Expr_Fields _
   | Expr_ImpDef _
   | Expr_In _

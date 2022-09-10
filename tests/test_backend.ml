@@ -102,6 +102,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "record R { i :: integer; }; func f() var r = R { i = 1 }; end";
   check_declaration tcenv decls "expression (field selection)"
     "record R { i :: integer; }; func f() var r :: R; var j = r.i; end";
+  check_declaration tcenv decls "expression (bitvector concatenation)"
+    "func f() var i :: bits(8); var j :: bits(4); var k :: bits(2); var r :: bits(14); r = [k, j, i]; end";
   check_declaration tcenv decls "statement (return)"
     "func f() return; end";
   check_declaration tcenv decls "statement (procedure invocation)"
