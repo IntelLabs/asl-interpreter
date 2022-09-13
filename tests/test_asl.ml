@@ -64,6 +64,8 @@ let eval tcenv env (input : string) : Value.value =
   let e = LoadASL.read_expr tcenv loc input in
   Eval.eval_expr loc env e
 
+type xform = AST.declaration list -> AST.declaration list
+
 let test_bool (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
     (l : string) (r : bool) () : unit =
   let (tcenv, env) = extend_env globals prelude decls in
@@ -87,6 +89,16 @@ let test_bits (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls
   let (tcenv, env) = extend_env globals prelude decls in
   let what = l ^ " == " ^ r in
   Alcotest.check value what (Value.from_bitsLit r) (eval tcenv env l)
+
+(* Test that a global transformation f does not change the value of expression x *)
+let test_xform (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
+    (f : xform) (decls : string) (x : string) () : unit =
+  let (tcenv, ds) = extend_tcenv globals decls in
+  let ds1 = List.append prelude ds in
+  let ds2 = f ds1 in
+  let r1 = eval tcenv (Eval.build_evaluation_environment ds1) x in
+  let r2 = eval tcenv (Eval.build_evaluation_environment ds2) x in
+  Alcotest.check value "transformed code" r1 r2
 
 let tests : unit Alcotest.test_case list =
   let paths = [ "../../.." ] in
