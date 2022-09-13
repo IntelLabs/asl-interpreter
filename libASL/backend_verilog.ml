@@ -484,7 +484,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       | _ -> varname fmt v)
   | Expr_Parens e -> expr fmt e
   | Expr_TApply (f, tes, es) -> funcall fmt f tes es AST.Unknown
-  | Expr_Concat es -> braces fmt (fun _ -> exprs fmt es)
+  | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs fmt es)
   | Expr_Unknown t -> unknown fmt t
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitHex l -> hexLit fmt l

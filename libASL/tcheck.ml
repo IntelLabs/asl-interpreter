@@ -1492,9 +1492,10 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
   | Expr_Tuple es ->
       let es', tys = List.split (List.map (tc_expr env u loc) es) in
       (Expr_Tuple es', Type_Tuple tys)
-  | Expr_Concat es ->
+  | Expr_Concat (_, es) ->
       let es', tys = List.split (List.map (tc_expr env u loc) es) in
-      (Expr_Concat es', mk_concat_tys tys)
+      let ws = List.map width_of_type tys in
+      (Expr_Concat (ws, es'), mk_concat_tys tys)
   | Expr_Unop (op, e) ->
       let e', ety = tc_expr env u loc e in
       (* Format.fprintf fmt "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)

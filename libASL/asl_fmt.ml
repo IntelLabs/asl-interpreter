@@ -419,13 +419,12 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Parens e -> parens fmt (fun _ -> expr fmt e)
   | Expr_TApply (f, tes, es) ->
       funname fmt f;
-      if show_tyargs then (
-        lbrace_lbrace fmt;
-        exprs fmt tes;
-        rbrace_rbrace fmt);
+      if show_tyargs then braces fmt (fun _ -> exprs fmt tes);
       parens fmt (fun _ -> exprs fmt es)
   | Expr_Tuple es -> parens fmt (fun _ -> exprs fmt es)
-  | Expr_Concat es -> brackets fmt (fun _ -> exprs fmt es)
+  | Expr_Concat (ws, es) ->
+      if show_tyargs then braces fmt (fun _ -> exprs fmt ws);
+      brackets fmt (fun _ -> exprs fmt es)
   | Expr_Unop (op, e) ->
       unop fmt op;
       nbsp fmt;

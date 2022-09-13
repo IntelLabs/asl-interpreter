@@ -466,7 +466,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
   | Expr_Tuple es ->
       let vs = List.map (eval_expr loc env) es in
       VTuple vs
-  | Expr_Concat es ->
+  | Expr_Concat (_, es) ->
       let vs = List.map (eval_expr loc env) es in
       eval_concat loc vs
   | Expr_Unop (op, e) ->

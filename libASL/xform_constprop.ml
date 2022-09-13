@@ -190,11 +190,11 @@ let algebraic_simplifications (x : expr) : expr =
   match x with
   (* [x, '', y] == [x,y] *)
   (* [] == '' *)
-  | Expr_Concat xs ->
+  | Expr_Concat (ws, xs) ->
       let xs' =
         List.filter (function Expr_LitBits "" -> false | _ -> true) xs
       in
-      if xs' = [] then Expr_LitBits "" else Expr_Concat xs'
+      if xs' = [] then Expr_LitBits "" else Expr_Concat (ws, xs')
   (* '' : x == x == x : '' *)
   | Expr_TApply (FIdent ("append_bits", _), [ Expr_LitInt "0"; _ ], [ _; y ]) ->
       y

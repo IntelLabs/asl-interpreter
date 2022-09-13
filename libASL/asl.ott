@@ -607,7 +607,7 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
     | ident ( expr1 , .. , exprn )               :: S :: Apply   {{ ocaml Expr_TApply([[ident]], [], [[expr1 .. exprn]]) }}
     | ( expr )                                   ::   :: Parens
     | ( expr1 , .... , exprn )                   ::   :: Tuple     {{ com tuple }}
-    | [ expr1 , .... , exprn ]                   ::   :: Concat    {{ com bitvector concatenation }}
+    | [ expr1 , .... , exprn ]                   :: S :: _Concat   {{ com bitvector concatenation }} {{ ocaml Expr_Concat([], [[expr1 .... exprn]]) }}
     | UNKNOWN '::' ty                            ::   :: Unknown
     | IMPLEMENTATION_DEFINED opt_stringLit '::' ty :: :: ImpDef
     | aexpr as constraints                       ::   :: AsConstraint
@@ -615,6 +615,7 @@ aexpr :: 'Expr_' ::= {{ quotient-with expr }}
 
 expr_spice :: 'Expr_' ::= {{ quotient-with expr }}
     | ident { expr1' , .. , exprm' } ( expr1 , .. , exprn ) ::   :: TApply  {{ com spice for desugaring function call with explicit type parameters }}
+    | { expr1' , .. , exprm' } [ expr1 , .... , exprn ] :: :: Concat {{ com bitvector concatenation }}
     | __array expr1 [ expr2 ]                    ::   :: Array     {{ com spice for desugaring array accesses }}
 
 field_assignment :: 'Field_Assignment_' ::=

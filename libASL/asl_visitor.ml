@@ -171,9 +171,10 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
     | Expr_Tuple es ->
         let es' = visit_exprs vis es in
         if es == es' then x else Expr_Tuple es'
-    | Expr_Concat es ->
+    | Expr_Concat (ws, es) ->
+        let ws' = visit_exprs vis ws in
         let es' = visit_exprs vis es in
-        if es == es' then x else Expr_Concat es'
+        if ws == ws' && es == es' then x else Expr_Concat (ws', es')
     | Expr_Unop (op, e) ->
         let e' = visit_expr vis e in
         if e == e' then x else Expr_Unop (op, e')
