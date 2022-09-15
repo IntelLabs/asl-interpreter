@@ -719,21 +719,25 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
       cut fmt);
   cut fmt
 
+let typedef (fmt : PP.formatter) (tc : AST.ident) (pp : unit -> unit) : unit =
+  kw_typedef fmt;
+  nbsp fmt;
+  pp ();
+  nbsp fmt;
+  tycon fmt tc;
+  semicolon fmt;
+  cut fmt
+
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
       | Decl_Enum (tc, es, loc) ->
           if tc = Ident "boolean" then (* is in C99 stdbool.h *) ()
           else (
-            kw_typedef fmt;
-            nbsp fmt;
-            kw_enum fmt;
-            nbsp fmt;
-            braces fmt (fun _ -> commasep fmt (varname fmt) es);
-            nbsp fmt;
-            tycon fmt tc;
-            semicolon fmt;
-            cut fmt;
+            typedef fmt tc (fun _ ->
+                kw_enum fmt;
+                nbsp fmt;
+                braces fmt (fun _ -> commasep fmt (varname fmt) es));
             cut fmt)
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header fmt (Some t) f (fun _ -> formals fmt args);
@@ -756,13 +760,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_Typedef (tc, t, loc) ->
-          kw_typedef fmt;
-          nbsp fmt;
-          ty fmt t;
-          nbsp fmt;
-          tycon fmt tc;
-          semicolon fmt;
-          cut fmt;
+          typedef fmt tc (fun _ -> ty fmt t);
           cut fmt
       | Decl_Var (v, ty, loc) ->
           varty fmt v ty;
