@@ -18,7 +18,12 @@ let opt_filenames : string list ref = ref []
 let opt_print_version = ref false
 let opt_print_spec = ref false
 let opt_verbose = ref false
+let opt_batchmode = ref false
 let opt_show_banner = ref true
+
+(* on error, optionally exit if in batchmode *)
+let error _ : unit =
+  if !opt_batchmode then exit 1
 
 let projects : string list ref = ref []
 
@@ -96,9 +101,11 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         done
       with
       | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
-        Printf.printf "Exception taken\n"
+        Printf.printf "Exception taken\n";
+        error ()
       | Value.EvalError (loc, msg) ->
         Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
+        error ()
       )
   | ":step" :: args ->
       let n = match args with
@@ -111,9 +118,11 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
           done
       with
       | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
-        Printf.printf "Exception taken\n"
+        Printf.printf "Exception taken\n";
+        error ()
       | Value.EvalError (loc, msg) ->
         Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
+        error ()
       )
   | _ ->
       if ';' = String.get input (String.length input - 1) then
@@ -141,17 +150,19 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
       LNoise.history_add input |> ignore;
       (try
          LoadASL.report_eval_error
-           (fun _ -> ())
+           (fun _ -> error ())
            (fun _ ->
              LoadASL.report_type_error
-               (fun _ -> ())
+               (fun _ -> error ())
                (fun _ ->
                  LoadASL.report_parse_error
-                   (fun _ -> ())
+                   (fun _ -> error ())
                    (fun _ -> process_command tcenv cpu "<stdin>" input)))
        with exc ->
          Printf.printf "  Error %s\n" (Printexc.to_string exc);
-         Printexc.print_backtrace stdout);
+         Printexc.print_backtrace stdout;
+         error ()
+      );
       repl tcenv cpu
 
 let options =
@@ -161,6 +172,7 @@ let options =
       ("-v", Arg.Set opt_verbose, "       Verbose output");
       ("--version", Arg.Set opt_print_version, "       Print version");
       ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
+      ("--batchmode", Arg.Set opt_batchmode,  "       Fail on error");
       ("--project", Arg.String add_project,     "       Execute project file");
     ]
 
