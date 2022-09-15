@@ -444,6 +444,20 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitString l -> strLit fmt l
   | Expr_Parens e -> expr fmt e
+  | Expr_RecordInit (tc, fas) ->
+      parens fmt (fun _ -> tycon fmt tc);
+      braces fmt (fun _ ->
+          nbsp fmt;
+          commasep fmt
+            (fun (f, e) ->
+              dot fmt;
+              varname fmt f;
+              nbsp fmt;
+              eq fmt;
+              nbsp fmt;
+              expr fmt e)
+            fas;
+          nbsp fmt)
   | Expr_Slices (e, [ s ]) -> slice fmt e s
   | Expr_TApply (f, tes, es) -> funcall fmt f tes es AST.Unknown
   | Expr_Var v -> (
@@ -462,7 +476,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_In _
   | Expr_LitMask _
   | Expr_LitReal _
-  | Expr_RecordInit _
   | Expr_Slices _
   | Expr_Tuple _
   | Expr_Unknown _

@@ -98,6 +98,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func f() var i :: bits(16); var j :: bits(8); j = i[11:4]; end";
   check_declaration tcenv decls "expression (slice, single)"
     "func f() var i :: bits(16); var j :: bits(1); j = i[4]; end";
+  check_declaration tcenv decls "expression (record initializer)"
+    "record R { i :: integer; }; func f() var r = R { i = 1 }; end";
   check_declaration tcenv decls "statement (return)"
     "func f() return; end";
   check_declaration tcenv decls "statement (procedure invocation)"
