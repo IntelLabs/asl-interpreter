@@ -207,10 +207,10 @@ let ty (fmt : PP.formatter) (x : AST.ty) : unit =
   (* TODO implement integer range analysis to determine the correct type width.
    * For now use int64. *)
   | Type_Integer _ -> kw_int64 fmt
+  | Type_Register (n, _) -> uint fmt (const_int_expr n)
   | Type_App (_, _)
   | Type_Array (_, _)
   | Type_OfExpr _
-  | Type_Register (_, _)
   | Type_Tuple _ ->
       raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
 
