@@ -37,6 +37,7 @@ let ident (fmt : PP.formatter) (x : AST.ident) : unit =
 let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
+let fieldname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
 let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
   commasep fmt (varname fmt) xs
 
@@ -436,6 +437,10 @@ and lslice (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s : AST.slice) :
 
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
+  | Expr_Field (e, f) ->
+      expr fmt e;
+      dot fmt;
+      fieldname fmt f
   | Expr_If (c, t, els, e) ->
       let els1 = List.map (function AST.E_Elsif_Cond (c, e) -> (c, e)) els in
       conds fmt ((c, t) :: els1) e
@@ -470,7 +475,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_AsType _
   | Expr_Binop _
   | Expr_Concat _
-  | Expr_Field _
   | Expr_Fields _
   | Expr_ImpDef _
   | Expr_In _
