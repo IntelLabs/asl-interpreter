@@ -134,8 +134,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Utils.bind_option (getFun f ds) (fun d ->
-                     Utils.bind_option (self#monomorphize genv f d sizes)
+                (Option.bind (getFun f ds) (fun d ->
+                     Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
                            (ChangeDoChildrenPost
@@ -151,8 +151,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Utils.bind_option (getFun f ds) (fun d ->
-                     Utils.bind_option (self#monomorphize genv f d sizes)
+                (Option.bind (getFun f ds) (fun d ->
+                     Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
                            (ChangeDoChildrenPost
@@ -168,8 +168,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Utils.bind_option (getFun f ds) (fun d ->
-                     Utils.bind_option (self#monomorphize genv f d sizes)
+                (Option.bind (getFun f ds) (fun d ->
+                     Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
                            (ChangeDoChildrenPost

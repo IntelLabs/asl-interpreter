@@ -222,7 +222,7 @@ class constEvalClass (env : Env.t) =
       match x with
       | Expr_Var v -> (
           let r = try Env.getVar env v with _ -> Values.bottom in
-          match bind_option (Values.to_concrete r) value_to_expr with
+          match Option.bind (Values.to_concrete r) value_to_expr with
           | Some r -> ChangeTo r
           | None -> SkipChildren)
       | Expr_Array (a, i) ->

@@ -56,9 +56,6 @@ let zipWithIndex (f : 'a -> int -> 'b) (xs : 'a list) : 'b list =
 let from_option (ox : 'a option) (d : unit -> 'a) : 'a =
   match ox with None -> d () | Some x -> x
 
-let bind_option (ox : 'a option) (f : 'a -> 'b option) : 'b option =
-  match ox with None -> None | Some x -> f x
-
 let orelse_option (ox : 'a option) (f : unit -> 'a option) : 'a option =
   match ox with None -> f () | Some _ -> ox
 

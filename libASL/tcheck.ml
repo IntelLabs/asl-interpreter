@@ -846,7 +846,7 @@ class unifier (loc : AST.l) (assumptions : expr list) =
       let rec close_ident (x : ident) : expr =
         let x' = renamings#canonicalize x in
         match
-          bind_option (Bindings.find_opt x' binds) (fun es ->
+          Option.bind (Bindings.find_opt x' binds) (fun es ->
               first_option close_expr es)
         with
         | Some e -> e
