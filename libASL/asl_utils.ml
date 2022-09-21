@@ -631,8 +631,7 @@ let rev_memoize (xs : ident list) (f : ident -> IdentSet.t) :
       IdentSet.iter
         (fun y ->
           let prev =
-            Utils.from_option (Bindings.find_opt y !results) (fun _ ->
-                IdentSet.empty)
+            Option.value (Bindings.find_opt y !results) ~default:IdentSet.empty
           in
           results := Bindings.add y (IdentSet.add x prev) !results)
         ys)
@@ -659,9 +658,9 @@ let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
 (* f (find x bs) if x in bs, empty otherwise *)
 let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
     : IdentSet.t =
-  Utils.from_option
+  Option.value
     (Utils.map_option f (Bindings.find_opt x bs))
-    (fun _ -> IdentSet.empty)
+    ~default:IdentSet.empty
 
 (* Result is topologically sorted list of everything reachable from roots *)
 let reachable_decls (roots : ident list) (ds : declaration list) :

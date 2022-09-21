@@ -330,12 +330,12 @@ end = struct
     env.operators1 <-
       Operators1.update op
         (fun ov ->
-          let old = from_option ov (fun _ -> []) in
+          let old = Option.value ov ~default:[] in
           Some (List.append funs old))
         env.operators1
 
   let getOperators1 (env : t) (loc : AST.l) (op : AST.unop) : funtype list =
-    from_option (Operators1.find_opt op env.operators1) (fun _ -> [])
+    Option.value (Operators1.find_opt op env.operators1) ~default:[]
 
   let addOperators2 (env : t) (loc : AST.l) (op : AST.binop)
       (funs : funtype list) : unit =
@@ -343,12 +343,12 @@ end = struct
     env.operators2 <-
       Operators2.update op
         (fun ov ->
-          let old = from_option ov (fun _ -> []) in
+          let old = Option.value ov ~default:[] in
           Some (List.append funs old))
         env.operators2
 
   let getOperators2 (env : t) (loc : AST.l) (op : AST.binop) : funtype list =
-    from_option (Operators2.find_opt op env.operators2) (fun _ -> [])
+    Option.value (Operators2.find_opt op env.operators2) ~default:[]
 
   let addGlobalVar (env : t) (loc : AST.l) (qid : AST.ident) (ty : AST.ty)
       (isConstant : bool) : unit =
@@ -1075,7 +1075,7 @@ let mkfresh_funtype (u : unifier) (fty : funtype) : funtype =
       (fun (a, oty) ->
         let ty = Option.get oty in
         let ty' = subst_type s ty in
-        let a' = from_option (List.assoc_opt a rns) (fun _ -> a) in
+        let a' = Option.value (List.assoc_opt a rns) ~default:a in
         (a', Some ty'))
       fty.params
   in
@@ -1083,7 +1083,7 @@ let mkfresh_funtype (u : unifier) (fty : funtype) : funtype =
     List.map
       (fun (a, ty) ->
         let ty' = subst_type s ty in
-        let a' = from_option (List.assoc_opt a rns) (fun _ -> a) in
+        let a' = Option.value (List.assoc_opt a rns) ~default:a in
         (a', ty'))
       fty.atys
   in

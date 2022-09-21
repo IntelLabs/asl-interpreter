@@ -131,7 +131,6 @@ end = struct
           (map_option Values.singleton
              (Eval.GlobalEnv.getGlobalConstOpt env.globalConsts x))
           (fun _ ->
-            (* Printf.printf "getVar: %s\n" (pprint_ident x); *)
             raise (Concrete.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
 
   let setVar (env : t) (x : ident) (v : value) : unit =
@@ -237,9 +236,9 @@ class constEvalClass (env : Env.t) =
               then
                 let env0 = Env.to_concrete env in
                 let x' =
-                  from_option
+                    Option.value
                     (value_to_expr (Eval.eval_expr Unknown env0 x))
-                    (fun _ -> x)
+                    ~default:x
                 in
                 (*
                         let fmt = Format.std_formatter in

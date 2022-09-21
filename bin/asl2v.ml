@@ -50,7 +50,7 @@ let _ =
   Arg.parse options (fun s -> opt_filenames := !opt_filenames @ [ s ]) usage_msg
 
 let main () =
-  let paths = Utils.from_option (Sys.getenv_opt "ASL_PATH") (fun _ -> ".") in
+  let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"." in
   let paths = String.split_on_char ':' paths in
   let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
   let ts =

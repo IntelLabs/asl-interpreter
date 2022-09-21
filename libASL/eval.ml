@@ -620,10 +620,10 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
         | Alt_Alt (ps, oc, s, loc) :: alts' ->
             if
               List.exists (eval_pattern loc env v) ps
-              && from_option
+              && Option.value
                    (map_option (to_bool loc)
                       (map_option (eval_expr loc env) oc))
-                   (fun _ -> true)
+                   ~default:true
             then eval_stmts env s
             else eval v alts'
       in
@@ -808,7 +808,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           GlobalEnv.addFun loc genv f (tvs, args, loc, [])
       | Decl_EventClause (f, body, loc) ->
           let tvs, args, _, body0 =
-            Utils.from_option (GlobalEnv.getFun loc genv f) (fun _ ->
+            from_option (GlobalEnv.getFun loc genv f) (fun _ ->
                 raise (EvalError (loc, "Undeclared event " ^ pprint_ident f)))
           in
           GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)
