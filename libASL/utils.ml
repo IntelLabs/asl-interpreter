@@ -53,9 +53,6 @@ let zipWithIndex (f : 'a -> int -> 'b) (xs : 'a list) : 'b list =
  * Option related
  ****************************************************************)
 
-let isNone (ox : 'a option) : bool =
-  match ox with None -> true | Some _ -> false
-
 let get_option (ox : 'a option) : 'a =
   match ox with None -> raise Not_found | Some x -> x
 
