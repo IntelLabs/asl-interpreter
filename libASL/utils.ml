@@ -56,9 +56,6 @@ let zipWithIndex (f : 'a -> int -> 'b) (xs : 'a list) : 'b list =
 let isNone (ox : 'a option) : bool =
   match ox with None -> true | Some _ -> false
 
-let map_option (f : 'a -> 'b) (ox : 'a option) : 'b option =
-  match ox with None -> None | Some x -> Some (f x)
-
 let get_option (ox : 'a option) : 'a =
   match ox with None -> raise Not_found | Some x -> x
 
@@ -75,7 +72,7 @@ let rec concat_option (oss : 'a list option list) : 'a list option =
   match oss with
   | [] -> Some []
   | None :: _ -> None
-  | Some xs :: xss -> map_option (List.append xs) (concat_option xss)
+  | Some xs :: xss -> Option.map (List.append xs) (concat_option xss)
 
 (* extract all non-None elements from a list *)
 let flatten_option (os : 'a option list) : 'a list =

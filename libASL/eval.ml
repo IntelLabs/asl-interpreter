@@ -621,8 +621,8 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
             if
               List.exists (eval_pattern loc env v) ps
               && Option.value
-                   (map_option (to_bool loc)
-                      (map_option (eval_expr loc env) oc))
+                   (Option.map (to_bool loc)
+                      (Option.map (eval_expr loc env) oc))
                    ~default:true
             then eval_stmts env s
             else eval v alts'

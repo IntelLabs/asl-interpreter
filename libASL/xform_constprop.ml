@@ -128,7 +128,7 @@ end = struct
   let getVar (env : t) (x : ident) : value =
     from_option (ScopeStack.get env.locals x) (fun _ ->
         from_option
-          (map_option Values.singleton
+          (Option.map Values.singleton
              (Eval.GlobalEnv.getGlobalConstOpt env.globalConsts x))
           (fun _ ->
             raise (Concrete.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
@@ -182,7 +182,7 @@ let rec value_to_expr (x : Concrete.value) : expr option =
     *)
   | VString v -> Some (Expr_LitString v)
   | VTuple vs ->
-      map_option (fun es -> Expr_Tuple es) (flatten_map_option value_to_expr vs)
+      Option.map (fun es -> Expr_Tuple es) (flatten_map_option value_to_expr vs)
   | _ -> None
 
 let algebraic_simplifications (x : expr) : expr =
@@ -349,10 +349,10 @@ let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
     (r : AST.expr option) : AST.decl_item =
   match (x, r) with
   | DeclItem_Var (v, oty), _ ->
-      let oty' = map_option (xform_ty env) oty in
-      let r' = map_option (expr_value env) r in
+      let oty' = Option.map (xform_ty env) oty in
+      let r' = Option.map (expr_value env) r in
       let _ =
-        map_option
+        Option.map
           (fun r'' ->
             if isConst then Env.addLocalConst env v r''
             else Env.addLocalVar env v r'')
@@ -368,7 +368,7 @@ let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
       let dis' = List.map (fun di -> xform_declitem env isConst di None) dis in
       DeclItem_Tuple dis'
   | DeclItem_Wildcard oty, _ ->
-      let oty' = map_option (xform_ty env) oty in
+      let oty' = Option.map (xform_ty env) oty in
       DeclItem_Wildcard oty'
 
 let rec xform_stmts (env : Env.t) (xs : AST.stmt list) : AST.stmt list =
@@ -471,12 +471,12 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
         match alts with
         | [] ->
             let odefault' =
-              map_option (fun (s, loc) -> (xform_stmts env s, loc)) odefault
+              Option.map (fun (s, loc) -> (xform_stmts env s, loc)) odefault
             in
             ([], odefault')
         | Alt_Alt (ps, oc, s, loc) :: alts' ->
             let ps' = xform_patterns env ps in
-            let oc' = map_option (xform_expr env) oc in
+            let oc' = Option.map (xform_expr env) oc in
             let s', (alts'', odefault') =
               Env.fork_join
                 (fun env -> xform_stmts env s)

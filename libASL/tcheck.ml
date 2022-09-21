@@ -568,7 +568,7 @@ end = struct
       | [] ->
           GlobalEnv.getGlobalVar env.globals v
     in
-    map_option (fun ty -> (v, ty)) (search env.locals)
+    Option.map (fun ty -> (v, ty)) (search env.locals)
 
   let markModified (env : t) (v : AST.ident) : unit =
     env.modified <- IdentSet.add v env.modified
@@ -1551,7 +1551,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       | Some (Type_Abbreviation ty') -> derefType (Env.globals env) ty'
       | _ -> Type_Constructor tc)
   | Type_Integer ocrs ->
-      let ocrs' = map_option (tc_constraints env loc) ocrs in
+      let ocrs' = Option.map (tc_constraints env loc) ocrs in
       Type_Integer ocrs'
   | Type_Bits n ->
       let n' = check_expr env loc type_integer n in
@@ -1967,7 +1967,7 @@ and tc_alt (env : Env.t) (ty : AST.ty) (x : AST.alt) : AST.alt =
   match x with
   | Alt_Alt (ps, oc, b, loc) ->
       let ps' = List.map (tc_pattern env loc ty) ps in
-      let oc' = map_option (fun c -> check_expr env loc type_bool c) oc in
+      let oc' = Option.map (fun c -> check_expr env loc type_bool c) oc in
       let b' = tc_stmts env loc b in
       Alt_Alt (ps', oc', b', loc)
 
@@ -2081,7 +2081,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let ty'' = unify_subst_ty s ty' in
       let alts' = List.map (tc_alt env ty'') alts in
       let odefault' =
-        map_option (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
+        Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
       in
       Stmt_Case (e'', alts', odefault', loc)
   | Stmt_For (v, start, dir, stop, b, loc) ->
@@ -2110,7 +2110,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
           Env.addLocalVar env' loc ev type_exn;
           let catchers' = List.map (tc_catcher env' loc) catchers in
           let odefault' =
-            map_option (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
+            Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
           in
           Stmt_Try (tb', ev, pos, catchers', odefault', loc))
         env
@@ -2448,7 +2448,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
             | None -> raise (UnknownObject (loc, "mapfield", pprint_ident id))
           in
           let fs' = List.map tc_mapfield fs in
-          let oc' = Utils.map_option (check_expr locals loc type_bool) oc in
+          let oc' = Option.map (check_expr locals loc type_bool) oc in
           let b' = tc_stmts locals loc b in
           [ Decl_MapClause (fty.funname, fs', oc', b', loc) ]
       | [] -> raise (UnknownObject (loc, "map", pprint_ident nm))

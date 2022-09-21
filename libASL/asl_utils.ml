@@ -659,7 +659,7 @@ let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
 let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
     : IdentSet.t =
   Option.value
-    (Utils.map_option f (Bindings.find_opt x bs))
+    (Option.map f (Bindings.find_opt x bs))
     ~default:IdentSet.empty
 
 (* Result is topologically sorted list of everything reachable from roots *)
