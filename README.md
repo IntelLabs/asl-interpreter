@@ -178,6 +178,11 @@ statements and expressions.
     ASLi> :quit
 ```
 
+The ASL interpreter needs `prelude.asl` which is part of this repository. You
+either run the ASL interpreter from a directory containing `prelude.asl` or run
+the ASL interpreter from anywhere by simply setting `ASL_PATH` to point to a
+directory containing `prelude.asl`.
+
 ### Using ASL interpreter with Arm's public specifications
 
 You can download Arm's v8-A architecture specification at
