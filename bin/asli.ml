@@ -88,13 +88,17 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         done
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
-  | [ ":run" ] -> (
-      try
+  | [ ":run" ] ->
+      ( try
         while true do
           cpu.step ()
         done
-      with Value.Throw (_, Primops.Exc_ExceptionTaken) ->
-        Printf.printf "Exception taken\n")
+      with
+      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
+        Printf.printf "Exception taken\n"
+      | Value.EvalError (loc, msg) ->
+        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
+      )
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
