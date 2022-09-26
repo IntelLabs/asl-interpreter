@@ -32,6 +32,7 @@ let help_msg =
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
     {|:run                           Execute instructions|};
+    {|:step [<count>]                Execute <count> instructions|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
     {|:set +<flag>                   Set flag|};
     {|:set -<flag>                   Clear flag|};
@@ -93,6 +94,21 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         while true do
           cpu.step ()
         done
+      with
+      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
+        Printf.printf "Exception taken\n"
+      | Value.EvalError (loc, msg) ->
+        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
+      )
+  | ":step" :: args ->
+      let n = match args with
+        | [n] -> int_of_string n
+        | _ -> 1
+      in
+      ( try
+          for i = 1 to n do
+            cpu.step ();
+          done
       with
       | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
         Printf.printf "Exception taken\n"
