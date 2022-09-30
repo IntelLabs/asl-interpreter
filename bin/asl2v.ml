@@ -11,7 +11,6 @@ open LibASL
 module AST = Asl_ast
 module CP = Xform_constprop
 module ASL_FMT = Asl_fmt
-module FMT_Utils = Format_utils
 
 type backend = Backend_C | Backend_Verilog
 
@@ -52,29 +51,30 @@ let _ =
 let main () =
   let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"." in
   let paths = String.split_on_char ':' paths in
-  let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
-  let ts =
-    List.map
-      (fun filename ->
-        if Utils.endswith filename ".spec" then
-          LoadASL.read_spec paths filename !opt_verbose
-        else if Utils.endswith filename ".asl" then
-          LoadASL.read_file paths filename false !opt_verbose
-        else failwith ("Unrecognized file suffix on " ^ filename))
-      !opt_filenames
-  in
-  let roots = List.map (fun f -> AST.FIdent (f, 0)) !roots in
-
-  let ds = List.concat (t :: ts) in
-
-  let keeps = List.map (fun r -> AST.Ident r) !keeps in
-
-  if true then
-    Utils.to_file "tmp.init0.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-  let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
-  if ds = [] then failwith "Couldn't find any roots";
 
   try
+    let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
+    let ts =
+      List.map
+        (fun filename ->
+          if Utils.endswith filename ".spec" then
+            LoadASL.read_spec paths filename !opt_verbose
+          else if Utils.endswith filename ".asl" then
+            LoadASL.read_file paths filename false !opt_verbose
+          else failwith ("Unrecognized file suffix on " ^ filename))
+        !opt_filenames
+    in
+    let roots = List.map (fun f -> AST.FIdent (f, 0)) !roots in
+
+    let ds = List.concat (t :: ts) in
+
+    let keeps = List.map (fun r -> AST.Ident r) !keeps in
+
+    if true then
+      Utils.to_file "tmp.init0.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+    let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
+    if ds = [] then failwith "Couldn't find any roots";
+
     if !output_file == "" then
       failwith "Output file not specified (use -o foo.v to specify)";
 
@@ -111,23 +111,7 @@ let main () =
             Format.pp_print_string fmt "/* verilator lint_off UNPACKED */";
             Format.pp_print_cut fmt ();
             Backend_verilog.declarations fmt ds)
-  with
-  | Backend_c.Unimplemented (loc, what, pp)
-  | Backend_verilog.Unimplemented (loc, what, pp) ->
-      let fmt = Format.std_formatter in
-      Format.pp_print_newline fmt ();
-      FMT_Utils.vbox fmt (fun _ ->
-          ASL_FMT.loc fmt loc;
-          Format.fprintf fmt ": Unimplemented %s:" what;
-          FMT_Utils.indented fmt (fun _ -> pp fmt);
-          FMT_Utils.cut fmt)
-  | Value.EvalError (loc, msg) ->
-      let fmt = Format.std_formatter in
-      Format.pp_print_newline fmt ();
-      FMT_Utils.vbox fmt (fun _ ->
-          ASL_FMT.loc fmt loc;
-          Format.fprintf fmt ": Evaluation error %s:" msg;
-          FMT_Utils.cut fmt)
+  with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())
 

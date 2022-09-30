@@ -11,15 +11,9 @@ module TC = Tcheck
 
 let try_read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
     AST.declaration list =
-  LoadASL.report_type_error
-    (fun _ -> Alcotest.fail "type error")
-    (fun _ ->
-      LoadASL.report_parse_error
-        (fun _ -> Alcotest.fail "parse error")
-        (fun _ ->
-          let lexbuf = Lexing.from_string s in
-          let t = Asl_parser.declarations_start Lexer.token lexbuf in
-          TC.tc_declarations tcenv false t))
+    let lexbuf = Lexing.from_string s in
+    let t = Asl_parser.declarations_start Lexer.token lexbuf in
+    TC.tc_declarations tcenv false t
 
 let check_declaration (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (name : string) (s : string) : unit =

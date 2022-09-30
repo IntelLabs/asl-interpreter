@@ -8,10 +8,6 @@
 module AST = Asl_ast
 module TC = Tcheck
 
-val report_parse_error : (unit -> 'a) -> (unit -> 'a) -> 'a
-val report_type_error : (unit -> 'a) -> (unit -> 'a) -> 'a
-val report_eval_error : (unit -> 'a) -> (unit -> 'a) -> 'a
-
 val read_file :
   string list -> string -> bool -> bool -> Asl_ast.declaration list
 (** Parse and typecheck ASL file *)

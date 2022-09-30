@@ -19,30 +19,18 @@ let value = Alcotest.testable format_value ( = )
 (* test that checks that an expression lexes, parses and typechecks *)
 let check_expr_tcheck (tcenv : TC.Env.t) (test_fmt : bool) (what : string)
     (input : string) _ : unit =
-  LoadASL.report_type_error
-    (fun _ -> Alcotest.fail "type error")
-    (fun _ ->
-      LoadASL.report_parse_error
-        (fun _ -> Alcotest.fail "parse error")
-        (fun _ ->
-          let loc = AST.Unknown in
-          let e = LoadASL.read_expr tcenv loc input in
-          if test_fmt then
-            Alcotest.(check string) ("format " ^ what) input (format_expr e)))
+  let loc = AST.Unknown in
+  let e = LoadASL.read_expr tcenv loc input in
+  if test_fmt then
+    Alcotest.(check string) ("format " ^ what) input (format_expr e)
 
 let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) : (TC.Env.t * AST.declaration list) =
   let globals = TC.GlobalEnv.clone globals in
   let tcenv = TC.Env.mkEnv globals in
-  LoadASL.report_type_error
-    (fun _ -> Alcotest.fail "type error in decls")
-    (fun _ ->
-      LoadASL.report_parse_error
-        (fun _ -> Alcotest.fail "parse error in decls")
-        (fun _ ->
-          let lexbuf = Lexing.from_string declarations in
-          let t = Asl_parser.declarations_start Lexer.token lexbuf in
-          let ds = TC.tc_declarations globals false t in
-          (tcenv, ds)))
+  let lexbuf = Lexing.from_string declarations in
+  let t = Asl_parser.declarations_start Lexer.token lexbuf in
+  let ds = TC.tc_declarations globals false t in
+  (tcenv, ds)
 
 let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
   : (TC.Env.t * Eval.Env.t) =

@@ -22,7 +22,7 @@ let opt_batchmode = ref false
 let opt_show_banner = ref true
 
 (* on error, optionally exit if in batchmode *)
-let error _ : unit =
+let error () : unit =
   if !opt_batchmode then exit 1
 
 let projects : string list ref = ref []
@@ -99,14 +99,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         while true do
           cpu.step ()
         done
-      with
-      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
-        Printf.printf "Exception taken\n";
-        error ()
-      | Value.EvalError (loc, msg) ->
-        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
-        error ()
-      )
+      with e -> Error.print_exception e; error ())
   | ":step" :: args ->
       let n = match args with
         | [n] -> int_of_string n
@@ -116,14 +109,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
           for i = 1 to n do
             cpu.step ();
           done
-      with
-      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
-        Printf.printf "Exception taken\n";
-        error ()
-      | Value.EvalError (loc, msg) ->
-        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
-        error ()
-      )
+      with e -> Error.print_exception e; error ())
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
@@ -148,21 +134,11 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
   | None -> ()
   | Some input ->
       LNoise.history_add input |> ignore;
-      (try
-         LoadASL.report_eval_error
-           (fun _ -> error ())
-           (fun _ ->
-             LoadASL.report_type_error
-               (fun _ -> error ())
-               (fun _ ->
-                 LoadASL.report_parse_error
-                   (fun _ -> error ())
-                   (fun _ -> process_command tcenv cpu "<stdin>" input)))
-       with exc ->
-         Printf.printf "  Error %s\n" (Printexc.to_string exc);
-         Printexc.print_backtrace stdout;
-         error ()
-      );
+      try
+        process_command tcenv cpu "<stdin>" input
+      with e ->
+        Error.print_exception e;
+        error ();
       repl tcenv cpu
 
 let options =
@@ -196,47 +172,44 @@ let _ =
 let main () =
   Ocolor_format.prettify_formatter Format.std_formatter;
   Ocolor_config.set_color_capability Ocolor_config.Color4;
-  let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"." in
-  let paths = String.split_on_char ':' paths in
+  let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"."
+    |> String.split_on_char ':' in
   if !opt_print_version then Printf.printf "%s\n" version
-  else (
+  else
     if !opt_show_banner then (
       List.iter print_endline banner;
       print_endline "\nType :? for help");
-    let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
-    let ts =
-      List.map
-        (fun filename ->
-          if Utils.endswith filename ".spec" then
-            LoadASL.read_spec paths filename !opt_verbose
-          else if Utils.endswith filename ".asl" then
-            LoadASL.read_file paths filename false !opt_verbose
-          else failwith ("Unrecognized file suffix on " ^ filename))
-        !opt_filenames
-    in
+    try (
+      let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
+      let ts =
+        List.map
+          (fun filename ->
+            if Utils.endswith filename ".spec" then
+              LoadASL.read_spec paths filename !opt_verbose
+            else if Utils.endswith filename ".asl" then
+              LoadASL.read_file paths filename false !opt_verbose
+            else failwith ("Unrecognized file suffix on " ^ filename))
+          !opt_filenames
+      in
 
-    if !opt_print_spec then (
-      FMT.comment_list := Lexer.get_comments ();
-      FMT.declarations Format.std_formatter t;
-      Format.pp_print_flush Format.std_formatter ());
+      if !opt_print_spec then (
+        FMT.comment_list := Lexer.get_comments ();
+        FMT.declarations Format.std_formatter t;
+        Format.pp_print_flush Format.std_formatter ());
 
-    if !opt_verbose then Printf.printf "Building evaluation environment\n";
-    let env =
-      try Eval.build_evaluation_environment (List.concat (t :: ts))
-      with Value.EvalError (loc, msg) ->
-        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
-        exit 1
-    in
-    if !opt_verbose then Printf.printf "Built evaluation environment\n";
+      if !opt_verbose then Printf.printf "Building evaluation environment\n";
+      let env = Eval.build_evaluation_environment (List.concat (t :: ts)) in
+      if !opt_verbose then Printf.printf "Built evaluation environment\n";
 
-    let tcenv = TC.Env.mkEnv TC.env0 in
-    let cpu = Cpu.mkCPU env in
+      let tcenv = TC.Env.mkEnv TC.env0 in
+      let cpu = Cpu.mkCPU env in
 
-    List.iter (load_project tcenv cpu) !projects;
+      List.iter (load_project tcenv cpu) !projects;
 
-    LNoise.history_load ~filename:"asl_history" |> ignore;
-    LNoise.history_set ~max_length:100 |> ignore;
-    repl tcenv cpu)
+      LNoise.history_load ~filename:"asl_history" |> ignore;
+      LNoise.history_set ~max_length:100 |> ignore;
+      repl tcenv cpu
+    ) with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())
 
