@@ -374,6 +374,8 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       expr fmt c;
       nbsp fmt;
       kw_then fmt;
+      nbsp fmt;
+      expr fmt t;
       map fmt
         (fun (AST.E_Elsif_Cond (c, e)) ->
           nbsp fmt;
