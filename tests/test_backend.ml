@@ -168,6 +168,8 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func f() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls "statement (for, direction downto)"
     "func f() for i = 1 downto 0 do return; end end";
+  check_declaration tcenv decls "statement (wildcard declaration)"
+    "func f() var - = 0; end";
   check_declaration tcenv decls "statement (assignment to wildcard)"
     "func f() - = 0; end";
   ()

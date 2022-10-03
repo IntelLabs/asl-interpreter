@@ -572,9 +572,7 @@ let rec declitem (fmt : PP.formatter) (x : AST.decl_item) =
            ( AST.Unknown,
              "decl: type of variable unknown",
              fun fmt -> FMTAST.varname fmt v ))
-  | DeclItem_Wildcard _ ->
-      raise
-        (Unimplemented (AST.Unknown, "decl: use of wildcard", fun fmt -> ()))
+  | DeclItem_Wildcard _ -> ()
 
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
@@ -649,6 +647,10 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       eq fmt;
       nbsp fmt;
       expr fmt i;
+      semicolon fmt
+  | Stmt_VarDecl (DeclItem_Wildcard _, i, loc)
+  | Stmt_ConstDecl (DeclItem_Wildcard _, i, loc) ->
+      make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr fmt i);
       semicolon fmt
   | Stmt_For (v, f, dir, t, b, loc) ->
       kw_for fmt;
