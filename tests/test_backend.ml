@@ -162,18 +162,20 @@ let test_cases (decls : AST.declaration list -> unit) :
     ("variable", `Quick, test_var tcenv decls);
   ]
 
-let test_fun_defn_c_only (tcenv : TC.GlobalEnv.t)
+let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "statement (for, direction to)"
     "func f() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls "statement (for, direction downto)"
     "func f() for i = 1 downto 0 do return; end end";
+  check_declaration tcenv decls "statement (assignment to wildcard)"
+    "func f() - = 0; end";
   ()
 
 let test_cases_c_only (decls : AST.declaration list -> unit) :
     unit Alcotest.test_case list =
   let tcenv = TC.env0 in
-  [ ("function definition", `Quick, test_fun_defn_c_only tcenv decls) ]
+  [ ("procedure definition", `Quick, test_proc_defn_c_only tcenv decls) ]
 
 let () =
   let paths = [ "../../.." ] in

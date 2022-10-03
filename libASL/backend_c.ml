@@ -538,6 +538,9 @@ let lexpr (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
       lslice fmt r (Expr_Var v) s;
       semicolon fmt
   | LExpr_Var v -> assign fmt (fun _ -> varname fmt v) r
+  | LExpr_Wildcard ->
+      make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr fmt r);
+      semicolon fmt
   | LExpr_Array _
   | LExpr_BitTuple _
   | LExpr_Field _
@@ -545,7 +548,6 @@ let lexpr (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
   | LExpr_ReadWrite _
   | LExpr_Slices _
   | LExpr_Tuple _
-  | LExpr_Wildcard
   | LExpr_Write _ ->
       raise
         (Unimplemented
