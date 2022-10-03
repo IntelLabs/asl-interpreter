@@ -564,8 +564,11 @@ let rec declitem (fmt : PP.formatter) (x : AST.decl_item) =
   match x with
   | DeclItem_Var (v, Some t) ->
       varty fmt v t;
-      semicolon fmt
-  | DeclItem_Tuple dis -> cutsep fmt (declitem fmt) dis
+      semicolon fmt;
+      cut fmt
+  | DeclItem_Tuple dis ->
+      cutsep fmt (declitem fmt) dis;
+      cut fmt
   | DeclItem_Var (v, None) ->
       raise
         (Unimplemented
@@ -582,10 +585,7 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       varnames fmt vs;
       semicolon fmt;
       cut fmt
-  | Stmt_VarDecl (di, i, loc)
-  | Stmt_ConstDecl (di, i, loc) ->
-      declitem fmt di;
-      cut fmt
+  | Stmt_VarDecl (di, i, loc) | Stmt_ConstDecl (di, i, loc) -> declitem fmt di
   | _ -> ()
 
 let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
