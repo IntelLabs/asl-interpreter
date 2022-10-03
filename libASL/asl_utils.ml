@@ -62,7 +62,7 @@ end = struct
     pp_bindings pp_value env.bs;
     Printf.printf "}\n"
 
-  let empty (_ : unit) : 'a t =
+  let empty () : 'a t =
     let bs = Bindings.empty in
     { bs }
 
@@ -119,7 +119,7 @@ end = struct
   let pp (pp_value : 'a -> string) (env : 'a t) : unit =
     List.iter (Scope.pp pp_value) env
 
-  let empty (_ : unit) : 'a t =
+  let empty () : 'a t =
     let base : 'a Scope.t = Scope.empty () in
     [ base ]
 

@@ -337,7 +337,7 @@ module TextTracer = struct
     List.iter (fun p -> Printf.printf " %s" p) params;
     Printf.printf "\n"
 
-  let trace_next (_ : unit) : unit =
+  let trace_next () : unit =
     cycle := !cycle + 1
 
   let trace_physical_memory ~(is_read : bool) ~(is_data : bool) ~(phys_addr : Z.t) ~(data : bitvector) : unit =
@@ -704,9 +704,9 @@ let eval_unknown_bits (wd : Primops.bigint) : value =
 let eval_unknown_ram (a : Primops.bigint) : value =
   VRAM (Primops.init_ram (char_of_int 0))
 
-let eval_unknown_integer (_ : unit) : value = VInt Z.zero
-let eval_unknown_real (_ : unit) : value = VReal Q.zero
-let eval_unknown_string (_ : unit) : value = VString "<UNKNOWN string>"
+let eval_unknown_integer () : value = VInt Z.zero
+let eval_unknown_real () : value = VReal Q.zero
+let eval_unknown_string () : value = VString "<UNKNOWN string>"
 
 (****************************************************************
  * End

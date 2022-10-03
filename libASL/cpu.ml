@@ -23,11 +23,11 @@ let mkCPU (env : Eval.Env.t) : cpu =
 
   let setImpdef (key : string) (v : Value.value) : unit =
     Eval.GlobalEnv.setImpdef genv key v
-  and reset (_ : unit) : unit =
+  and reset () : unit =
     Eval.eval_proccall loc env (AST.FIdent ("__TakeColdReset", 0)) [] []
-  and step (_ : unit) : unit =
+  and step () : unit =
     Eval.eval_proccall loc env (AST.FIdent ("__InstructionExecute", 0)) [] []
-  and getPC (_ : unit) : Primops.bigint =
+  and getPC () : Primops.bigint =
     let r = Eval.eval_funcall loc env (AST.FIdent ("__getPC", 0)) [] [] in
     Value.to_integer loc r
   and setPC (x : Primops.bigint) : unit =
