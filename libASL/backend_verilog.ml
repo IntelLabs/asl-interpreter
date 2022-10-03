@@ -656,12 +656,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
-      varname fmt v;
-      nbsp fmt;
-      eq fmt;
-      nbsp fmt;
-      expr fmt i;
-      semicolon fmt
+      assign fmt (fun _ -> varname fmt v) i
   | Stmt_Assign (l, r, loc) -> lexpr fmt l r
   | Stmt_TCall (f, tes, args, loc) ->
       funcall fmt f tes args loc;
