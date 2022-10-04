@@ -36,90 +36,90 @@ let test_enum (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit) ()
 
 let test_fun_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
-  check_declaration tcenv decls "no params, empty body" "func f() => integer;";
+  check_declaration tcenv decls "no params, empty body" "func F() => integer;";
   ()
 
 let test_fun_defn (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "no params, empty body"
-    "func f() => integer end";
+    "func F() => integer end";
   check_declaration tcenv decls "few params, empty body"
-    "func f(p1 :: integer, p2 :: integer) => integer end";
+    "func F(p1 :: integer, p2 :: integer) => integer end";
   check_declaration tcenv decls "statement (return)"
-    "func f() => integer return 0; end";
+    "func F() => integer return 0; end";
   ()
 
 let test_proc_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
-  check_declaration tcenv decls "no params, empty body" "func f();";
+  check_declaration tcenv decls "no params, empty body" "func F();";
   ()
 
 let test_proc_defn (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "no params, empty body"
-    "func f() end";
+    "func F() end";
   check_declaration tcenv decls "few params, empty body"
-    "func f(p1 :: integer, p2 :: integer) end";
+    "func F(p1 :: integer, p2 :: integer) end";
   check_declaration tcenv decls "uninitialized variables"
-    "func f() var i1, i2 :: integer; end";
+    "func F() var i1, i2 :: integer; end";
   check_declaration tcenv decls "variable, literal (integer)"
-    "func f() var i :: integer = 0; end";
+    "func F() var i :: integer = 0; end";
   check_declaration tcenv decls "let, literal (integer)"
-    "func f() let i :: integer = 0; end";
+    "func F() let i :: integer = 0; end";
   check_declaration tcenv decls "let, literal (hexadecimal)"
-    "func f() let i :: integer = 0x1; end";
+    "func F() let i :: integer = 0x1; end";
   check_declaration tcenv decls "let, literal (bits)"
-    "func f() let i :: bits(8) = '1111 0000'; end";
+    "func F() let i :: bits(8) = '1111 0000'; end";
   check_declaration tcenv decls "let, literal (string)"
-    "func f() let i :: string = \"str\"; end";
+    "func F() let i :: string = \"str\"; end";
   check_declaration tcenv decls "expression (variable)"
-    "func f() var i :: integer = 0; var j = i; end";
+    "func F() var i :: integer = 0; var j = i; end";
   check_declaration tcenv decls "expression (boolean)"
-    "func f() var i = FALSE; end";
+    "func F() var i = FALSE; end";
   check_declaration tcenv decls "expression (if)"
-    "func f() var i = if FALSE then 0 else 0; end";
+    "func F() var i = if FALSE then 0 else 0; end";
   check_declaration tcenv decls "expression (if elsif)"
-    "func f() var i = if FALSE then 0 elsif FALSE then 0 else 0; end";
+    "func F() var i = if FALSE then 0 elsif FALSE then 0 else 0; end";
   check_declaration tcenv decls "expression (parentheses)"
-    "func f() var i :: integer = ( 0 ); end";
+    "func F() var i :: integer = ( 0 ); end";
   check_declaration tcenv decls "expression (function invocation)"
-    "func b() => integer; func f() var i = b(); end";
+    "func B() => integer; func F() var i = B(); end";
   check_declaration tcenv decls "expression (builtin function invocation)"
-    "func f() var i = 1 + 1; end";
+    "func F() var i = 1 + 1; end";
   check_declaration tcenv decls "expression (slice, lowd)"
-    "func f() var i :: bits(16); var j :: bits(8); j = i[4 +: 8]; end";
+    "func F() var i :: bits(16); var j :: bits(8); j = i[4 +: 8]; end";
   check_declaration tcenv decls "expression (slice, hilo)"
-    "func f() var i :: bits(16); var j :: bits(8); j = i[11:4]; end";
+    "func F() var i :: bits(16); var j :: bits(8); j = i[11:4]; end";
   check_declaration tcenv decls "expression (slice, single)"
-    "func f() var i :: bits(16); var j :: bits(1); j = i[4]; end";
+    "func F() var i :: bits(16); var j :: bits(1); j = i[4]; end";
   check_declaration tcenv decls "expression (record initializer)"
-    "record R { i :: integer; }; func f() var r = R { i = 1 }; end";
+    "record R { i :: integer; }; func F() var r = R { i = 1 }; end";
   check_declaration tcenv decls "expression (field selection)"
-    "record R { i :: integer; }; func f() var r :: R; var j = r.i; end";
+    "record R { i :: integer; }; func F() var r :: R; var j = r.i; end";
   check_declaration tcenv decls "expression (bitvector concatenation)"
-    "func f() var i :: bits(8); var j :: bits(4); var k :: bits(2); var r :: bits(14); r = [k, j, i]; end";
+    "func F() var i :: bits(8); var j :: bits(4); var k :: bits(2); var r :: bits(14); r = [k, j, i]; end";
   check_declaration tcenv decls "statement (return)"
-    "func f() return; end";
+    "func F() return; end";
   check_declaration tcenv decls "statement (procedure invocation)"
-    "func b(); func f() b(); end";
+    "func B(); func F() B(); end";
   check_declaration tcenv decls "statement (procedure invocation with arg)"
-    "func b(i :: integer); func f() b(0); end";
+    "func B(i :: integer); func F() B(0); end";
   check_declaration tcenv decls "statement (block)"
-    "func f() begin end end";
+    "func F() begin end end";
   check_declaration tcenv decls "statement (assignment)"
-    "func f() var i, j :: integer; i = j; end";
+    "func F() var i, j :: integer; i = j; end";
   check_declaration tcenv decls "statement (assignment to slice)"
-    "func f() var i :: bits(8); i[4 +: 2] = '10'; end";
+    "func F() var i :: bits(8); i[4 +: 2] = '10'; end";
   check_declaration tcenv decls "statement (assert)"
-    "func f() assert FALSE; end";
+    "func F() assert FALSE; end";
   check_declaration tcenv decls "statement (if)"
-    "func f() if FALSE then return; elsif FALSE then return; else return; end end";
+    "func F() if FALSE then return; elsif FALSE then return; else return; end end";
   check_declaration tcenv decls "statement (if few elsifs)"
-    "func f() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end";
+    "func F() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end";
   check_declaration tcenv decls "statement (case)"
-    "func f() case 0 of when 0: return; otherwise: return; end end";
+    "func F() case 0 of when 0: return; otherwise: return; end end";
   check_declaration tcenv decls "statement (case few whens)"
-    "func f() case 0 of when 0x0: return; when 0x1: return; end end";
+    "func F() case 0 of when 0x0: return; when 0x1: return; end end";
   ()
 
 let test_record_decl (tcenv : TC.GlobalEnv.t)
@@ -159,13 +159,13 @@ let test_cases (decls : AST.declaration list -> unit) :
 let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) () : unit =
   check_declaration tcenv decls "statement (for, direction to)"
-    "func f() for i = 0 to 1 do return; end end";
+    "func F() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls "statement (for, direction downto)"
-    "func f() for i = 1 downto 0 do return; end end";
+    "func F() for i = 1 downto 0 do return; end end";
   check_declaration tcenv decls "statement (wildcard declaration)"
-    "func f() var - = 0; end";
+    "func F() var - = 0; end";
   check_declaration tcenv decls "statement (assignment to wildcard)"
-    "func f() - = 0; end";
+    "func F() - = 0; end";
   ()
 
 let test_cases_c_only (decls : AST.declaration list -> unit) :
