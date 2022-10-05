@@ -22,6 +22,8 @@ let print_exception (e : exn) : unit =
         (pp_binop op1) (pp_binop op2) (pp_loc loc);
   | Parser.Error ->
       Printf.printf "  Parser error\n";
+  | LoadASL.ParseError msg ->
+      Printf.printf "  Parser error\n%s\n" msg;
   | TC.UnknownObject (loc, what, x) ->
     Printf.printf "  %s: Type error: Unknown %s %s\n" (pp_loc loc) what x
   | TC.DoesNotMatch (loc, what, x, y) ->

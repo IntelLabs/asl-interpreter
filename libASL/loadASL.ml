@@ -14,6 +14,8 @@ module AST = Asl_ast
 open Lexing
 open Asl_utils
 
+exception ParseError of string
+
 let rec find_file (paths : string list) (filename : string) : string =
   match paths with
   | [] -> failwith ("Can't find file '" ^ filename ^ "' on path")
@@ -33,9 +35,9 @@ let parse_file (paths : string list) (filename : string) (isPrelude : bool)
     Printf.printf "- Parsing %s\n" fname;
   let t = try
     Parser.declarations_start Lexer.token lexbuf
-  with e ->
-    print_endline (pp_loc (Range (lexbuf.lex_start_p, lexbuf.lex_curr_p)));
-    raise e
+  with Parser.Error ->
+    let msg = pp_loc (Range (lexbuf.lex_start_p, lexbuf.lex_curr_p)) in
+    raise (ParseError msg);
   in
   close_in inchan;
   t
