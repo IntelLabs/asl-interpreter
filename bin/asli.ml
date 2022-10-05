@@ -181,24 +181,14 @@ let main () =
       print_endline "\nType :? for help");
     try (
       let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
-      let ts =
-        List.map
-          (fun filename ->
-            if Utils.endswith filename ".spec" then
-              LoadASL.read_spec paths filename !opt_verbose
-            else if Utils.endswith filename ".asl" then
-              LoadASL.read_file paths filename false !opt_verbose
-            else failwith ("Unrecognized file suffix on " ^ filename))
-          !opt_filenames
-      in
-
+      let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
       if !opt_print_spec then (
         FMT.comment_list := Lexer.get_comments ();
         FMT.declarations Format.std_formatter t;
         Format.pp_print_flush Format.std_formatter ());
 
       if !opt_verbose then Printf.printf "Building evaluation environment\n";
-      let env = Eval.build_evaluation_environment (List.concat (t :: ts)) in
+      let env = Eval.build_evaluation_environment (t @ ts) in
       if !opt_verbose then Printf.printf "Built evaluation environment\n";
 
       let tcenv = TC.Env.mkEnv TC.env0 in

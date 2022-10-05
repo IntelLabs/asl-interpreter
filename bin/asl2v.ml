@@ -54,20 +54,9 @@ let main () =
 
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
-    let ts =
-      List.map
-        (fun filename ->
-          if Utils.endswith filename ".spec" then
-            LoadASL.read_spec paths filename !opt_verbose
-          else if Utils.endswith filename ".asl" then
-            LoadASL.read_file paths filename false !opt_verbose
-          else failwith ("Unrecognized file suffix on " ^ filename))
-        !opt_filenames
-    in
+    let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
+    let ds = t @ ts in
     let roots = List.map (fun f -> AST.FIdent (f, 0)) !roots in
-
-    let ds = List.concat (t :: ts) in
-
     let keeps = List.map (fun r -> AST.Ident r) !keeps in
 
     if true then

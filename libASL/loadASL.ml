@@ -67,14 +67,14 @@ let read_file (paths : string list) (filename : string) (isPrelude : bool)
   flush stdout;
   t'
 
-let read_spec (paths : string list) (filename : string) (verbose : bool) :
+let parse_spec (paths : string list) (filename : string) (verbose : bool) :
     AST.declaration list =
   let r : AST.declaration list list ref = ref [] in
   let fname = find_file paths filename in
   let inchan = open_in fname in
   (try
      while true do
-       let t = read_file paths (input_line inchan) false verbose in
+       let t = parse_file paths (input_line inchan) false verbose in
        r := t :: !r
      done
    with End_of_file -> close_in inchan);
@@ -105,6 +105,21 @@ let read_stmt (tcenv : TC.Env.t) (s : string) : AST.stmt =
   let lexbuf = Lexing.from_string s in
   let s = Parser.stmt_command_start Lexer.token lexbuf in
   TC.tc_stmt tcenv s
+
+let read_files (paths : string list) (filenames : string list) (verbose : bool)
+    : AST.declaration list =
+  let parse fname =
+    if Utils.endswith fname ".spec" then
+      parse_spec paths fname verbose
+    else if Utils.endswith fname ".asl" then
+      parse_file paths fname false verbose
+    else
+      failwith ("Unrecognized file suffix on " ^ fname)
+  in
+  List.map parse filenames
+    |> List.concat
+    |> TC.tc_declarations TC.env0 false
+
 
 (****************************************************************
  * End

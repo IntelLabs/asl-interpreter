@@ -1,5 +1,5 @@
 (tests
- (names test_asl test_backend)
+ (names test_asl test_backend test_loadasl)
  (modes exe)
  (flags
   (-cclib -lstdc++))
