@@ -977,9 +977,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           eq fmt;
           nbsp fmt;
-          varname fmt v;
-          nbsp fmt;
-          ty fmt t;
+          varty fmt v t;
           semicolon fmt
       | Decl_VarSetterDefn (f, ps, v, t, b, loc) ->
           comments_before fmt loc;
@@ -990,9 +988,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           eq fmt;
           nbsp fmt;
-          varname fmt v;
-          nbsp fmt;
-          ty fmt t;
+          varty fmt v t;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -1006,9 +1002,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           eq fmt;
           nbsp fmt;
-          varname fmt v;
-          nbsp fmt;
-          ty fmt t;
+          varty fmt v t;
           semicolon fmt
       | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
           comments_before fmt loc;
@@ -1020,9 +1014,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           eq fmt;
           nbsp fmt;
-          varname fmt v;
-          nbsp fmt;
-          ty fmt t;
+          varty fmt v t;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
