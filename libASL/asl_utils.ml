@@ -642,17 +642,16 @@ let rev_memoize (xs : ident list) (f : ident -> IdentSet.t) :
 let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
   let result : ident list ref = ref [] in
   let seen : IdentSet.t ref = ref IdentSet.empty in
-  let rec visit (lss : ident list list) : unit =
-    match lss with
+  let rec visit (ls : ident list) : unit =
+    match ls with
     | [] -> ()
-    | [] :: lss -> visit lss
-    | (l :: ls) :: lss when IdentSet.mem l !seen -> visit (ls :: lss)
-    | (l :: ls) :: lss ->
-        seen := IdentSet.add l !seen;
-        IdentSet.iter (fun n -> visit ((n :: ls) :: lss)) (next l);
-        result := l :: !result
+    | h :: t when IdentSet.mem h !seen -> visit t
+    | h :: t ->
+        seen := IdentSet.add h !seen;
+        IdentSet.iter (fun n -> visit (n :: t)) (next h);
+        result := h :: !result
   in
-  visit [ roots ];
+  visit roots;
   !result
 
 (* f (find x bs) if x in bs, empty otherwise *)
