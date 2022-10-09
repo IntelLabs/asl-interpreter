@@ -648,8 +648,8 @@ let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
     | h :: t when IdentSet.mem h !seen -> visit t
     | h :: t ->
         seen := IdentSet.add h !seen;
-        IdentSet.iter (fun n -> visit (n :: t)) (next h);
-        result := h :: !result
+        result := h :: !result;
+        visit (IdentSet.elements (next h) @ t)
   in
   visit roots;
   !result
