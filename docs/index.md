@@ -9,6 +9,11 @@ title: "ASLi project documentation"
 
   - Coding guidelines
 
+- ASL language discussion
+
+  - [Typechecking and synthesis](asl/typechecking.md): how we can specify the ASL
+    typesystem and how that relates to the current implementation.
+
 - Unofficial ASL extensions
 
   - [Foreign function interface](asl/ffi.md): how we connect generated C or Verilog code to
