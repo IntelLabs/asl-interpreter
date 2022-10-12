@@ -221,8 +221,15 @@ let tests : unit Alcotest.test_case list =
       "func TestRepeat(x :: integer) => integer var i = 0; repeat i = i + 1; until i >= x; return i; end"
       "TestRepeat(3)" 3);
     ("tuple transform",        `Quick, test_xform globals prelude Xform_tuples.xform_decls
-       "func F() => (integer, integer) return (1,2); end
+      "func F() => (integer, integer) return (1,2); end
        func T() => integer let (x, y) = F(); return x + y; end"
+      "T() == 3");
+    ("getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
+      "var i :: integer;
+       getter G => integer return i; end
+       setter S = value :: integer i = value; end
+       func P() S = G + 1; end
+       func T() => integer i = 1; P(); S = G + 1; return i; end"
       "T() == 3");
   ]
 
