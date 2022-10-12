@@ -690,7 +690,7 @@ let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
         visit (IdentSet.elements (next h) @ t)
   in
   visit roots;
-  !result
+  List.rev !result
 
 (* f (find x bs) if x in bs, empty otherwise *)
 let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
