@@ -139,6 +139,15 @@ let tests : unit Alcotest.test_case list =
     test_static_error globals "#line directive"
       "\n# 42 \"foobar.asl\"\nx == 0"
       (Some "ParseError()") (Some "'foobar.asl' 42 0");
+    test_static_error globals "record initializer (missing field)"
+      "record R{ x :: integer; y :: integer; };
+      func T() => R return R{x=1, z=3}; end"
+      (Some "TypeError(file \"\" line 2 char 20 - 39,record initializer is missing fields y and/or has extra fields z)") None;
+    test_static_error globals "record initializer (parameterization error)"
+      "record R(M) { x :: bits(M); };
+      func S4(r :: R(4)) => bits(4) return r.x; end
+      func T() let t = S4(R{x='111'}); end"
+      (Some "TypeError(file \"\" line 3 char 15 - 38,wrong number of type parameters)") None;
     test_static_error globals "function missing"
       "func T() UndefinedFunction(); end"
       (Some "UnknownObject(file \"\" line 1 char 9 - 29,procedure,UndefinedFunction)") None;
@@ -254,6 +263,22 @@ let tests : unit Alcotest.test_case list =
        end
        "
        "Test(1,TRUE)" true);
+    ("parameterized record",   `Quick, test_bits globals prelude
+       "record R(M) { x :: bits(M); };
+       func S(b :: bits(M)) => R(M) return R(M){x=b}; end
+       func T(r :: R(M)) => bits(M) return r.x; end"
+       "T(S('111'))" "111");
+    ("parameterized type",     `Quick, test_bits globals prelude
+       "type B(M) of bits(M);
+       func T(b :: bits(M)) => B(M) return b; end"
+       "T('111')" "111");
+    ("parameterized record extract", `Quick, test_bits globals prelude
+       "record R(M) { x :: bits(M); };
+       func F() => bits(8)
+           let a = R(3){ x = '111' };
+           return ZeroExtend(a.x, 8);
+       end"
+       "F()" "00000111");
     ("statements (while)",     `Quick, test_int globals prelude
       "func TestWhile(x :: integer) => integer var i = 0; while i < x do i = i + 1; end return i; end"
       "TestWhile(3)" 3);

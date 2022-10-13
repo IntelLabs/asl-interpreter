@@ -166,10 +166,11 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
         let e' = visit_expr vis e in
         let ss' = mapNoCopy (visit_slice vis) ss in
         if t == t' && e == e' && ss == ss' then x else Expr_Slices (t', e', ss')
-    | Expr_RecordInit (tc, fas) ->
+    | Expr_RecordInit (tc, tes, fas) ->
         let tc' = visit_var vis Type tc in
+        let tes' = visit_exprs vis tes in
         let fas' = mapNoCopy (visit_fieldassignment vis) fas in
-        if tc == tc' && fas == fas' then x else Expr_RecordInit (tc', fas')
+        if tc == tc' && tes == tes' && fas == fas' then x else Expr_RecordInit (tc', tes', fas')
     | Expr_In (e, p) ->
         let e' = visit_expr vis e in
         let p' = visit_pattern vis p in
@@ -253,19 +254,16 @@ and visit_types (vis : aslVisitor) (xs : ty list) : ty list =
 and visit_type (vis : aslVisitor) (x : ty) : ty =
   let aux (vis : aslVisitor) (x : ty) : ty =
     match x with
-    | Type_Constructor tc ->
-        let tc' = visit_var vis Type tc in
-        if tc == tc' then x else Type_Constructor tc'
     | Type_Integer ocrs ->
         let ocrs' = mapOptionNoCopy (visit_constraints vis) ocrs in
         if ocrs == ocrs' then x else Type_Integer ocrs'
     | Type_Bits n ->
         let n' = visit_expr vis n in
         if n == n' then x else Type_Bits n'
-    | Type_App (tc, es) ->
+    | Type_Constructor (tc, es) ->
         let tc' = visit_var vis Type tc in
         let es' = visit_exprs vis es in
-        if tc == tc' && es == es' then x else Type_App (tc', es')
+        if tc == tc' && es == es' then x else Type_Constructor (tc', es')
     | Type_OfExpr e ->
         let e' = visit_expr vis e in
         if e == e' then x else Type_OfExpr e'
@@ -534,14 +532,16 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
     | Decl_Forward (v, loc) ->
         let v' = visit_var vis Definition v in
         if v == v' then x else Decl_Forward (v', loc)
-    | Decl_Record (v, fs, loc) ->
+    | Decl_Record (v, ps, fs, loc) ->
         let v' = visit_var vis Definition v in
+        let ps' = mapNoCopy (visit_var vis Definition) ps in
         let fs' = visit_args vis fs in
-        if v == v' && fs == fs' then x else Decl_Record (v', fs', loc)
-    | Decl_Typedef (v, ty, loc) ->
+        if v == v' && ps == ps' && fs == fs' then x else Decl_Record (v', ps', fs', loc)
+    | Decl_Typedef (v, ps, ty, loc) ->
         let v' = visit_var vis Definition v in
+        let ps' = mapNoCopy (visit_var vis Definition) ps in
         let ty' = visit_type vis ty in
-        if v == v' && ty == ty' then x else Decl_Typedef (v', ty', loc)
+        if v == v' && ps == ps' && ty == ty' then x else Decl_Typedef (v', ps', ty', loc)
     | Decl_Enum (v, es, loc) ->
         let v' = visit_var vis Definition v in
         let es' = mapNoCopy (visit_var vis Definition) es in

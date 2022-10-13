@@ -15,7 +15,7 @@ let mkReturnFieldName (i : int) : AST.ident = AST.Ident ("r" ^ string_of_int i)
 
 let mkReturnRecord (tyname : AST.ident) (rtys : AST.ty list) (loc : AST.l) : AST.declaration =
   let fs = List.mapi (fun i ty -> (mkReturnFieldName i, ty)) rtys in
-  Decl_Record (tyname, fs, loc)
+  Decl_Record (tyname, [], fs, loc)
 
 let returnVariables = new Asl_utils.nameSupply "__r"
 
@@ -30,11 +30,11 @@ class replaceTupleClass (tc : AST.ident option) =
       | Stmt_FunReturn (Expr_Tuple es, loc) when Option.is_some tc && List.length es > 1 ->
         let tc = Option.get tc in
         let fas = List.mapi (fun i e -> (mkReturnFieldName i, e)) es in
-        let r = AST.Expr_RecordInit (tc, fas) in
+        let r = AST.Expr_RecordInit (tc, [], fas) in
         Visitor.ChangeTo [AST.Stmt_FunReturn (r, loc)]
 
       | Stmt_VarDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
-        let vty = AST.Type_Constructor (mkReturnTypeName f) in
+        let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i di ->
@@ -43,7 +43,7 @@ class replaceTupleClass (tc : AST.ident option) =
         Visitor.ChangeTo (s :: ss)
 
       | Stmt_ConstDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
-        let vty = AST.Type_Constructor (mkReturnTypeName f) in
+        let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i di ->
@@ -52,7 +52,7 @@ class replaceTupleClass (tc : AST.ident option) =
         Visitor.ChangeTo (s :: ss)
 
       | Stmt_Assign (AST.LExpr_Tuple es, (AST.Expr_TApply (f, _, _) as i), loc) ->
-        let vty = AST.Type_Constructor (mkReturnTypeName f) in
+        let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i e ->
@@ -107,7 +107,7 @@ let xform_decl (d : AST.declaration) : AST.declaration list =
       let (tydecls, tyname, rty') = if Asl_utils.isTupleType rty then
           let tyname = mkReturnTypeName f in
           let tydecl = mkReturnRecord tyname (Asl_utils.tupleTypes rty) loc in
-          ([tydecl], Some tyname, AST.Type_Constructor tyname)
+          ([tydecl], Some tyname, AST.Type_Constructor (tyname, []))
         else
           ([], None, rty)
       in

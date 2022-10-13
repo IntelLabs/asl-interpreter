@@ -193,11 +193,11 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
       intLit fmt "0");
     nbsp fmt;
     varname fmt v
-  | Type_Constructor tc ->
+  | Type_Constructor (tc, []) ->
     tycon fmt tc;
     nbsp fmt;
     varname fmt v
-  | Type_App (Ident "__RAM", [_]) ->
+  | Type_Constructor (Ident "__RAM", [_]) ->
     ty_ram fmt;
     nbsp fmt;
     varname fmt v
@@ -215,7 +215,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
   | Type_OfExpr e ->
       fn_typeof fmt;
       parens fmt (fun _ -> expr loc fmt e)
-  | Type_App (_, _)
+  | Type_Constructor (_, _)
   | Type_Tuple _ ->
       raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
   )
@@ -514,7 +514,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
-  | Expr_RecordInit (tc, fas) ->
+  | Expr_RecordInit (tc, [], fas) ->
       delimiter fmt "'";
       braces fmt (fun _ ->
         commasep fmt
@@ -526,7 +526,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
           fas)
   (* unimplemented *)
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
-  | Expr_ImpDef (_, _)
+  | Expr_RecordInit _ | Expr_ImpDef (_, _)
   | Expr_Tuple _ | Expr_Fields _ | Expr_AsConstraint _ | Expr_AsType _ ->
       raise
         (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
@@ -797,7 +797,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                 (Unimplemented
                    (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
           )
-      | Decl_Record (tc, fs, loc) ->
+      | Decl_Record (tc, [], fs, loc) ->
           typedef fmt (fun _ ->
             kw_struct fmt;
             nbsp fmt;
@@ -813,7 +813,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
             tycon fmt tc
           );
           cut fmt
-      | Decl_Typedef (tc, t, loc) ->
+      | Decl_Typedef (tc, [], t, loc) ->
           typedef fmt (fun _ -> varty loc fmt tc t);
           cut fmt
       | Decl_Enum (tc, es, loc) ->

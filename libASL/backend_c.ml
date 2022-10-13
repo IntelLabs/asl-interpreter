@@ -226,7 +226,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
     bits fmt (const_int_expr loc n);
     nbsp fmt;
     varname fmt v
-  | Type_Constructor tc ->
+  | Type_Constructor (tc, []) ->
       ( match tc with
       | Ident "boolean" ->
         kw_bool fmt;
@@ -244,7 +244,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
         nbsp fmt;
         varname fmt v
       )
-  | Type_App (Ident "__RAM", [_]) ->
+  | Type_Constructor (Ident "__RAM", [_]) ->
     ty_ram fmt;
     nbsp fmt;
     varname fmt v
@@ -260,7 +260,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
   | Type_Array (Index_Int sz, ety) ->
     varty loc fmt v ety;
     brackets fmt (fun _ -> expr loc fmt sz)
-  | Type_App (_, _)
+  | Type_Constructor (_, _)
   | Type_OfExpr _
   | Type_Tuple _ ->
       raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
@@ -574,7 +574,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitString l -> strLit fmt l
   | Expr_Parens e -> expr loc fmt e
-  | Expr_RecordInit (tc, fas) ->
+  | Expr_RecordInit (tc, [], fas) ->
       parens fmt (fun _ -> tycon fmt tc);
       braces fmt (fun _ ->
           nbsp fmt;
@@ -625,6 +625,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_In _
   | Expr_LitMask _
   | Expr_LitReal _
+  | Expr_RecordInit _
   | Expr_Slices _
   | Expr_Tuple _
   | Expr_Unknown _
@@ -870,7 +871,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_TCall (f, tes, args, loc) ->
       funcall loc fmt f tes args loc;
       semicolon fmt
-  | Stmt_VarDeclsNoInit (vs, Type_App (Ident "__RAM", [ _ ]), loc) ->
+  | Stmt_VarDeclsNoInit (vs, Type_Constructor (Ident "__RAM", [_]), loc) ->
       cutsep fmt
         (fun v ->
           varname fmt v;
@@ -987,7 +988,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           semicolon fmt;
           cut fmt;
           cut fmt
-      | Decl_Record (tc, fs, loc) ->
+      | Decl_Record (tc, [], fs, loc) ->
           typedef fmt (fun _ ->
               kw_struct fmt;
               nbsp fmt;
@@ -1002,7 +1003,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
               nbsp fmt;
               tycon fmt tc);
           cut fmt
-      | Decl_Typedef (tc, t, loc) ->
+      | Decl_Typedef (tc, [], t, loc) ->
           typedef fmt (fun _ -> varty loc fmt tc t);
           cut fmt
       | Decl_Var (v, ty, loc) ->

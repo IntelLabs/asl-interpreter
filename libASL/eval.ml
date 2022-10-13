@@ -50,8 +50,8 @@ module GlobalEnv = struct
     mutable functions :
       (ident list * ident list * AST.l * stmt list) Bindings.t;
     mutable enums : value list Bindings.t;
-    mutable records : (ident * AST.ty) list Bindings.t;
-    mutable typedefs : AST.ty Bindings.t;
+    mutable records : (ident list * (ident * AST.ty) list) Bindings.t;
+    mutable typedefs : (ident list * AST.ty) Bindings.t;
     mutable constants : value Scope.t;
     mutable impdefs : value ImpDefs.t;
   }
@@ -85,16 +85,16 @@ module GlobalEnv = struct
   let getEnum (env : t) (x : ident) : value list option =
     Bindings.find_opt x env.enums
 
-  let addRecord (env : t) (x : ident) (fs : (ident * AST.ty) list) : unit =
-    env.records <- Bindings.add x fs env.records
+  let addRecord (env : t) (x : ident) (ps : ident list) (fs : (ident * AST.ty) list) : unit =
+    env.records <- Bindings.add x (ps, fs) env.records
 
-  let getRecord (env : t) (x : ident) : (ident * AST.ty) list option =
+  let getRecord (env : t) (x : ident) : (ident list * (ident * AST.ty) list) option =
     Bindings.find_opt x env.records
 
-  let addTypedef (env : t) (x : ident) (ty : AST.ty) : unit =
-    env.typedefs <- Bindings.add x ty env.typedefs
+  let addTypedef (env : t) (x : ident) (ps : ident list) (ty : AST.ty) : unit =
+    env.typedefs <- Bindings.add x (ps, ty) env.typedefs
 
-  let getTypedef (env : t) (x : ident) : AST.ty option =
+  let getTypedef (env : t) (x : ident) : (ident list * AST.ty) option =
     Bindings.find_opt x env.typedefs
 
   let get_function (env : t) (x : ident) :
@@ -239,6 +239,12 @@ let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AS
 (** {2 Evaluation functions}                                    *)
 (****************************************************************)
 
+(** expand a type definition using type parameters *)
+let expand_type (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
+  assert (List.length ps = List.length es);
+  let bs = mk_bindings (zip_list ps es) in
+  subst_type bs ty
+
 (** Evaluate list of expressions *)
 let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
   List.map (eval_expr loc env) xs
@@ -253,15 +259,17 @@ let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
  *)
 and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
   match x with
-  | Type_Constructor tc -> (
-      match GlobalEnv.getRecord (Env.globals env) tc with
-      | Some fs ->
+  | Type_Constructor (tc, es) ->
+      ( match GlobalEnv.getRecord (Env.globals env) tc with
+      | Some (ps, fs) ->
           mkrecord
-            (List.map (fun (f, ty) -> (f, mk_uninitialized loc env ty)) fs)
-      | None -> (
-          match GlobalEnv.getTypedef (Env.globals env) tc with
-          | Some ty' -> mk_uninitialized loc env ty'
-          | None -> VUninitialized))
+            (List.map (fun (f, ty) -> (f, mk_uninitialized loc env (expand_type ps ty es))) fs)
+      | None ->
+          ( match GlobalEnv.getTypedef (Env.globals env) tc with
+          | Some (ps, ty') -> mk_uninitialized loc env (expand_type ps ty' es)
+          | None -> VUninitialized
+          )
+      )
   | Type_Array (Index_Enum tc, ety) ->
       Value.empty_array (mk_uninitialized loc env ety)
   | Type_Array (Index_Int sz, ety) ->
@@ -278,10 +286,13 @@ and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
 (** Evaluate UNKNOWN at given type *)
 and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
   match x with
-  | Type_Constructor (Ident "real") -> eval_unknown_real ()
-  | Type_Constructor (Ident "string") -> eval_unknown_string ()
-  | Type_Constructor tc -> (
-      match GlobalEnv.getEnum (Env.globals env) tc with
+  | Type_Constructor (Ident "real", []) -> eval_unknown_real ()
+  | Type_Constructor (Ident "string", []) -> eval_unknown_string ()
+  | Type_Constructor (Ident "__RAM", [ a ]) ->
+      let a' = to_integer loc (eval_expr loc env a) in
+      eval_unknown_ram a'
+  | Type_Constructor (tc, es) ->
+      ( match GlobalEnv.getEnum (Env.globals env) tc with
       | Some (e :: _) -> e
       | Some [] ->
           raise
@@ -289,20 +300,18 @@ and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
                (loc, "eval_unknown unknown type constructor " ^ pp_type x))
       | None -> (
           match GlobalEnv.getRecord (Env.globals env) tc with
-          | Some fs ->
+          | Some (ps, fs) ->
               mkrecord
-                (List.map (fun (f, ty) -> (f, eval_unknown loc env ty)) fs)
-          | None -> (
-              match GlobalEnv.getTypedef (Env.globals env) tc with
-              | Some ty' -> eval_unknown loc env ty'
-              | None -> raise (EvalError (loc, "eval_unknown " ^ pp_type x)))))
+                (List.map (fun (f, ty) -> (f, eval_unknown loc env (expand_type ps ty es))) fs)
+          | None ->
+              ( match GlobalEnv.getTypedef (Env.globals env) tc with
+              | Some (ps, ty') -> eval_unknown loc env (expand_type ps ty' es)
+              | None -> raise (EvalError (loc, "eval_unknown " ^ pp_type x))
+              )
+          )
+      )
   | Type_Integer _ -> eval_unknown_integer ()
   | Type_Bits n -> eval_unknown_bits (to_integer loc (eval_expr loc env n))
-  | Type_App (Ident "__RAM", [ a ]) ->
-      let a' = to_integer loc (eval_expr loc env a) in
-      eval_unknown_ram a'
-  | Type_App (tc, es) ->
-      raise (EvalError (loc, "eval_unknown App " ^ pp_type x))
   | Type_OfExpr e -> raise (EvalError (loc, "eval_unknown typeof " ^ pp_type x))
   | Type_Register (n, _) ->
       eval_unknown_bits (to_integer loc (eval_expr loc env n))
@@ -383,7 +392,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
           ss
       in
       eval_concat loc vs
-  | Expr_RecordInit (tc, fas) ->
+  | Expr_RecordInit (tc, _, fas) ->
       mkrecord (List.map (fun (f, e) -> (f, eval_expr loc env e)) fas)
   | Expr_In (e, p) -> from_bool (eval_pattern loc env (eval_expr loc env e) p)
   | Expr_Var v -> Env.getVar loc env v
@@ -720,7 +729,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
   List.iter
     (fun d ->
       match d with
-      | Decl_Record (v, fs, loc) -> GlobalEnv.addRecord genv v fs
+      | Decl_Record (v, ps, fs, loc) -> GlobalEnv.addRecord genv v ps fs
       | Decl_Enum (qid, es, loc) ->
           let evs =
             if qid = Ident "boolean" then
@@ -733,7 +742,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           in
           List.iter (fun (e, v) -> GlobalEnv.addGlobalConst genv e v) evs;
           GlobalEnv.addEnum genv qid (List.map (fun (e, v) -> v) evs)
-      | Decl_Typedef (v, ty, loc) -> GlobalEnv.addTypedef genv v ty
+      | Decl_Typedef (v, ps, ty, loc) -> GlobalEnv.addTypedef genv v ps ty
       | Decl_Const (v, ty, i, loc) ->
           (* todo: constants need to be lazily evaluated or need to be
            * sorted by dependencies

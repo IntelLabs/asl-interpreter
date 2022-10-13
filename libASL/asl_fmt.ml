@@ -288,16 +288,15 @@ let strLit (fmt : PP.formatter) (x : string) : unit =
 
 let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
-  | Type_Constructor tc -> tycon fmt tc
   | Type_Integer ocrs -> (
       tycon fmt (Ident "integer");
       match ocrs with None -> () | Some crs -> constraints fmt crs)
   | Type_Bits n ->
       tycon fmt (Ident "bits");
       parens fmt (fun _ -> expr fmt n)
-  | Type_App (tc, es) ->
+  | Type_Constructor (tc, es) ->
       tycon fmt tc;
-      parens fmt (fun _ -> exprs fmt es)
+      if not (Utils.is_null es) then parens fmt (fun _ -> exprs fmt es)
   | Type_OfExpr e ->
       kw_typeof fmt;
       parens fmt (fun _ -> expr fmt e)
@@ -404,8 +403,9 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       if show_tyargs then braces fmt (fun _ -> ty fmt t);
       expr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
-  | Expr_RecordInit (tc, fas) ->
+  | Expr_RecordInit (tc, tes, fas) ->
       tycon fmt tc;
+      if not (Utils.is_null tes) then parens fmt (fun _ -> exprs fmt tes);
       braces fmt (fun _ -> commasep fmt (field_assignment fmt) fas)
   | Expr_In (e, p) ->
       expr fmt e;
@@ -831,11 +831,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           tycon fmt tc;
           semicolon fmt
-      | Decl_Record (tc, fs, loc) ->
+      | Decl_Record (tc, ps, fs, loc) ->
           comments_before fmt loc;
           kw_record fmt;
           nbsp fmt;
           tycon fmt tc;
+          (if not (Utils.is_null ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
@@ -850,11 +851,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                     fs);
               cut fmt);
           semicolon fmt
-      | Decl_Typedef (tc, t, loc) ->
+      | Decl_Typedef (tc, ps, t, loc) ->
           comments_before fmt loc;
           kw_type fmt;
           nbsp fmt;
           tycon fmt tc;
+          (if not (Utils.is_null ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
           nbsp fmt;
           kw_of fmt;
           nbsp fmt;

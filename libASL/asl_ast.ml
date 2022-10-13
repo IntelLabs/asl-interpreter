@@ -201,7 +201,7 @@ and expr =
  | Expr_Field of expr * ident (* field selection *)
  | Expr_Fields of expr * ident list (* multiple field selection *)
  | Expr_Slices of ty * expr * slice list (* bitslice *)
- | Expr_RecordInit of ident * (ident * expr) list
+ | Expr_RecordInit of ident * expr list * (ident * expr) list
  | Expr_In of expr * pattern (* pattern match *)
  | Expr_Var of ident
  | Expr_Parens of expr
@@ -233,10 +233,9 @@ and ixtype =
  | Index_Int of expr
 
 and ty =
-   Type_Constructor of ident
  | Type_Integer of constraint_range list option
  | Type_Bits of expr
- | Type_App of ident * expr list
+ | Type_Constructor of ident * expr list
  | Type_OfExpr of expr
  | Type_Register of expr * (slice list * ident) list
  | Type_Array of ixtype * ty
@@ -306,8 +305,8 @@ type
 declaration =
    Decl_BuiltinType of ident * l
  | Decl_Forward of ident * l
- | Decl_Record of ident * (ident * ty) list * l
- | Decl_Typedef of ident * ty * l
+ | Decl_Record of ident * ident list * (ident * ty) list * l
+ | Decl_Typedef of ident * ident list * ty * l
  | Decl_Enum of ident * ident list * l
  | Decl_Var of ident * ty * l
  | Decl_Const of ident * ty * expr * l

@@ -324,10 +324,7 @@ class freevarClass =
 
     method! vtype ty =
       match ty with
-      | Type_Constructor tc ->
-          free_tcs <- IdentSet.add tc free_tcs;
-          DoChildren
-      | Type_App (tc, _) ->
+      | Type_Constructor (tc, _) ->
           free_tcs <- IdentSet.add tc free_tcs;
           DoChildren
       | Type_Register _ ->
@@ -514,7 +511,7 @@ class typesClass =
 
     method! vtype ty =
       match ty with
-      | Type_Constructor id | Type_App (id, _) ->
+      | Type_Constructor (id, _) ->
           types <- IdentSet.add id types;
           DoChildren
       | _ -> DoChildren
@@ -593,8 +590,8 @@ let decl_name (x : declaration) : ident option =
   match x with
   | Decl_BuiltinType (v, loc) -> Some v
   | Decl_Forward (v, loc) -> Some v
-  | Decl_Record (v, fs, loc) -> Some v
-  | Decl_Typedef (v, ty, loc) -> Some v
+  | Decl_Record (v, ps, fs, loc) -> Some v
+  | Decl_Typedef (v, ps, ty, loc) -> Some v
   | Decl_Enum (v, es, loc) -> Some v
   | Decl_Var (v, ty, loc) -> Some v
   | Decl_Const (v, ty, e, loc) -> Some v
@@ -955,11 +952,11 @@ let pp_stmt (x : stmt) : string = Utils.to_string2 (Fun.flip FMT.stmt x)
 
 let type_unit = Type_Tuple []
 let type_integer = Type_Integer None
-let type_bool = Type_Constructor (Ident "boolean")
-let type_real = Type_Constructor (Ident "real")
-let type_string = Type_Constructor (Ident "string")
+let type_bool = Type_Constructor (Ident "boolean", [])
+let type_real = Type_Constructor (Ident "real", [])
+let type_string = Type_Constructor (Ident "string", [])
 let type_bits (n : expr) = Type_Bits n
-let type_exn = Type_Constructor (Ident "__Exception")
+let type_exn = Type_Constructor (Ident "__Exception", [])
 
 let mk_enum (nm : string) : AST.expr = AST.Expr_Var (Ident nm)
 

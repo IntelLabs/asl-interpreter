@@ -22,7 +22,7 @@ open Asl_ast
  * is not especially helpful because all later passes assume that
  * the type is available.
  *)
-let type_unknown = Type_Constructor (Ident "<type_unknown>")
+let type_unknown = Type_Constructor (Ident "<type_unknown>", [])
 %}
 
 %token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
@@ -191,12 +191,16 @@ type_declaration:
     { Decl_BuiltinType(v, Range($symbolstartpos, $endpos)) }
 | TYPE v = ident SEMICOLON
     { Decl_Forward(v, Range($symbolstartpos, $endpos)) }
-| RECORD v = ident LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
-    { Decl_Record(v, fs, Range($symbolstartpos, $endpos)) }
-| TYPE v = ident OF ty = ty SEMICOLON
-    { Decl_Typedef(v, ty, Range($symbolstartpos, $endpos)) }
+| RECORD v = ident ps = ty_params_opt LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+    { Decl_Record(v, ps, fs, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident ps = ty_params_opt OF ty = ty SEMICOLON
+    { Decl_Typedef(v, ps, ty, Range($symbolstartpos, $endpos)) }
 | ENUMERATION v = ident LBRACE es = separated_list(COMMA, ident) RBRACE SEMICOLON
     { Decl_Enum(v, es, Range($symbolstartpos, $endpos)) }
+
+ty_params_opt:
+| LPAREN ps = separated_nonempty_list(COMMA, ident) RPAREN { ps }
+| { [] }
 
 field:
 | ident = ident COLON_COLON ty = ty SEMICOLON { (ident, ty) }
@@ -292,13 +296,13 @@ mapfield:
 
 ty:
 | ident = ident
-    { Type_Constructor(ident) }
+    { Type_Constructor(ident, []) }
 | INTEGER ocrs = constraint_opt
     { Type_Integer(ocrs) }
 | BITS LPAREN n = expr RPAREN
     { Type_Bits(n) }
 | tc = ident LPAREN es = separated_nonempty_list(COMMA, expr) RPAREN
-    { Type_App(tc, es) }
+    { Type_Constructor(tc, es) }
 | TYPEOF LPAREN e = expr RPAREN
     { Type_OfExpr(e) }
 | BITS LPAREN wd = expr RPAREN LBRACE fs = regfields RBRACE
@@ -509,8 +513,6 @@ fexpr:
     { Expr_Fields(e, fs) }
 | e = fexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
     { Expr_Slices(type_unknown, e, ss) }
-| tc = ident LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
-    { Expr_RecordInit(tc, fas) }
 | e = fexpr IN p = pattern
     { Expr_In(e, p) }
 | e = aexpr
@@ -523,6 +525,12 @@ aexpr:
     { Expr_Var(v) }
 | f = ident LPAREN es = separated_list(COMMA, expr) RPAREN
     { Expr_TApply(f, [], es) }
+| tc = ident 
+    LPAREN es = separated_list(COMMA, expr) RPAREN
+    LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
+    { Expr_RecordInit(tc, es, fas) }
+| tc = ident LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
+    { Expr_RecordInit(tc, [], fas) }
 | LPAREN e = expr RPAREN
     { Expr_Parens(e) }
 | LPAREN es = separated_nonempty2_list(COMMA, expr) RPAREN

@@ -34,10 +34,6 @@ exception InternalError of string (* internal invariants have been broken *)
 (** {3 AST construction utilities}                              *)
 (****************************************************************)
 
-let width_of_type (ty : AST.ty) : AST.expr =
-  Utils.from_option (Asl_utils.width_of_type ty)
-    (fun _ -> raise (InternalError "width_of_type"))
-
 (* Lower int slice expression *)
 let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
   match (x, ss) with
@@ -64,7 +60,7 @@ let slices_width (xs : AST.slice list) : AST.expr =
 
 let ixtype_basetype (ty : AST.ixtype) : AST.ty =
   match ty with
-  | Index_Enum tc -> Type_Constructor tc
+  | Index_Enum tc -> Type_Constructor (tc, [])
   | Index_Int sz -> type_integer
 
 (****************************************************************)
@@ -92,9 +88,9 @@ let ppp_type (x : AST.ty) : AST.ty = resugar_type !binop_table x
 type typedef =
   | Type_Builtin of ident
   | Type_Forward
-  | Type_Record of (ident * ty) list
+  | Type_Record of (ident list * (ident * ty) list)
   | Type_Enumeration of ident list
-  | Type_Abbreviation of ty
+  | Type_Abbreviation of (ident list * ty)
 
 let pp_typedef (x : typedef) (fmt : formatter) : unit =
   match x with
@@ -103,8 +99,10 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
       FMTUtils.nbsp fmt;
       FMT.tycon fmt t
   | Type_Forward -> pp_print_string fmt "forward"
-  | Type_Record fs ->
+  | Type_Record (ps, fs) ->
       FMT.kw_record fmt;
+      FMTUtils.nbsp fmt;
+      FMTUtils.parens fmt (fun _ -> FMTUtils.commasep fmt (FMT.varname fmt) ps);
       FMTUtils.nbsp fmt;
       FMTUtils.braces fmt (fun _ ->
           FMTUtils.vbox fmt (fun _ ->
@@ -123,7 +121,14 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
       FMTUtils.braces fmt (fun _ ->
           FMTUtils.vbox fmt (fun _ ->
               FMTUtils.commasep fmt (FMT.varname fmt) es))
-  | Type_Abbreviation ty -> FMT.ty fmt ty
+  | Type_Abbreviation (ps, ty) ->
+      FMT.keyword fmt "type";
+      FMTUtils.nbsp fmt;
+      FMTUtils.parens fmt (fun _ -> FMTUtils.commasep fmt (FMT.varname fmt) ps);
+      FMTUtils.nbsp fmt;
+      FMT.eq_gt fmt;
+      FMTUtils.nbsp fmt;
+      FMT.ty fmt ty
 
 type funtype =
   { funname : AST.ident;
@@ -320,15 +325,31 @@ let isConstant (env : GlobalEnv.t) (v : AST.ident) : bool =
 let removeConsts (env : GlobalEnv.t) (ids : IdentSet.t) : IdentSet.t =
   IdentSet.filter (fun v -> not (isConstant env v)) ids
 
+(** expand a type definition using type parameters *)
+let expand_type (loc : AST.l) (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
+  if List.length ps <> List.length es then begin
+    raise (TypeError (loc, "wrong number of type parameters"))
+  end;
+  let bs = mk_bindings (zip_list ps es) in
+  subst_type bs ty
+
 (** dereference typedef *)
-let rec derefType (env : GlobalEnv.t) (ty : AST.ty) : AST.ty =
+let rec derefType (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.ty =
   match ty with
-  | Type_Constructor tc | Type_App (tc, _) -> (
+  | Type_Constructor (tc, es) -> (
       match GlobalEnv.getType env tc with
-      (* todo: instantiate with type parameters? *)
-      | Some (Type_Abbreviation ty') -> derefType env ty'
+      | Some (Type_Abbreviation (ps, ty')) ->
+        let ty'' = expand_type loc ps ty' es in
+        derefType env loc ty''
       | _ -> ty)
   | _ -> ty
+
+let width_of_type (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.expr =
+  let ty' = derefType env loc ty in
+  Utils.from_option (Asl_utils.width_of_type ty')
+    (fun _ ->
+       let pp = Utils.to_string2 (Fun.flip FMT.ty ty') in
+       raise (InternalError ("width_of_type " ^ pp)))
 
 (** compare index types *)
 let cmp_ixtype (ty1 : AST.ixtype) (ty2 : AST.ixtype) : bool =
@@ -340,22 +361,21 @@ let cmp_ixtype (ty1 : AST.ixtype) (ty2 : AST.ixtype) : bool =
 (* todo: does not handle register<->bits coercions *)
 
 (** structural match on two types - ignoring the dependent type part and constraints *)
-let rec cmp_type (env : GlobalEnv.t) (ty1 : AST.ty) (ty2 : AST.ty) : bool =
-  match (derefType env ty1, derefType env ty2) with
-  | Type_Constructor c1, Type_Constructor c2 -> c1 = c2
+let rec cmp_type (env : GlobalEnv.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : bool =
+  match (derefType env loc ty1, derefType env loc ty2) with
   | Type_Integer _, Type_Integer _ -> true
   | Type_Bits e1, Type_Bits e2 -> true
-  | Type_App (c1, es1), Type_App (c2, es2) -> c1 = c2
+  | Type_Constructor (c1, es1), Type_Constructor (c2, es2) -> c1 = c2
   | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError "cmp_type: typeof")
   (* todo: this is equating the types, not subtyping them *)
   | Type_Bits e1, Type_Register (w2, _) -> true
   | Type_Register (w1, _), Type_Bits e2 -> true
   | Type_Register (w1, _), Type_Register (w2, _) -> true
   | Type_Array (ixty1, elty1), Type_Array (ixty2, elty2) ->
-      cmp_ixtype ixty1 ixty2 && cmp_type env elty1 elty2
+      cmp_ixtype ixty1 ixty2 && cmp_type env loc elty1 elty2
   | Type_Tuple tys1, Type_Tuple tys2 ->
       List.length tys1 = List.length tys2
-      && List.for_all2 (cmp_type env) tys1 tys2
+      && List.for_all2 (cmp_type env loc) tys1 tys2
   | _ -> false
 
 (****************************************************************)
@@ -373,12 +393,13 @@ type fieldtypes =
   | FT_Register of (AST.slice list * ident) list
 
 (** Get fieldtype information for a record/register type *)
-let rec typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
-  match derefType env x with
-  | Type_Constructor tc | Type_App (tc, _) -> (
+let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
+  match derefType env loc x with
+  | Type_Constructor (tc, es) -> (
       match GlobalEnv.getType env tc with
-      | Some (Type_Record fs) -> FT_Record fs
-      | Some (Type_Abbreviation ty') -> typeFields env loc ty'
+      | Some (Type_Record (ps, fs)) ->
+        let fs' = List.map (fun (f, ty) -> (f, expand_type loc ps ty es)) fs in
+        FT_Record fs'
       | _ -> raise (IsNotA (loc, "record", pprint_ident tc)))
   | Type_Register (wd, fs) -> FT_Register fs
   | Type_OfExpr e ->
@@ -972,16 +993,15 @@ let unify_ixtype (u : unifier) (ty1 : AST.ixtype) (ty2 : AST.ixtype) : unit =
 
     This performs a structural match on two types - ignoring the dependent type part
  *)
-let rec unify_type (env : GlobalEnv.t) (u : unifier) (ty1 : AST.ty)
-    (ty2 : AST.ty) : unit =
+let rec unify_type (env : GlobalEnv.t) (loc : AST.l)
+    (u : unifier) (ty1 : AST.ty) (ty2 : AST.ty) : unit =
   (* Substitute global constants in types *)
   let subst_consts = new substFunClass (GlobalEnv.getConstant env) in
   let ty1' = Asl_visitor.visit_type subst_consts ty1 in
   let ty2' = Asl_visitor.visit_type subst_consts ty2 in
-  match (derefType env ty1', derefType env ty2') with
-  | Type_Constructor c1, Type_Constructor c2 -> ()
+  match (derefType env loc ty1', derefType env loc ty2') with
   | Type_Bits e1, Type_Bits e2 -> u#addEquality e1 e2
-  | Type_App (c1, es1), Type_App (c2, es2) -> u#addEqualities es1 es2
+  | Type_Constructor (c1, es1), Type_Constructor (c2, es2) -> u#addEqualities es1 es2
   | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError "unify_type: typeof")
   (* todo: this is equating the types, not subtyping them *)
   | Type_Bits e1, Type_Register (e2, _) -> u#addEquality e1 e2
@@ -989,8 +1009,8 @@ let rec unify_type (env : GlobalEnv.t) (u : unifier) (ty1 : AST.ty)
   | Type_Register (e1, _), Type_Register (e2, _) -> u#addEquality e1 e2
   | Type_Array (ixty1, elty1), Type_Array (ixty2, elty2) ->
       unify_ixtype u ixty1 ixty2;
-      unify_type env u elty1 elty2
-  | Type_Tuple tys1, Type_Tuple tys2 -> List.iter2 (unify_type env u) tys1 tys2
+      unify_type env loc u elty1 elty2
+  | Type_Tuple tys1, Type_Tuple tys2 -> List.iter2 (unify_type env loc u) tys1 tys2
   | _ -> ()
 
 (** Apply substitutions to an expression *)
@@ -1037,9 +1057,9 @@ let mkfresh_funtype (u : unifier) (fty : funtype) : funtype =
 (** Check that ty2 is a subtype of ty1: ty1 >= ty2 *)
 let check_type (env : Env.t) (u : unifier) (loc : AST.l) (ty1 : AST.ty)
     (ty2 : AST.ty) : unit =
-  if not (cmp_type (Env.globals env) ty1 ty2) then
+  if not (cmp_type (Env.globals env) loc ty1 ty2) then
     raise (DoesNotMatch (loc, "type", pp_type ty1, pp_type ty2))
-  else unify_type (Env.globals env) u ty1 ty2
+  else unify_type (Env.globals env) loc u ty1 ty2
 
 (* todo: make sure that this does not do subtyping *)
 
@@ -1082,18 +1102,18 @@ let reportChoices (loc : AST.l) (what : string) (nm : string)
     One function type is compatible with another if they have the same number
     of arguments and each argument has the same base type
  *)
-let isCompatibleFunction (env : GlobalEnv.t) (isArr : bool) (tys : AST.ty list)
+let isCompatibleFunction (env : GlobalEnv.t) (loc : AST.l) (isArr : bool) (tys : AST.ty list)
     (fty : funtype) : bool =
   let nargs = List.length tys in
   isArr = fty.isArray
   && List.length fty.atys = nargs
-  && List.for_all2 (cmp_type env) (List.map snd fty.atys) tys
+  && List.for_all2 (cmp_type env loc) (List.map snd fty.atys) tys
 
 (** Disambiguate a function name based on the number and type of arguments *)
 let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
     (nm : string) (isArr : bool) (tys : AST.ty list) (funs : funtype list) :
     funtype option =
-  let funs' = List.filter (isCompatibleFunction env isArr tys) funs in
+  let funs' = List.filter (isCompatibleFunction env loc isArr tys) funs in
   match nub funs' with
   | [] -> None
   | [ r ] -> Some r
@@ -1119,7 +1139,7 @@ let instantiate_fun (env : GlobalEnv.t) (u : unifier) (loc : AST.l)
 
   (* unify argument types *)
   assert (List.length fty'.atys = List.length tys);
-  List.iter2 (unify_type env u) (List.map snd fty'.atys) tys;
+  List.iter2 (unify_type env loc u) (List.map snd fty'.atys) tys;
 
   fty'
 
@@ -1280,7 +1300,7 @@ and tc_slice_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : expr)
   let ss' = List.map fst ss in
   let x', ty' = tc_expr env u loc x in
   let ty = type_bits (slices_width ss') in
-  match derefType (Env.globals env) ty' with
+  match derefType (Env.globals env) loc ty' with
   | Type_Array (ixty, elty) -> (
       match ss with
       | [ (Slice_Single i, ity) ] ->
@@ -1331,7 +1351,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       ( match typeFields (Env.globals env) loc ty with
       | FT_Record rfs ->
           let tys = List.map (get_recordfield loc rfs) fs in
-          let ws = List.map width_of_type tys in
+          let ws = List.map (width_of_type (Env.globals env) loc) tys in
           let w = Xform_simplify_expr.mk_add_ints ws in
           (Expr_Fields (e', fs), type_bits w)
       | FT_Register rfs ->
@@ -1373,25 +1393,49 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
               (Expr_TApply (fty'.funname, funtype_parameters fty', es), fty'.rty)
           | _ -> tc_slice_expr env u loc e ss')
       | _ -> tc_slice_expr env u loc e ss')
-  | Expr_RecordInit (tc, fas) ->
+  | Expr_RecordInit (tc, es, fas) ->
       if not (GlobalEnv.isType (Env.globals env) tc) then
         raise (IsNotA (loc, "type constructor", pprint_ident tc));
-      let fs =
+      let (ps, fs) =
         match GlobalEnv.getType (Env.globals env) tc with
-        | Some (Type_Record fs) -> fs
+        | Some (Type_Record (ps, fs)) -> (ps, fs)
         | _ -> raise (IsNotA (loc, "record type", pprint_ident tc))
       in
-      (* todo: check that fas has exactly one field assignment for every field
-         in fs *)
+      if List.length es <> List.length ps then
+        raise (TypeError (loc, "wrong number of type parameters"));
+
+      (* check that we have exactly the fields required *)
+      let assigned = IdentSet.of_list (List.map fst fas) in
+      let expected = IdentSet.of_list (List.map fst fs) in
+      if not (IdentSet.equal assigned expected) then begin
+        let missing = IdentSet.elements (IdentSet.diff expected assigned) in
+        let extra = IdentSet.elements (IdentSet.diff assigned expected) in
+        let msg = "record initializer is missing fields "
+          ^ String.concat ", " (List.map pprint_ident missing)
+          ^ " and/or has extra fields "
+          ^ String.concat ", " (List.map pprint_ident extra)
+        in
+        raise (TypeError (loc, msg))
+      end;
+
+      (* add values of type parameters to environment *)
+      let es' = List.map (check_expr env loc type_integer) es in
+      let s = mk_bindings (Utils.zip_list ps es') in
+
+      (* typecheck each field of the record *)
       let fas' =
         List.map
           (fun (f, e) ->
-            let ty = get_recordfield loc fs f in
-            let e' = check_expr env loc ty e in
+            let fty = get_recordfield loc fs f in
+            let fty' = subst_type s fty in
+            let (e', ety) = tc_expr env u loc e in
+            check_type env u loc fty' ety;
             (f, e'))
           fas
       in
-      (Expr_RecordInit (tc, fas'), Type_Constructor tc)
+
+      (Expr_RecordInit (tc, es', fas'), Type_Constructor (tc, es'))
+
   | Expr_In (e, p) ->
       let s, (e', ety') = with_unify env loc (fun u -> tc_expr env u loc e) in
       let e'' = unify_subst_e s e' in
@@ -1431,7 +1475,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       (Expr_Tuple es', Type_Tuple tys)
   | Expr_Concat (_, es) ->
       let es', tys = List.split (List.map (tc_expr env u loc) es) in
-      let ws = List.map width_of_type tys in
+      let ws = List.map (width_of_type (Env.globals env) loc) tys in
       let w = Xform_simplify_expr.mk_add_ints ws in
       (Expr_Concat (ws, es'), type_bits w)
   | Expr_Unop (op, e) ->
@@ -1447,7 +1491,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       (Expr_ImpDef (os, ty'), ty')
   | Expr_Array (a, e) -> (
       let a', ty = tc_expr env u loc a in
-      match derefType (Env.globals env) ty with
+      match derefType (Env.globals env) loc ty with
       | Type_Array (ixty, elty) ->
           let e' = check_expr env loc (ixtype_basetype ixty) e in
           (Expr_Array (a', e'), elty)
@@ -1481,24 +1525,18 @@ and tc_types (env : Env.t) (loc : AST.l) (xs : AST.ty list) : AST.ty list =
 (** Typecheck type *)
 and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
   match x with
-  | Type_Constructor tc -> (
-      if not (GlobalEnv.isType (Env.globals env) tc) then
-        raise (IsNotA (loc, "type constructor", pprint_ident tc));
-      match GlobalEnv.getType (Env.globals env) tc with
-      (* todo: instantiate with type parameters? *)
-      | Some (Type_Abbreviation ty') -> derefType (Env.globals env) ty'
-      | _ -> Type_Constructor tc)
   | Type_Integer ocrs ->
       let ocrs' = Option.map (tc_constraints env loc) ocrs in
       Type_Integer ocrs'
   | Type_Bits n ->
       let n' = check_expr env loc type_integer n in
       Type_Bits n'
-  | Type_App (tc, es) ->
-      if not (GlobalEnv.isTycon (Env.globals env) tc) then
-        raise (IsNotA (loc, "type constructor", pprint_ident tc));
+  | Type_Constructor (tc, es) ->
       let es' = List.map (check_expr env loc type_integer) es in
-      Type_App (tc, es')
+      if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
+        raise (IsNotA (loc, "type constructor", pprint_ident tc))
+      end;
+      Type_Constructor (tc, es')
   | Type_OfExpr e ->
       let s, (_, ty) = with_unify env loc (fun u -> tc_expr env u loc e) in
       unify_subst_ty s ty
@@ -1558,7 +1596,7 @@ let rec tc_slice_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (x : lexpr)
   let ss' = List.map fst ss in
   let x', ty' = tc_lexpr2 env u loc x in
   let ty = type_bits (slices_width ss') in
-  match derefType (Env.globals env) ty' with
+  match derefType (Env.globals env) loc ty' with
   | Type_Array (ixty, elty) -> (
       match ss with
       | [ (Slice_Single i, ity) ] ->
@@ -1626,7 +1664,7 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       match typeFields (Env.globals env) loc ty with
       | FT_Record rfs ->
           let tys = List.map (get_recordfield loc rfs) fs in
-          let ws = List.map width_of_type tys in
+          let ws = List.map (width_of_type (Env.globals env) loc) tys in
           let w = Xform_simplify_expr.mk_add_ints ws in
           (LExpr_Fields (l', fs), type_bits w)
       | FT_Register rfs ->
@@ -1678,7 +1716,7 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       | _ -> tc_slice_lexpr env u loc e ss')
   | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
-      let ws = List.map width_of_type tys in
+      let ws = List.map (width_of_type (Env.globals env) loc) tys in
       let w = Xform_simplify_expr.mk_add_ints ws in
       (LExpr_BitTuple (ws, ls'), type_bits w)
   | LExpr_Tuple ls ->
@@ -1686,7 +1724,7 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       (LExpr_Tuple ls', Type_Tuple tys)
   | LExpr_Array (a, e) -> (
       let a', ty = tc_lexpr2 env u loc a in
-      match derefType (Env.globals env) ty with
+      match derefType (Env.globals env) loc ty with
       | Type_Array (ixty, elty) ->
           let e' = check_expr env loc (ixtype_basetype ixty) e in
           (LExpr_Array (a', e'), elty)
@@ -1749,7 +1787,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
         match typeFields (Env.globals env) loc lty with
         | FT_Record rfs ->
             let tys = List.map (get_recordfield loc rfs) fs in
-            let ws = List.map width_of_type tys in
+            let ws = List.map (width_of_type (Env.globals env) loc) tys in
             let w = Xform_simplify_expr.mk_add_ints ws in
             (LExpr_Fields (l', fs), type_bits w)
         | FT_Register rfs ->
@@ -1830,7 +1868,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       e'
   | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
-      let ws = List.map width_of_type tys in
+      let ws = List.map (width_of_type (Env.globals env) loc) tys in
       let w = Xform_simplify_expr.mk_add_ints ws in
       check_type env u loc (type_bits w) ty;
       LExpr_BitTuple (ws, ls')
@@ -1844,7 +1882,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       LExpr_Tuple ls'
   | LExpr_Array (a, e) -> (
       let a', ty = tc_lexpr2 env u loc a in
-      match derefType (Env.globals env) ty with
+      match derefType (Env.globals env) loc ty with
       | Type_Array (ixty, elty) ->
           let e', ety = tc_expr env u loc e in
           check_type env u loc (ixtype_basetype ixty) ety;
@@ -2108,7 +2146,7 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
   let argtys = List.map (fun (_, ty) -> ty) args in
   let funs = GlobalEnv.getFuns env qid in
   let num_funs = List.length funs in
-  match List.filter (isCompatibleFunction env isArr argtys) funs with
+  match List.filter (isCompatibleFunction env loc isArr argtys) funs with
   | [] ->
       (* not defined yet *)
       (* ASL allows multiple functions to share the same name.
@@ -2134,7 +2172,7 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
   let argtys = List.map snd args in
   let funs = GlobalEnv.getSetterFun env qid in
   let num_funs = List.length funs in
-  match List.filter (isCompatibleFunction env isArr argtys) funs with
+  match List.filter (isCompatibleFunction env loc isArr argtys) funs with
   | [] ->
       (* not defined yet *)
       (* ASL allows multiple functions to share the same name.
@@ -2168,21 +2206,25 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_Forward (qid, loc) ->
       GlobalEnv.addType env loc qid Type_Forward;
       [ d ]
-  | Decl_Record (qid, fs, loc) ->
+  | Decl_Record (qid, ps, fs, loc) ->
       let env' = Env.mkEnv env in
+      List.iter (fun p -> Env.addLocalVar env' loc p type_integer) ps;
       let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
-      GlobalEnv.addType env loc qid (Type_Record fs');
-      [ Decl_Record (qid, fs', loc) ]
-  | Decl_Typedef (qid, ty, loc) ->
-      let ty' = tc_type (Env.mkEnv env) loc ty in
-      GlobalEnv.addType env loc qid (Type_Abbreviation ty');
-      [ Decl_Typedef (qid, ty', loc) ]
+      GlobalEnv.addType env loc qid (Type_Record (ps, fs'));
+      [ Decl_Record (qid, ps, fs', loc) ]
+  | Decl_Typedef (qid, ps, ty, loc) ->
+      (* todo: check for cyclic dependency *)
+      let env' = Env.mkEnv env in
+      List.iter (fun p -> Env.addLocalVar env' loc p type_integer) ps;
+      let ty' = tc_type env' loc ty in
+      GlobalEnv.addType env loc qid (Type_Abbreviation (ps, ty'));
+      [ Decl_Typedef (qid, ps, ty', loc) ]
   | Decl_Enum (qid, es, loc) ->
       GlobalEnv.addType env loc qid (Type_Enumeration es);
+      let ty = Type_Constructor (qid, []) in
       List.iter
-        (fun e -> GlobalEnv.addGlobalVar env loc e (Type_Constructor qid) true)
+        (fun e -> GlobalEnv.addGlobalVar env loc e ty true)
         es;
-      let ty = Type_Constructor qid in
       let cmp_args = [ (Ident "x", ty); (Ident "y", ty) ] in
       let eq =
         addFunction env loc (Ident "eq_enum") false [] cmp_args type_bool
