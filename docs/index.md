@@ -1,4 +1,5 @@
 ---
+layout: home
 title: "ASLi project documentation"
 ---
 

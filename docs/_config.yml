@@ -1,0 +1,8 @@
+title: "ASL interpreter"
+description: "ASLi: the ASL interpreter"
+theme: minima
+show_excerpts: true
+markdown: kramdown
+
+header_pages:
+  - about.md
