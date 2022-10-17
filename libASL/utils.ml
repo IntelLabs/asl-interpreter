@@ -49,6 +49,26 @@ let zipWithIndex (f : 'a -> int -> 'b) (xs : 'a list) : 'b list =
   in
   aux 0 xs
 
+(** init [x1; ... xn] = [x1; ... xn-1] *)
+let init (xs : 'a list) : 'a list =
+  (* tail recursive helper function *)
+  let rec aux r xs =
+    ( match xs with
+    | [x] -> List.rev r
+    | (x :: xs') -> aux (x :: r) xs'
+    | [] -> failwith "init []"
+    )
+  in
+  aux [] xs
+
+(** last [x1; ... xn] = xn *)
+let rec last (xs : 'a list) : 'a =
+  ( match xs with
+  | [x] -> x
+  | (_ :: xs') -> last xs'
+  | [] -> failwith "last []"
+  )
+
 (****************************************************************
  * Option related
  ****************************************************************)
