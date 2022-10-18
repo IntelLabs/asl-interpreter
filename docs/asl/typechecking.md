@@ -483,6 +483,98 @@ constraints (to be checked with the SMT solver).
 If the constraints are all satisfied, we apply the substitution to the
 type.
 
+### Types and concepts used in unification
+
+The main types/objects used in unification are
+
+- "generic type variables".
+
+  These are type variables that are distinct from type variables that occur in source code
+  and have names like `$3` or `$9`.
+  These are introduced when instantiating a function with a type like `{M,N}(M :: integer, bits(N)) => bits(M*N)`
+  as part of the "book-keeping" required when figuring out the values of `M` and `N`.
+
+- "generic types", "generic expressions", etc.
+
+  These are types, expressions, etc. that may contain generic type variables.
+  For example, the type `bits($3 + $9)` is a generic type.
+
+- "substitutions".
+
+  These map type variables to expressions.
+  For example, a substitution might map `$3` to `24` and `$9` to `8`: `{ $3 -> 24, $9 -> 8 }`.
+
+  Substitutions are produced at the end of unification and
+  constraint solving when we figure out the bitwidths occuring in the code being typechecked.
+
+  Substitutions can be applied to generic types such as `bits($3 + $9)` to get the
+  non-generic type `bits(24 + 8)`.
+
+- "unifiers".
+
+  These collect together type information gathered during the typechecking process.
+
+  These are fairly complex objects that collect together
+
+  - an equivalence relation saying that two type variables are known to be equal
+  - the substitution produced so far during unification
+  - the set of constraints to be checked
+
+  And whose methods include
+
+  - creating generic type variables
+  - adding equalities to the equivalence relation and substitution
+  - checking constraints
+
+### The unification "API"
+
+The main functions that perform unification in the typechecker are
+
+- `unify_subst_e s x` apply a substition `s` to a generic expression `x`
+  resulting in a non-generic expression.
+
+  The functions `unify_subst_le`, `unify_subst_ty` and `unify_subst_di` are similar
+  but for L-expressions, types and initializer declarations.
+
+- `check_type env u loc ty1 ty2` checks that `ty2` is a subtype of `ty1`.
+
+  For example
+
+  - checking `bits(M)` with `bits(N+1)` adds the constraint that `M == N+1`
+  - checking `bits(M)` with `boolean` reports a type mismatch
+
+- `with_unify env loc f` creates a unifier `u`, applies the typechecking function `f` to `u` and
+  checks the constraints accumulated during typechecking.
+  It returns a substitition `s` and the result `r` of `f u`.
+
+  (`f u` is typically a generic type, generic expression, etc. and `unify_subst s r` represents
+  the final result of typechecking that object.)
+
+- `tc_expr env u loc x` typechecks expression `x` using local environment `env` and unifier `u`
+  and returns the generic type of `x`.
+
+  For example, it might typecheck `[p, q]` and produce the type `bits($3 + $9)`.
+
+
+- `check_expr env loc ty x` typechecks an expression with a fresh unifier (using `with_unify`),
+  and returns a non-generic type such as `bits(24 + 8)`.
+
+
+- `instantiate_fun env u loc fty es tys`
+  takes a function type `fty` like `{M,N}(bits(M), bits(N)) => bits(M+N)`
+  and a list of argument types and instantiates the function type
+  with the argument types.
+
+  Returns a generic function type like `($3 :: integer, bits($9)) => bits($3 + $9)`
+
+  In addition, the actual arguments `es` are used to handle any formal
+  arguments of the function are also type parameters.
+  e.g., in a function with type `{M, N}(x :: bits(N), M :: integer) => bits(M)`,
+  the second argument of the function is used as the value for `M` in the
+  type.
+
+
+
 ## Do we need to use unification?
 
 Unification was used because an earlier version of ASL allowed bitwidth constraints to
