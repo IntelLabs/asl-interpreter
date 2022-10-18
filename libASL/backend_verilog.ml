@@ -252,12 +252,19 @@ and const_expr (x : AST.expr) : V.value =
   | Expr_LitMask b -> V.from_maskLit b
   | Expr_LitString s -> V.from_stringLit s
   | _ ->
-      failwith ("const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'")
+    raise (Unimplemented
+            (AST.Unknown,
+             "const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
+             fun fmt -> FMTAST.expr fmt x ))
 
 and const_int_expr (x : AST.expr) : int =
   match const_expr x with
   | VInt i -> Z.to_int i
-  | _ -> failwith "const_int_expr: integer expected"
+  | _ ->
+    raise (Unimplemented
+            (AST.Unknown,
+             "const_int_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
+             fun fmt -> FMTAST.expr fmt x ))
 
 and apply (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) : unit
     =
