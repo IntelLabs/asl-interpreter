@@ -194,6 +194,7 @@ type funtype =
     isArray : bool;
     params  : (AST.ident * AST.ty option) list;
     atys    : (AST.ident * AST.ty) list;
+    ovty    : AST.ty option; (* type of rhs in setter functions *)
     rty     : AST.ty;
   }
 
@@ -207,8 +208,12 @@ let pp_funtype (fty : funtype) : unit =
   else FMTUtils.parens fmt (fun _ -> FMT.formals fmt fty.atys);
   FMTUtils.nbsp fmt;
   FMT.eq_gt fmt;
+  Format.pp_print_option (fun _ vty -> Format.fprintf fmt " = %a" FMT.ty vty) fmt fty.ovty;
   FMTUtils.nbsp fmt;
   FMT.ty fmt fty.rty
+
+let funtype_parameters (fty : funtype) : expr list =
+  List.map (fun (tv, _) -> Expr_Var tv) fty.params
 
 module Operator1 = struct
   type t = AST.unop
@@ -1086,8 +1091,9 @@ let mkfresh_funtype (u : unifier) (fty : funtype) : funtype =
         (a', ty'))
       fty.atys
   in
+  let ovty' = Option.map (subst_type s) fty.ovty in
   let rty' = subst_type s fty.rty in
-  { funname = fty.funname; isArray = fty.isArray; params = ps'; atys = atys'; rty = rty' }
+  { funname = fty.funname; isArray = fty.isArray; params = ps'; atys = atys'; ovty = ovty'; rty = rty' }
 
 (** Check that ty2 is a subtype of ty1: ty1 >= ty2 *)
 let check_type (env : Env.t) (u : unifier) (loc : AST.l) (ty1 : AST.ty)
@@ -1127,16 +1133,8 @@ let reportChoices (loc : AST.l) (what : string) (nm : string)
           FMT.ty fmt ty;
           FMTUtils.cut fmt)
         tys;
-      List.iter
-        (fun fty ->
-          FMT.funname fmt fty.funname;
-          FMTUtils.parens fmt (fun _ ->
-            FMT.formals fmt fty.atys
-          );
-          FMT.delimiter fmt " => ";
-          FMT.ty fmt fty.rty;
-          FMTUtils.cut fmt)
-        funs);
+      List.iter (fun fty -> pp_funtype fty; FMTUtils.cut fmt) funs
+    );
   FMTUtils.flush fmt
 
 (** Check whether a list of function argument types is compatible with the
@@ -1169,8 +1167,7 @@ let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
 
 (** Instantiate type of function using unifier 'u' *)
 let instantiate_fun (env : GlobalEnv.t) (u : unifier) (loc : AST.l)
-    (fty : funtype) (es : AST.expr list) (tys : AST.ty list) :
-    AST.ident * AST.expr list * AST.ty =
+    (fty : funtype) (es : AST.expr list) (tys : AST.ty list) : funtype =
   let fty' = mkfresh_funtype u fty in
 
   (* Add bindings for every explicit type argument *)
@@ -1185,13 +1182,11 @@ let instantiate_fun (env : GlobalEnv.t) (u : unifier) (loc : AST.l)
   assert (List.length fty'.atys = List.length tys);
   List.iter2 (unify_type env u) (List.map snd fty'.atys) tys;
 
-  let tes = List.map (fun (tv, _) -> Expr_Var tv) fty'.params in
-  (fty'.funname, tes, fty'.rty)
+  fty'
 
 (** Disambiguate and typecheck application of a function to a list of arguments *)
 let tc_apply (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (what : string)
-    (f : AST.ident) (es : AST.expr list) (tys : AST.ty list) :
-    AST.ident * AST.expr list * AST.ty =
+    (f : AST.ident) (es : AST.expr list) (tys : AST.ty list) : funtype =
   let funs = GlobalEnv.getFuns env f in
   let nm = pprint_ident f in
   match funs with
@@ -1209,7 +1204,7 @@ let tc_apply (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (what : string)
 
 (** Disambiguate and typecheck application of a unary operator to argument *)
 let tc_unop (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (op : unop)
-    (x : AST.expr) (ty : AST.ty) : AST.ident * AST.expr list * AST.ty =
+    (x : AST.expr) (ty : AST.ty) : funtype =
   let what = "unary operator" in
   let nm = pp_unop op in
   let tys = [ ty ] in
@@ -1218,12 +1213,13 @@ let tc_unop (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (op : unop)
   | None ->
       reportChoices loc what nm tys ops;
       raise (UnknownObject (loc, what, nm))
-  | Some fty -> instantiate_fun env u loc fty [ x ] tys
+  | Some fty ->
+      instantiate_fun env u loc fty [ x ] tys
 
 (** Disambiguate and typecheck application of a binary operator to arguments *)
 let tc_binop (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (op : binop)
     (x1 : AST.expr) (x2 : AST.expr) (ty1 : AST.ty) (ty2 : AST.ty) :
-    AST.ident * AST.expr list * AST.ty =
+    funtype =
   let what = "binary operator" in
   let nm = pp_binop op in
   let tys = [ ty1; ty2 ] in
@@ -1232,7 +1228,8 @@ let tc_binop (env : GlobalEnv.t) (u : unifier) (loc : AST.l) (op : binop)
   | None ->
       reportChoices loc "binary operator" nm tys ops;
       raise (UnknownObject (loc, what, nm))
-  | Some fty -> instantiate_fun env u loc fty [ x1; x2 ] tys
+  | Some fty ->
+      instantiate_fun env u loc fty [ x1; x2 ] tys
 
 (****************************************************************)
 (** {2 Typecheck expressions}                                   *)
@@ -1383,8 +1380,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
   | Expr_Binop (x, op, y) ->
       let x', xty = tc_expr env u loc x in
       let y', yty = tc_expr env u loc y in
-      let f, tes, ty = tc_binop (Env.globals env) u loc op x' y' xty yty in
-      (Expr_TApply (f, tes, [ x'; y' ]), ty)
+      let fty = tc_binop (Env.globals env) u loc op x' y' xty yty in
+      (Expr_TApply (fty.funname, funtype_parameters fty, [ x'; y' ]), fty.rty)
   | Expr_Field (e, f) -> (
       let e', ty = tc_expr env u loc e in
       match typeFields (Env.globals env) loc ty with
@@ -1432,10 +1429,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
                     | _ -> raise (InternalError "Expr_Slices"))
                   ss'
               in
-              let f', tes', rty =
-                instantiate_fun (Env.globals env) u loc fty es tys
-              in
-              (Expr_TApply (f', tes', es), rty)
+              let fty' = instantiate_fun (Env.globals env) u loc fty es tys in
+              (Expr_TApply (fty'.funname, funtype_parameters fty', es), fty'.rty)
           | _ -> tc_slice_expr env u loc e ss')
       | _ -> tc_slice_expr env u loc e ss')
   | Expr_RecordInit (tc, fas) ->
@@ -1478,10 +1473,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
               (pprint_ident v) false [] getters
           with
           | Some fty ->
-              let f', tes', rty =
-                instantiate_fun (Env.globals env) u loc fty [] []
-              in
-              (Expr_TApply (f', tes', []), rty)
+              let fty' = instantiate_fun (Env.globals env) u loc fty [] [] in
+              (Expr_TApply (fty'.funname, funtype_parameters fty', []), fty'.rty)
           | None ->
               raise
                 (UnknownObject
@@ -1491,10 +1484,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       (Expr_Parens e', ty)
   | Expr_TApply (f, tes, es) ->
       let es', tys = List.split (tc_exprs env u loc es) in
-      let f', tes'', ty =
-        tc_apply (Env.globals env) u loc "function" f es' tys
-      in
-      (Expr_TApply (f', tes'', es'), ty)
+      let fty = tc_apply (Env.globals env) u loc "function" f es' tys in
+      (Expr_TApply (fty.funname, funtype_parameters fty, es'), fty.rty)
   | Expr_Tuple es ->
       let es', tys = List.split (List.map (tc_expr env u loc) es) in
       (Expr_Tuple es', Type_Tuple tys)
@@ -1505,8 +1496,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
   | Expr_Unop (op, e) ->
       let e', ety = tc_expr env u loc e in
       (* Format.fprintf fmt "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)
-      let f, tes, ty = tc_unop (Env.globals env) u loc op e ety in
-      (Expr_TApply (f, tes, [ e' ]), ty)
+      let fty = tc_unop (Env.globals env) u loc op e ety in
+      (Expr_TApply (fty.funname, funtype_parameters fty, [ e' ]), fty.rty)
   | Expr_Unknown t ->
       let ty' = tc_type env loc t in
       (Expr_Unknown ty', ty')
@@ -1660,7 +1651,7 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
             GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
           in
           let setters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix v "write")
+            GlobalEnv.getSetterFun (Env.globals env) (addSuffix v "write")
           in
           let ogetter =
             chooseFunction (Env.globals env) loc "var getter function"
@@ -1671,17 +1662,15 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
               let gty =
                 match
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (pprint_ident v) false [ fty.rty ] setters
+                    (pprint_ident v) false [] setters
                 with
                 | Some gty -> gty
                 | None ->
                     raise
                       (UnknownObject (loc, "var setter function", pprint_ident v))
               in
-              let f', tes', rty =
-                instantiate_fun (Env.globals env) u loc fty [] []
-              in
-              (LExpr_ReadWrite (f', gty.funname, tes', []), rty)
+              let fty' = instantiate_fun (Env.globals env) u loc fty [] [] in
+              (LExpr_ReadWrite (fty'.funname, gty.funname, funtype_parameters fty', []), fty'.rty)
           | None -> raise (UnknownObject (loc, "variable", pprint_ident v))))
   | LExpr_Field (l, f) -> (
       let l', ty = tc_lexpr2 env u loc l in
@@ -1735,10 +1724,8 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
                     | _ -> raise (InternalError "Expr_Slices"))
                   ss'
               in
-              let f', tes', rty =
-                instantiate_fun (Env.globals env) u loc fty es tys
-              in
-              (LExpr_ReadWrite (f', gty.funname, tes', es), rty)
+              let fty' = instantiate_fun (Env.globals env) u loc fty es tys in
+              (LExpr_ReadWrite (fty'.funname, gty.funname, funtype_parameters fty', es), fty'.rty)
           | None, Some _ ->
               raise (UnknownObject (loc, "getter function", pprint_ident a))
           | Some _, None ->
@@ -1784,20 +1771,18 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
           LExpr_Var v
       | None -> (
           let setters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix v "write")
+            GlobalEnv.getSetterFun (Env.globals env) (addSuffix v "write")
           in
           let osetter =
             chooseFunction (Env.globals env) loc "var setter function"
-              (pprint_ident v) false [ ty ] setters
+              (pprint_ident v) false [] setters
           in
           match osetter with
           | Some gty ->
-              let dummy_arg = Expr_LitInt "42" in
-              (* the value and type of this are ignored *)
-              let g', tes', rty =
-                instantiate_fun (Env.globals env) u loc gty [ dummy_arg ] [ ty ]
-              in
-              LExpr_Write (gty.funname, tes', [])
+              let gty' = instantiate_fun (Env.globals env) u loc gty [] [] in
+              let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Var")) in
+              check_type env u loc vty ty;
+              LExpr_Write (gty'.funname, funtype_parameters gty', [])
           | None ->
               raise (UnknownObject (loc, "variable", pprint_ident v))
           )
@@ -1840,7 +1825,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       let e', ty' =
         match e with
         | LExpr_Var a -> (
-            let tys = ty :: List.map (function _, ty -> ty) ss' in
+            let tys = List.map (function _, ty -> ty) ss' in
             let setters =
               GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set")
             in
@@ -1857,10 +1842,11 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
                       | _ -> raise (InternalError "Expr_Slices1"))
                     ss'
                 in
-                let g', tes', _ =
-                  instantiate_fun (Env.globals env) u loc gty es (ty :: tys)
-                in
-                (LExpr_Write (gty.funname, tes', es), ty)
+                let gty' = instantiate_fun (Env.globals env) u loc gty es tys in
+                let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Slices")) in
+                Format.fprintf fmt "unifying %a with %a\n" FMT.ty vty FMT.ty ty;
+                check_type env u loc vty ty;
+                (LExpr_Write (gty'.funname, funtype_parameters gty', es), ty)
             | _ -> (
                 let getters =
                   GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
@@ -1868,15 +1854,13 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
                 let setters =
                   GlobalEnv.getFuns (Env.globals env) (addSuffix a "write")
                 in
-                let vty = type_bitsK "0" in
-                (* note that width is ignored *)
                 let ogetter =
                   chooseFunction (Env.globals env) loc "var getter function"
                     (pprint_ident a) false [] getters
                 in
                 let osetter =
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (pprint_ident a) false [ vty ] setters
+                    (pprint_ident a) false [] setters
                 in
                 match (ogetter, osetter) with
                 | Some fty, Some fty' ->
@@ -2035,18 +2019,16 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let r'' = unify_subst_e s r' in
       Stmt_Assign (l'', r'', loc)
   | Stmt_TCall (f, tes, es, loc) ->
-      let s, (f', tes'', es') =
+      let s, (fty, es') =
         with_unify env loc (fun u ->
             let es', tys = List.split (tc_exprs env u loc es) in
-            let f', tes'', ty =
-              tc_apply (Env.globals env) u loc "procedure" f es' tys
-            in
-            check_type env u loc ty type_unit;
-            (f', tes'', es'))
+            let fty = tc_apply (Env.globals env) u loc "procedure" f es' tys in
+            check_type env u loc fty.rty type_unit;
+            (fty, es'))
       in
+      let tes = List.map (unify_subst_e s) (funtype_parameters fty) in
       let es'' = List.map (unify_subst_e s) es' in
-      let tes''' = List.map (unify_subst_e s) tes'' in
-      Stmt_TCall (f', tes''', es'', loc)
+      Stmt_TCall (fty.funname, tes, es'', loc)
   | Stmt_FunReturn (e, loc) ->
       let rty =
         match Env.getReturnType env with
@@ -2187,7 +2169,7 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        *)
       let tag = num_funs in
       let qid' = addTag qid tag in
-      let fty : funtype = { funname=qid'; isArray=isArr; params=ps; atys=args; rty=rty } in
+      let fty : funtype = { funname=qid'; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
       GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
   | [ fty ] ->
@@ -2198,12 +2180,12 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
       failwith "addFunction"
 
 let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
-    (ps : (AST.ident * AST.ty option) list) (args : (AST.ident * AST.ty) list)
-    (vty : AST.ty) : funtype =
+    (isArr : bool) (ps : (AST.ident * AST.ty option) list)
+    (args : (AST.ident * AST.ty) list) (vty : AST.ty) : funtype =
   let argtys = List.map snd args in
   let funs = GlobalEnv.getSetterFun env qid in
   let num_funs = List.length funs in
-  match List.filter (isCompatibleFunction env true argtys) funs with
+  match List.filter (isCompatibleFunction env isArr argtys) funs with
   | [] ->
       (* not defined yet *)
       (* ASL allows multiple functions to share the same name.
@@ -2213,7 +2195,7 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        *)
       let tag = num_funs in
       let qid' = addTag qid tag in
-      let fty : funtype = { funname=qid'; isArray=true; params=ps; atys=args; rty=type_unit } in
+      let fty : funtype = { funname=qid'; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
       GlobalEnv.addSetterFuns env qid (fty :: funs);
       fty
   | [ fty ] ->
@@ -2304,90 +2286,65 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_VarGetterType (qid, ps, rty, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible
-         type *)
-      let qid' =
-        (addFunction env loc (addSuffix qid "read") false ps' atys' rty').funname
-      in
-      [ Decl_VarGetterType (qid', ps', rty', loc) ]
+      (* todo: check that if a setter function exists, it has a compatible type *)
+      let fty = addFunction env loc (addSuffix qid "read") false ps' atys' rty' in
+      [ Decl_VarGetterType (fty.funname, ps', rty', loc) ]
   | Decl_VarGetterDefn (qid, ps, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible
-         type *)
-      let qid' =
-        (addFunction env loc (addSuffix qid "read") false ps' atys' rty').funname
-      in
+      (* todo: check that if a setter function exists, it has a compatible type *)
+      let fty = addFunction env loc (addSuffix qid "read") false ps' atys' rty' in
       let b' = tc_body locals loc b in
-      [ Decl_VarGetterDefn (qid', ps', rty', b', loc) ]
+      [ Decl_VarGetterDefn (fty.funname, ps', rty', b', loc) ]
   | Decl_ArrayGetterType (qid, ps, atys, rty, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let qid' =
-        (addFunction env loc (addSuffix qid "read") true ps' atys' rty').funname
-      in
-      (* todo: check that if a setter function exists, it has a compatible
-         type *)
-      [ Decl_ArrayGetterType (qid', ps', atys', rty', loc) ]
+      let fty = addFunction env loc (addSuffix qid "read") true ps' atys' rty' in
+      (* todo: check that if a setter function exists, it has a compatible type *)
+      [ Decl_ArrayGetterType (fty.funname, ps', atys', rty', loc) ]
   | Decl_ArrayGetterDefn (qid, ps, atys, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      (* todo: check that if a setter function exists, it has a compatible
-         type *)
-      let qid' =
-        (addFunction env loc (addSuffix qid "read") true ps' atys' rty').funname
-      in
+      (* todo: check that if a setter function exists, it has a compatible type *)
+      let fty = addFunction env loc (addSuffix qid "read") true ps' atys' rty' in
       let b' = tc_body locals loc b in
-      [ Decl_ArrayGetterDefn (qid', ps', atys', rty', b', loc) ]
+      [ Decl_ArrayGetterDefn (fty.funname, ps', atys', rty', b', loc) ]
   | Decl_VarSetterType (qid, ps, v, ty, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps [ (v, ty) ] type_unit in
-      let v', ty' = List.hd atys' in
+      let (ps', atys', _) = tc_arguments locals loc ps [ (v, ty) ] type_unit in
+      let v', ty' = Utils.last atys' in
       (* todo: check that if a getter function exists, it has a compatible type *)
-      (* todo: this obscures the difference between "PC[]" and "PC" *)
-      let qid' =
-        (addFunction env loc (addSuffix qid "write") false ps' atys' rty').funname
-      in
-      [ Decl_VarSetterType (qid', ps', v, ty', loc) ]
+      let fty = addSetterFunction env loc (addSuffix qid "write") false ps' [] ty' in
+      [ Decl_VarSetterType (fty.funname, ps', v, ty', loc) ]
   | Decl_VarSetterDefn (qid, ps, v, ty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [ (v, ty) ] type_unit in
-      let v', ty' = List.hd atys' in
+      let (v', ty') = Utils.last atys' in
       (* todo: check that if a getter function exists, it has a compatible type *)
-      (* todo: this obscures the difference between "PC[]" and "PC" *)
-      let qid' =
-        (addFunction env loc (addSuffix qid "write") false ps' atys' rty').funname
-      in
+      let fty = addSetterFunction env loc (addSuffix qid "write") false ps' [] ty' in
       let b' = tc_body locals loc b in
-      [ Decl_VarSetterDefn (qid', ps', v, ty', b', loc) ]
+      [ Decl_VarSetterDefn (fty.funname, ps', v, ty', b', loc) ]
   | Decl_ArraySetterType (qid, ps, atys, v, ty, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', _ =
-        tc_arguments locals loc ps ((v, ty) :: atys) type_unit
-      in
-      let v', ty' = List.hd atys' in
-      (* todo: check that if a getter function exists, it has a compatible
-         type *)
-      let qid' =
-        (addSetterFunction env loc (addSuffix qid "set") ps' atys' ty').funname
-      in
-      [ Decl_ArraySetterType (qid', ps', List.tl atys', v, ty', loc) ]
+      let ps', atys', _ = tc_arguments locals loc ps (atys @ [(v, ty)]) type_unit in
+      let atys'' = Utils.init atys' in
+      let v', ty' = Utils.last atys' in
+      (* todo: check that if a getter function exists, it has a compatible type *)
+      let fty = addSetterFunction env loc (addSuffix qid "set") true ps' atys'' ty' in
+      [ Decl_ArraySetterType (fty.funname, ps', atys'', v, ty', loc) ]
   | Decl_ArraySetterDefn (qid, ps, atys, v, ty, b, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', _ =
-        tc_arguments locals loc ps ((v, ty) :: atys) type_unit
-      in
-      let v', ty' = List.hd atys' in
+      let ps', atys', _ = tc_arguments locals loc ps (atys @ [(v, ty)]) type_unit in
+      let atys'' = Utils.init atys' in
+      let v', ty' = Utils.last atys' in
       (* todo: should I use name mangling or define an enumeration to select
        * which namespace to do lookup in?
        *)
       (* todo: check that if a getter function exists, it has a compatible
          type *)
-      let qid' =
-        (addSetterFunction env loc (addSuffix qid "set") ps' atys' ty').funname
-      in
+      let fty = addSetterFunction env loc (addSuffix qid "set") true ps' atys'' ty' in
       let b' = tc_body locals loc b in
-      [ Decl_ArraySetterDefn (qid', ps', List.tl atys', v, ty', b', loc) ]
+      [ Decl_ArraySetterDefn (fty.funname, ps', atys'', v, ty', b', loc) ]
   | Decl_Operator1 (op, funs, loc) ->
       let funs' =
         List.concat

@@ -169,6 +169,16 @@ let tests : unit Alcotest.test_case list =
       "func IntFunction(x :: integer) end
        func T() IntFunction(TRUE); end"
       (Some "TypeError(file \"\" line 2 char 16 - 34,function arguments)") None;
+    test_static_error globals "var setter arg mismatch"
+      "setter A = value :: integer;
+       func T() A = TRUE; end"
+      (Some "DoesNotMatch(file \"\" line 2 char 16 - 25,type,integer,boolean)")
+      None;
+    test_static_error globals "array setter arg mismatch"
+      "setter A[] = value :: integer;
+       func T() A[] = TRUE; end"
+      (Some "DoesNotMatch(file \"\" line 2 char 16 - 27,type,integer,boolean)")
+      None;
     test_static globals false "var decls"
       "func F(x :: bits(8*N))
            var a :: bits(8*N) = UNKNOWN :: bits(8*N);
@@ -216,6 +226,26 @@ let tests : unit Alcotest.test_case list =
     ("prelude (mul_bits_int)", `Quick, test_bits globals prelude "" "'00111' * 3" "10101"); (* == 21 *)
     ("prelude (DecStr)",       `Quick, test_string globals prelude "" "DecStr('10101')" "21");
     ("prelude (HexStr)",       `Quick, test_string globals prelude "" "HexStr('10101')" "0x15");
+    ("setters (var)",          `Quick, test_bool globals prelude
+       "var _A :: boolean;
+       getter A => boolean return _A; end
+       setter A = v :: boolean _A = v; end
+       func Test(v :: boolean) => boolean
+           A = v;
+           return A;
+       end
+       "
+       "Test(TRUE)" true);
+    ("setters (array)",        `Quick, test_bool globals prelude
+       "var _A :: array [4] of boolean;
+       getter A[i :: integer] => boolean return _A[i]; end
+       setter A[i :: integer] = v :: boolean _A[i] = v; end
+       func Test(i :: integer, v :: boolean) => boolean
+           A[i] = v;
+           return A[i];
+       end
+       "
+       "Test(1,TRUE)" true);
     ("statements (while)",     `Quick, test_int globals prelude
       "func TestWhile(x :: integer) => integer var i = 0; while i < x do i = i + 1; end return i; end"
       "TestWhile(3)" 3);

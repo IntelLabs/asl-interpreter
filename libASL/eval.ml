@@ -571,7 +571,7 @@ and eval_lexpr_modify (loc : l) (env : Env.t) (x : AST.lexpr)
       let tvs = eval_exprs loc env tes in
       let vs = eval_exprs loc env es in
       let old = eval_funcall loc env getter tvs vs in
-      eval_proccall loc env setter tvs (List.append vs [ modify old ])
+      eval_proccall loc env setter tvs (vs @ [ modify old ])
   | _ -> failwith "eval_lexpr_modify"
 
 (** Evaluate list of statements *)
@@ -805,7 +805,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
       | Decl_ArraySetterDefn (f, ps, atys, v, ty, body, loc) ->
           let tvs = List.map fst ps in
           let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, List.append args [ v ], loc, body)
+          GlobalEnv.addFun loc genv f (tvs, args @ [ v ], loc, body)
       | Decl_NewMapDefn (f, ps, atys, rty, body, loc) ->
           let tvs = List.map fst ps in
           let args = List.map fst atys in
