@@ -505,7 +505,9 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
       | Ident "TRUE" -> kw_true fmt
       | Ident "FALSE" -> kw_false fmt
       | _ -> varname fmt v)
-  | Expr_Array _
+  | Expr_Array (a, i) ->
+      expr loc fmt a;
+      brackets fmt (fun _ -> expr loc fmt i)
   | Expr_AsConstraint _
   | Expr_AsType _
   | Expr_Binop _
