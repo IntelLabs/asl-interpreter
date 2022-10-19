@@ -217,7 +217,7 @@ variable_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
 
 ixtype :: 'Index_' ::=
     | ident                         :: :: Enum
-    | expr1 '..' expr2              :: :: Range
+    | expr                          :: :: Int
 
 function_declaration :: 'Decl_' ::= {{ quotient-with declaration }}
     {{ aux _ l }}

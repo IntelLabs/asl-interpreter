@@ -359,12 +359,7 @@ and slices (fmt : PP.formatter) (ss : AST.slice list) : unit =
 and ixtype (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with
   | Index_Enum tc -> tycon fmt tc
-  | Index_Range (lo, hi) ->
-      expr fmt lo;
-      nbsp fmt;
-      dot_dot fmt;
-      nbsp fmt;
-      expr fmt hi
+  | Index_Int sz -> expr fmt sz
 
 and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with

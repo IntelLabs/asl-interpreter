@@ -260,12 +260,10 @@ and visit_type (vis : aslVisitor) (x : ty) : ty =
     | Type_Array (Index_Enum tc, ety) ->
         let ety' = visit_type vis ety in
         if ety == ety' then x else Type_Array (Index_Enum tc, ety')
-    | Type_Array (Index_Range (lo, hi), ety) ->
-        let lo' = visit_expr vis lo in
-        let hi' = visit_expr vis hi in
+    | Type_Array (Index_Int sz, ety) ->
+        let sz' = visit_expr vis sz in
         let ety' = visit_type vis ety in
-        if lo == lo' && hi == hi' && ety == ety' then x
-        else Type_Array (Index_Range (lo', hi'), ety')
+        if sz == sz' && ety == ety' then x else Type_Array (Index_Int sz', ety')
     | Type_Tuple tys ->
         let tys' = visit_types vis tys in
         if tys == tys' then x else Type_Tuple tys'

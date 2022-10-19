@@ -314,7 +314,7 @@ and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
           | None -> VUninitialized))
   | Type_Array (Index_Enum tc, ety) ->
       Value.empty_array (mk_uninitialized loc env ety)
-  | Type_Array (Index_Range (lo, hi), ety) ->
+  | Type_Array (Index_Int sz, ety) ->
       Value.empty_array (mk_uninitialized loc env ety)
   | Type_Tuple tys -> VTuple (List.map (mk_uninitialized loc env) tys)
   | Type_Integer _ -> eval_unknown_integer ()
@@ -358,7 +358,7 @@ and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
       eval_unknown_bits (to_integer loc (eval_expr loc env n))
   | Type_Array (Index_Enum tc, ety) ->
       Value.empty_array (eval_unknown loc env ety)
-  | Type_Array (Index_Range (lo, hi), ety) ->
+  | Type_Array (Index_Int sz, ety) ->
       Value.empty_array (eval_unknown loc env ety)
   | Type_Tuple tys -> VTuple (List.map (eval_unknown loc env) tys)
 

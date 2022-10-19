@@ -228,12 +228,7 @@ and slice (fmt : PP.formatter) (x : AST.slice) : unit =
 and ixtype (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with
   | Index_Enum tc -> tycon fmt tc
-  | Index_Range (lo, hi) ->
-      expr fmt lo;
-      nbsp fmt;
-      dot_dot fmt;
-      nbsp fmt;
-      expr fmt hi
+  | Index_Int sz -> expr fmt sz
 
 and unknown (fmt : PP.formatter) (t : AST.ty) : unit =
   match t with
@@ -613,14 +608,11 @@ and lexprs (fmt: PP.formatter) (ps: AST.lexpr list): unit = commasep fmt (lexpr 
 
 let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
-  | Type_Array (Index_Range (lo, hi), ety) ->
+  | Type_Array (Index_Int sz, ety) ->
       ty fmt ety;
       nbsp fmt;
       varname fmt v;
-      brackets fmt (fun _ ->
-          expr fmt hi;
-          colon fmt;
-          expr fmt lo)
+      brackets fmt (fun _ -> expr fmt sz)
   | _ ->
       ty fmt t;
       nbsp fmt;

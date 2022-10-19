@@ -129,7 +129,7 @@ let slices_width (xs : AST.slice list) : AST.expr =
 let ixtype_basetype (ty : AST.ixtype) : AST.ty =
   match ty with
   | Index_Enum tc -> Type_Constructor tc
-  | Index_Range _ -> type_integer
+  | Index_Int sz -> type_integer
 
 (****************************************************************)
 (** {3 Prettyprinting support}                                  *)
@@ -393,7 +393,7 @@ let rec derefType (env : GlobalEnv.t) (ty : AST.ty) : AST.ty =
 let cmp_ixtype (ty1 : AST.ixtype) (ty2 : AST.ixtype) : bool =
   match (ty1, ty2) with
   | Index_Enum tc1, Index_Enum tc2 -> tc1 = tc2
-  | Index_Range _, Index_Range _ -> true
+  | Index_Int _, Index_Int _ -> true
   | _ -> false
 
 (* todo: does not handle register<->bits coercions *)
@@ -1018,9 +1018,8 @@ let with_unify (env : Env.t) (loc : AST.l) (f : unifier -> 'a) :
 let unify_ixtype (u : unifier) (ty1 : AST.ixtype) (ty2 : AST.ixtype) : unit =
   match (ty1, ty2) with
   | Index_Enum tc1, Index_Enum tc2 -> ()
-  | Index_Range (lo1, hi1), Index_Range (lo2, hi2) ->
-      u#addEquality lo1 lo2;
-      u#addEquality hi1 hi2
+  | Index_Int sz1, Index_Int sz2 ->
+      u#addEquality sz1 sz2
   | _ -> ()
 
 (* todo: does not handle register<->bits coercions *)
@@ -1589,11 +1588,10 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
         raise (IsNotA (loc, "enumeration type", pprint_ident tc));
       let ety' = tc_type env loc ety in
       Type_Array (Index_Enum tc, ety')
-  | Type_Array (Index_Range (lo, hi), ety) ->
-      let lo' = check_expr env loc type_integer lo in
-      let hi' = check_expr env loc type_integer hi in
+  | Type_Array (Index_Int sz, ety) ->
+      let sz' = check_expr env loc type_integer sz in
       let ety' = tc_type env loc ety in
-      Type_Array (Index_Range (lo', hi'), ety')
+      Type_Array (Index_Int sz', ety')
   | Type_Tuple tys ->
       let tys' = tc_types env loc tys in
       Type_Tuple tys'
