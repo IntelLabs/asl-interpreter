@@ -520,21 +520,23 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           (* todo: this is overkill: only need to set variables modified to b *)
           Env.set_bottom env;
           [ Stmt_For (v, start', dir, stop', b', loc) ])
-  (*
     | Stmt_While(c, b, loc) ->
-            let rec eval _ =
-                if to_bool (xform_expr env c) then
-                    xform_stmts env b;
-                    eval ()
-            in
-            eval ()
+          (* todo: this is overkill: only need to set variables modified to b *)
+          Env.set_bottom env;
+          let c' = xform_expr env c in
+          let b' = xform_stmts env b in
+          (* todo: this is overkill: only need to set variables modified to b *)
+          Env.set_bottom env;
+          [ Stmt_While(c', b', loc) ]
     | Stmt_Repeat(b, c, pos, loc) ->
-            let rec eval _ =
-                xform_stmts env b;
-                if to_bool (xform_expr env c) then
-                    eval ()
-            in
-            eval ()
+          (* todo: this is overkill: only need to set variables modified to b *)
+          Env.set_bottom env;
+          let b' = xform_stmts env b in
+          let c' = xform_expr env c in
+          (* todo: this is overkill: only need to set variables modified to b *)
+          Env.set_bottom env;
+          [ Stmt_Repeat(b', c', pos, loc) ]
+  (*
     | Stmt_Try(tb, ev, pos, catchers, odefault, loc) ->
             (try
                 xform_stmts env tb
