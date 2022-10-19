@@ -739,6 +739,11 @@ class sideEffectClass =
 
 let identify_impure_funs (isConstant : ident -> bool)
     (isImpurePrim : ident -> bool) (ds : declaration list) : IdentSet.t =
+  let is_pure_prim (d : declaration) : bool =
+    match d with
+    | Decl_BuiltinFunction (f, ps, args, ty, loc) -> not (isImpurePrim f)
+    | _ -> false
+  in
   let locally_impure (d : declaration) : bool =
     let se = new sideEffectClass in
     ignore (visit_decl (se :> aslVisitor) d);
@@ -751,7 +756,7 @@ let identify_impure_funs (isConstant : ident -> bool)
   List.iter
     (fun d ->
       match decl_name d with
-      | Some x when isImpurePrim x || IdentSet.mem x !impure || locally_impure d
+      | Some x when IdentSet.mem x !impure || (not (is_pure_prim d) && locally_impure d)
         ->
           impure := IdentSet.add x !impure
       | _ -> ())
