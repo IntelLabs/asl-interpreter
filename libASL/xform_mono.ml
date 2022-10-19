@@ -50,9 +50,6 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
       let key = (f, szs) in
       if Instances.mem key instances then Some f'
       else (
-        Printf.printf "Monomorphizing %s to %s\n" (AST.pprint_ident f)
-          (AST.pprint_ident f');
-
         let env = Xform_constprop.mkEnv genv (List.map2 (fun tv sz -> (tv, Value.VInt sz)) tvs szs) in
 
         match d with
