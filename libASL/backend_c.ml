@@ -562,9 +562,12 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   | LExpr_Array (a, i) ->
     lexpr loc fmt a;
     brackets fmt (fun _ -> expr loc fmt i)
+  | LExpr_Field (l, f) ->
+    lexpr loc fmt l;
+    dot fmt;
+    varname fmt f
   | LExpr_Wildcard
   | LExpr_BitTuple _
-  | LExpr_Field _
   | LExpr_Fields _
   | LExpr_ReadWrite _
   | LExpr_Slices _
