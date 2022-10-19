@@ -328,6 +328,10 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
       LExpr_Write (setter, tes', es')
+  | LExpr_ReadWrite (getter, setter, tes, es) ->
+      let tes' = xform_exprs env tes in
+      let es' = xform_exprs env es in
+      LExpr_ReadWrite (getter, setter, tes', es')
   | _ -> failwith ("xform_lexpr: " ^ pp_lexpr x)
 
 (** Evaluate pattern match *)
