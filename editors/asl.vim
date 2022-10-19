@@ -4,7 +4,7 @@
 " Last Change:  Thu Sep 8 10:17 GMT 2022
 " Filenames:    *.asl
 
-" Comments: 
+" Comments:
 " Make sure to create a file name .vim/ftdetect/asl.vim containing this line:
 " au BufRead,BufNewFile *.asl set filetype=asl
 
@@ -35,6 +35,7 @@ syn region  aslMultilineComment start="/\*" end="\*/"
 syn region  aslTrailingComment  start="//" end="$"
 syn region  aslString           start=/"/ skip=/\\./ end=/"/
 
+hi def link aslMultilineComment comment
 hi def link aslTrailingComment comment
 hi def link aslIdentifier      Normal
 hi def link aslDecl            Keyword
