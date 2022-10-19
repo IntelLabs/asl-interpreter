@@ -141,6 +141,9 @@ let kw_uint256 (fmt : PP.formatter) : unit = keyword fmt "uint256_t"
 let kw_uint512 (fmt : PP.formatter) : unit = keyword fmt "uint512_t"
 let kw_uint1024 (fmt : PP.formatter) : unit = keyword fmt "uint1024_t"
 
+(* C types defined elsewhere *)
+let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_RAM_t"
+
 (* C functions defined elsewhere *)
 let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "ASL_cvt_bits_sint"
 let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "ASL_is_pow2"
@@ -222,6 +225,7 @@ let ty (loc : AST.l) (fmt : PP.formatter) (x : AST.ty) : unit =
           nbsp fmt;
           star fmt
       | _ -> tycon fmt tc)
+  | Type_App (Ident "__RAM", [_]) -> ty_ram fmt
   (* TODO implement integer range analysis to determine the correct type width.
    * For now use int64. *)
   | Type_Integer _ -> kw_int64 fmt
