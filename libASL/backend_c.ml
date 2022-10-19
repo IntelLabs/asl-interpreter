@@ -871,6 +871,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
+      | Decl_BuiltinType (_, _) -> ()
       | _ ->
           raise
             (Unimplemented
