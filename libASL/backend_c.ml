@@ -56,6 +56,7 @@ let caret_eq            (fmt : PP.formatter) : unit = delimiter fmt "^="
 let colon               (fmt : PP.formatter) : unit = delimiter fmt ":"
 let dot                 (fmt : PP.formatter) : unit = delimiter fmt "."
 let dot_dot_dot         (fmt : PP.formatter) : unit = delimiter fmt "..."
+let dquote              (fmt : PP.formatter) : unit = delimiter fmt "\""
 let eq                  (fmt : PP.formatter) : unit = delimiter fmt "="
 let eq_eq               (fmt : PP.formatter) : unit = delimiter fmt "=="
 let gt                  (fmt : PP.formatter) : unit = delimiter fmt ">"
@@ -426,7 +427,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("cvt_bool_str", _), _
   | FIdent ("cvt_int_decstr", _), _
   | FIdent ("cvt_int_hexstr", _), _
-  | FIdent ("cvt_real_str", _), _
+  | FIdent ("cvt_real_str", _), _ ->
+      dquote fmt;
+      dquote fmt
   | FIdent ("eq_str", _), _
   | FIdent ("ne_str", _), _ ->
       raise
