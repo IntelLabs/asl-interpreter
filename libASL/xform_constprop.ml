@@ -314,12 +314,9 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
       let ss' = List.map (xform_slice env) ss in
       LExpr_Slices (l', ss')
   | LExpr_BitTuple ls -> failwith "xform_lexpr: bittuple"
-  (*
-    | LExpr_Tuple(ls) ->
-            let rs = of_tuple r in
-            assert (List.length ls = List.length rs);
-            List.iter2 (xform_lexpr env) ls rs
-    *)
+  | LExpr_Tuple(ls) ->
+      let ls' = List.map (fun l -> xform_lexpr env l Values.bottom) ls in
+      LExpr_Tuple(ls')
   | LExpr_Array (l, i) ->
       let i' = xform_expr env i in
       (* todo: xform l too *)
