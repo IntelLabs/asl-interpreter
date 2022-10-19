@@ -132,10 +132,14 @@ let kw_int32 (fmt : PP.formatter) : unit = keyword fmt "int32_t"
 let kw_int64 (fmt : PP.formatter) : unit = keyword fmt "int64_t"
 let kw_int8 (fmt : PP.formatter) : unit = keyword fmt "int8_t"
 let kw_true (fmt : PP.formatter) : unit = keyword fmt "true"
+let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 let kw_uint16 (fmt : PP.formatter) : unit = keyword fmt "uint16_t"
 let kw_uint32 (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
-let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
+let kw_uint128 (fmt : PP.formatter) : unit = keyword fmt "uint128_t"
+let kw_uint256 (fmt : PP.formatter) : unit = keyword fmt "uint256_t"
+let kw_uint512 (fmt : PP.formatter) : unit = keyword fmt "uint512_t"
+let kw_uint1024 (fmt : PP.formatter) : unit = keyword fmt "uint1024_t"
 
 (* C functions defined elsewhere *)
 let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "ASL_cvt_bits_sint"
@@ -188,6 +192,10 @@ let uint (loc : AST.l) (fmt : PP.formatter) (width : int) : unit =
   else if width <= 16 then kw_uint16 fmt
   else if width <= 32 then kw_uint32 fmt
   else if width <= 64 then kw_uint64 fmt
+  else if width <= 128 then kw_uint128 fmt
+  else if width <= 256 then kw_uint256 fmt
+  else if width <= 512 then kw_uint512 fmt
+  else if width <= 1024 then kw_uint1024 fmt
   else
     raise
       (Unimplemented
