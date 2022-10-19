@@ -552,16 +552,13 @@ let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) 
   expr loc fmt r;
   semicolon fmt
 
-let lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
+let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   match x with
-  | LExpr_Slices (LExpr_Var v, [ s ]) ->
-      lslice loc fmt r (Expr_Var v) s;
-      semicolon fmt
-  | LExpr_Var v -> assign loc fmt (fun _ -> varname fmt v) r
-  | LExpr_Wildcard ->
-      make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr loc fmt r);
-      semicolon fmt
-  | LExpr_Array _
+  | LExpr_Var v -> varname fmt v
+  | LExpr_Array (a, i) ->
+    lexpr loc fmt a;
+    brackets fmt (fun _ -> expr loc fmt i)
+  | LExpr_Wildcard
   | LExpr_BitTuple _
   | LExpr_Field _
   | LExpr_Fields _
@@ -572,6 +569,16 @@ let lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : un
       raise
         (Unimplemented
            (loc, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
+
+let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
+  match x with
+  | LExpr_Slices (LExpr_Var v, [ s ]) ->
+      lslice loc fmt r (Expr_Var v) s;
+      semicolon fmt
+  | LExpr_Wildcard ->
+      make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr loc fmt r);
+      semicolon fmt
+  | _ -> assign loc fmt (fun _ -> lexpr loc fmt x) r
 
 let varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
@@ -618,7 +625,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       kw_assert fmt;
       parens fmt (fun _ -> expr loc fmt e);
       semicolon fmt
-  | Stmt_Assign (l, r, loc) -> lexpr loc fmt l r
+  | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
   | Stmt_Block (ss, _) ->
       braces fmt (fun _ -> indented_block fmt ss; cut fmt)
   | Stmt_Case (e, alts, ob, loc) ->
