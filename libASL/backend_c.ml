@@ -582,6 +582,11 @@ let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.exp
 
 let varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
+  | Type_Array (Index_Int sz, ety) ->
+      ty loc fmt ety;
+      nbsp fmt;
+      varname fmt v;
+      brackets fmt (fun _ -> expr loc fmt sz)
   | _ ->
       ty loc fmt t;
       nbsp fmt;
