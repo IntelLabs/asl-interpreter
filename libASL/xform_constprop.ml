@@ -291,9 +291,10 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
   | LExpr_Var v ->
       Env.setVar env v r;
       x
+  | LExpr_Field(l, f) ->
+      let l' = xform_lexpr env l Values.bottom in
+      LExpr_Field(l', f)
   (*
-    | LExpr_Field(l, f) ->
-            xform_lexpr_modify env l (fun prev -> set_field prev f r)
     | LExpr_Fields(l, fs) ->
             let rec set_fields (i: int) (fs: ident list) (prev: value): value =
                 (match fs with
