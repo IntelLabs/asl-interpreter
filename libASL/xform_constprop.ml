@@ -319,8 +319,8 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
       LExpr_Tuple(ls')
   | LExpr_Array (l, i) ->
       let i' = xform_expr env i in
-      (* todo: xform l too *)
-      LExpr_Array (l, i')
+      let l' = xform_lexpr env l Values.bottom in
+      LExpr_Array (l', i')
   | LExpr_Write (setter, tes, es) ->
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
