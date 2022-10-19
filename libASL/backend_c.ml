@@ -717,6 +717,15 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
             braces fmt (fun _ ->
                 indented_block fmt e;
                 cut fmt)))
+  | Stmt_Repeat (b, c, pos, loc) ->
+      kw_do fmt;
+      nbsp fmt;
+      indented_block fmt b;
+      cut fmt;
+      kw_while fmt;
+      nbsp fmt;
+      parens fmt (fun _ -> expr loc fmt c);
+      semicolon fmt
   | Stmt_ProcReturn loc ->
       kw_return fmt;
       semicolon fmt
@@ -728,7 +737,6 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
-  | Stmt_Repeat _
   | Stmt_Throw _
   | Stmt_Try _
   | Stmt_While _ ->
