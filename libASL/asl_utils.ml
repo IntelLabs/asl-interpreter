@@ -428,6 +428,13 @@ class subExprsClass (root : expr) =
     method result = exprs
 
     method! vexpr x =
+      (* Use of pointer equality (==) is deliberate here.
+       * We are only interested in checking for the root object itself
+       * not some object that is structurally identical to it
+       * and we don't want to avoid the quadratic cost that would occur
+       * if we performed a structural equality check as we recurse down
+       * the tree.
+       *)
       if x == root then DoChildren
       else (
         exprs <- x :: exprs;
