@@ -168,6 +168,8 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func F() - = 0; end";
   check_declaration tcenv decls "statement (repeat loop)"
     "func F() repeat return; until TRUE; end";
+  check_declaration tcenv decls "statement (while loop)"
+    "func F() while TRUE do return; end end";
   ()
 
 let test_cases_c_only (decls : AST.declaration list -> unit) :
