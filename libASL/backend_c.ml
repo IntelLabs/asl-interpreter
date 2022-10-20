@@ -749,8 +749,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_Repeat (b, c, pos, loc) ->
       kw_do fmt;
       nbsp fmt;
-      indented_block fmt b;
-      cut fmt;
+      brace_enclosed_block fmt b;
+      nbsp fmt;
       kw_while fmt;
       nbsp fmt;
       parens fmt (fun _ -> expr loc fmt c);
