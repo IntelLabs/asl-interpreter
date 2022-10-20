@@ -641,8 +641,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       parens fmt (fun _ -> expr loc fmt e);
       semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
-  | Stmt_Block (ss, _) ->
-      braces fmt (fun _ -> indented_block fmt ss; cut fmt)
+  | Stmt_Block (ss, _) -> brace_enclosed_block fmt ss
   | Stmt_Case (e, alts, ob, loc) ->
       vbox fmt (fun _ ->
           kw_switch fmt;
@@ -712,9 +711,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           direction dir (fun _ -> plus_plus fmt) (fun _ -> minus_minus fmt);
           varname fmt v);
       nbsp fmt;
-      braces fmt (fun _ ->
-          indented_block fmt b;
-          cut fmt)
+      brace_enclosed_block fmt b
   | Stmt_FunReturn (e, loc) ->
       kw_return fmt;
       nbsp fmt;
@@ -726,9 +723,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           nbsp fmt;
           parens fmt (fun _ -> expr loc fmt c);
           nbsp fmt;
-          braces fmt (fun _ ->
-              indented_block fmt t;
-              cut fmt);
+          brace_enclosed_block fmt t;
           map fmt
             (fun (AST.S_Elsif_Cond (c, s, loc)) ->
               nbsp fmt;
@@ -738,26 +733,19 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
               nbsp fmt;
               parens fmt (fun _ -> expr loc fmt c);
               nbsp fmt;
-              braces fmt (fun _ ->
-                  indented_block fmt s;
-                  cut fmt))
+              brace_enclosed_block fmt s)
             els;
           if e <> [] then (
             nbsp fmt;
             kw_else fmt;
             nbsp fmt;
-            braces fmt (fun _ ->
-                indented_block fmt e;
-                cut fmt)))
+            brace_enclosed_block fmt e))
   | Stmt_While (c, b, loc) ->
       kw_while fmt;
       nbsp fmt;
       parens fmt (fun _ -> expr loc fmt c);
       nbsp fmt;
-      braces fmt (fun _ ->
-          indented_block fmt b;
-          cut fmt
-      )
+      brace_enclosed_block fmt b
   | Stmt_Repeat (b, c, pos, loc) ->
       kw_do fmt;
       nbsp fmt;
@@ -789,6 +777,11 @@ and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
         map fmt (decl fmt) xs;
         cutsep fmt (stmt fmt) xs)
 
+and brace_enclosed_block (fmt : PP.formatter) (b : AST.stmt list) =
+  braces fmt (fun _ ->
+      indented_block fmt b;
+      cut fmt)
+
 let formal (loc : AST.l) (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
   let v, t = x in
   varty loc fmt v t
@@ -804,9 +797,7 @@ let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f :
   parens fmt args
 
 let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
-  braces fmt (fun _ ->
-      indented_block fmt b;
-      cut fmt);
+  brace_enclosed_block fmt b;
   cut fmt
 
 let typedef (fmt : PP.formatter) (tc : AST.ident) (pp : unit -> unit) : unit =
