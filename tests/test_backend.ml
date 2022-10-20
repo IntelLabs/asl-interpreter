@@ -166,6 +166,8 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func F() var - = 0; end";
   check_declaration tcenv decls "statement (assignment to wildcard)"
     "func F() - = 0; end";
+  check_declaration tcenv decls "statement (repeat loop)"
+    "func F() repeat return; until TRUE; end";
   ()
 
 let test_cases_c_only (decls : AST.declaration list -> unit) :
