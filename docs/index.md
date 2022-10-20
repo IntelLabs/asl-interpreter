@@ -9,6 +9,8 @@ title: "ASLi project documentation"
 
   - Coding guidelines
 
+  - [OCaml coding tips](ocaml/tips.md): OCaml tips and tricks
+
 - ASL language discussion
 
   - [Typechecking and synthesis](asl/typechecking.md): how we can specify the ASL
