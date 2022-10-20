@@ -64,7 +64,7 @@ let main () =
     let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
     if ds = [] then failwith "Couldn't find any roots";
 
-    if !output_file == "" then
+    if !output_file = "" then
       failwith "Output file not specified (use -o foo.v to specify)";
 
     if true then
