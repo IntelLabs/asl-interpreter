@@ -263,11 +263,13 @@ let tests : unit Alcotest.test_case list =
        func P() S = G + 1; end
        func T() => integer i = 1; P(); S = G + 1; return i; end"
       "T() == 3");
-    ("array getter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
-      "var a :: array [8] of bits(8);
-       getter G{N}[index :: integer] => bits(N) return a[index][0 +: N]; end
-       func T() => bits(2) a[0] = Ones(8); return G[0]; end"
-      "T() == '11'");
+    ("array getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
+      "var i :: array [2] of integer;
+       getter G{N}[x :: bits(N)] => integer return i[UInt(x)]; end
+       setter S{N}[x :: bits(N)] = value :: integer i[UInt(x)] = value; end
+       func P() S['0'] = G['0'] + 1; end
+       func T() => integer i[0] = 1; P(); S['0'] = G['0'] + 1; return i[0]; end"
+      "T() == 3");
   ]
 
 let () = Alcotest.run "libASL" [ ("asl", tests) ]
