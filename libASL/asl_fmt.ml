@@ -276,10 +276,10 @@ let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt x
 
 let strLit (fmt : PP.formatter) (x : string) : unit =
   let escape (c : char) : unit =
-    if c == '\n' then constant fmt "\\n"
-    else if c == '\t' then constant fmt "\\t"
-    else if c == '\\' then constant fmt "\\\\"
-    else if c == '\"' then constant fmt "\\\""
+    if c = '\n' then constant fmt "\\n"
+    else if c = '\t' then constant fmt "\\t"
+    else if c = '\\' then constant fmt "\\\\"
+    else if c = '\"' then constant fmt "\\\""
     else constant fmt (String.make 1 c)
   in
   constant fmt "\"";
