@@ -134,11 +134,12 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
   | None -> ()
   | Some input ->
       LNoise.history_add input |> ignore;
-      try
+      (try
         process_command tcenv cpu "<stdin>" input
       with e ->
         Error.print_exception e;
         error ();
+      );
       repl tcenv cpu
 
 let options =
