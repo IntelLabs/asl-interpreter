@@ -33,10 +33,11 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     method getInstances = List.map snd (Instances.bindings instances)
 
     method monomorphize (genv : Eval.GlobalEnv.t) (f : AST.ident)
-        (d : AST.declaration) (szs : Z.t list) : AST.ident option =
-      let tvs =
+        (d : AST.declaration) (szs : Z.t list) (args : AST.expr list)
+      : (AST.ident * AST.expr list) option =
+      let (tvs, arg_names) =
         match Eval.GlobalEnv.get_function genv f with
-        | Some (tvs, _, _, _) -> tvs
+        | Some (tvs, arg_names, _, _) -> (tvs, arg_names)
         | _ -> failwith "monomorphize"
       in
       assert (List.length tvs = List.length szs);
@@ -47,37 +48,47 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           tvs szs
       in
       let f' = AST.addSuffix f (String.concat "_" suffices) in
+      let args' : AST.expr list = Utils.filter_map2
+          (fun nm arg -> if List.mem nm tvs then None else Some arg)
+          arg_names args
+      in
       let key = (f, szs) in
-      if Instances.mem key instances then Some f'
+      if Instances.mem key instances then Some (f', args')
       else (
         let env = Xform_constprop.mkEnv genv (List.map2 (fun tv sz -> (tv, Value.VInt sz)) tvs szs) in
 
         match d with
         | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
             let rty' = Xform_constprop.xform_ty env rty in
+            let pnames = List.map fst ps in
+            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
             let atys' =
               List.map
                 (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
                 atys
             in
             let body' = Xform_constprop.xform_stmts env body in
-            let d' = AST.Decl_FunDefn (f', ps, atys', rty', body', loc) in
+            let d' = AST.Decl_FunDefn (f', [], atys', rty', body', loc) in
             let d' = visit_decl (self :> aslVisitor) d' in
             instances <- Instances.add key d' instances;
-            Some f'
+            Some (f', args')
         | Decl_ProcDefn (f, ps, atys, body, loc) ->
+            let pnames = List.map fst ps in
+            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
             let atys' =
               List.map
                 (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
                 atys
             in
             let body' = Xform_constprop.xform_stmts env body in
-            let d' = AST.Decl_ProcDefn (f', ps, atys', body', loc) in
+            let d' = AST.Decl_ProcDefn (f', [], atys', body', loc) in
             let d' = visit_decl (self :> aslVisitor) d' in
             instances <- Instances.add key d' instances;
-            Some f'
+            Some (f', args')
         | Decl_ArrayGetterDefn (f, ps, atys, rty, body, loc) ->
             let rty' = Xform_constprop.xform_ty env rty in
+            let pnames = List.map fst ps in
+            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
             let atys' =
               List.map
                 (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
@@ -85,12 +96,14 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
             in
             let body' = Xform_constprop.xform_stmts env body in
             let d' =
-              AST.Decl_ArrayGetterDefn (f', ps, atys', rty', body', loc)
+              AST.Decl_ArrayGetterDefn (f', [], atys', rty', body', loc)
             in
             let d' = visit_decl (self :> aslVisitor) d' in
             instances <- Instances.add key d' instances;
-            Some f'
+            Some (f', args')
         | Decl_ArraySetterDefn (f, ps, atys, v, t, body, loc) ->
+            let pnames = List.map fst ps in
+            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
             let atys' =
               List.map
                 (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
@@ -99,11 +112,11 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
             let t' = Xform_constprop.xform_ty env t in
             let body' = Xform_constprop.xform_stmts env body in
             let d' =
-              AST.Decl_ArraySetterDefn (f', ps, atys', v, t', body', loc)
+              AST.Decl_ArraySetterDefn (f', [], atys', v, t', body', loc)
             in
             let d' = visit_decl (self :> aslVisitor) d' in
             instances <- Instances.add key d' instances;
-            Some f'
+            Some (f', args')
         | _ -> None)
 
     method! vexpr x =
@@ -114,11 +127,11 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some sizes ->
               Option.value
                 (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes)
-                       (fun f' ->
+                     Option.bind (self#monomorphize genv f d sizes args)
+                       (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
-                              (AST.Expr_TApply (f', [], args), Fun.id)))))
+                              (AST.Expr_TApply (f', [], args'), Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren
@@ -131,11 +144,11 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some sizes ->
               Option.value
                 (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes)
-                       (fun f' ->
+                     Option.bind (self#monomorphize genv f d sizes es)
+                       (fun (f', es') ->
                          Some
                            (ChangeDoChildrenPost
-                              (AST.LExpr_Write (f', [], es), Fun.id)))))
+                              (AST.LExpr_Write (f', [], es'), Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren
@@ -148,11 +161,11 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some sizes ->
               Option.value
                 (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes)
-                       (fun f' ->
+                     Option.bind (self#monomorphize genv f d sizes args)
+                       (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
-                              ([AST.Stmt_TCall (f', [], args, loc)], Fun.id)))))
+                              ([AST.Stmt_TCall (f', [], args', loc)], Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren

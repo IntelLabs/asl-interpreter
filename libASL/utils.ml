@@ -103,6 +103,15 @@ let flatten_option (os : 'a option list) : 'a list =
   in
   aux [] os
 
+(* Like Option.filter_map for binary operations
+ *
+ * `filter_map2 f xs ys` applies `f` to every element of `xs` and `ys`,
+ * filters out the None elements and returns the list of the arguments
+ * of the Some elements.
+ * *)
+let filter_map2 (f : 'a -> 'b -> 'c option) (xs : 'a list) (ys : 'b list) : 'c list =
+  List.map2 f xs ys |> flatten_option
+
 (* todo: give this a better name *)
 let flatten_map_option (f : 'a -> 'b option) (xs : 'a list) : 'b list option =
   let rec aux r xs =
