@@ -236,6 +236,26 @@ let test_cases_stmt : test_case list  =
 
 let test_cases_type_decl : test_case list  =
   [
+    ( "built-in (real)",
+      [ Backend_C ],
+      "__builtin type real;" );
+
+    ( "built-in (string)",
+      [ Backend_C; Backend_Verilog ],
+      "__builtin type string;" );
+
+    ( "built-in (__mask)",
+      [ Backend_C ],
+      "__builtin type __mask;" );
+
+    ( "built-in (__Exception)",
+      [ Backend_C ],
+      "__builtin type __Exception;" );
+
+    ( "built-in (__RAM)",
+      [ Backend_C ],
+      "__builtin type __RAM;" );
+
     ( "record",
       [ Backend_C; Backend_Verilog ],
       "record X { i :: integer; b :: bit; };" );
