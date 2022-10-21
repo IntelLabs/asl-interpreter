@@ -56,3 +56,21 @@ equality or a comment added to explain why pointer equality is correct and
 important to use, it should be added to the above list of [correct uses of pointer equality]
 and it should be carefully reviewed.
 
+# Debugging tips
+
+## Stack traces
+
+To run with stack traces, set the environment variable `OCAMLRUNPARAM=b`.
+(We have debugging enabled by default so this is enough to get stack dumps)
+
+## Stack overflow
+
+When a stack overflow occurs, you do not get a stack trace (at least, you don't get one on WSL).
+To get a stack dump on overflow, build with the bytecode compiler instead of the native compiler.
+
+e.g., to diagnose a problem in bin/asl2v.exe:
+
+1. In bin/dune, change `(modes exe)` to `(modes exe byte)` for asl2v
+2. Run `dune build bin/asl2v.bc`    The critical part here is the suffix ".bc"
+3. Request a backtrace with `export OCAMLPARAM=b`
+4. Run `$ASLI_DIR/_build/default/bin/asl2v.bc`  (Again, note the change of suffix)
