@@ -221,6 +221,9 @@ class equivalences =
     (* Find the root (canonical member of) the set.
      * Implements "path-splitting" optimisation that makes every node
      * point to its grandfather so each traversal reduces height of tree.
+     *
+     * Efficiency of this data structure critically depends on the
+     * use of pointer equality in the search.
      *)
     method private find (x : tree) : tree =
       let r = ref x in
@@ -249,7 +252,11 @@ class equivalences =
       let s = self#find_ident x in
       s.data
 
-    (* Merge the sets containing 'x' and 'y' *)
+    (* Merge the sets containing 'x' and 'y'
+     *
+     * Efficiency of this data structure critically depends on the
+     * use of pointer equality when merging nodes.
+     *)
     method merge (x : ident) (y : ident) : unit =
       let x' = self#find_ident x in
       let y' = self#find_ident y in
