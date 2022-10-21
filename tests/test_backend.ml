@@ -91,6 +91,10 @@ let test_cases_expr : test_case list =
     ( "bitvector concatenation",
       [ Backend_C; Backend_Verilog ],
       "func F(x :: bits(8), y :: bits(4), z :: bits(2)) => bits(14) return [x, y, z]; end" );
+
+    ( "array",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) var x :: array [1] of bits(1); return x[0]; end" );
   ]
 
 let test_cases_fun_decl : test_case list  =
