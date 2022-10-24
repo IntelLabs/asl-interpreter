@@ -1852,7 +1852,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
                   GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
                 in
                 let setters =
-                  GlobalEnv.getFuns (Env.globals env) (addSuffix a "write")
+                  GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "write")
                 in
                 let ogetter =
                   chooseFunction (Env.globals env) loc "var getter function"
