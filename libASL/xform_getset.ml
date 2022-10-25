@@ -13,8 +13,8 @@ class replaceSetterClass =
 
     method! vstmt s =
       match s with
-      | Stmt_Assign (AST.LExpr_Write (f, [], []), r, loc) ->
-          let s = AST.Stmt_TCall (f, [], [ r ], loc) in
+      | Stmt_Assign (AST.LExpr_Write (f, tes, es), r, loc) ->
+          let s = AST.Stmt_TCall (f, tes, es @ [ r ], loc) in
           Visitor.ChangeTo [ s ]
       | _ -> DoChildren
   end
@@ -34,6 +34,18 @@ let xform_decl (d : AST.declaration) : AST.declaration list =
         Asl_visitor.visit_stmts (replacer :> Asl_visitor.aslVisitor) body
       in
       let d' = AST.Decl_ProcDefn (f, ps, args, body', loc) in
+      [ d' ]
+  | Decl_ArrayGetterDefn (f, ps, args, rty, body, loc) ->
+      let d' = AST.Decl_FunDefn (f, ps, args, rty, body, loc) in
+      [ d' ]
+  | Decl_ArrayGetterType (f, ps, args, rty, loc) ->
+      let d' = AST.Decl_FunType (f, ps, args, rty, loc) in
+      [ d' ]
+  | Decl_ArraySetterDefn (f, ps, args, v, t, body, loc) ->
+      let d' = AST.Decl_ProcDefn (f, ps, args @ [ (v, t) ], body, loc) in
+      [ d' ]
+  | Decl_ArraySetterType (f, ps, args, v, t, loc) ->
+      let d' = AST.Decl_ProcType (f, ps, args @ [ (v, t) ], loc) in
       [ d' ]
   | Decl_VarGetterDefn (f, ps, rty, body, loc) ->
       let d' = AST.Decl_FunDefn (f, ps, [], rty, body, loc) in
