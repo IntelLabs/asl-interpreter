@@ -20,7 +20,6 @@
   (depends
     ("ocaml"     (>= "4.11"))
     ("menhir"    :build)
-    ("ott"       :build)
     "linenoise"
     ("ocolor"    (>= "1.2.2"))
     "zarith"

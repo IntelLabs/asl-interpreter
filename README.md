@@ -24,7 +24,6 @@ To build and run the ASL interpreter, you will need:
       * odoc      - OCaml documentation generator (optional)
       * dune      - OCaml build system
       * menhir    - parser generator tool
-      * ott.0.29  - tool for defining language grammars and semantics (this version or later required)
       * linenoise - OCaml line editing library
       * z3.4.7.1  - OCaml bindings for the Z3 SMT solver (exactly this version is required)
       * zarith    - OCaml multiprecision arithmetic library
