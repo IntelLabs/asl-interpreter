@@ -1,3 +1,10 @@
+(****************************************************************
+ * ASL AST definitions
+ *
+ * Copyright Intel Inc (c) 2022
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 type id = string
 type intLit = string
 type bitsLit = string
