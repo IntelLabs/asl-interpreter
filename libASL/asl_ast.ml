@@ -208,9 +208,9 @@ and expr =
  | Expr_ImpDef of string option * ty
  | Expr_AsConstraint of expr * constraint_range list
  | Expr_AsType of expr * ty
- | Expr_TApply of ident * (expr) list * (expr) list (* spice for desugaring function call with explicit type parameters *)
+ | Expr_TApply of ident * (expr) list * (expr) list (* function call with explicit type parameters *)
  | Expr_Concat of (expr) list * (expr) list (* bitvector concatenation *)
- | Expr_Array of expr * expr (* spice for desugaring array accesses *)
+ | Expr_Array of expr * expr (* array accesses *)
  | Expr_LitInt of intLit (* literal decimal integer *)
  | Expr_LitHex of hexLit (* literal hexadecimal integer *)
  | Expr_LitReal of realLit (* literal real *)
@@ -253,9 +253,9 @@ lexpr =
  | LExpr_Slices of lexpr * (slice) list
  | LExpr_BitTuple of (lexpr) list
  | LExpr_Tuple of (lexpr) list
- | LExpr_Array of lexpr * expr (* spice for desugaring array assignment *)
- | LExpr_Write of ident * (expr) list * (expr) list (* spice for desugaring setter procedure call *)
- | LExpr_ReadWrite of ident * ident * (expr) list * (expr) list (* spice for desugaring read-modify-write function+procedure call *)
+ | LExpr_Array of lexpr * expr (* array assignment *)
+ | LExpr_Write of ident * (expr) list * (expr) list (* setter procedure call *)
+ | LExpr_ReadWrite of ident * ident * (expr) list * (expr) list (* read-modify-write function+procedure call *)
 
 type
 decl_item =
@@ -285,7 +285,7 @@ and stmt =
  | Stmt_ProcReturn of l (* procedure return *)
  | Stmt_Assert of expr * l (* assertion *)
  | Stmt_Throw of ident * l
- | Stmt_TCall of ident * (expr) list * (expr) list * l (* spice for procedure call with explicit type parameters *)
+ | Stmt_TCall of ident * (expr) list * (expr) list * l (* procedure call with explicit type parameters *)
  | Stmt_VarDeclsNoInit of (ident) list * ty * l
  | Stmt_If of expr * stmt list * (s_elsif) list * (stmt list * l) * l
  | Stmt_Case of expr * (alt) list * (stmt list * l) option * l
