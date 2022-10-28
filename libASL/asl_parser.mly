@@ -150,105 +150,105 @@ declaration:
 | internal_definition = internal_definition { internal_definition }
 
 type_declaration:
-| UNDERSCORE_UNDERSCORE_BUILTIN TYPE ident = ident SEMICOLON
-    { Decl_BuiltinType(ident,Range($symbolstartpos,$endpos)) }
-| TYPE ident = ident SEMICOLON
-    { Decl_Forward(ident,Range($symbolstartpos,$endpos)) }
-| RECORD ident = ident LBRACE  field0 = nonempty_list(field) RBRACE SEMICOLON
-    { Decl_Record(ident,field0,Range($symbolstartpos,$endpos)) }
-| TYPE ident = ident OF ty = ty SEMICOLON
-    { Decl_Typedef(ident,ty,Range($symbolstartpos,$endpos)) }
-| ENUMERATION ident = ident LBRACE ident0 = separated_list(COMMA,ident) RBRACE SEMICOLON
-    { Decl_Enum(ident,ident0,Range($symbolstartpos,$endpos)) }
+| UNDERSCORE_UNDERSCORE_BUILTIN TYPE v = ident SEMICOLON
+    { Decl_BuiltinType(v, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident SEMICOLON
+    { Decl_Forward(v, Range($symbolstartpos, $endpos)) }
+| RECORD v = ident LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+    { Decl_Record(v, fs, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident OF ty = ty SEMICOLON
+    { Decl_Typedef(v, ty, Range($symbolstartpos, $endpos)) }
+| ENUMERATION v = ident LBRACE es = separated_list(COMMA, ident) RBRACE SEMICOLON
+    { Decl_Enum(v, es, Range($symbolstartpos, $endpos)) }
 
 field:
 | ident = ident COLON_COLON ty = ty SEMICOLON { (ident, ty) }
 
 variable_declaration:
-| VAR ident = ident COLON_COLON ty = ty SEMICOLON
-    { Decl_Var(ident,ty,Range($symbolstartpos,$endpos)) }
-| CONSTANT ident = ident COLON_COLON ty = ty EQ expr = expr SEMICOLON
-    { Decl_Const(ident,ty,expr,Range($symbolstartpos,$endpos)) }
-| LET ident = ident COLON_COLON ty = ty EQ expr = expr SEMICOLON
-    { Decl_Const(ident, ty, expr, Range($symbolstartpos,$endpos)) }
+| VAR v = ident COLON_COLON ty = ty SEMICOLON
+    { Decl_Var(v, ty, Range($symbolstartpos, $endpos)) }
+| CONSTANT v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+    { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
+| LET v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+    { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
 
 ixtype:
 | ident = ident { Index_Enum(ident) }
 | expr = expr { Index_Int(expr) }
 
 function_declaration:
-| UNDERSCORE_UNDERSCORE_BUILTIN FUNC ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { Decl_BuiltinFunction(ident,parameters_opt,formal_list,ty,Range($symbolstartpos,$endpos)) }
-| FUNC ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { Decl_FunType(ident,parameters_opt,formal_list,ty,Range($symbolstartpos,$endpos)) }
-| FUNC ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN EQ_GT ty = ty block = block END
-    { Decl_FunDefn(ident,parameters_opt,formal_list,ty,block,Range($symbolstartpos,$endpos)) }
+| UNDERSCORE_UNDERSCORE_BUILTIN FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
+    { Decl_BuiltinFunction(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
+    { Decl_FunType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty b = block END
+    { Decl_FunDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 
 procedure_declaration:
-| FUNC ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN SEMICOLON
-    { Decl_ProcType(ident,parameters_opt,formal_list,Range($symbolstartpos,$endpos)) }
-| FUNC ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN block = block END
-    { Decl_ProcDefn(ident,parameters_opt,formal_list,block,Range($symbolstartpos,$endpos)) }
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
+    { Decl_ProcType(f, ps, args, Range($symbolstartpos, $endpos)) }
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN b = block END
+    { Decl_ProcDefn(f, ps, args, b, Range($symbolstartpos, $endpos)) }
 
 parameters_opt:
-| LBRACE parameter_list = parameter_list RBRACE { parameter_list }
+| LBRACE pars = parameter_list RBRACE { pars }
 | { [] }
 
 parameter_list:
-| parameter0 = separated_nonempty_list(COMMA,parameter) { parameter0 }
+| pars = separated_nonempty_list(COMMA, parameter) { pars }
 
 parameter:
-| ident = ident ty_opt = ty_opt { (ident, ty_opt) }
+| par = ident ty = ty_opt { (par, ty) }
 
 ty_opt:
 | COLON_COLON ty = ty { Some ty }
 | { None }
 
 formal_list:
-| formal0 = separated_list(COMMA,formal) { formal0 }
+| formal0 = separated_list(COMMA, formal) { formal0 }
 
 formal:
 | ident = ident COLON_COLON ty = ty { (ident, ty) }
 
 getter_declaration:
-| GETTER ident = ident parameters_opt = parameters_opt EQ_GT ty = ty SEMICOLON
-    { Decl_VarGetterType(ident,parameters_opt,ty,Range($symbolstartpos,$endpos)) }
-| GETTER ident = ident parameters_opt = parameters_opt EQ_GT ty = ty block = block END
-    { Decl_VarGetterDefn(ident,parameters_opt,ty,block,Range($symbolstartpos,$endpos)) }
-| GETTER ident = ident parameters_opt = parameters_opt LBRACK formal_list = formal_list RBRACK EQ_GT ty = ty SEMICOLON
-    { Decl_ArrayGetterType(ident,parameters_opt,formal_list,ty,Range($symbolstartpos,$endpos)) }
-| GETTER ident = ident parameters_opt = parameters_opt LBRACK formal_list = formal_list RBRACK EQ_GT ty = ty block = block END
-    { Decl_ArrayGetterDefn(ident,parameters_opt,formal_list,ty,block,Range($symbolstartpos,$endpos)) }
+| GETTER f = ident ps = parameters_opt EQ_GT ty = ty SEMICOLON
+    { Decl_VarGetterType(f, ps, ty, Range($symbolstartpos, $endpos)) }
+| GETTER f = ident ps = parameters_opt EQ_GT ty = ty b = block END
+    { Decl_VarGetterDefn(f, ps, ty, b, Range($symbolstartpos, $endpos)) }
+| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty SEMICOLON
+    { Decl_ArrayGetterType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty b = block END
+    { Decl_ArrayGetterDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 
 setter_declaration:
-| SETTER ident1 = ident parameters_opt = parameters_opt EQ ident2 = ident COLON_COLON ty = ty SEMICOLON
-    { Decl_VarSetterType(ident1,parameters_opt,ident2,ty,Range($symbolstartpos,$endpos)) }
-| SETTER ident1 = ident parameters_opt = parameters_opt EQ ident2 = ident COLON_COLON ty = ty block = block END
-    { Decl_VarSetterDefn(ident1,parameters_opt,ident2,ty,block,Range($symbolstartpos,$endpos)) }
-| SETTER ident1 = ident parameters_opt = parameters_opt LBRACK formal_list = formal_list RBRACK EQ ident2 = ident COLON_COLON ty = ty SEMICOLON
-    { Decl_ArraySetterType(ident1,parameters_opt,formal_list,ident2,ty,Range($symbolstartpos,$endpos)) }
-| SETTER ident1 = ident parameters_opt = parameters_opt LBRACK formal_list = formal_list RBRACK EQ ident2 = ident COLON_COLON ty = ty block = block END
-    { Decl_ArraySetterDefn(ident1,parameters_opt,formal_list,ident2,ty,block,Range($symbolstartpos,$endpos)) }
+| SETTER f = ident ps = parameters_opt EQ v = ident COLON_COLON ty = ty SEMICOLON
+    { Decl_VarSetterType(f, ps, v, ty, Range($symbolstartpos, $endpos)) }
+| SETTER f = ident ps = parameters_opt EQ v = ident COLON_COLON ty = ty b = block END
+    { Decl_VarSetterDefn(f, ps, v, ty, b, Range($symbolstartpos, $endpos)) }
+| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON_COLON ty = ty SEMICOLON
+    { Decl_ArraySetterType(f, ps, args, v, ty, Range($symbolstartpos, $endpos)) }
+| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON_COLON ty = ty b = block END
+    { Decl_ArraySetterDefn(f, ps, args, v, ty, b, Range($symbolstartpos, $endpos)) }
 
 internal_definition:
-| UNDERSCORE_UNDERSCORE_OPERATOR_ONE unop = unop EQ ident0 = separated_nonempty_list(COMMA,ident) SEMICOLON
-    { Decl_Operator1(unop,ident0,Range($symbolstartpos,$endpos)) }
-| UNDERSCORE_UNDERSCORE_OPERATOR_TWO binop = binop EQ ident0 = separated_nonempty_list(COMMA,ident) SEMICOLON
-    { Decl_Operator2(binop,ident0,Range($symbolstartpos,$endpos)) }
-| UNDERSCORE_UNDERSCORE_NEWEVENT ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN SEMICOLON
-    { Decl_NewEventDefn(ident,parameters_opt,formal_list,Range($symbolstartpos,$endpos)) }
-| UNDERSCORE_UNDERSCORE_EVENT ident = ident block = block END
-    { Decl_EventClause(ident,block,Range($symbolstartpos,$endpos)) }
-| UNDERSCORE_UNDERSCORE_NEWMAP ident = ident parameters_opt = parameters_opt LPAREN formal_list = formal_list RPAREN EQ_GT ty = ty block = block END
-    { Decl_NewMapDefn(ident,parameters_opt,formal_list,ty,block,Range($symbolstartpos,$endpos)) }
-| UNDERSCORE_UNDERSCORE_MAP ident = ident mapfield0 = separated_list(COMMA,mapfield) optmapcond = optmapcond THEN block = block END
-    { Decl_MapClause(ident,mapfield0,optmapcond,block,Range($symbolstartpos,$endpos)) }
-| CONFIG ident = ident COLON_COLON ty = ty EQ expr = expr SEMICOLON
-    { Decl_Config(ident,ty,expr,Range($symbolstartpos,$endpos)) }
+| UNDERSCORE_UNDERSCORE_OPERATOR_ONE op = unop EQ vs = separated_nonempty_list(COMMA, ident) SEMICOLON
+    { Decl_Operator1(op, vs, Range($symbolstartpos, $endpos)) }
+| UNDERSCORE_UNDERSCORE_OPERATOR_TWO op = binop EQ vs = separated_nonempty_list(COMMA, ident) SEMICOLON
+    { Decl_Operator2(op, vs, Range($symbolstartpos, $endpos)) }
+| UNDERSCORE_UNDERSCORE_NEWEVENT v = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
+    { Decl_NewEventDefn(v, ps, args, Range($symbolstartpos, $endpos)) }
+| UNDERSCORE_UNDERSCORE_EVENT v = ident b = block END
+    { Decl_EventClause(v, b, Range($symbolstartpos, $endpos)) }
+| UNDERSCORE_UNDERSCORE_NEWMAP v = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty b = block END
+    { Decl_NewMapDefn(v, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
+| UNDERSCORE_UNDERSCORE_MAP v = ident vs = separated_list(COMMA, mapfield) oc = optmapcond THEN b = block END
+    { Decl_MapClause(v, vs, oc, b, Range($symbolstartpos, $endpos)) }
+| CONFIG v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+    { Decl_Config(v, ty, e, Range($symbolstartpos, $endpos)) }
 
 operator:
-| unop = unop { Utils.to_string (Asl_parser_pp.pp_unop unop) }
-| binop = binop  { Utils.to_string (Asl_parser_pp.pp_binop binop) }
+| op = unop { Utils.to_string (Asl_parser_pp.pp_unop op) }
+| op = binop  { Utils.to_string (Asl_parser_pp.pp_binop op) }
 | COLON { ":" }
 
 optmapcond:
@@ -256,45 +256,45 @@ optmapcond:
 | { None }
 
 mapfield:
-| ident = ident EQ pattern = pattern { MapField_Field(ident,pattern) }
+| f = ident EQ p = pattern { MapField_Field(f, p) }
 
 ty:
 | ident = ident
     { Type_Constructor(ident) }
-| INTEGER constraint_opt = constraint_opt
-    { Type_Integer(constraint_opt) }
-| BITS LPAREN expr = expr RPAREN
-    { Type_Bits(expr) }
-| ident = ident LPAREN expr0 = separated_nonempty_list(COMMA,expr) RPAREN
-    { Type_App(ident,expr0) }
-| TYPEOF LPAREN expr = expr RPAREN
-    { Type_OfExpr(expr) }
-| BITS LPAREN expr = expr RPAREN LBRACE regfields = regfields RBRACE
-    { Type_Register(expr,regfields) }
+| INTEGER ocrs = constraint_opt
+    { Type_Integer(ocrs) }
+| BITS LPAREN n = expr RPAREN
+    { Type_Bits(n) }
+| tc = ident LPAREN es = separated_nonempty_list(COMMA, expr) RPAREN
+    { Type_App(tc, es) }
+| TYPEOF LPAREN e = expr RPAREN
+    { Type_OfExpr(e) }
+| BITS LPAREN wd = expr RPAREN LBRACE fs = regfields RBRACE
+    { Type_Register(wd, fs) }
 | ARRAY LBRACK ixtype = ixtype RBRACK OF ty = ty
-    { Type_Array(ixtype,ty) }
-| LPAREN ty0 = separated_list(COMMA,ty) RPAREN
-    { Type_Tuple(ty0) }
+    { Type_Array(ixtype, ty) }
+| LPAREN tys = separated_list(COMMA, ty) RPAREN
+    { Type_Tuple(tys) }
 
 constraint_opt:
-| constraints = constraints { Some constraints }
+| crs = constraints { Some crs }
 | { None }
 
 constraints:
-| LBRACE constraint_range0 = separated_nonempty_list(COMMA,constraint_range) RBRACE
-    { constraint_range0 }
+| LBRACE crs = separated_nonempty_list(COMMA, constraint_range) RBRACE
+    { crs }
 
 constraint_range:
-| expr = expr { Constraint_Single(expr) }
-| expr1 = expr DOT_DOT expr2 = expr { Constraint_Range(expr1,expr2) }
+| c = expr { Constraint_Single(c) }
+| c1 = expr DOT_DOT c2 = expr { Constraint_Range(c1, c2) }
 
 regfields:
-| regfield0 = list(regfield) { regfield0 }
-| regfield = regfield COMMA regfields = regfields { regfield :: regfields }
+| fs = list(regfield) { fs }
+| f = regfield COMMA fs = regfields { f :: fs }
 
 regfield:
-| LBRACK slice0 = separated_nonempty_list(COMMA,slice) RBRACK ident = ident
-    { (slice0, ident) }
+| LBRACK slices = separated_nonempty_list(COMMA, slice) RBRACK ident = ident
+    { (slices, ident) }
 
 stmt:
 | simple_stmt = simple_stmt { simple_stmt }
@@ -304,160 +304,157 @@ compound_stmt:
 | conditional_stmt = conditional_stmt { conditional_stmt }
 | repetitive_stmt = repetitive_stmt { repetitive_stmt }
 | catch_stmt = catch_stmt { catch_stmt }
-| BEGIN block = block END { Stmt_Block(block,Range($symbolstartpos,$endpos)) }
+| BEGIN block = block END { Stmt_Block(block, Range($symbolstartpos, $endpos)) }
 
 block:
-| stmt0 = list(stmt) { stmt0 }
+| stmts = list(stmt) { stmts }
 
 assignment_stmt:
-| VAR ident = ident COMMA ident0 = separated_list(COMMA,ident) COLON_COLON ty = ty SEMICOLON
-    { Stmt_VarDeclsNoInit(ident :: ident0,ty,Range($symbolstartpos,$endpos)) }
-| VAR ident = ident COLON_COLON ty = ty SEMICOLON
-    { Stmt_VarDeclsNoInit([ident],ty,Range($symbolstartpos, $endpos)) }
-| VAR decl_item = decl_item EQ expr = expr SEMICOLON
-    { Stmt_VarDecl(decl_item,expr,Range($symbolstartpos,$endpos)) }
-| LET decl_item = decl_item EQ expr = expr SEMICOLON
-    { Stmt_ConstDecl(decl_item,expr,Range($symbolstartpos,$endpos)) }
-| lexpr = lexpr EQ expr = expr SEMICOLON
-    { Stmt_Assign(lexpr,expr,Range($symbolstartpos,$endpos)) }
+| VAR v = ident COMMA vs = separated_list(COMMA, ident) COLON_COLON ty = ty SEMICOLON
+    { Stmt_VarDeclsNoInit(v :: vs, ty, Range($symbolstartpos, $endpos)) }
+| VAR v = ident COLON_COLON ty = ty SEMICOLON
+    { Stmt_VarDeclsNoInit([v], ty, Range($symbolstartpos, $endpos)) }
+| VAR dis = decl_item EQ i = expr SEMICOLON
+    { Stmt_VarDecl(dis, i, Range($symbolstartpos, $endpos)) }
+| LET dis = decl_item EQ i = expr SEMICOLON
+    { Stmt_ConstDecl(dis, i, Range($symbolstartpos, $endpos)) }
+| l = lexpr EQ r = expr SEMICOLON
+    { Stmt_Assign(l, r, Range($symbolstartpos, $endpos)) }
 
 decl_item:
-| ident = ident  ty_opt = ty_opt
-    { DeclItem_Var(ident,ty_opt) }
-| LPAREN decl_item0 = separated_nonempty_list(COMMA,decl_item) RPAREN
-    { DeclItem_Tuple(decl_item0) }
-| MINUS ty_opt = ty_opt
-    { DeclItem_Wildcard(ty_opt) }
+| v = ident  oty = ty_opt
+    { DeclItem_Var(v, oty) }
+| LPAREN dis = separated_nonempty_list(COMMA, decl_item) RPAREN
+    { DeclItem_Tuple(dis) }
+| MINUS oty = ty_opt
+    { DeclItem_Wildcard(oty) }
 
 lexpr:
 | MINUS
     { LExpr_Wildcard }
-| ident = ident
-    { LExpr_Var(ident) }
-| lexpr = lexpr DOT ident = ident
-    { LExpr_Field(lexpr,ident) }
-| lexpr = lexpr DOT LBRACK ident0 = separated_nonempty_list(COMMA,ident) RBRACK
-    { LExpr_Fields(lexpr,ident0) }
-| lexpr = lexpr LBRACK slice0 = separated_list(COMMA,slice) RBRACK
-    { LExpr_Slices(lexpr,slice0) }
-| LBRACK lexpr0 = separated_nonempty2_list(COMMA,lexpr) RBRACK
-    { LExpr_BitTuple(lexpr0) }
-| LPAREN lexpr0 = separated_nonempty2_list(COMMA,lexpr) RPAREN
-    { LExpr_Tuple(lexpr0) }
-| LPAREN lexpr = lexpr RPAREN
-    { lexpr }
+| v = ident
+    { LExpr_Var(v) }
+| e = lexpr DOT f = ident
+    { LExpr_Field(e, f) }
+| e = lexpr DOT LBRACK fs = separated_nonempty_list(COMMA, ident) RBRACK
+    { LExpr_Fields(e, fs) }
+| e = lexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
+    { LExpr_Slices(e, ss) }
+| LBRACK es = separated_nonempty2_list(COMMA, lexpr) RBRACK
+    { LExpr_BitTuple(es) }
+| LPAREN es = separated_nonempty2_list(COMMA, lexpr) RPAREN
+    { LExpr_Tuple(es) }
+| LPAREN e = lexpr RPAREN
+    { e }
 
 lexpr_spice:
-| UNDERSCORE_UNDERSCORE_ARRAY lexpr = lexpr LBRACK expr = expr RBRACK
-    { LExpr_Array(lexpr,expr) }
-| UNDERSCORE_UNDERSCORE_WRITE ident = ident LBRACE expr0_prime = separated_list(COMMA,expr) RBRACE LBRACK expr0 = separated_list(COMMA,expr) RBRACK
-    { LExpr_Write(ident,expr0_prime,expr0) }
-| UNDERSCORE_UNDERSCORE_READWRITE ident1 = ident ident2 = ident LBRACE expr0_prime = separated_list(COMMA,expr) RBRACE LBRACK expr0 = separated_list(COMMA,expr) RBRACK
-    { LExpr_ReadWrite(ident1,ident2,expr0_prime,expr0) }
+| UNDERSCORE_UNDERSCORE_ARRAY a = lexpr LBRACK e = expr RBRACK
+    { LExpr_Array(a, e) }
+| UNDERSCORE_UNDERSCORE_WRITE f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LBRACK es = separated_list(COMMA, expr) RBRACK
+    { LExpr_Write(f, tes, es) }
+| UNDERSCORE_UNDERSCORE_READWRITE f = ident g = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LBRACK es = separated_list(COMMA, expr) RBRACK
+    { LExpr_ReadWrite(f, g, tes, es) }
 
 simple_stmt:
 | assignment_stmt = assignment_stmt
     { assignment_stmt }
-| ident = ident LPAREN expr0 = separated_list(COMMA,expr) RPAREN SEMICOLON
-    { Stmt_TCall(ident, [], expr0, Range($symbolstartpos,$endpos)) }
-| RETURN expr = expr SEMICOLON
-    { Stmt_FunReturn(expr,Range($symbolstartpos,$endpos)) }
+| f = ident LPAREN args = separated_list(COMMA, expr) RPAREN SEMICOLON
+    { Stmt_TCall(f, [], args, Range($symbolstartpos, $endpos)) }
+| RETURN e = expr SEMICOLON
+    { Stmt_FunReturn(e, Range($symbolstartpos, $endpos)) }
 | RETURN SEMICOLON
-    { Stmt_ProcReturn(Range($symbolstartpos,$endpos)) }
-| ASSERT expr = expr SEMICOLON
-    { Stmt_Assert(expr,Range($symbolstartpos,$endpos)) }
-| THROW ident = ident SEMICOLON
-    { Stmt_Throw(ident,Range($symbolstartpos,$endpos)) }
+    { Stmt_ProcReturn(Range($symbolstartpos, $endpos)) }
+| ASSERT e = expr SEMICOLON
+    { Stmt_Assert(e, Range($symbolstartpos, $endpos)) }
+| THROW v = ident SEMICOLON
+    { Stmt_Throw(v, Range($symbolstartpos, $endpos)) }
 
 stmt_spice:
-| ident = ident LBRACE expr0_prime = separated_list(COMMA,expr) RBRACE LPAREN expr0 = separated_list(COMMA,expr) RPAREN SEMICOLON
-    { Stmt_TCall(ident,expr0_prime,expr0) }
-| VAR ident0 = list(ident) COLON_COLON ty = ty SEMICOLON
-    { Stmt_VarDeclsNoInit(ident0,ty) }
+| f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LPAREN args = separated_list(COMMA, expr) RPAREN SEMICOLON
+    { Stmt_TCall(f, tes, args) }
+| VAR vs = list(ident) COLON_COLON ty = ty SEMICOLON
+    { Stmt_VarDeclsNoInit(vs, ty) }
 
 conditional_stmt:
-| IF expr = expr THEN block = block s_elsif0 = list(s_elsif) optional_else = optional_else END
-    { Stmt_If(expr,block,s_elsif0,optional_else,Range($symbolstartpos,$endpos)) }
-| CASE expr = expr OF alt0 = nonempty_list(alt) opt_otherwise = opt_otherwise END
-    { Stmt_Case(expr,alt0,opt_otherwise,Range($symbolstartpos,$endpos)) }
+| IF c = expr THEN t = block els = list(s_elsif) f = optional_else END
+    { Stmt_If(c, t, els, f, Range($symbolstartpos, $endpos)) }
+| CASE e = expr OF alts = nonempty_list(alt) ob = opt_otherwise END
+    { Stmt_Case(e, alts, ob, Range($symbolstartpos, $endpos)) }
 
 s_elsif:
-| ELSIF expr = expr THEN block = block
-    { S_Elsif_Cond(expr,block,Range($symbolstartpos,$endpos)) }
+| ELSIF c = expr THEN b = block
+    { S_Elsif_Cond(c, b, Range($symbolstartpos, $endpos)) }
 
 optional_else:
-| ELSE block = block { (block, Range($symbolstartpos,$endpos)) }
-| { ([], Range($symbolstartpos,$endpos)) }
+| ELSE b = block { (b, Range($symbolstartpos, $endpos)) }
+| { ([], Range($symbolstartpos, $endpos)) }
 
 alt:
-| WHEN pattern0 = separated_nonempty_list(COMMA,pattern) opt_altcond = opt_altcond COLON block = block
-    { Alt_Alt(pattern0,opt_altcond,block,Range($symbolstartpos,$endpos)) }
+| WHEN ps = separated_nonempty_list(COMMA, pattern) oalt = opt_altcond COLON b = block
+    { Alt_Alt(ps, oalt, b, Range($symbolstartpos, $endpos)) }
 
 opt_otherwise:
-| OTHERWISE COLON block = block { Some(block, Range($symbolstartpos,$endpos)) }
+| OTHERWISE COLON b = block { Some(b, Range($symbolstartpos, $endpos)) }
 | { None }
 
 opt_altcond:
-| WHERE expr = expr { Some(expr) }
+| WHERE e = expr { Some(e) }
 | { None }
 
 pattern:
-| intLit = INTLIT { Pat_LitInt(intLit) }
-| hexLit = HEXLIT { Pat_LitHex(hexLit) }
-| bitsLit = BITSLIT { Pat_LitBits(bitsLit) }
-| maskLit = MASKLIT { Pat_LitMask(maskLit) }
-| ident = ident  { Pat_Const(ident) }
+| i = INTLIT { Pat_LitInt(i) }
+| h = HEXLIT { Pat_LitHex(h) }
+| b = BITSLIT { Pat_LitBits(b) }
+| m = MASKLIT { Pat_LitMask(m) }
+| c = ident { Pat_Const(c) }
 | MINUS { Pat_Wildcard }
-| LPAREN pattern0 = separated_nonempty2_list(COMMA,pattern) RPAREN
-    { Pat_Tuple(pattern0) }
-| LBRACE apattern0 = separated_list(COMMA,apattern) RBRACE
-    { Pat_Set(apattern0) }
+| LPAREN ps = separated_nonempty2_list(COMMA, pattern) RPAREN { Pat_Tuple(ps) }
+| LBRACE aps = separated_list(COMMA, apattern) RBRACE { Pat_Set(aps) }
 
 apattern:
-| expr1 = expr DOT_DOT expr2 = expr { Pat_Range(expr1,expr2) }
-| expr = expr { Pat_Single(expr) }
+| p1 = expr DOT_DOT p2 = expr { Pat_Range(p1, p2) }
+| p = expr { Pat_Single(p) }
 
 repetitive_stmt:
-| FOR ident = ident EQ expr1 = expr direction = direction expr2 = expr DO block = block END
-    { Stmt_For(ident,expr1,direction,expr2,block,Range($symbolstartpos,$endpos)) }
-| WHILE expr = expr DO block = block END
-    { Stmt_While(expr,block,Range($symbolstartpos,$endpos)) }
-| REPEAT block = block UNTIL expr = expr SEMICOLON pos = pos
-    { Stmt_Repeat(block,expr,pos,Range($symbolstartpos,$endpos)) }
+| FOR v = ident EQ f = expr dir = direction t = expr DO b = block END
+    { Stmt_For(v, f, dir, t, b, Range($symbolstartpos, $endpos)) }
+| WHILE c = expr DO b = block END
+    { Stmt_While(c, b, Range($symbolstartpos, $endpos)) }
+| REPEAT b = block UNTIL c = expr SEMICOLON pos = pos
+    { Stmt_Repeat(b, c, pos, Range($symbolstartpos, $endpos)) }
 
 direction:
 | TO { Direction_Up }
 | DOWNTO { Direction_Down }
 
 catch_stmt:
-| TRY block = block CATCH ident = ident pos = pos catcher0 = list(catcher) opt_otherwise = opt_otherwise END
-    { Stmt_Try(block,ident,pos,catcher0,opt_otherwise,Range($symbolstartpos,$endpos)) }
+| TRY b = block CATCH v = ident pos = pos cs = list(catcher) ob = opt_otherwise END
+    { Stmt_Try(b, v, pos, cs, ob, Range($symbolstartpos, $endpos)) }
 
 catcher:
-| WHEN expr = expr COLON block = block
-    { Catcher_Guarded(expr,block,Range($symbolstartpos,$endpos)) }
+| WHEN c = expr COLON b = block
+    { Catcher_Guarded(c, b, Range($symbolstartpos, $endpos)) }
 
 expr:
-| conditional_expression = conditional_expression
-    { conditional_expression }
+| ce = conditional_expression { ce }
 
 conditional_expression:
-| IF cexpr1 = cexpr THEN expr1 = expr e_elsif0 = list(e_elsif) ELSE expr2 = expr
-    { Expr_If(cexpr1,expr1,e_elsif0,expr2) }
+| IF c = cexpr THEN t = expr els = list(e_elsif) ELSE e = expr
+    { Expr_If(c, t, els, e) }
 | cexpr = cexpr { cexpr }
 
 e_elsif:
-| ELSIF expr1 = expr THEN expr2 = expr { E_Elsif_Cond(expr1,expr2) }
+| ELSIF c = expr THEN e = expr { E_Elsif_Cond(c, e) }
 
 cexpr:
-| bexpr = bexpr factor0 = list(factor)
-    { buildExpression bexpr factor0 (Range($startpos(bexpr),$endpos(factor0))) }
+| bexpr = bexpr fs = list(factor)
+    { buildExpression bexpr fs (Range($startpos(bexpr), $endpos(fs))) }
 
 zexpr:
-| expr1 = expr binop = binop expr2 = expr { Expr_Binop(expr1,binop,expr2) }
+| a = expr op = binop b = expr { Expr_Binop(a, op, b) }
 
 factor:
-| binop = binop bexpr = bexpr { Factor_BinOp(binop,bexpr) }
+| op = binop e = bexpr { Factor_BinOp(op, e) }
 
 binop:
 | EQ_EQ { Binop_Eq }
@@ -490,52 +487,52 @@ dummy_binop:
 | { Binop_DUMMY }
 
 bexpr:
-| unop = unop fexpr = fexpr { Expr_Unop(unop,fexpr) }
-| fexpr = fexpr { fexpr }
+| op = unop e = fexpr { Expr_Unop(op, e) }
+| e = fexpr { e }
 
 fexpr:
-| fexpr = fexpr DOT ident = ident
-    { Expr_Field(fexpr,ident) }
-| fexpr = fexpr DOT LBRACK ident0 = separated_nonempty_list(COMMA,ident) RBRACK
-    { Expr_Fields(fexpr,ident0) }
-| fexpr = fexpr LBRACK slice0 = separated_list(COMMA,slice) RBRACK
-    { Expr_Slices(fexpr,slice0) }
-| ident = ident LBRACE field_assignment0 = separated_nonempty_list(COMMA,field_assignment) RBRACE
-    { Expr_RecordInit(ident,field_assignment0) }
-| fexpr = fexpr IN pattern = pattern
-    { Expr_In(fexpr,pattern) }
-| aexpr = aexpr
-    { aexpr }
+| e = fexpr DOT f = ident
+    { Expr_Field(e, f) }
+| e = fexpr DOT LBRACK fs = separated_nonempty_list(COMMA, ident) RBRACK
+    { Expr_Fields(e, fs) }
+| e = fexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
+    { Expr_Slices(e, ss) }
+| tc = ident LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
+    { Expr_RecordInit(tc, fas) }
+| e = fexpr IN p = pattern
+    { Expr_In(e, p) }
+| e = aexpr
+    { e }
 
 aexpr:
 | literal_expression = literal_expression
     { literal_expression }
-| ident = ident
-    { Expr_Var(ident) }
-| ident = ident LPAREN expr0 = separated_list(COMMA,expr) RPAREN
-    { Expr_TApply(ident, [], expr0) }
-| LPAREN expr = expr RPAREN
-    { Expr_Parens(expr) }
-| LPAREN expr0 = separated_nonempty2_list(COMMA,expr) RPAREN
-    { Expr_Tuple(expr0) }
-| LBRACK expr0 = separated_nonempty2_list(COMMA,expr) RBRACK
-    { Expr_Concat([], expr0) }
-| UNKNOWN COLON_COLON ty = ty
-    { Expr_Unknown(ty) }
-| IMPLEMENTATION_UNDERSCORE_DEFINED opt_stringLit = opt_stringLit COLON_COLON ty = ty
-    { Expr_ImpDef(opt_stringLit,ty) }
-| aexpr = aexpr AS constraints = constraints
-    { Expr_AsConstraint(aexpr,constraints) }
-| aexpr = aexpr AS ty = ty
-    { Expr_AsType(aexpr,ty) }
+| v = ident
+    { Expr_Var(v) }
+| f = ident LPAREN es = separated_list(COMMA, expr) RPAREN
+    { Expr_TApply(f, [], es) }
+| LPAREN e = expr RPAREN
+    { Expr_Parens(e) }
+| LPAREN es = separated_nonempty2_list(COMMA, expr) RPAREN
+    { Expr_Tuple(es) }
+| LBRACK es = separated_nonempty2_list(COMMA, expr) RBRACK
+    { Expr_Concat([], es) }
+| UNKNOWN COLON_COLON t = ty
+    { Expr_Unknown(t) }
+| IMPLEMENTATION_UNDERSCORE_DEFINED os = opt_stringLit COLON_COLON t = ty
+    { Expr_ImpDef(os, t) }
+| e = aexpr AS c = constraints
+    { Expr_AsConstraint(e, c) }
+| e = aexpr AS t = ty
+    { Expr_AsType(e, t) }
 
 expr_spice:
-| ident = ident LBRACE expr0_prime = separated_list(COMMA,expr) RBRACE LPAREN expr0 = separated_list(COMMA,expr) RPAREN
-    { Expr_TApply(ident,expr0_prime,expr0) }
-| LBRACE expr0_prime = separated_list(COMMA,expr) RBRACE LBRACK expr0 = separated_nonempty2_list(COMMA,expr) RBRACK
-    { Expr_Concat(expr0_prime,expr0) }
-| UNDERSCORE_UNDERSCORE_ARRAY expr1 = expr LBRACK expr2 = expr RBRACK
-    { Expr_Array(expr1,expr2) }
+| f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LPAREN es = separated_list(COMMA, expr) RPAREN
+    { Expr_TApply(f, tes, es) }
+| LBRACE ws = separated_list(COMMA, expr) RBRACE LBRACK es = separated_nonempty2_list(COMMA, expr) RBRACK
+    { Expr_Concat(ws, es) }
+| UNDERSCORE_UNDERSCORE_ARRAY a = expr LBRACK e = expr RBRACK
+    { Expr_Array(a, e) }
 
 field_assignment:
 | ident = ident EQ expr = expr { (ident, expr) }
@@ -550,17 +547,17 @@ unop:
 | NOT { Unop_BitsNot }
 
 slice:
-| expr = expr  { Slice_Single(expr) }
-| expr1 = expr COLON expr2 = expr { Slice_HiLo(expr1,expr2) }
-| expr1 = expr PLUS_COLON expr2 = expr { Slice_LoWd(expr1,expr2) }
+| e = expr  { Slice_Single(e) }
+| hi = expr COLON lo = expr { Slice_HiLo(hi, lo) }
+| lo = expr PLUS_COLON wd = expr { Slice_LoWd(lo, wd) }
 
 literal_expression:
-| intLit = INTLIT { Expr_LitInt(intLit) }
-| hexLit = HEXLIT { Expr_LitHex(hexLit) }
-| realLit = REALLIT { Expr_LitReal(realLit) }
-| bitsLit = BITSLIT { Expr_LitBits(bitsLit) }
-| maskLit = MASKLIT { Expr_LitMask(maskLit) }
-| stringLit = STRINGLIT { Expr_LitString(stringLit) }
+| i = INTLIT { Expr_LitInt(i) }
+| h = HEXLIT { Expr_LitHex(h) }
+| r = REALLIT { Expr_LitReal(r) }
+| b = BITSLIT { Expr_LitBits(b) }
+| m = MASKLIT { Expr_LitMask(m) }
+| s = STRINGLIT { Expr_LitString(s) }
 
 expr_command:
 | expr = expr { expr }
@@ -569,7 +566,7 @@ stmt_command:
 | stmt = stmt { stmt }
 
 impdef_command:
-| stringLit = STRINGLIT EQ expr = expr { CLI_Impdef(stringLit,expr) }
+| s = STRINGLIT EQ e = expr { CLI_Impdef(s, e) }
 
 /**************************************************************************/
 /*                                                                        */
