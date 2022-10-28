@@ -11,7 +11,6 @@ type bitsLit = string
 type maskLit = string
 type realLit = string
 type hexLit = string
-type i = int
 
 (** Location tracking *)
 type l =
@@ -187,29 +186,29 @@ pattern =
  | Pat_LitMask of maskLit
  | Pat_Const of ident
  | Pat_Wildcard
- | Pat_Tuple of (pattern) list
- | Pat_Set of (pattern) list
+ | Pat_Tuple of pattern list
+ | Pat_Set of pattern list
  | Pat_Range of expr * expr
  | Pat_Single of expr
 
 and expr =
-   Expr_If of expr * expr * (e_elsif) list * expr
+   Expr_If of expr * expr * e_elsif list * expr
  | Expr_Binop of expr * binop * expr
  | Expr_Unop of unop * expr (* unary operator *)
  | Expr_Field of expr * ident (* field selection *)
- | Expr_Fields of expr * (ident) list (* multiple field selection *)
- | Expr_Slices of expr * (slice) list (* bitslice *)
+ | Expr_Fields of expr * ident list (* multiple field selection *)
+ | Expr_Slices of expr * slice list (* bitslice *)
  | Expr_RecordInit of ident * (ident * expr) list
  | Expr_In of expr * pattern (* pattern match *)
  | Expr_Var of ident
  | Expr_Parens of expr
- | Expr_Tuple of (expr) list (* tuple *)
+ | Expr_Tuple of expr list (* tuple *)
  | Expr_Unknown of ty
  | Expr_ImpDef of string option * ty
  | Expr_AsConstraint of expr * constraint_range list
  | Expr_AsType of expr * ty
- | Expr_TApply of ident * (expr) list * (expr) list (* function call with explicit type parameters *)
- | Expr_Concat of (expr) list * (expr) list (* bitvector concatenation *)
+ | Expr_TApply of ident * expr list * expr list (* function call with explicit type parameters *)
+ | Expr_Concat of expr list * expr list (* bitvector concatenation *)
  | Expr_Array of expr * expr (* array accesses *)
  | Expr_LitInt of intLit (* literal decimal integer *)
  | Expr_LitHex of hexLit (* literal hexadecimal integer *)
@@ -234,11 +233,11 @@ and ty =
    Type_Constructor of ident
  | Type_Integer of constraint_range list option
  | Type_Bits of expr
- | Type_App of ident * (expr) list
+ | Type_App of ident * expr list
  | Type_OfExpr of expr
  | Type_Register of expr * (slice list * ident) list
  | Type_Array of ixtype * ty
- | Type_Tuple of (ty) list
+ | Type_Tuple of ty list
 
 and constraint_range =
    Constraint_Single of expr
@@ -249,18 +248,18 @@ lexpr =
    LExpr_Wildcard
  | LExpr_Var of ident
  | LExpr_Field of lexpr * ident
- | LExpr_Fields of lexpr * (ident) list
- | LExpr_Slices of lexpr * (slice) list
- | LExpr_BitTuple of (lexpr) list
- | LExpr_Tuple of (lexpr) list
+ | LExpr_Fields of lexpr * ident list
+ | LExpr_Slices of lexpr * slice list
+ | LExpr_BitTuple of lexpr list
+ | LExpr_Tuple of lexpr list
  | LExpr_Array of lexpr * expr (* array assignment *)
- | LExpr_Write of ident * (expr) list * (expr) list (* setter procedure call *)
- | LExpr_ReadWrite of ident * ident * (expr) list * (expr) list (* read-modify-write function+procedure call *)
+ | LExpr_Write of ident * expr list * expr list (* setter procedure call *)
+ | LExpr_ReadWrite of ident * ident * expr list * expr list (* read-modify-write function+procedure call *)
 
 type
 decl_item =
    DeclItem_Var of ident * ty option
- | DeclItem_Tuple of (decl_item) list
+ | DeclItem_Tuple of decl_item list
  | DeclItem_Wildcard of ty option
 
 type
@@ -285,20 +284,20 @@ and stmt =
  | Stmt_ProcReturn of l (* procedure return *)
  | Stmt_Assert of expr * l (* assertion *)
  | Stmt_Throw of ident * l
- | Stmt_TCall of ident * (expr) list * (expr) list * l (* procedure call with explicit type parameters *)
- | Stmt_VarDeclsNoInit of (ident) list * ty * l
- | Stmt_If of expr * stmt list * (s_elsif) list * (stmt list * l) * l
- | Stmt_Case of expr * (alt) list * (stmt list * l) option * l
+ | Stmt_TCall of ident * expr list * expr list * l (* procedure call with explicit type parameters *)
+ | Stmt_VarDeclsNoInit of ident list * ty * l
+ | Stmt_If of expr * stmt list * s_elsif list * (stmt list * l) * l
+ | Stmt_Case of expr * alt list * (stmt list * l) option * l
  | Stmt_For of ident * expr * direction * expr * stmt list * l
  | Stmt_While of expr * stmt list * l
  | Stmt_Repeat of stmt list * expr * pos * l
- | Stmt_Try of stmt list * ident * pos * (catcher) list * (stmt list * l) option * l
+ | Stmt_Try of stmt list * ident * pos * catcher list * (stmt list * l) option * l
 
 and s_elsif =
    S_Elsif_Cond of expr * stmt list * l
 
 and alt =
-   Alt_Alt of (pattern) list * expr option * stmt list * l
+   Alt_Alt of pattern list * expr option * stmt list * l
 
 type
 declaration =
@@ -306,7 +305,7 @@ declaration =
  | Decl_Forward of ident * l
  | Decl_Record of ident * (ident * ty) list * l
  | Decl_Typedef of ident * ty * l
- | Decl_Enum of ident * (ident) list * l
+ | Decl_Enum of ident * ident list * l
  | Decl_Var of ident * ty * l
  | Decl_Const of ident * ty * expr * l
  | Decl_BuiltinFunction of ident * (ident * ty option) list * (ident * ty) list * ty * l
@@ -322,12 +321,12 @@ declaration =
  | Decl_VarSetterDefn of ident * (ident * ty option) list * ident * ty * stmt list * l
  | Decl_ArraySetterType of ident * (ident * ty option) list * (ident * ty) list * ident * ty * l
  | Decl_ArraySetterDefn of ident * (ident * ty option) list * (ident * ty) list * ident * ty * stmt list * l
- | Decl_Operator1 of unop * (ident) list * l
- | Decl_Operator2 of binop * (ident) list * l
+ | Decl_Operator1 of unop * ident list * l
+ | Decl_Operator2 of binop * ident list * l
  | Decl_NewEventDefn of ident * (ident * ty option) list * (ident * ty) list * l
  | Decl_EventClause of ident * stmt list * l
  | Decl_NewMapDefn of ident * (ident * ty option) list * (ident * ty) list * ty * stmt list * l
- | Decl_MapClause of ident * (mapfield) list * expr option * stmt list * l
+ | Decl_MapClause of ident * mapfield list * expr option * stmt list * l
  | Decl_Config of ident * ty * expr * l
 
 type
@@ -394,7 +393,7 @@ let isMisc        (x: binop): bool = List.mem x miscOperators
  * (Binop_DUMMY acts as the lowest priority operation - see below)
  *)
 let higherPriorityThan (x: binop) (y: binop): bool option =
-    if                             y = Binop_DUMMY    then Some(true)
+    if                            y = Binop_DUMMY    then Some(true)
     else if x = Binop_Power    && y = Binop_Multiply then Some(true)
     else if x = Binop_Power    && y = Binop_Divide   then Some(true)
     else if x = Binop_Power    && y = Binop_Plus     then Some(true)
