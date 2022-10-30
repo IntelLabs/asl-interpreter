@@ -268,6 +268,12 @@ let tests : unit Alcotest.test_case list =
        func P() S['0'] = G['0'] + 1; end
        func T() => integer i[0] = 1; P(); S['0'] = G['0'] + 1; return i[0]; end"
       "T() == 3");
+    ("read-modify-write transform", `Quick, test_xform globals prelude Xform_rmw.xform_decls
+      "var i :: array [2] of bits(3);
+       getter I{N}[x :: bits(N)] => bits(3) return i[UInt(x)]; end
+       setter I{N}[x :: bits(N)] = value :: bits(3) i[UInt(x)] = value; end
+       func T() => bits(3) i[0] = '001'; I['0'][1 : 0] = '10'; return i[0]; end"
+      "T() == '010'");
   ]
 
 let () = Alcotest.run "libASL" [ ("asl", tests) ]

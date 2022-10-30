@@ -91,6 +91,10 @@ let main () =
     if true then
       Utils.to_file "tmp.getset.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
+    let ds = Xform_rmw.xform_decls ds in
+    if true then
+      Utils.to_file "tmp.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
     let ds = Xform_tuples.xform_decls ds in
     if true then
       Utils.to_file "tmp.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
