@@ -92,6 +92,15 @@ val addToBindingSet : AST.ident -> AST.ident -> IdentSet.t Bindings.t -> IdentSe
 val to_sorted_list : IdentSet.t -> AST.ident list
 
 (****************************************************************)
+(** {2 Name supply}                                             *)
+(****************************************************************)
+
+class nameSupply : string ->
+  object
+    method fresh : AST.ident
+  end
+
+(****************************************************************)
 (** {2 Equivalence classes}                                     *)
 (****************************************************************)
 
