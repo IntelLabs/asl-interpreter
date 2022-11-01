@@ -508,7 +508,11 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
                     Env.addLocalConst env' v (Values.singleton i);
                     xform_stmts env' b)
               in
-              let i' = Concrete.eval_add_int loc i Concrete.int_one in
+              let i' =
+                match dir with
+                | Direction_Up -> Concrete.eval_add_int loc i Concrete.int_one
+                | Direction_Down -> Concrete.eval_sub_int loc i Concrete.int_one
+              in
               Stmt_Block (b', loc) :: eval i'
             else []
           in
