@@ -15,16 +15,11 @@ let mkReturnRecord (tyname : AST.ident) (rtys : AST.ty list) (loc : AST.l) : AST
   let fs = List.mapi (fun i ty -> (mkReturnFieldName i, ty)) rtys in
   Decl_Record (tyname, fs, loc)
 
+let returnVariables = new Asl_utils.nameSupply "__r"
+
 class replaceTupleClass (tc : AST.ident option) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
-
-    val mutable vnum = 0
-
-    method mkRetVar _ : AST.ident =
-      let v = AST.Ident ("__r" ^ string_of_int vnum) in
-      vnum <- vnum + 1;
-      v
 
     method! vstmt s =
       match s with
@@ -36,7 +31,7 @@ class replaceTupleClass (tc : AST.ident option) =
 
       | Stmt_VarDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f) in
-        let v = self#mkRetVar () in
+        let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i di ->
             AST.Stmt_VarDecl (di, Expr_Field (Expr_Var v, mkReturnFieldName i), loc)
@@ -45,7 +40,7 @@ class replaceTupleClass (tc : AST.ident option) =
 
       | Stmt_ConstDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f) in
-        let v = self#mkRetVar () in
+        let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i di ->
             AST.Stmt_ConstDecl (di, Expr_Field (Expr_Var v, mkReturnFieldName i), loc)
@@ -54,7 +49,7 @@ class replaceTupleClass (tc : AST.ident option) =
 
       | Stmt_Assign (AST.LExpr_Tuple es, (AST.Expr_TApply (f, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f) in
-        let v = self#mkRetVar () in
+        let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
         let ss = List.mapi (fun i e ->
             AST.Stmt_Assign (e, Expr_Field (Expr_Var v, mkReturnFieldName i), loc)
