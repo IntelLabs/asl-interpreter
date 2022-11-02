@@ -250,7 +250,7 @@ lexpr =
  | LExpr_Field of lexpr * ident
  | LExpr_Fields of lexpr * ident list
  | LExpr_Slices of lexpr * slice list
- | LExpr_BitTuple of lexpr list
+ | LExpr_BitTuple of expr list * lexpr list
  | LExpr_Tuple of lexpr list
  | LExpr_Array of lexpr * expr (* array assignment *)
  | LExpr_Write of ident * expr list * expr list (* setter procedure call *)

@@ -353,7 +353,7 @@ lexpr:
 | e = lexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
     { LExpr_Slices(e, ss) }
 | LBRACK es = separated_nonempty2_list(COMMA, lexpr) RBRACK
-    { LExpr_BitTuple(es) }
+    { LExpr_BitTuple([], es) }
 | LPAREN es = separated_nonempty2_list(COMMA, lexpr) RPAREN
     { LExpr_Tuple(es) }
 | LPAREN e = lexpr RPAREN

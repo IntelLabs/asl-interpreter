@@ -313,9 +313,10 @@ and visit_lexpr (vis : aslVisitor) (x : lexpr) : lexpr =
         let e' = visit_lexpr vis e in
         let ss' = mapNoCopy (visit_slice vis) ss in
         if e == e' && ss == ss' then x else LExpr_Slices (e', ss')
-    | LExpr_BitTuple es ->
+    | LExpr_BitTuple (ws, es) ->
+        let ws' = visit_exprs vis ws in
         let es' = mapNoCopy (visit_lexpr vis) es in
-        if es == es' then x else LExpr_BitTuple es'
+        if ws == ws' && es == es' then x else LExpr_BitTuple (ws', es')
     | LExpr_Tuple es ->
         let es' = mapNoCopy (visit_lexpr vis) es in
         if es == es' then x else LExpr_Tuple es'

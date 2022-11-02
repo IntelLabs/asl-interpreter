@@ -216,6 +216,16 @@ let tests : unit Alcotest.test_case list =
        end
        "
        "Test(TRUE)" true);
+    ("bittuple LExpr_BitTuple", `Quick, test_bool globals prelude
+     "func expand() => boolean
+        var x :: bits(4);
+        var y :: bits(8);
+        var z :: bits(12);
+        [x, y, z] = '1111 01010101 000000000000';
+
+        return (x == '1111' && y == '01010101' && z == '000000000000');
+     end"
+     "expand()" true);
     ("setters (array)",        `Quick, test_bool globals prelude
        "var _A :: array [4] of boolean;
        getter A[i :: integer] => boolean return _A[i]; end

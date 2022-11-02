@@ -510,7 +510,9 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
   | LExpr_Slices (e, ss) ->
       lexpr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
-  | LExpr_BitTuple es -> brackets fmt (fun _ -> lexprs fmt es)
+  | LExpr_BitTuple (ws, es) ->
+      if show_tyargs then braces fmt (fun _ -> exprs fmt ws);
+      brackets fmt (fun _ -> lexprs fmt es)
   | LExpr_Tuple es -> parens fmt (fun _ -> lexprs fmt es)
   | LExpr_Array (a, e) ->
       nbsp fmt;

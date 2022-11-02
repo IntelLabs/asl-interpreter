@@ -1732,10 +1732,11 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
               raise (UnknownObject (loc, "setter function", pprint_ident a))
           | _ -> tc_slice_lexpr env u loc e ss')
       | _ -> tc_slice_lexpr env u loc e ss')
-  | LExpr_BitTuple ls ->
+  | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
       let ty = mk_concat_tys tys in
-      (LExpr_BitTuple ls', ty)
+      let ws' = List.map width_of_type tys in
+      (LExpr_BitTuple (ws', ls'), ty)
   | LExpr_Tuple ls ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
       (LExpr_Tuple ls', Type_Tuple tys)
@@ -1881,11 +1882,12 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       in
       check_type env u loc ty' ty;
       e'
-  | LExpr_BitTuple ls ->
+  | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
       let ty' = mk_concat_tys tys in
+      let ws = List.map width_of_type tys in
       check_type env u loc ty' ty;
-      LExpr_BitTuple ls'
+      LExpr_BitTuple (ws, ls')
   | LExpr_Tuple ls ->
       let ls' =
         match ty with
@@ -2107,8 +2109,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
 (****************************************************************)
 
 (** Typecheck function body (list of statements) *)
-let tc_body (env : Env.t) (loc : AST.l) (xs : AST.stmt list) : AST.stmt list =
-  tc_stmts env loc xs
+let tc_body = tc_stmts
 
 (** Typecheck function parameter *)
 let tc_parameter (env : Env.t) (loc : AST.l)

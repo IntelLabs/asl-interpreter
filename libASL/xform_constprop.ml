@@ -317,9 +317,10 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
       let l' = xform_lexpr env l Values.bottom in
       let ss' = List.map (xform_slice env) ss in
       LExpr_Slices (l', ss')
-  | LExpr_BitTuple ls ->
+  | LExpr_BitTuple (ws, ls) ->
+      let ws' = xform_exprs env ws in
       let ls' = List.map (fun l -> xform_lexpr env l Values.bottom) ls in
-      LExpr_BitTuple(ls')
+      LExpr_BitTuple(ws', ls')
   | LExpr_Tuple(ls) ->
       let ls' = List.map (fun l -> xform_lexpr env l Values.bottom) ls in
       LExpr_Tuple(ls')

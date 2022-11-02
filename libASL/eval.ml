@@ -530,7 +530,15 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
             eval (eval_add_int loc o w) ss (insert_bits loc prev i w v)
       in
       eval_lexpr_modify loc env l (eval (VInt Z.zero) (List.rev ss))
-  | LExpr_BitTuple ls -> failwith "eval_lexpr: bittuple"
+  | LExpr_BitTuple (ws, ls) ->
+    let _ = List.fold_right (fun ((lexpr, width_expr) : lexpr * expr)
+        (idx : int) ->
+      let width = eval_expr loc env width_expr |> to_int loc in
+      let r' = extract_bits' loc r idx width in
+      eval_lexpr loc env lexpr r';
+      idx + width
+    ) (List.combine ls ws) 0 in
+    ()
   | LExpr_Tuple ls ->
       let rs = of_tuple loc r in
       assert (List.length ls = List.length rs);
