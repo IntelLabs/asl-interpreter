@@ -263,11 +263,6 @@ internal_definition:
 | CONFIG v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
     { Decl_Config(v, ty, e, Range($symbolstartpos, $endpos)) }
 
-operator:
-| op = unop { Utils.to_string (Asl_parser_pp.pp_unop op) }
-| op = binop  { Utils.to_string (Asl_parser_pp.pp_binop op) }
-| COLON { ":" }
-
 optmapcond:
 | WHEN expr = expr { Some(expr) }
 | { None }
@@ -364,14 +359,6 @@ lexpr:
 | LPAREN e = lexpr RPAREN
     { e }
 
-lexpr_spice:
-| UNDERSCORE_UNDERSCORE_ARRAY a = lexpr LBRACK e = expr RBRACK
-    { LExpr_Array(a, e) }
-| UNDERSCORE_UNDERSCORE_WRITE f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LBRACK es = separated_list(COMMA, expr) RBRACK
-    { LExpr_Write(f, tes, es) }
-| UNDERSCORE_UNDERSCORE_READWRITE f = ident g = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LBRACK es = separated_list(COMMA, expr) RBRACK
-    { LExpr_ReadWrite(f, g, tes, es) }
-
 simple_stmt:
 | assignment_stmt = assignment_stmt
     { assignment_stmt }
@@ -385,12 +372,6 @@ simple_stmt:
     { Stmt_Assert(e, Range($symbolstartpos, $endpos)) }
 | THROW v = ident SEMICOLON
     { Stmt_Throw(v, Range($symbolstartpos, $endpos)) }
-
-stmt_spice:
-| f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LPAREN args = separated_list(COMMA, expr) RPAREN SEMICOLON
-    { Stmt_TCall(f, tes, args) }
-| VAR vs = list(ident) COLON_COLON ty = ty SEMICOLON
-    { Stmt_VarDeclsNoInit(vs, ty) }
 
 conditional_stmt:
 | IF c = expr THEN t = block els = list(s_elsif) f = optional_else END
@@ -467,9 +448,6 @@ cexpr:
 | bexpr = bexpr fs = list(factor)
     { buildExpression bexpr fs (Range($startpos(bexpr), $endpos(fs))) }
 
-zexpr:
-| a = expr op = binop b = expr { Expr_Binop(a, op, b) }
-
 factor:
 | op = binop e = bexpr { Factor_BinOp(op, e) }
 
@@ -499,9 +477,6 @@ binop:
 | EOR { Binop_BitEor }
 | AND { Binop_BitAnd }
 | PLUS_PLUS { Binop_Append }
-
-dummy_binop:
-| { Binop_DUMMY }
 
 bexpr:
 | op = unop e = fexpr { Expr_Unop(op, e) }
@@ -542,14 +517,6 @@ aexpr:
     { Expr_AsConstraint(e, c) }
 | e = aexpr AS t = ty
     { Expr_AsType(e, t) }
-
-expr_spice:
-| f = ident LBRACE tes = separated_list(COMMA, expr) RBRACE LPAREN es = separated_list(COMMA, expr) RPAREN
-    { Expr_TApply(f, tes, es) }
-| LBRACE ws = separated_list(COMMA, expr) RBRACE LBRACK es = separated_nonempty2_list(COMMA, expr) RBRACK
-    { Expr_Concat(ws, es) }
-| UNDERSCORE_UNDERSCORE_ARRAY a = expr LBRACK e = expr RBRACK
-    { Expr_Array(a, e) }
 
 field_assignment:
 | ident = ident EQ expr = expr { (ident, expr) }
