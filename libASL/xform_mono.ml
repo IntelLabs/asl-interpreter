@@ -54,6 +54,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
         | _ -> failwith "monomorphize"
       in
       assert (List.length tvs = List.length szs);
+      List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
           (fun nm sz -> AST.pprint_ident nm ^ "_" ^ Z.to_string sz)
