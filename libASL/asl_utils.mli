@@ -244,7 +244,7 @@ val identify_impure_funs : (AST.ident -> bool) -> (AST.ident -> bool) -> AST.dec
 
 val subst_expr : AST.expr Bindings.t -> AST.expr -> AST.expr
 val subst_lexpr : AST.expr Bindings.t -> AST.lexpr -> AST.lexpr
-val subst_var : AST.expr Bindings.t -> AST.ident -> AST.ident
+val subst_var : AST.expr Bindings.t -> Asl_visitor.access_kind -> AST.ident -> AST.ident
 val subst_slice : AST.expr Bindings.t -> AST.slice -> AST.slice
 val subst_type : AST.expr Bindings.t -> AST.ty -> AST.ty
 val subst_decl_item : AST.expr Bindings.t -> AST.decl_item -> AST.decl_item

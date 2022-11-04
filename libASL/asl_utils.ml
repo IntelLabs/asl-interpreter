@@ -347,8 +347,8 @@ class freevarClass =
     method tycons = free_tcs
     method funs = free_funs
 
-    method! vvar x =
-      free_vars <- IdentSet.add x free_vars;
+    method! vvar access x =
+      if access = Read then free_vars <- IdentSet.add x free_vars;
       SkipChildren
 
     method! vtype ty =
@@ -748,8 +748,8 @@ class sideEffectClass =
       writes <- IdentSet.add x writes;
       SkipChildren
 
-    method! vvar x =
-      reads <- IdentSet.add x reads;
+    method! vvar access x =
+      if access = Read then reads <- IdentSet.add x reads;
       SkipChildren
 
     method! vexpr e =
@@ -835,9 +835,9 @@ let subst_lexpr (s : expr Bindings.t) (x : lexpr) : lexpr =
   let subst = new substClass s in
   visit_lexpr subst x
 
-let subst_var (s : expr Bindings.t) (x : ident) : ident =
+let subst_var (s : expr Bindings.t) (kind : access_kind) (x : ident) : ident =
   let subst = new substClass s in
-  visit_var subst x
+  visit_var subst kind x
 
 let subst_slice (s : expr Bindings.t) (x : slice) : slice =
   let subst = new substClass s in

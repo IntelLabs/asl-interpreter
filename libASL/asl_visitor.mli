@@ -14,9 +14,16 @@
 open Asl_ast
 open Visitor
 
+type access_kind
+  = Definition
+  | Call
+  | Read
+  | Type
+  | Field
+
 class type aslVisitor =
   object
-    method vvar : ident -> ident visitAction
+    method vvar : access_kind -> ident -> ident visitAction
     method ve_elsif : e_elsif -> e_elsif visitAction
     method vslice : slice -> slice visitAction
     method vpattern : pattern -> pattern visitAction
@@ -67,6 +74,6 @@ val visit_stmt : aslVisitor -> stmt -> stmt list
 val visit_stmts : aslVisitor -> stmt list -> stmt list
 val visit_type : aslVisitor -> ty -> ty
 val visit_types : aslVisitor -> ty list -> ty list
-val visit_var : aslVisitor -> ident -> ident
+val visit_var : aslVisitor -> access_kind -> ident -> ident
 
 class nopAslVisitor : aslVisitor
