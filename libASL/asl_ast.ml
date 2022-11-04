@@ -132,8 +132,8 @@ module Id = struct
 
     let matches (nm: string) (x: ident): bool =
         ( match x with
-        | FIdent (x,_) -> x == nm
-        | Ident x -> x == nm
+        | FIdent (x,_) -> x = nm
+        | Ident x -> x = nm
         )
 
     let isFunction (x: ident): bool =
