@@ -222,6 +222,8 @@ val callers : AST.ident list -> AST.declaration list -> IdentSet.t
 (** {2 Side effect detection}                                   *)
 (****************************************************************)
 
+val side_effects_of_decl : AST.declaration -> (IdentSet.t * IdentSet.t * IdentSet.t * bool)
+
 (* `identify_impure_funs is_const isImpurePrim ds` returns the set of impure functions.
  * That is, functions that
  * - read or write non-constant globals

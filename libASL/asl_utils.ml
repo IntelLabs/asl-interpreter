@@ -775,6 +775,11 @@ class sideEffectClass =
       List.iter (fun v -> reads <- IdentSet.remove v reads) vs
   end
 
+let side_effects_of_decl (d : declaration) : (IdentSet.t * IdentSet.t * IdentSet.t * bool) =
+  let se = new sideEffectClass in
+  ignore (visit_decl (se :> aslVisitor) d);
+  se#sideEffects
+
 let identify_impure_funs (isConstant : ident -> bool)
     (isImpurePrim : ident -> bool) (ds : declaration list) : IdentSet.t =
   let is_impure_prim (d : declaration) : bool =
@@ -783,9 +788,7 @@ let identify_impure_funs (isConstant : ident -> bool)
     | _ -> false
   in
   let locally_impure (d : declaration) : bool =
-    let se = new sideEffectClass in
-    ignore (visit_decl (se :> aslVisitor) d);
-    let rds, wrs, callees, throws = se#sideEffects in
+    let (rds, wrs, callees, throws) = side_effects_of_decl d in
     let vrds = IdentSet.filter (fun v -> not (isConstant v)) rds in
     throws || (not (IdentSet.is_empty vrds)) || not (IdentSet.is_empty wrs)
   in
