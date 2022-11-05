@@ -586,23 +586,11 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
 
 (* List of primops that are 'unsafe' because of things like
  * - result doesn't just depend on arguments
- * - could perform division by zero (REVISIT)
  * - modifies global state
  * - writes to file/stdout/...
  *)
 let impure_prims =
   [
-    "zdiv_int";
-    "zrem_int";
-    "fdiv_int";
-    "frem_int";
-    "mod_pow2_int";
-    "align_int";
-    "pow2_int";
-    "pow_int_int";
-    "divide_real";
-    "pow2_real";
-    "sqrt_real";
     "ram_init";
     "ram_read";
     "ram_write";
