@@ -53,12 +53,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
         Printf.printf "Monomorphizing %s to %s\n" (AST.pprint_ident f)
           (AST.pprint_ident f');
 
-        let env = Xform_constprop.Env.newEnv genv in
-        List.iter2
-          (fun sz tv ->
-            Xform_constprop.Env.addLocalConst env tv
-              (Xform_constprop.Values.singleton (VInt sz)))
-          szs tvs;
+        let env = Xform_constprop.mkEnv genv (List.map2 (fun tv sz -> (tv, Value.VInt sz)) tvs szs) in
 
         match d with
         | Decl_FunDefn (f, ps, atys, rty, body, loc) ->

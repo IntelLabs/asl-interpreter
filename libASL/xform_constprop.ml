@@ -7,6 +7,7 @@
 
 (** ASL constant propagation transform *)
 
+module AST = Asl_ast
 open Asl_utils
 open AST
 open Utils
@@ -28,7 +29,6 @@ module Env : sig
   type t
 
   val globals : t -> Eval.GlobalEnv.t
-  val locals : t -> value ScopeStack.t
   val newEnv : Eval.GlobalEnv.t -> t
   val nest : t -> (t -> 'a) -> 'a
   val seq : (t -> 'a) -> (t -> 'b) -> t -> 'a * 'b
@@ -59,7 +59,6 @@ end = struct
     Printf.printf "return = %s\n" (Values.pp_abstract env.return_value)
 
   let globals (env : t) : Eval.GlobalEnv.t = env.globalConsts
-  let locals (env : t) : value ScopeStack.t = env.locals
 
   let newEnv (genv : Eval.GlobalEnv.t) =
     {
@@ -136,6 +135,11 @@ end = struct
   let setVar (env : t) (x : ident) (v : value) : unit =
     ignore (ScopeStack.set env.locals x v)
 end
+
+let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Concrete.value) list) : Env.t =
+  let env = Env.newEnv genv in
+  List.iter (fun (x, v) -> Env.addLocalConst env x (Values.singleton v)) values;
+  env
 
 let isConstant (x : expr) : bool =
   match x with
