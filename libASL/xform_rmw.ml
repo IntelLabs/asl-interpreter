@@ -7,9 +7,16 @@
 
 module AST = Asl_ast
 
+let getFunReturnType (d : AST.declaration) : AST.ty option =
+  match d with
+  | Decl_ArrayGetterDefn (f, ps, atys, rty, body, loc) -> Some rty
+  | Decl_FunDefn (f, ps, atys, rty, body, loc) -> Some rty
+  | Decl_VarGetterDefn (f, ps, rty, body, loc) -> Some rty
+  | _ -> None
+
 let rmwVariables = new Asl_utils.nameSupply "__rmw"
 
-class replaceRmwClass =
+class replaceRmwClass (ds : AST.declaration list) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
     val mutable le_vars : (AST.lexpr * AST.ident) list = []
@@ -29,8 +36,10 @@ class replaceRmwClass =
             let wrap_stmts (ss : AST.stmt list) = function
               | AST.LExpr_ReadWrite (f, g, tes, es), v ->
                   let e = AST.Expr_TApply (f, tes, es) in
+                  let fd = Option.get (Asl_utils.findFun f ds) in
+                  let rty = Option.get (getFunReturnType fd) in
                   let r =
-                    AST.Stmt_VarDecl (AST.DeclItem_Var (v, None), e, loc)
+                    AST.Stmt_VarDecl (AST.DeclItem_Var (v, Some rty), e, loc)
                   in
                   let w = AST.Stmt_TCall (g, tes, es @ [ Expr_Var v ], loc) in
                   [ r ] @ ss @ [ w ]
@@ -45,7 +54,7 @@ class replaceRmwClass =
   end
 
 let xform_decls (ds : AST.declaration list) : AST.declaration list =
-  let replacer = new replaceRmwClass in
+  let replacer = new replaceRmwClass ds in
   List.map (Asl_visitor.visit_decl (replacer :> Asl_visitor.aslVisitor)) ds
 
 (****************************************************************
