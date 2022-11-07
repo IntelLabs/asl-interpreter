@@ -5,16 +5,10 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
+open Test_utils
 open LibASL
 module TC = Tcheck
 module AST = Asl_ast
-
-let format_value f v = Format.fprintf f "%s" (Value.pp_value v)
-
-let format_expr (e : AST.expr) : string =
-  Utils.to_string2 (fun fmt -> Asl_fmt.expr fmt e)
-
-let value = Alcotest.testable format_value ( = )
 
 (* test that checks that an expression lexes, parses and typechecks *)
 let check_expr_tcheck (tcenv : TC.Env.t) (test_fmt : bool) (what : string)
@@ -23,18 +17,6 @@ let check_expr_tcheck (tcenv : TC.Env.t) (test_fmt : bool) (what : string)
   let e = LoadASL.read_expr tcenv loc input in
   if test_fmt then
     Alcotest.(check string) ("format " ^ what) input (format_expr e)
-
-let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) : (TC.Env.t * AST.declaration list) =
-  let globals = TC.GlobalEnv.clone globals in
-  let tcenv = TC.Env.mkEnv globals in
-  let ds = LoadASL.read_declarations globals declarations in
-  (tcenv, ds)
-
-let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
-  : (TC.Env.t * Eval.Env.t) =
-  let (tcenv, ds) = extend_tcenv globals decls in
-  let env = Eval.build_evaluation_environment (List.append prelude ds) in
-  (tcenv, env)
 
 (* simple test of static semantics: parsing and typechecking of correct expressions
  * and optionally checks that pretty-printing the AST produces exactly the input string
