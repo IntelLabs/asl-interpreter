@@ -141,7 +141,7 @@ let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Concrete.value) list) 
   List.iter (fun (x, v) -> Env.addLocalConst env x (Values.singleton v)) values;
   env
 
-let isConstant (x : expr) : bool =
+let isConstant (env : Env.t) (x : expr) : bool =
   match x with
   | Expr_LitInt _ -> true
   | Expr_LitHex _ -> true
@@ -149,6 +149,7 @@ let isConstant (x : expr) : bool =
   | Expr_LitBits _ -> true
   | Expr_LitMask _ -> true
   | Expr_LitString _ -> true
+  | Expr_Var v -> Option.is_some (Eval.GlobalEnv.getGlobalConstOpt (Env.globals env) v)
   | _ -> false
 
 let value_of_constant (x : expr) : Concrete.value option =
@@ -162,18 +163,15 @@ let value_of_constant (x : expr) : Concrete.value option =
   | _ -> None
 
 let expr_value (env : Env.t) (x : AST.expr) : Values.t =
-  if isConstant x then
+  if isConstant env x then
     let env0 = Eval.Env.newEnv (Env.globals env) in
     Values.singleton (Eval.eval_expr Unknown env0 x)
   else Values.bottom
 
 let rec value_to_expr (x : Concrete.value) : expr option =
   match x with
-  (*
-    todo
-    | VBool _ -> Expr_Var _
-    | VEnum _ -> Expr_Var _
-    *)
+  | VBool b -> Some (Expr_Var (Ident (if b then "TRUE" else "FALSE")))
+  | VEnum (v, _) -> Some (Expr_Var v)
   | VInt v -> Some (Expr_LitInt (Z.to_string v))
   | VBits v ->
       if v.n = 0 then Some (Expr_LitBits "")
@@ -237,8 +235,8 @@ class constEvalClass (env : Env.t) =
       | _ -> (
           try
             let eval (x : expr) : expr =
-              if isConstant x then x
-              else if isPure x && List.for_all isConstant (subexprs_of_expr x)
+              if isConstant env x then x
+              else if isPure x && List.for_all (isConstant env) (subexprs_of_expr x)
               then
                 let env0 = Env.to_concrete env in
                 let x' =
