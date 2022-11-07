@@ -17,20 +17,6 @@ open Asl_utils
 let const_int_expr (x : AST.expr) : Z.t option =
   match x with Expr_LitInt x -> Some (Z.of_string x) | _ -> None
 
-let rec getFun (f : AST.ident) (ds : AST.declaration list) :
-    AST.declaration option =
-  match ds with
-  | [] -> None
-  | (Decl_FunDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else getFun f ds'
-  | (Decl_ProcDefn (f', ps, atys, body, loc) as d) :: ds' ->
-      if f = f' then Some d else getFun f ds'
-  | (Decl_ArrayGetterDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else getFun f ds'
-  | (Decl_ArraySetterDefn (f', ps, atys, v, t, body, loc) as d) :: ds' ->
-      if f = f' then Some d else getFun f ds'
-  | _ :: ds' -> getFun f ds'
-
 module InstanceKey = struct
   type t = AST.ident * Z.t list
 
@@ -135,7 +121,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (getFun f ds) (fun d ->
+                (Option.bind (findFun f ds) (fun d ->
                      Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
@@ -152,7 +138,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (getFun f ds) (fun d ->
+                (Option.bind (findFun f ds) (fun d ->
                      Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
@@ -169,7 +155,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (getFun f ds) (fun d ->
+                (Option.bind (findFun f ds) (fun d ->
                      Option.bind (self#monomorphize genv f d sizes)
                        (fun f' ->
                          Some
