@@ -984,6 +984,10 @@ let rec findFun (f : AST.ident) (ds : AST.declaration list) :
       if f = f' then Some d else findFun f ds'
   | (Decl_ArraySetterDefn (f', ps, atys, v, t, body, loc) as d) :: ds' ->
       if f = f' then Some d else findFun f ds'
+  | (Decl_VarGetterDefn (f', ps, rty, body, loc) as d) :: ds' ->
+      if f = f' then Some d else findFun f ds'
+  | (Decl_VarSetterDefn (f', ps, v, t, body, loc) as d) :: ds' ->
+      if f = f' then Some d else findFun f ds'
   | _ :: ds' -> findFun f ds'
 
 (****************************************************************
