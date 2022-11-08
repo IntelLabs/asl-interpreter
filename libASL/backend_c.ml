@@ -537,7 +537,13 @@ let pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_LitBits l -> bitsLit fmt l
   | Pat_LitHex l -> hexLit fmt l
   | Pat_LitInt l -> intLit fmt l
-  | Pat_Const _ | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
+  | Pat_Const v ->
+      ( match v with
+      | Ident "TRUE" -> kw_true fmt
+      | Ident "FALSE" -> kw_false fmt
+      | _ -> varname fmt v
+      )
+  | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
   | Pat_Tuple _ | Pat_Wildcard ->
       raise
         (Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
