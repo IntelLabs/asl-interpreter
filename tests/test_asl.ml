@@ -236,6 +236,10 @@ let tests : unit Alcotest.test_case list =
       "func F() => (integer, integer) return (1,2); end
        func T() => integer let (x, y) = F(); return x + y; end"
       "T() == 3");
+    ("tuple transform (in getter)", `Quick, test_xform globals prelude Xform_tuples.xform_decls
+      "func F() => (integer, integer) return (1,2); end
+       getter T => integer let (x, y) = F(); return x + y; end"
+      "T == 3");
     ("getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
       "var i :: integer;
        getter G => integer return i; end

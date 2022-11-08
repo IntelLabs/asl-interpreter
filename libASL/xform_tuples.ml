@@ -76,7 +76,10 @@ let xform_decl (d : AST.declaration) : AST.declaration list =
       let d' = AST.Decl_FunDefn (f, ps, atys, rty', body', loc) in
       List.append tydecls [d']
 
-  | _ -> [ d ]
+  | _ ->
+      let replacer = new replaceTupleClass None in
+      let d' = Asl_visitor.visit_decl (replacer :> Asl_visitor.aslVisitor) d in
+      [d']
 
 let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.flatten (List.map xform_decl ds)
