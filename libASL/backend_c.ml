@@ -463,6 +463,7 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s :
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_Concat (ws, es) ->
+      assert (List.length ws == List.length es);
       let _, shifts =
         List.fold_right
           (fun w (acc, shifts) -> (acc + const_int_expr loc w, acc :: shifts))

@@ -190,10 +190,12 @@ let algebraic_simplifications (x : expr) : expr =
   (* [x, '', y] == [x,y] *)
   (* [] == '' *)
   | Expr_Concat (ws, xs) ->
-      let xs' =
-        List.filter (function Expr_LitBits "" -> false | _ -> true) xs
+      let (ws', xs') =
+        List.combine ws xs |>
+        List.filter (function (_, Expr_LitBits "") -> false | _ -> true) |>
+        List.split
       in
-      if xs' = [] then Expr_LitBits "" else Expr_Concat (ws, xs')
+      if xs' = [] then Expr_LitBits "" else Expr_Concat (ws', xs')
   (* '' : x == x == x : '' *)
   | Expr_TApply (FIdent ("append_bits", _), [ Expr_LitInt "0"; _ ], [ _; y ]) ->
       y
