@@ -206,6 +206,10 @@ let main () =
     if true then
       Utils.to_file "tmp.15.bittuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
+    let ds = Xform_case.xform_decls ds in
+    if true then
+      Utils.to_file "tmp.17.case.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
     let genv = Eval.build_constant_environment ds in
     let ds = CP.xform_decls genv ds in
 

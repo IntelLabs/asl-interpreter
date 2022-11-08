@@ -33,6 +33,7 @@
    value
    visitor
    xform_bittuples
+   xform_case
    xform_casesplit
    xform_constprop
    xform_getset
