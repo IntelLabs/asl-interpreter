@@ -153,6 +153,8 @@ let fn_slice_lowd (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd"
 let fn_slice_hilo (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo"
 let fn_slice_lowd_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd_w"
 let fn_slice_hilo_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo_w"
+let fn_fdiv_int (fmt : PP.formatter) : unit = keyword fmt "ASL_fdiv_int"
+let fn_frem_int (fmt : PP.formatter) : unit = keyword fmt "ASL_frem_int"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
@@ -334,6 +336,8 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
         (fun _ -> expr loc fmt x)
         (fun _ -> make_unop fmt (fun _ -> tilde fmt) (fun _ -> mask_int loc fmt y))
   | FIdent ("eq_int", _), _ -> binop loc fmt "==" args
+  | FIdent ("fdiv_int", _), _ -> apply loc fmt (fun _ -> fn_fdiv_int fmt) args
+  | FIdent ("frem_int", _), _ -> apply loc fmt (fun _ -> fn_frem_int fmt) args
   | FIdent ("ge_int", _), _ -> binop loc fmt ">=" args
   | FIdent ("gt_int", _), _ -> binop loc fmt ">" args
   | FIdent ("is_pow2_int", _), _ -> apply loc fmt (fun _ -> fn_is_pow2_int fmt) args
@@ -353,12 +357,6 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("sub_int", _), _ -> binop loc fmt "-" args
   | FIdent ("zdiv_int", _), _ -> binop loc fmt "/" args
   | FIdent ("zrem_int", _), _ -> binop loc fmt "%" args
-  | FIdent ("fdiv_int", _), _ | FIdent ("frem_int", _), _ ->
-      raise
-        (Unimplemented
-           ( loc,
-             "integer builtin function",
-             fun fmt -> FMTAST.funname fmt f ))
   (* Real builtin functions *)
   | FIdent ("add_real", _), _
   | FIdent ("cvt_int_real", _), _
