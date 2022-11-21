@@ -1,6 +1,7 @@
 (tests
  (names
   aslutils
+  bittuples
   constprop
   simplify_expr
   test_asl
