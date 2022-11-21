@@ -224,6 +224,8 @@ let ty (loc : AST.l) (fmt : PP.formatter) (x : AST.ty) : unit =
       match tc with
       | Ident "boolean" -> kw_bool fmt
       | Ident "string" ->
+          kw_const fmt;
+          nbsp fmt;
           kw_char fmt;
           nbsp fmt;
           star fmt
