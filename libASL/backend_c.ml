@@ -155,6 +155,7 @@ let fn_slice_lowd_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd_w"
 let fn_slice_hilo_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo_w"
 let fn_fdiv_int (fmt : PP.formatter) : unit = keyword fmt "ASL_fdiv_int"
 let fn_frem_int (fmt : PP.formatter) : unit = keyword fmt "ASL_frem_int"
+let fn_error_unmatched_case (fmt : PP.formatter) : unit = keyword fmt "ASL_error_unmatched_case"
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
@@ -693,20 +694,31 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                               semicolon fmt);
                           cut fmt))
                     alts;
-                  PP.pp_print_option
-                    (fun _ (b, bl) ->
-                      cut fmt;
-                      kw_default fmt;
-                      colon fmt;
-                      nbsp fmt;
-                      braces fmt (fun _ ->
-                          indented_block fmt b;
-                          indented fmt (fun _ ->
-                              kw_break fmt;
-                              semicolon fmt);
-                          cut fmt))
-                    fmt ob);
-              cut fmt))
+                  cut fmt;
+
+                  kw_default fmt;
+                  colon fmt;
+                  nbsp fmt;
+                  braces fmt (fun _ ->
+                    ( match ob with
+                    | Some (b, bl) ->
+                        indented_block fmt b;
+                        indented fmt (fun _ ->
+                          kw_break fmt;
+                          semicolon fmt
+                          )
+                    | None ->
+                        indented fmt (fun _ ->
+                          let loc_string = AST.Expr_LitString (String.escaped (AST.pp_loc loc)) in
+                          apply loc fmt (fun _ -> fn_error_unmatched_case fmt) [loc_string];
+                          semicolon fmt
+                        );
+                    );
+                    cut fmt
+                    )
+                );
+              cut fmt)
+      )
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
       assign loc fmt (fun _ -> varname fmt v) i
