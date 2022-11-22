@@ -50,6 +50,20 @@ ASL_slice_hilo(uint64_t x, int hi, int lo)
         return (x & ASL_mask(hi + 1)) >> lo;
 }
 
+static inline int64_t
+ASL_fdiv_int(int64_t x, int64_t y)
+{
+        const int64_t quot = x / y;
+        const int64_t rem = x % y;
+        return quot - (rem != 0 && quot < 0);
+}
+
+static inline int64_t
+ASL_frem_int(int64_t x, int64_t y)
+{
+        return x - ASL_fdiv_int(x, y) * y;
+}
+
 #ifdef __cplusplus
 }
 #endif
