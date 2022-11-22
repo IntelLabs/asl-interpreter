@@ -60,7 +60,7 @@ let main () =
     let keeps = List.map (fun r -> AST.Ident r) !keeps in
 
     if true then
-      Utils.to_file "tmp.init0.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.00.init0.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
     let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
     if ds = [] then failwith "Couldn't find any roots";
 
@@ -68,36 +68,36 @@ let main () =
       failwith "Output file not specified (use -o foo.v to specify)";
 
     if true then
-      Utils.to_file "tmp.init.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.10.init.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let genv = Eval.build_constant_environment ds in
     let ds = CP.xform_decls genv ds in
 
     if true then
-      Utils.to_file "tmp.constprop.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.20.constprop.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let ds = Xform_mono.monomorphize ds in
     if true then
-      Utils.to_file "tmp.mono.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.30.mono.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
     if ds = [] then failwith "Couldn't find any roots";
 
     let ds = Xform_mono.monomorphize ds in
     if true then
-      Utils.to_file "tmp.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let ds = Xform_getset.xform_decls ds in
     if true then
-      Utils.to_file "tmp.getset.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.50.getset.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let ds = Xform_rmw.xform_decls ds in
     if true then
-      Utils.to_file "tmp.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.60.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     let ds = Xform_tuples.xform_decls ds in
     if true then
-      Utils.to_file "tmp.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.70.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     Utils.to_file !output_file (fun fmt ->
         match !opt_backend with
