@@ -14,6 +14,8 @@ extern "C" {
 
 void ASL_error(const char* loc, const char* msg) __attribute__((__noreturn__));
 
+#define ASL_error_unmatched_case(loc) ASL_error(loc, "Unmatched case statement")
+
 #ifdef __cplusplus
 }
 #endif
