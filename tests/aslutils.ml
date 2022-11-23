@@ -140,12 +140,115 @@ let impure_function_tests : unit Alcotest.test_case list =
   ]
 
 (****************************************************************
+ * Test topological sort function `reach`
+ ****************************************************************)
+
+let test_reach
+    (check_order : bool)
+    (graph : (string * string list) list)
+    (roots : string list)
+    (expected : string list)
+    () : unit =
+  let to_ident (x : string) : AST.ident = Ident x in
+  let of_ident (x : AST.ident) : string = AST.pprint_ident x in
+
+  (* generate dependencies of a node *)
+  let next (x : AST.ident) : IdentSet.t =
+    let ys = List.assoc (of_ident x) graph in
+    List.map to_ident ys |> IdentSet.of_list
+  in
+  let result =
+    List.map to_ident roots
+    |> reach next 
+    |> List.map of_ident
+  in
+
+  if check_order then
+    Alcotest.check (Alcotest.list Alcotest.string) "sorted output" expected result
+  else
+    Alcotest.check (Alcotest.slist Alcotest.string String.compare)
+      "unsorted output" expected result
+
+let toposort_tests : unit Alcotest.test_case list =
+  (* example used by several tests *)
+  let total_order =
+    [ ("A", ["B"; "C"; "D"; "E"]);
+      ("B", ["C"; "D"; "E"]);
+      ("C", ["D"; "E"]);
+      ("D", ["E"]);
+      ("E", []);
+    ]
+  in
+  let diamond =
+    [ ("A", ["B"; "C"]);
+      ("B", ["D"]);
+      ("C", ["D"]);
+      ("D", []);
+    ]
+  in
+  let cycle = 
+    [ ("A", ["B"]);
+      ("B", ["C"]);
+      ("C", ["B"; "D"]);
+      ("D", []);
+    ]
+  in
+  [ ("linear1", `Quick, test_reach true total_order ["A"] ["A"; "B"; "C"; "D"; "E"]);
+    ("linear2", `Quick, test_reach true total_order ["C"] ["C"; "D"; "E"]);
+    ("linear3", `Quick, test_reach true total_order ["C"; "D"] ["C"; "D"; "E"]);
+    ("linear4", `Quick, test_reach true total_order ["D"; "C"] ["C"; "D"; "E"]);
+
+    ("diamond1", `Quick, test_reach true diamond ["B"] ["B"; "D"]);
+    (* Note that ABCD would also be correct in the following tests *)
+    ("diamond2", `Quick, test_reach true diamond ["A"] ["A"; "C"; "B"; "D"]);
+    ("diamond3", `Quick, test_reach true diamond ["A"; "B"] ["A"; "C"; "B"; "D"]);
+    ("diamond4", `Quick, test_reach true diamond ["B"; "A"] ["A"; "C"; "B"; "D"]);
+
+    ("cycle1", `Quick, test_reach false cycle ["A"] ["A"; "B"; "C"; "D"]);
+    ("cycle2", `Quick, test_reach false cycle ["B"] ["B"; "C"; "D"]);
+    ("cycle3", `Quick, test_reach false cycle ["C"] ["C"; "B"; "D"]);
+  ]
+
+(****************************************************************
+ * Test reachable_decls
+ ****************************************************************)
+
+let test_reachable_decls (globals : TC.GlobalEnv.t)
+    (prelude : AST.declaration list) (decls : string) (roots : string list)
+    (expected : string list) () : unit =
+  let roots = List.map (fun f -> AST.FIdent (f, 0)) roots in
+  let tcenv, ds = extend_tcenv globals decls in
+  let ds = List.append prelude ds in
+  let reachable : AST.declaration list = reachable_decls roots ds in
+  let reachable : string list =
+    List.map AST.pprint_ident (List.filter_map decl_name reachable)
+  in
+
+  Alcotest.(check (list string)) "sorted declarations" expected reachable
+
+let reachable_decls_tests : unit Alcotest.test_case list =
+  let paths = [ "../../.." ] in
+  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let globals = TC.env0 in
+  [
+    ("diamond graph", `Quick, test_reachable_decls globals prelude
+       "var X :: integer;
+        func Read() => integer return X; end
+        func Write(x :: integer) X = x; end
+        func T() var x = Read(); Write(x); end"
+       ["T"] ["T.0"; "Write.0"; "Read.0"; "X"]
+    );
+  ]
+
+(****************************************************************
  * Main test harness
  ****************************************************************)
 
 let () = Alcotest.run "asl_utils" [
     ("side_effects", side_effect_tests);
     ("impure_functions", impure_function_tests);
+    ("topological_sort", toposort_tests);
+    ("reachable_decls", reachable_decls_tests);
   ]
 
 (****************************************************************
