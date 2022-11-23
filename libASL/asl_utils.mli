@@ -207,14 +207,37 @@ val memoize : AST.ident list -> (AST.ident -> IdentSet.t) -> IdentSet.t Bindings
 (* construct map of Union { f x -> x | for x in xs } *)
 val rev_memoize : AST.ident list -> (AST.ident -> IdentSet.t) -> IdentSet.t Bindings.t
 
-(* topologically sorted list of objects reachable from roots *)
+(* Generate list of objects reachable from roots
+ *
+ * If the graph is acyclic, the resulting list will be
+ * sorted in topological order such that 'x' occurs before 'y'
+ * in the result if 'y' is transitively reachable from 'x'.
+ * (Note that this is the reverse of the order that is
+ * needed for code generation.)
+ *
+ * If the graph is cyclic, there are no ordering guarantees.
+ *)
 val reach : (AST.ident -> IdentSet.t) -> AST.ident list -> AST.ident list
 
 (* f (find x bs) if x in bs, empty otherwise *)
 val bindings_to_function : 'a Bindings.t -> ('a -> IdentSet.t) -> AST.ident -> IdentSet.t
 
-(* Result is topologically sorted list of everything reachable from roots *)
+(* Generate list of declarations reachable from roots
+ *
+ * If the graph is acyclic, the resulting list will be
+ * sorted in topological order such that 'x' occurs before 'y'
+ * in the result if 'y' is transitively reachable from 'x'.
+ * (Note that this is the reverse of the order that is
+ * needed for code generation.)
+ *
+ * If the graph is cyclic, there are no ordering guarantees.
+ *)
 val reachable_decls : AST.ident list -> AST.declaration list -> AST.declaration list
+
+(* Topological sort of declarations
+ * The declarations should be acyclic
+ *)
+val topological_sort : AST.declaration list -> AST.declaration list
 
 val callers : AST.ident list -> AST.declaration list -> IdentSet.t
 

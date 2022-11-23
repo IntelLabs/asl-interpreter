@@ -676,21 +676,30 @@ let rev_memoize (xs : ident list) (f : ident -> IdentSet.t) :
     xs;
   !results
 
-(* topologically sorted list of objects reachable from roots *)
+(* Generate list of objects reachable from roots
+ *
+ * If the graph is acyclic, the resulting list will be
+ * sorted in topological order such that 'x' occurs before 'y'
+ * in the result if 'y' is transitively reachable from 'x'.
+ * (Note that this is the reverse of the order that is
+ * needed for code generation.)
+ *
+ * If the graph is cyclic, there are no ordering guarantees.
+ *)
 let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
   let result : ident list ref = ref [] in
-  let seen : IdentSet.t ref = ref IdentSet.empty in
-  let rec visit (ls : ident list) : unit =
-    match ls with
-    | [] -> ()
-    | h :: t when IdentSet.mem h !seen -> visit t
-    | h :: t ->
-        seen := IdentSet.add h !seen;
-        result := h :: !result;
-        visit (IdentSet.elements (next h) @ t)
+  let visited = ref IdentSet.empty in
+
+  let rec dfs (x : ident) : unit =
+    if not (IdentSet.mem x !visited) then begin
+      visited := IdentSet.add x !visited;
+      IdentSet.iter dfs (next x);
+      result := x :: !result
+    end
   in
-  visit roots;
-  List.rev !result
+
+  List.iter dfs roots;
+  !result
 
 (* f (find x bs) if x in bs, empty otherwise *)
 let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
@@ -699,7 +708,16 @@ let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
     (Option.map f (Bindings.find_opt x bs))
     ~default:IdentSet.empty
 
-(* Result is topologically sorted list of everything reachable from roots *)
+(* Generate list of declarations reachable from roots
+ *
+ * If the graph is acyclic, the resulting list will be
+ * sorted in topological order such that 'x' occurs before 'y'
+ * in the result if 'y' is transitively reachable from 'x'.
+ * (Note that this is the reverse of the order that is
+ * needed for code generation.)
+ *
+ * If the graph is cyclic, there are no ordering guarantees.
+ *)
 let reachable_decls (roots : ident list) (ds : declaration list) :
     declaration list =
   let next (d : declaration) : IdentSet.t =
@@ -713,9 +731,15 @@ let reachable_decls (roots : ident list) (ds : declaration list) :
 
   let decls = decl_map_of ds in
   let reachable = reach (bindings_to_function decls next) roots in
-  (* List.iter (fun r -> Printf.printf "%s\n" (pprint_ident r)) reachable; *)
-  let r = Utils.flatmap_option (fun x -> Bindings.find_opt x decls) reachable in
-  List.rev r
+  Utils.flatmap_option (fun x -> Bindings.find_opt x decls) reachable
+
+(* Topological sort of declarations
+ *
+ * The declarations should be acyclic
+ *)
+let topological_sort (ds : declaration list) : declaration list =
+  let roots = Utils.flatmap_option decl_name ds in
+  reachable_decls roots ds
 
 let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
   let next (d : declaration) : IdentSet.t =
