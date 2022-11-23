@@ -12,6 +12,137 @@ module AST = Asl_ast
 module CP = Xform_constprop
 module ASL_FMT = Asl_fmt
 
+(****************************************************************
+ * C backend support
+ *
+ * The C backend generates separate files containing
+ * - types, constants and function prototypes
+ * - variable definitions
+ * - function definitions
+ * These functions split the list of ASL declarations into
+ * these separate groups of declarations.
+ ****************************************************************)
+
+let rec type_decls (xs : AST.declaration list) : AST.declaration list =
+  let mk_type_decl (x : AST.declaration) : AST.declaration option =
+    ( match x with
+    | Decl_Const _
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _ -> Some x
+    | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
+    | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+
+    | Decl_Var _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_NewEventDefn _
+    | Decl_EventClause _
+    | Decl_NewMapDefn _
+    | Decl_MapClause _
+    | Decl_Config _
+      -> None
+    )
+  in
+  Utils.flatmap_option mk_type_decl xs
+
+let rec var_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_var_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_Var _
+      -> true
+
+    | Decl_Const _
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_NewEventDefn _
+    | Decl_EventClause _
+    | Decl_NewMapDefn _
+    | Decl_MapClause _
+    | Decl_Config _
+      -> false
+    )
+  in
+  List.filter is_var_decl xs
+
+let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_fun_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+      -> true
+
+    | Decl_Var _
+    | Decl_Const _
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_NewEventDefn _
+    | Decl_EventClause _
+    | Decl_NewMapDefn _
+    | Decl_MapClause _
+    | Decl_Config _
+      -> false
+    )
+  in
+  List.filter is_fun_decl xs
+
+(* Generate code for declarations *)
+let emit_c_code (filename : string) (ds : AST.declaration list) : unit =
+  Utils.to_file filename (fun fmt ->
+    Backend_c.declarations fmt ds
+  )
+
+(****************************************************************
+ * Application
+ ****************************************************************)
+
 type backend = Backend_C | Backend_Verilog
 
 let opt_filenames : string list ref = ref []
