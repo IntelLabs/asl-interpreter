@@ -32,6 +32,7 @@
    utils
    value
    visitor
+   xform_bitslices
    xform_bittuples
    xform_case
    xform_casesplit

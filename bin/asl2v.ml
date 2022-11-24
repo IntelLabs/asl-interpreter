@@ -227,6 +227,10 @@ let main () =
     if true then
       Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
+    let ds = Xform_bitslices.xform_decls ds in
+    if true then
+      Utils.to_file "tmp.43.bitslices.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
     let ds = Xform_tuples.xform_decls ds in
     if true then
       Utils.to_file "tmp.45.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
