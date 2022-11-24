@@ -1031,16 +1031,38 @@ let mk_in_mask (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   mk_binop "in_mask" [w] x y
 
 (** Construct "and_bits{N}(x, y)" *)
-let mk_and_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "and_bits" [n] x y
+let mk_and_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  ( match (x, y) with
+  | (Expr_TApply (FIdent ("ones_bits", _), _, _), _) -> y
+  | (_, Expr_TApply (FIdent ("ones_bits", _), _, _)) -> x
+  | _ -> mk_binop "and_bits" [n] x y
+  )
 
 (** Construct "or_bits{N}(x, y)" *)
-let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "or_bits" [n] x y
+let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  ( match (x, y) with
+  | (Expr_TApply (FIdent ("zeros_bits", _), _, _), _) -> y
+  | (_, Expr_TApply (FIdent ("zeros_bits", _), _, _)) -> x
+  | _ -> mk_binop "or_bits" [n] x y
+  )
 
 (** Construct "shr_bits{N}(x, y)" *)
-let mk_shr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "shr_bits" [n] x y
+let mk_shr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  if y = zero then
+    x
+  else
+    mk_binop "shr_bits" [n] x y
 
 (** Construct "shl_bits{N}(x, y)" *)
-let mk_shl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "shl_bits" [n] x y
+let mk_shl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  if y = zero then
+    x
+  else
+    mk_binop "shl_bits" [n] x y
+
+(** Construct "zeros_bits{N}(N)" *)
+let mk_zero_bits (n : AST.expr) : AST.expr =
+  mk_unop "zeros_bits" [n] n 
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
@@ -1050,13 +1072,12 @@ let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) 
 let mk_int_select (w : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
   Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ])
 
-(** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
+(** Construct "ZeroExtend{w,n}(x, w)" *)
 let mk_zero_extend (w : AST.expr) (n : AST.expr) (x : AST.expr) =
-  Expr_TApply (FIdent ("asl_zero_extend", 0), [ w; n ], [])
-
-(** Construct "asl_mk_mask{w, n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
-let mk_mask (w : AST.expr) (n : AST.expr) =
-  Expr_TApply (FIdent ("asl_mk_mask", 0), [ w; n ], [])
+  if w = n then
+    x
+  else
+    Expr_TApply (FIdent ("ZeroExtend", 0), [w; n], [x; w])
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =
