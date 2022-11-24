@@ -143,14 +143,8 @@ let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Concrete.value) list) 
 
 let isConstant (env : Env.t) (x : expr) : bool =
   match x with
-  | Expr_LitInt _ -> true
-  | Expr_LitHex _ -> true
-  | Expr_LitReal _ -> true
-  | Expr_LitBits _ -> true
-  | Expr_LitMask _ -> true
-  | Expr_LitString _ -> true
   | Expr_Var v -> Option.is_some (Eval.GlobalEnv.getGlobalConstOpt (Env.globals env) v)
-  | _ -> false
+  | _ -> Asl_utils.is_literal_constant x
 
 let value_of_constant (x : expr) : Concrete.value option =
   match x with
@@ -172,7 +166,7 @@ let rec value_to_expr (x : Concrete.value) : expr option =
   match x with
   | VBool b -> Some (Expr_Var (Ident (if b then "TRUE" else "FALSE")))
   | VEnum (v, _) -> Some (Expr_Var v)
-  | VInt v -> Some (Expr_LitInt (Z.to_string v))
+  | VInt v -> Some (Asl_utils.mk_litbigint v)
   | VBits v ->
       if v.n = 0 then Some (Expr_LitBits "")
       else

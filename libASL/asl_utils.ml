@@ -948,6 +948,132 @@ let pp_lexpr (x : lexpr) : string = Utils.to_string2 (Fun.flip FMT.lexpr x)
 let pp_stmt (x : stmt) : string = Utils.to_string2 (Fun.flip FMT.stmt x)
 
 (****************************************************************)
+(** {2 AST expression constructors}                             *)
+(****************************************************************)
+
+let type_unit = Type_Tuple []
+let type_integer = Type_Integer None
+let type_bool = Type_Constructor (Ident "boolean")
+let type_real = Type_Constructor (Ident "real")
+let type_string = Type_Constructor (Ident "string")
+let type_bits (n : expr) = Type_Bits n
+let type_exn = Type_Constructor (Ident "__Exception")
+
+let mk_enum (nm : string) : AST.expr = AST.Expr_Var (Ident nm)
+
+let asl_false = mk_enum "FALSE"
+let asl_true = mk_enum "TRUE"
+
+let mk_litint (x : int) : AST.expr = Expr_LitInt (string_of_int x)
+let mk_litbigint (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x)
+
+let zero = Expr_LitInt "0"
+let one = Expr_LitInt "1"
+let two = Expr_LitInt "2"
+
+let mk_unop (op : string) (tys : AST.expr list) (x : AST.expr) : AST.expr =
+  Expr_TApply (FIdent (op, 0), tys, [x])
+
+let mk_binop (op : string) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
+  Expr_TApply (FIdent (op, 0), tys, [x; y])
+
+(** Construct "x && y" *)
+let mk_and (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = asl_false then asl_false
+  else if x = asl_true then y
+  else if y = asl_true then x
+  else mk_binop "and_bool" [] x y
+
+(** Construct "x || y" *)
+let mk_or (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = asl_true then asl_true
+  else if x = asl_false then y
+  else if y = asl_false then x
+  else mk_binop "or_bool" [] x y
+
+(** Construct "eq_enum(x, y)" *)
+let mk_eq_enum (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "eq_enum" [] x y
+
+(** Construct "eq_int(x, y)" *)
+let mk_eq_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "eq_int" [] x y
+
+(** Construct "le_int(x, y)" *)
+let mk_le_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "le_int" [] x y
+
+(** Construct "add_int(x, y)" *)
+let mk_add_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = zero then y
+  else if y = zero then x
+  else mk_binop "add_int" [] x y
+
+(** Construct "sub_int(x, y)" *)
+let mk_sub_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if y = zero then x
+  else mk_binop "sub_int" [] x y
+
+(** Construct "neg_int(x)" *)
+let mk_neg_int (x : AST.expr) : AST.expr =
+  mk_unop "neg_int" [] x
+
+(** Construct "mul_int(x, y)" *)
+let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = one then y
+  else if y = one then x
+  else mk_binop "mul_int" [] x y
+
+(** Construct "eq_bits{w}(x, y)" *)
+let mk_eq_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "eq_bits" [w] x y
+
+(** Construct "in_mask{w}(x, y)" *)
+let mk_in_mask (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "in_mask" [w] x y
+
+(** Construct "and_bits{N}(x, y)" *)
+let mk_and_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "and_bits" [n] x y
+
+(** Construct "or_bits{N}(x, y)" *)
+let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "or_bits" [n] x y
+
+(** Construct "shr_bits{N}(x, y)" *)
+let mk_shr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "shr_bits" [n] x y
+
+(** Construct "shl_bits{N}(x, y)" *)
+let mk_shl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "shl_bits" [n] x y
+
+(** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
+let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
+  Expr_TApply (FIdent ("asl_extract_bits", 0), [ w; n ], [ x; lo; w ])
+
+(** Construct "asl_extract_int{w}(x, lo, w)" *)
+let mk_int_select (w : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
+  Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ])
+
+(** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
+let mk_zero_extend (w : AST.expr) (n : AST.expr) (x : AST.expr) =
+  Expr_TApply (FIdent ("asl_zero_extend", 0), [ w; n ], [])
+
+(** Construct "asl_mk_mask{w, n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
+let mk_mask (w : AST.expr) (n : AST.expr) =
+  Expr_TApply (FIdent ("asl_mk_mask", 0), [ w; n ], [])
+
+(** Construct "(0 + x1) + ... + xn" *)
+let mk_add_ints (xs : AST.expr list) : AST.expr =
+  List.fold_left mk_add_int zero xs
+
+(** Construct "(z * x1) * ... * xn" *)
+let mk_mul_ints (z : AST.expr) (xs : AST.expr list) : AST.expr =
+  List.fold_left mk_mul_int z xs
+
+(** Construct "(TRUE && x1) && ... && xn" *)
+let mk_ands (xs : AST.expr list) : AST.expr =
+  List.fold_left mk_and asl_true xs
+
+(** Construct "(FALSE || x1) || ... || xn" *)
+let mk_ors  (xs : AST.expr list) : AST.expr =
+  List.fold_left mk_or asl_false xs
+
+(****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)
 
@@ -961,6 +1087,9 @@ let masklength (x : string) : int =
   String.iter (function ' ' -> () | _ -> r := !r + 1) x;
   !r
 
+let masklength_expr (x : string) : AST.expr =
+  mk_litint (masklength x)
+
 (** Test whether a function returns a tuple (of 2 or more elements). *)
 let isTupleType (t : AST.ty) : bool =
   match t with
@@ -972,6 +1101,18 @@ let tupleTypes (t : AST.ty) : AST.ty list =
   match t with
   | AST.Type_Tuple ts -> ts
   | _ -> [t]
+
+(** Is an expression a literal constant? *)
+let is_literal_constant (x : expr) : bool =
+  ( match x with
+  | Expr_LitInt _ -> true
+  | Expr_LitHex _ -> true
+  | Expr_LitReal _ -> true
+  | Expr_LitBits _ -> true
+  | Expr_LitMask _ -> true
+  | Expr_LitString _ -> true
+  | _ -> false
+  )
 
 (** Find subprogram (function, procedure, getters and setters)
     definition by an identifier *)

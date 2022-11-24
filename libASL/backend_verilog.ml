@@ -138,10 +138,6 @@ let fn_write (fmt : PP.formatter) : unit = keyword fmt "$write"
 let fn_typeof (fmt : PP.formatter) : unit = keyword fmt "$typeof"
 let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 
-(* ASL symbols : todo - this is a hacky, unreliable way of referring to them *)
-let asl_false = AST.Expr_Var (Ident "FALSE")
-let asl_true = AST.Expr_Var (Ident "TRUE")
-
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
@@ -339,10 +335,10 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
   | FIdent ("eq_bool", _), _ -> binop fmt "==" args
   | FIdent ("ne_bool", _), _ -> binop fmt "!=" args
   | FIdent ("not_bool", _), _ -> unop fmt "!" args
-  | FIdent ("and_bool", _), [ x; y ] -> cond fmt x y asl_false
-  | FIdent ("or_bool", _), [ x; y ] -> cond fmt x asl_true y
+  | FIdent ("and_bool", _), [ x; y ] -> cond fmt x y Asl_utils.asl_false
+  | FIdent ("or_bool", _), [ x; y ] -> cond fmt x Asl_utils.asl_true y
   | FIdent ("equiv_bool", _), _ -> binop fmt "==" args
-  | FIdent ("implies_bool", _), [ x; y ] -> cond fmt x y asl_true
+  | FIdent ("implies_bool", _), [ x; y ] -> cond fmt x y Asl_utils.asl_true
   | FIdent ("eq_int", _), _ -> binop fmt "==" args
   | FIdent ("ne_int", _), _ -> binop fmt "!=" args
   | FIdent ("gt_int", _), _ -> binop fmt ">" args

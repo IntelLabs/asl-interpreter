@@ -300,6 +300,97 @@ val pp_lexpr : AST.lexpr -> string
 val pp_stmt : AST.stmt -> string
 
 (****************************************************************)
+(** {2 AST expression constructors}                             *)
+(****************************************************************)
+
+val type_unit : AST.ty
+val type_integer : AST.ty
+val type_bool : AST.ty
+val type_real : AST.ty
+val type_string : AST.ty
+val type_bits : AST.expr -> AST.ty
+val type_exn : AST.ty
+
+val asl_false : AST.expr
+val asl_true : AST.expr
+
+val mk_litint : int -> AST.expr
+val mk_litbigint : Z.t -> AST.expr
+
+val zero : AST.expr
+val one : AST.expr
+val two : AST.expr
+
+(** Construct "x && y" *)
+val mk_and : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "x || y" *)
+val mk_or : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "eq_enum(x, y)" *)
+val mk_eq_enum : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "eq_int(x, y)" *)
+val mk_eq_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "le_int(x, y)" *)
+val mk_le_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "add_int(x, y)" *)
+val mk_add_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "sub_int(x, y)" *)
+val mk_sub_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "neg_int(x, y)" *)
+val mk_neg_int : AST.expr -> AST.expr
+
+(** Construct "mul_int(x, y)" *)
+val mk_mul_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "eq_bits{w}(x, y)" *)
+val mk_eq_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "in_mask{w}(x, y)" *)
+val mk_in_mask : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "and_bits{N}(x, y)" *)
+val mk_and_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "or_bits{N}(x, y)" *)
+val mk_or_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "shr_bits{N}(x, y)" *)
+val mk_shr_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "shl_bits{N}(x, y)" *)
+val mk_shl_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
+val mk_bits_select : AST.expr -> AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "asl_extract_int{w}(x, lo, w)" *)
+val mk_int_select : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
+val mk_zero_extend : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "asl_mk_mask{w, n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
+val mk_mask : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "(0 + x1) + ... + xn" *)
+val mk_add_ints : AST.expr list -> AST.expr
+
+(** Construct "(z + x1) + ... + xn" *)
+val mk_mul_ints : AST.expr -> AST.expr list -> AST.expr
+
+(** Construct "(TRUE && x1) && ... && xn" *)
+val mk_ands : AST.expr list -> AST.expr
+
+(** Construct "(FALSE || x1) || ... || xn" *)
+val mk_ors : AST.expr list -> AST.expr
+
+(****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)
 
@@ -309,6 +400,11 @@ val pp_stmt : AST.stmt -> string
     do not count towards the length of the literal.
  *)
 val masklength : string -> int
+
+val masklength_expr : string -> AST.expr
+
+(** Is an expression a literal constant? *)
+val is_literal_constant : AST.expr -> bool
 
 (** Test whether a function returns a tuple (of 2 or more elements). *)
 val isTupleType : AST.ty -> bool

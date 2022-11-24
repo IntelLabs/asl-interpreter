@@ -326,7 +326,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("eq_bool", _), _ | FIdent ("equiv_bool", _), _ ->
       binop loc fmt "==" args
   | FIdent ("implies_bool", _), [ x; y ] ->
-      cond loc fmt x y (AST.Expr_Var (Ident "TRUE"))
+      cond loc fmt x y Asl_utils.asl_true
   | FIdent ("ne_bool", _), _ -> binop loc fmt "!=" args
   | FIdent ("not_bool", _), _ -> unop loc fmt "!" args
   | FIdent ("or_bool", _), _ -> binop loc fmt "||" args
@@ -448,7 +448,7 @@ and slice (loc : AST.l) (fmt : PP.formatter) (e : AST.expr) (s : AST.slice) : un
   | Slice_HiLo (hi, lo) -> apply loc fmt (fun _ -> fn_slice_hilo fmt) [ e; hi; lo ]
   | Slice_LoWd (lo, wd) -> apply loc fmt (fun _ -> fn_slice_lowd fmt) [ e; lo; wd ]
   | Slice_Single lo ->
-      apply loc fmt (fun _ -> fn_slice_lowd fmt) [ e; lo; Expr_LitInt "1" ]
+      apply loc fmt (fun _ -> fn_slice_lowd fmt) [ e; lo; Asl_utils.one ]
 
 and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s : AST.slice) :
     unit =
@@ -458,7 +458,7 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s :
   | Slice_LoWd (lo, wd) ->
       apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
   | Slice_Single lo ->
-      apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; Expr_LitInt "1" ]
+      apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; Asl_utils.one ]
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with

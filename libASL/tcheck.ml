@@ -34,34 +34,6 @@ exception InternalError of string (* internal invariants have been broken *)
 (** {3 AST construction utilities}                              *)
 (****************************************************************)
 
-(* todo: given the function/procedure distinction, it is not clear
- * that we need type_unit
- *)
-let type_unit = Type_Tuple []
-let type_integer = Type_Integer None
-let type_bool = Type_Constructor (Ident "boolean")
-let type_real = Type_Constructor (Ident "real")
-let type_string = Type_Constructor (Ident "string")
-let type_bits (n : expr) = Type_Bits n
-let type_exn = Type_Constructor (Ident "__Exception")
-let type_bitsK (k : intLit) : AST.ty = type_bits (Expr_LitInt k)
-
-(** Construct expression "eq_int(x, y)" *)
-let mk_eq_int (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("eq_int", 0), [], [ x; y ])
-
-(** Construct expression "add_int(x, y)" *)
-let mk_add_int (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("add_int", 0), [], [ x; y ])
-
-(** Construct expression "sub_int(x, y)" *)
-let mk_sub_int (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("sub_int", 0), [], [ x; y ])
-
-(** Construct expression "(0 + x1) + ... + xn" *)
-let mk_add_ints (xs : AST.expr list) : AST.expr =
-  List.fold_left mk_add_int (Expr_LitInt "0") xs
-
 let mk_concat_ty (x : AST.ty) (y : AST.ty) : AST.ty =
   match (x, y) with
   | Type_Bits e1, Type_Bits e2 -> type_bits (mk_add_int e1 e2)
@@ -71,19 +43,10 @@ let mk_concat_ty (x : AST.ty) (y : AST.ty) : AST.ty =
       raise (InternalError "mk_concat_ty")
 
 let mk_concat_tys (xs : AST.ty list) : AST.ty =
-  List.fold_left mk_concat_ty (type_bitsK "0") xs
+  List.fold_left mk_concat_ty (type_bits zero) xs
 
 let width_of_type (ty : AST.ty) : AST.expr =
   match ty with Type_Bits n -> n | _ -> raise (InternalError "width_of_type")
-
-let one = Expr_LitInt "1"
-
-let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr)
-    : AST.expr =
-  Expr_TApply (FIdent ("asl_extract_bits", 0), [ w; n ], [ x; lo; w ])
-
-let mk_int_select (w : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ])
 
 (* Lower bit slice expression *)
 let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
@@ -119,8 +82,8 @@ let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
 
 let slice_width (x : AST.slice) : AST.expr =
   match x with
-  | Slice_Single e -> Expr_LitInt "1"
-  | Slice_HiLo (hi, lo) -> mk_add_int (mk_sub_int hi lo) (Expr_LitInt "1")
+  | Slice_Single e -> one
+  | Slice_HiLo (hi, lo) -> mk_add_int (mk_sub_int hi lo) one
   | Slice_LoWd (lo, wd) -> wd
 
 let slices_width (xs : AST.slice list) : AST.expr =
@@ -671,7 +634,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
           Expr_TApply (FIdent ("fdiv_int", _), [], [ a1; b1 ]);
           Expr_TApply (FIdent ("fdiv_int", _), [], [ a2; b2 ]);
         ] )
-    when a1 = a2 && b1 = b2 && b1 = Expr_LitInt "2" ->
+    when a1 = a2 && b1 = b2 && b1 = two ->
       z3_of_expr ctx ufs a1
   | Expr_TApply
       ( FIdent ("eq_int", _),
@@ -1296,10 +1259,10 @@ and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
       check_type_exact env loc ty type_integer;
       Pat_LitHex l
   | Pat_LitBits l ->
-      check_type_exact env loc ty (type_bitsK (string_of_int (masklength l)));
+      check_type_exact env loc ty (type_bits (masklength_expr l));
       Pat_LitBits l
   | Pat_LitMask l ->
-      check_type_exact env loc ty (type_bitsK (string_of_int (masklength l)));
+      check_type_exact env loc ty (type_bits (masklength_expr l));
       Pat_LitMask l
   | Pat_Const l ->
       let c, cty = check_var env loc l in
@@ -1514,7 +1477,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
   | Expr_LitInt i -> (Expr_LitInt i, type_integer)
   | Expr_LitHex i -> (Expr_LitHex i, type_integer)
   | Expr_LitReal r -> (Expr_LitReal r, type_real)
-  | Expr_LitBits b -> (Expr_LitBits b, type_bitsK (string_of_int (masklength b)))
+  | Expr_LitBits b -> (Expr_LitBits b, type_bits (masklength_expr b))
   | Expr_LitMask b ->
       (* todo: this case only exists because of the (bad) sugar of
        * writing "x == '0x'" instead of "x IN '0x'"
