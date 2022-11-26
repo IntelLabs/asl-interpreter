@@ -16,6 +16,7 @@ val tycon : formatter -> AST.ident -> unit
 val varname : formatter -> AST.ident -> unit
 val funname : formatter -> AST.ident -> unit
 val fieldname : formatter -> AST.ident -> unit
+val varnames : formatter -> AST.ident list -> unit
 val unop : formatter -> AST.unop -> unit
 val binop : formatter -> AST.binop -> unit
 val ty : formatter -> AST.ty -> unit

@@ -1,5 +1,12 @@
 (tests
- (names aslutils constprop test_asl test_backend test_loadasl test_utils)
+ (names
+  aslutils
+  constprop
+  simplify_expr
+  test_asl
+  test_backend
+  test_loadasl
+  test_utils)
  (modes exe)
  (flags
   (-cclib -lstdc++))

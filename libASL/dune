@@ -37,5 +37,6 @@
    xform_getset
    xform_mono
    xform_rmw
+   xform_simplify_expr
    xform_tuples)
  (libraries ocolor pprint zarith z3))

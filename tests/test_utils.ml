@@ -15,10 +15,12 @@ module AST = Asl_ast
 
 let format_value f v = Format.fprintf f "%s" (Value.pp_value v)
 
+let value = Alcotest.testable format_value ( = )
+
+let expr = Alcotest.testable Asl_fmt.expr (=)
+
 let format_expr (e : AST.expr) : string =
   Utils.to_string2 (fun fmt -> Asl_fmt.expr fmt e)
-
-let value = Alcotest.testable format_value ( = )
 
 (****************************************************************
  * support code for parsing, typechecking and building environments
