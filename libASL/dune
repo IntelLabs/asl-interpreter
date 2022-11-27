@@ -9,8 +9,33 @@
  (public_name asli.libASL)
  (flags
   (:standard -w -27 -cclib -lstdc++))
- (modules asl_ast asl_fmt asl_parser asl_utils asl_visitor backend_c
-   backend_verilog cpu elf error eval flags format_utils lattice lexer lexersupport
-   loadASL primops tcheck utils value visitor
-   xform_casesplit xform_constprop xform_mono xform_tuples xform_getset xform_rmw)
+  (modules
+   asl_ast
+   asl_fmt
+   asl_parser
+   asl_utils
+   asl_visitor
+   backend_c
+   backend_verilog
+   cpu
+   elf
+   error
+   eval
+   flags
+   format_utils
+   lattice
+   lexer
+   lexersupport
+   loadASL
+   primops
+   tcheck
+   utils
+   value
+   visitor
+   xform_casesplit
+   xform_constprop
+   xform_getset
+   xform_mono
+   xform_rmw
+   xform_tuples)
  (libraries ocolor pprint zarith z3))
