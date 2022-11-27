@@ -202,6 +202,8 @@ let test_cases (decls : AST.declaration list -> unit)
 let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
     unit =
+  check_declaration tcenv decls ext "expression (IN mask)"
+    "func F(x :: bits(4)) => boolean return x IN '11xx'; end";
   check_declaration tcenv decls ext "statement (for, direction to)"
     "func F() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls ext "statement (for, direction downto)"

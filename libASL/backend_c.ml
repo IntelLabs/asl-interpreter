@@ -516,6 +516,25 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
+  | Expr_In (e, Pat_LitMask x) ->
+      let x' = Value.drop_chars x ' ' in
+      let v = String.map (function 'x' -> '0' | c -> c) x' in
+      let m = String.map (function 'x' -> '0' | c -> '1') x' in
+      let v = Z.format "%#x" (Z.of_string_base 2 v) in
+      let m = Z.format "%#x" (Z.of_string_base 2 m) in
+      parens fmt (fun _ ->
+          parens fmt (fun _ ->
+              expr loc fmt e;
+              nbsp fmt;
+              amp fmt;
+              nbsp fmt;
+              constant fmt m
+            );
+          nbsp fmt;
+          eq_eq fmt;
+          nbsp fmt;
+          constant fmt v
+        )
   | Expr_AsConstraint _
   | Expr_AsType _
   | Expr_Binop _
