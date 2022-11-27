@@ -34,19 +34,12 @@ exception InternalError of string (* internal invariants have been broken *)
 (** {3 AST construction utilities}                              *)
 (****************************************************************)
 
-let mk_concat_ty (x : AST.ty) (y : AST.ty) : AST.ty =
-  match (x, y) with
-  | Type_Bits e1, Type_Bits e2 -> type_bits (mk_add_int e1 e2)
-  | _ ->
-      Printf.printf "Can't concatenate types %s and %s\n" (pp_type x)
-        (pp_type y);
-      raise (InternalError "mk_concat_ty")
-
-let mk_concat_tys (xs : AST.ty list) : AST.ty =
-  List.fold_left mk_concat_ty (type_bits zero) xs
-
 let width_of_type (ty : AST.ty) : AST.expr =
-  match ty with Type_Bits n -> n | _ -> raise (InternalError "width_of_type")
+  ( match ty with 
+  | Type_Bits n -> n
+  | Type_Register (w, _) -> w
+  | _ -> raise (InternalError "width_of_type")
+  )
 
 (* Lower bit slice expression *)
 let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
@@ -58,7 +51,7 @@ let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
   (* lower all cases where x is not a variable *)
   | _, [ Slice_Single i ] -> mk_bits_select one n x i
   | _, [ Slice_HiLo (hi, lo) ] ->
-      let w = mk_add_int (mk_sub_int hi lo) one in
+      let w = Xform_simplify_expr.simplify (mk_add_int (mk_sub_int hi lo) one) in
       mk_bits_select w n x lo
   | _, [ Slice_LoWd (lo, wd) ] -> mk_bits_select wd n x lo
   (* todo: currently don't have a good story for lowering the multi-slice
@@ -73,7 +66,7 @@ let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
   (* lower all cases where x is not a variable *)
   | _, [ Slice_Single i ] -> mk_int_select one x i
   | _, [ Slice_HiLo (hi, lo) ] ->
-      let w = mk_add_int (mk_sub_int hi lo) one in
+      let w = Xform_simplify_expr.simplify (mk_add_int (mk_sub_int hi lo) one) in
       mk_int_select w x lo
   | _, [ Slice_LoWd (lo, wd) ] -> mk_int_select wd x lo
   (* todo: currently don't have a good story for lowering the multi-slice
@@ -83,7 +76,7 @@ let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
 let slice_width (x : AST.slice) : AST.expr =
   match x with
   | Slice_Single e -> one
-  | Slice_HiLo (hi, lo) -> mk_add_int (mk_sub_int hi lo) one
+  | Slice_HiLo (hi, lo) -> Xform_simplify_expr.simplify (mk_add_int (mk_sub_int hi lo) one)
   | Slice_LoWd (lo, wd) -> wd
 
 let slices_width (xs : AST.slice list) : AST.expr =
@@ -1357,7 +1350,9 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       match typeFields (Env.globals env) loc ty with
       | FT_Record rfs ->
           let tys = List.map (get_recordfield loc rfs) fs in
-          (Expr_Fields (e', fs), mk_concat_tys tys)
+          let ws = List.map width_of_type tys in
+          let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+          (Expr_Fields (e', fs), type_bits w)
       | FT_Register rfs ->
           let ss, ty' = get_regfields loc rfs fs in
           (mk_expr_slices e' ss ty', ty'))
@@ -1455,7 +1450,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
   | Expr_Concat (_, es) ->
       let es', tys = List.split (List.map (tc_expr env u loc) es) in
       let ws = List.map width_of_type tys in
-      (Expr_Concat (ws, es'), mk_concat_tys tys)
+      let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+      (Expr_Concat (ws, es'), type_bits w)
   | Expr_Unop (op, e) ->
       let e', ety = tc_expr env u loc e in
       (* Format.fprintf fmt "%s: unop %s : %s\n" (pp_loc loc) (pp_expr e) (pp_type ety); *)
@@ -1647,7 +1643,9 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       match typeFields (Env.globals env) loc ty with
       | FT_Record rfs ->
           let tys = List.map (get_recordfield loc rfs) fs in
-          (LExpr_Fields (l', fs), mk_concat_tys tys)
+          let ws = List.map width_of_type tys in
+          let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+          (LExpr_Fields (l', fs), type_bits w)
       | FT_Register rfs ->
           let ss, ty' = get_regfields loc rfs fs in
           (LExpr_Slices (l', ss), ty'))
@@ -1697,9 +1695,9 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       | _ -> tc_slice_lexpr env u loc e ss')
   | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
-      let ty = mk_concat_tys tys in
-      let ws' = List.map width_of_type tys in
-      (LExpr_BitTuple (ws', ls'), ty)
+      let ws = List.map width_of_type tys in
+      let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+      (LExpr_BitTuple (ws, ls'), type_bits w)
   | LExpr_Tuple ls ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
       (LExpr_Tuple ls', Type_Tuple tys)
@@ -1768,7 +1766,9 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
         match typeFields (Env.globals env) loc lty with
         | FT_Record rfs ->
             let tys = List.map (get_recordfield loc rfs) fs in
-            (LExpr_Fields (l', fs), mk_concat_tys tys)
+            let ws = List.map width_of_type tys in
+            let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+            (LExpr_Fields (l', fs), type_bits w)
         | FT_Register rfs ->
             let ss, ty' = get_regfields loc rfs fs in
             (LExpr_Slices (l', ss), ty')
@@ -1847,9 +1847,9 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
       e'
   | LExpr_BitTuple (_, ls) ->
       let ls', tys = List.split (List.map (tc_lexpr2 env u loc) ls) in
-      let ty' = mk_concat_tys tys in
       let ws = List.map width_of_type tys in
-      check_type env u loc ty' ty;
+      let w = Xform_simplify_expr.simplify (mk_add_ints ws) in
+      check_type env u loc (type_bits w) ty;
       LExpr_BitTuple (ws, ls')
   | LExpr_Tuple ls ->
       let ls' =
