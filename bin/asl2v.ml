@@ -88,6 +88,10 @@ let main () =
     if true then
       Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
+    let ds = Xform_tuples.xform_decls ds in
+    if true then
+      Utils.to_file "tmp.45.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
     let ds = Xform_getset.xform_decls ds in
     if true then
       Utils.to_file "tmp.50.getset.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
@@ -95,10 +99,6 @@ let main () =
     let ds = Xform_rmw.xform_decls ds in
     if true then
       Utils.to_file "tmp.60.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_tuples.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.70.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     Utils.to_file !output_file (fun fmt ->
         match !opt_backend with
