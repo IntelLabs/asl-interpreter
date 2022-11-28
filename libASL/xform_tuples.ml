@@ -7,6 +7,8 @@
 
 module AST = Asl_ast
 
+exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
+
 let mkReturnTypeName (f : AST.ident) : AST.ident = AST.addPrefix "__Return_" f
 
 let mkReturnFieldName (i : int) : AST.ident = AST.Ident ("r" ^ string_of_int i)
@@ -16,6 +18,8 @@ let mkReturnRecord (tyname : AST.ident) (rtys : AST.ty list) (loc : AST.l) : AST
   Decl_Record (tyname, fs, loc)
 
 let returnVariables = new Asl_utils.nameSupply "__r"
+
+let ifVariables = new Asl_utils.nameSupply "__t"
 
 class replaceTupleClass (tc : AST.ident option) =
   object (self)
@@ -60,6 +64,33 @@ class replaceTupleClass (tc : AST.ident option) =
         assert (List.length ls = List.length es);
         let ss = List.map2 (fun l e -> AST.Stmt_Assign (l, e, loc)) ls es in
         Visitor.ChangeTo ss
+
+      | Stmt_ConstDecl (AST.DeclItem_Tuple dis, AST.Expr_If (c, t, els, e), loc) ->
+        let (vs, ds, ss) = List.map (fun di ->
+            ( match di with
+            | AST.DeclItem_Var (v, Some vty) ->
+                let v' = ifVariables#fresh in
+                let s1 = AST.Stmt_VarDeclsNoInit ([v'], vty, loc) in
+                let s2 = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), Expr_Var v', loc) in
+                (AST.LExpr_Var v', s1, s2)
+            | _ ->
+                raise (Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
+            )
+          )
+          dis
+          |> Utils.split3
+        in
+        let t' = [AST.Stmt_Assign (AST.LExpr_Tuple vs, t, loc)] in
+        let els' = List.map (fun el ->
+            let AST.E_Elsif_Cond (c, t) = el in
+            AST.S_Elsif_Cond (c, [AST.Stmt_Assign (AST.LExpr_Tuple vs, t, loc)], loc)
+          )
+          els
+        in
+        let e' = [AST.Stmt_Assign (AST.LExpr_Tuple vs, e, loc)] in
+        let s' = AST.Stmt_If (c, t', els', (e', loc), loc) in
+        let ss' = Asl_visitor.visit_stmt (self :> Asl_visitor.aslVisitor) s' in
+        Visitor.ChangeTo (ds @ ss' @ ss)
 
       | _ -> DoChildren
 

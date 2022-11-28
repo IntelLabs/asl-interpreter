@@ -69,6 +69,14 @@ let rec last (xs : 'a list) : 'a =
   | [] -> failwith "last []"
   )
 
+(** split3 [(x1, y1, z1); ... (xn, yn, zn)] = ([x1; ... xn], [y1; ... yn], [z1; ... zn]) *)
+let split3 (xyzs : ('x * 'y * 'z) list) : ('x list * 'y list * 'z list) =
+  List.fold_right
+    (fun (x, y, z) (xs, ys, zs) -> (x :: xs, y :: ys, z :: zs))
+    xyzs
+    ([], [], [])
+
+
 (****************************************************************
  * Option related
  ****************************************************************)
