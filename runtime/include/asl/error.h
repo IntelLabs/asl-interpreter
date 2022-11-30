@@ -1,24 +1,24 @@
 ////////////////////////////////////////////////////////////////
-// Runtime library for ASL's C backend
+// Runtime error support library for ASL's C backend
 //
 // Copyright Intel Inc (c) 2022
 // SPDX-Licence-Identifier: BSD-3-Clause
 ////////////////////////////////////////////////////////////////
 
-#ifndef ASL_RUNTIME_H
-#define ASL_RUNTIME_H
+#ifndef ASL_ERROR_H
+#define ASL_ERROR_H
 
-#include "assert.h"
-#include "stdbool.h"
-#include "stdint.h"
-#include "stdio.h"
-#include "stdlib.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "asl/arith.h"
-#include "asl/error.h"
-#include "asl/trace.h"
+void ASL_error(const char* loc, const char* msg) __attribute__((__noreturn__));
 
-#endif  // ASL_RUNTIME_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // ASL_ERROR_H
 
 ////////////////////////////////////////////////////////////////
 // End
