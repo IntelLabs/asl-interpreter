@@ -11,8 +11,11 @@
 #include "assert.h"
 #include "stdbool.h"
 #include "stdint.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 #include "asl/arith.h"
+#include "asl/trace.h"
 
 #endif  // ASL_RUNTIME_H
 
