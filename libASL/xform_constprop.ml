@@ -13,7 +13,7 @@ open AST
 open Utils
 module Concrete = Value
 
-let unroll_loops : bool = true
+let unroll_loops : bool ref = ref true
 
 module Value = struct
   type t = Concrete.value
@@ -494,7 +494,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       let start' = xform_expr env start in
       let stop' = xform_expr env stop in
       match (value_of_constant start', value_of_constant stop') with
-      | Some x, Some y when unroll_loops ->
+      | Some x, Some y when !unroll_loops ->
           let rec eval (i : Concrete.value) =
             let c =
               match dir with
