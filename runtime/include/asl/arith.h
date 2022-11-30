@@ -1,12 +1,12 @@
-/*
-  Utility functions for C backend
+////////////////////////////////////////////////////////////////
+// Arithmetic runtime library for ASL's C backend
+//
+// Copyright Intel Inc (c) 2022
+// SPDX-Licence-Identifier: BSD-3-Clause
+////////////////////////////////////////////////////////////////
 
-  Copyright Intel Inc (c) 2022
-  SPDX-Licence-Identifier: BSD-3-Clause
-*/
-
-#ifndef ASL_UTILS_H
-#define ASL_UTILS_H
+#ifndef ASL_ARITH_H
+#define ASL_ARITH_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,4 +68,8 @@ ASL_frem_int(int64_t x, int64_t y)
 }
 #endif
 
-#endif  // ASL_UTILS_H
+#endif  // ASL_ARITH_H
+
+////////////////////////////////////////////////////////////////
+// End
+////////////////////////////////////////////////////////////////
