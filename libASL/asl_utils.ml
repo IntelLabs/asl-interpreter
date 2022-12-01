@@ -1105,11 +1105,11 @@ let tupleTypes (t : AST.ty) : AST.ty list =
 (** Is an expression a literal constant? *)
 let is_literal_constant (x : expr) : bool =
   ( match x with
-  | Expr_LitInt _ -> true
-  | Expr_LitHex _ -> true
-  | Expr_LitReal _ -> true
-  | Expr_LitBits _ -> true
-  | Expr_LitMask _ -> true
+  | Expr_LitInt _
+  | Expr_LitHex _
+  | Expr_LitReal _
+  | Expr_LitBits _
+  | Expr_LitMask _
   | Expr_LitString _ -> true
   | _ -> false
   )
