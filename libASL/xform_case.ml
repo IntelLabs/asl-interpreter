@@ -132,6 +132,14 @@ class simplifyCaseClass =
 
   end
 
+let xform_expr (x : AST.expr) : AST.expr =
+  let simplify = new simplifyCaseClass in
+  Asl_visitor.visit_expr (simplify :> Asl_visitor.aslVisitor) x
+
+let xform_stmts (x : AST.stmt list) : AST.stmt list =
+  let simplify = new simplifyCaseClass in
+  Asl_visitor.visit_stmts (simplify :> Asl_visitor.aslVisitor) x
+
 let xform_decl (x : AST.declaration) : AST.declaration =
   let simplify = new simplifyCaseClass in
   Asl_visitor.visit_decl (simplify :> Asl_visitor.aslVisitor) x
