@@ -5,7 +5,11 @@
 // SPDX-Licence-Identifier: BSD-3-Clause
 ////////////////////////////////////////////////////////////////
 
-#include "asl/runtime.h"
+#include "asl/error.h"
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +23,21 @@ ASL_error(const char* loc, const char* msg)
         fprintf(stderr, "be reported as a bug.\n");
 
         exit(1);
+}
+
+void
+runtime_error(const char *msg)
+{
+        fprintf(stderr, "Runtime error: %s\n", msg);
+
+        exit(1);
+}
+
+void
+runtime_error_if(bool cond, const char *msg)
+{
+        if (cond)
+                runtime_error(msg);
 }
 
 #ifdef __cplusplus

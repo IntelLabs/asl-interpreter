@@ -12,9 +12,14 @@
 extern "C" {
 #endif
 
-void ASL_error(const char* loc, const char* msg) __attribute__((__noreturn__));
+#define NORETURN __attribute__((__noreturn__))
+
+NORETURN void ASL_error(const char *loc, const char *msg);
 
 #define ASL_error_unmatched_case(loc) ASL_error(loc, "Unmatched case statement")
+
+NORETURN void runtime_error(const char *msg);
+void runtime_error_if(bool cond, const char *msg);
 
 #ifdef __cplusplus
 }

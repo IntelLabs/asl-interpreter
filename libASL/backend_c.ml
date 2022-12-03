@@ -143,7 +143,7 @@ let kw_uint512 (fmt : PP.formatter) : unit = keyword fmt "uint512_t"
 let kw_uint1024 (fmt : PP.formatter) : unit = keyword fmt "uint1024_t"
 
 (* C types defined elsewhere *)
-let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_RAM_t"
+let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_ram_t"
 
 (* C functions defined elsewhere *)
 let fn_slice_lowd (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd"
@@ -440,6 +440,33 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       raise
         (Unimplemented
            (loc, "print builtin function", fun fmt -> FMTAST.funname fmt f))
+  (* RAM builtin functions *)
+  | FIdent ("ram_init", _), [ a; n; ram; i ]
+  | FIdent ("ram_read", _), [ a; n; ram; i ] ->
+      fn_extern fmt f;
+      parens fmt (fun _ ->
+          commasep fmt
+            (fun f -> f ())
+            [
+              (fun _ -> expr loc fmt a);
+              (fun _ -> expr loc fmt n);
+              (fun _ ->
+                make_unop fmt (fun _ -> amp fmt) (fun _ -> expr loc fmt ram));
+              (fun _ -> expr loc fmt i);
+            ])
+  | FIdent ("ram_write", _), [ a; n; ram; i; x ] ->
+      fn_extern fmt f;
+      parens fmt (fun _ ->
+          commasep fmt
+            (fun f -> f ())
+            [
+              (fun _ -> expr loc fmt a);
+              (fun _ -> expr loc fmt n);
+              (fun _ ->
+                make_unop fmt (fun _ -> amp fmt) (fun _ -> expr loc fmt ram));
+              (fun _ -> expr loc fmt i);
+              (fun _ -> expr loc fmt x);
+            ])
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
 and slice (loc : AST.l) (fmt : PP.formatter) (e : AST.expr) (s : AST.slice) : unit =
