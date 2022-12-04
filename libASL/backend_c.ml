@@ -146,16 +146,14 @@ let kw_uint1024 (fmt : PP.formatter) : unit = keyword fmt "uint1024_t"
 let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_RAM_t"
 
 (* C functions defined elsewhere *)
-let fn_cvt_bits_sint (fmt : PP.formatter) : unit = keyword fmt "ASL_cvt_bits_sint"
-let fn_is_pow2_int (fmt : PP.formatter) : unit = keyword fmt "ASL_is_pow2"
-let fn_replicate_bits (fmt : PP.formatter) : unit = keyword fmt "ASL_replicate_bits"
 let fn_slice_lowd (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd"
 let fn_slice_hilo (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo"
 let fn_slice_lowd_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd_w"
 let fn_slice_hilo_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo_w"
-let fn_fdiv_int (fmt : PP.formatter) : unit = keyword fmt "ASL_fdiv_int"
-let fn_frem_int (fmt : PP.formatter) : unit = keyword fmt "ASL_frem_int"
 let fn_error_unmatched_case (fmt : PP.formatter) : unit = keyword fmt "ASL_error_unmatched_case"
+
+let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
+  keyword fmt ("ASL_" ^ AST.name_of_FIdent x)
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
@@ -339,11 +337,11 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
         (fun _ -> expr loc fmt x)
         (fun _ -> make_unop fmt (fun _ -> tilde fmt) (fun _ -> mask_int loc fmt y))
   | FIdent ("eq_int", _), _ -> binop loc fmt "==" args
-  | FIdent ("fdiv_int", _), _ -> apply loc fmt (fun _ -> fn_fdiv_int fmt) args
-  | FIdent ("frem_int", _), _ -> apply loc fmt (fun _ -> fn_frem_int fmt) args
+  | FIdent ("fdiv_int", _), _
+  | FIdent ("frem_int", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("ge_int", _), _ -> binop loc fmt ">=" args
   | FIdent ("gt_int", _), _ -> binop loc fmt ">" args
-  | FIdent ("is_pow2_int", _), _ -> apply loc fmt (fun _ -> fn_is_pow2_int fmt) args
+  | FIdent ("is_pow2_int", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("le_int", _), _ -> binop loc fmt "<=" args
   | FIdent ("lt_int", _), _ -> binop loc fmt "<" args
   | FIdent ("mod_pow2_int", _), [ x; y ] ->
@@ -391,7 +389,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       match x_width with
       | 64 | 32 | 16 | 8 ->
           make_cast fmt (fun _ -> sint loc fmt x_width) (fun _ -> expr loc fmt x)
-      | _ -> apply loc fmt (fun _ -> fn_cvt_bits_sint fmt) (args @ [ List.hd tes ]))
+      | _ -> apply loc fmt (fun _ -> fn_extern fmt f) (args @ [ List.hd tes ]))
   | FIdent ("cvt_bits_uint", _), [ x ] ->
       (* TODO determine correct type width. For now use uint64. *)
       make_cast fmt (fun _ -> kw_uint64 fmt) (fun _ -> expr loc fmt x)
@@ -417,7 +415,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("or_bits", _), _ -> binop loc fmt "|" args
   | FIdent ("replicate_bits", _), _ ->
       let x_width = List.nth tes 1 in
-      apply loc fmt (fun _ -> fn_replicate_bits fmt) (args @ [x_width])
+      apply loc fmt (fun _ -> fn_extern fmt f) (args @ [x_width])
   | FIdent ("sub_bits", _), _ -> binop loc fmt "-" args
   | FIdent ("zeros_bits", _), [] ->
       let x = List.hd tes in

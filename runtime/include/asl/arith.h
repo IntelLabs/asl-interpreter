@@ -22,7 +22,7 @@ ASL_cvt_bits_sint(uint64_t x, int x_width)
 }
 
 static inline bool
-ASL_is_pow2(uint64_t x)
+ASL_is_pow2_int(uint64_t x)
 {
         return x != 0 && (x & (x - 1)) == 0;
 }
