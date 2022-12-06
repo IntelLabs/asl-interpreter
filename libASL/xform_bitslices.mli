@@ -10,6 +10,7 @@
 
 module AST = Asl_ast
 
+val xform_expr : AST.expr -> AST.expr
 val xform_decls : AST.declaration list -> AST.declaration list
 
 (****************************************************************

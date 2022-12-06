@@ -1,6 +1,7 @@
 (tests
  (names
   aslutils
+  bitslice
   bittuples
   case
   constprop

@@ -76,6 +76,10 @@ class bitsliceClass =
       )
   end
 
+let xform_expr (x : AST.expr) : AST.expr =
+  let simplify = new bitsliceClass in
+  Asl_visitor.visit_expr (simplify :> Asl_visitor.aslVisitor) x
+
 let xform_decls (ds : AST.declaration list) : AST.declaration list =
   let simplify = new bitsliceClass in
   List.map (Asl_visitor.visit_decl (simplify :> Asl_visitor.aslVisitor)) ds
