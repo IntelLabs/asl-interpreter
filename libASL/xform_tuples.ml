@@ -96,6 +96,10 @@ class replaceTupleClass (tc : AST.ident option) =
 
   end
 
+let xform_stmts (ss : AST.stmt list) : AST.stmt list =
+  let replacer = new replaceTupleClass None in
+  Asl_visitor.visit_stmts (replacer :> Asl_visitor.aslVisitor) ss
+
 let xform_decl (d : AST.declaration) : AST.declaration list =
   match d with
   | Decl_FunDefn (f, ps, atys, rty, body, loc) ->

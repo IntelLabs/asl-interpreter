@@ -6,7 +6,8 @@
   test_asl
   test_backend
   test_loadasl
-  test_utils)
+  test_utils
+  tuples)
  (modes exe)
  (flags
   (-cclib -lstdc++))
