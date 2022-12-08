@@ -18,22 +18,12 @@ module TC = Tcheck
 (** Test xform_expr *)
 let test_case_expr (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
     (l : string) (r : string) () : unit =
-  let (tcenv, _) = extend_tcenv globals decls in
-  let l' = LoadASL.read_expr tcenv AST.Unknown l in
-  let r' = LoadASL.read_expr tcenv AST.Unknown r in
-  let l'' = Xform_case.xform_expr l' in
-  let what = l ^ "\n==>\n" ^ r in
-  Alcotest.check expr what r' l''
+  Test_utils.test_xform_expr Xform_case.xform_expr globals prelude decls l r ()
 
 (** Test xform_stmts *)
 let test_case_stmts (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
     (l : string) (r : string) () : unit =
-  let (tcenv, _) = extend_tcenv globals decls in
-  let l' = LoadASL.read_stmts tcenv l in
-  let r' = LoadASL.read_stmts tcenv r in
-  let l'' = Xform_case.xform_stmts l' in
-  let what = l ^ "\n==>\n" ^ r in
-  Alcotest.check stmts what r' l''
+  Test_utils.test_xform_stmts Xform_case.xform_stmts globals prelude decls l r ()
 
 let case_tests : unit Alcotest.test_case list =
   let prelude = load_test_libraries () in
