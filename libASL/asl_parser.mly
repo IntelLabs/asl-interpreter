@@ -131,6 +131,7 @@ open Asl_ast
 %start <Asl_ast.declaration list> declarations_start
 %start <Asl_ast.expr> expr_command_start
 %start <Asl_ast.stmt> stmt_command_start
+%start <Asl_ast.stmt list> stmts_command_start
 %start <Asl_ast.impdef_command> impdef_command_start
 
 
@@ -144,6 +145,9 @@ expr_command_start:
 
 stmt_command_start:
 | stmt_command = stmt_command EOF { stmt_command }
+
+stmts_command_start:
+| stmts_command = stmts_command EOF { stmts_command }
 
 impdef_command_start:
 | impdef_command = impdef_command EOF { impdef_command }
@@ -548,6 +552,9 @@ expr_command:
 
 stmt_command:
 | stmt = stmt { stmt }
+
+stmts_command:
+| stmts = list(stmt) { stmts }
 
 impdef_command:
 | s = STRINGLIT EQ e = expr { CLI_Impdef(s, e) }

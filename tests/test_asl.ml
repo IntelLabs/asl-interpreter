@@ -77,8 +77,6 @@ let eval tcenv env (input : string) : Value.value =
   let e = LoadASL.read_expr tcenv loc input in
   Eval.eval_expr loc env e
 
-type xform = AST.declaration list -> AST.declaration list
-
 let test_bool (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
     (l : string) (r : bool) () : unit =
   let (tcenv, env) = extend_env globals prelude decls in
@@ -105,7 +103,7 @@ let test_bits (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls
 
 (* Test that a global transformation f does not change the value of expression x *)
 let test_xform (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
-    (f : xform) (decls : string) (x : string) () : unit =
+    (f : (AST.declaration list) xform) (decls : string) (x : string) () : unit =
   let (tcenv, ds) = extend_tcenv globals decls in
   let ds1 = List.append prelude ds in
   let ds2 = f ds1 in

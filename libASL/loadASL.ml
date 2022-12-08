@@ -106,6 +106,11 @@ let read_stmt (tcenv : TC.Env.t) (s : string) : AST.stmt =
   let s = Parser.stmt_command_start Lexer.token lexbuf in
   TC.tc_stmt tcenv s
 
+let read_stmts (tcenv : TC.Env.t) (s : string) : AST.stmt list =
+  let lexbuf = Lexing.from_string s in
+  let s = Parser.stmts_command_start Lexer.token lexbuf in
+  TC.tc_stmts tcenv AST.Unknown s
+
 let read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
     AST.declaration list =
   let lexbuf = Lexing.from_string s in
