@@ -50,6 +50,18 @@ ASL_slice_hilo(uint64_t x, int hi, int lo)
         return (x & ASL_mask(hi + 1)) >> lo;
 }
 
+static inline uint64_t
+ASL_slice_lowd_w(uint64_t val, uint64_t x, int lo, int width)
+{
+        return (x & ~(ASL_mask(width) << lo)) | (val << lo);
+}
+
+static inline uint64_t
+ASL_slice_hilo_w(uint64_t val, uint64_t x, int hi, int lo)
+{
+        return (x & ~(ASL_mask(hi - lo + 1) << lo)) | (val << lo);
+}
+
 static inline int64_t
 ASL_fdiv_int(int64_t x, int64_t y)
 {

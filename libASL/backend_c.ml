@@ -451,8 +451,13 @@ and slice (loc : AST.l) (fmt : PP.formatter) (e : AST.expr) (s : AST.slice) : un
   | Slice_Single lo ->
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ e; lo; Asl_utils.one ]
 
-and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr) (s : AST.slice) :
-    unit =
+and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
+    (s : AST.slice) : unit =
+  (* e is evaluated twice below, which could result in performance impact *)
+  expr loc fmt e;
+  nbsp fmt;
+  eq fmt;
+  nbsp fmt;
   match s with
   | Slice_HiLo (hi, lo) ->
       apply loc fmt (fun _ -> fn_slice_hilo_w fmt) [ v; e; hi; lo ]
