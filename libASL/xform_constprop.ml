@@ -575,7 +575,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
 let xform_tvs (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
   let genv = Env.globals env in
   let tvs =
-    match Eval.GlobalEnv.getFun loc genv f with
+    match Eval.GlobalEnv.getFun genv f with
     | Some (tvs, _, _, _) -> tvs
     | _ -> failwith "xform_decl"
   in

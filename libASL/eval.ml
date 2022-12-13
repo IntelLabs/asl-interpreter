@@ -97,7 +97,7 @@ module GlobalEnv = struct
   let getTypedef (env : t) (x : ident) : AST.ty option =
     Bindings.find_opt x env.typedefs
 
-  let getFun (loc : l) (env : t) (x : ident) :
+  let getFun (env : t) (x : ident) :
       (ident list * ident list * AST.l * stmt list) option =
     Bindings.find_opt x env.functions
 
@@ -660,7 +660,7 @@ and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
       Tracer.trace_function ~is_prim:false ~is_return:false f tvs vs;
       let targs, args, loc, b =
         Utils.from_option
-          (GlobalEnv.getFun loc (Env.globals env) f)
+          (GlobalEnv.getFun (Env.globals env) f)
           (fun _ ->
             raise (EvalError (loc, "Undeclared function " ^ pprint_ident f)))
       in
@@ -780,7 +780,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           GlobalEnv.addFun loc genv f (tvs, args, loc, [])
       | Decl_EventClause (f, body, loc) ->
           let tvs, args, _, body0 =
-            from_option (GlobalEnv.getFun loc genv f) (fun _ ->
+            from_option (GlobalEnv.getFun genv f) (fun _ ->
                 raise (EvalError (loc, "Undeclared event " ^ pprint_ident f)))
           in
           GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)

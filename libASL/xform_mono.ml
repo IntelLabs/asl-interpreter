@@ -35,7 +35,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     method monomorphize (genv : Eval.GlobalEnv.t) (f : AST.ident)
         (d : AST.declaration) (szs : Z.t list) : AST.ident option =
       let tvs =
-        match Eval.GlobalEnv.getFun Unknown genv f with
+        match Eval.GlobalEnv.getFun genv f with
         | Some (tvs, _, _, _) -> tvs
         | _ -> failwith "monomorphize"
       in

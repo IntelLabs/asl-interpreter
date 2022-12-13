@@ -14,7 +14,6 @@ module GlobalEnv : sig
   val getGlobalConstOpt : t -> AST.ident -> Value.value option
 
   val getFun :
-    AST.l ->
     t ->
     AST.ident ->
     (AST.ident list * AST.ident list * AST.l * AST.stmt list) option
