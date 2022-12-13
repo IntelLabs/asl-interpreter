@@ -8,6 +8,9 @@
 #ifndef ASL_ARITH_H
 #define ASL_ARITH_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

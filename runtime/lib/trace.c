@@ -5,7 +5,10 @@
 // SPDX-Licence-Identifier: BSD-3-Clause
 ////////////////////////////////////////////////////////////////
 
-#include "asl/runtime.h"
+#include "asl/trace.h"
+
+#include "<stdint.h>"
+#include "<stdio.h>"
 
 #ifdef __cplusplus
 extern "C" {

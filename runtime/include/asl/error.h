@@ -8,6 +8,8 @@
 #ifndef ASL_ERROR_H
 #define ASL_ERROR_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
