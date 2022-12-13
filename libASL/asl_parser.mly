@@ -7,6 +7,22 @@
 
 %{
 open Asl_ast
+
+(* The following type is used in the parser in places where
+ * the typechecker is expected to insert an inferred type that is
+ * not known when we are parsing the source code.
+ *
+ * The particular value used for type_unknown is not especially
+ * important because it should never appear after the typechecker.
+ * The current representation is intended to make it easier to
+ * diagnose failures.
+ *
+ * It would also be possible to use Option to handle this
+ * and use "None" instead of "type_unknown". Using Option
+ * is not especially helpful because all later passes assume that
+ * the type is available.
+ *)
+let type_unknown = Type_Constructor (Ident "<type_unknown>")
 %}
 
 %token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
@@ -355,7 +371,7 @@ lexpr:
 | e = lexpr DOT LBRACK fs = separated_nonempty_list(COMMA, ident) RBRACK
     { LExpr_Fields(e, fs) }
 | e = lexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
-    { LExpr_Slices(e, ss) }
+    { LExpr_Slices(type_unknown, e, ss) }
 | LBRACK es = separated_nonempty2_list(COMMA, lexpr) RBRACK
     { LExpr_BitTuple([], es) }
 | LPAREN es = separated_nonempty2_list(COMMA, lexpr) RPAREN
@@ -492,7 +508,7 @@ fexpr:
 | e = fexpr DOT LBRACK fs = separated_nonempty_list(COMMA, ident) RBRACK
     { Expr_Fields(e, fs) }
 | e = fexpr LBRACK ss = separated_list(COMMA, slice) RBRACK
-    { Expr_Slices(e, ss) }
+    { Expr_Slices(type_unknown, e, ss) }
 | tc = ident LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
     { Expr_RecordInit(tc, fas) }
 | e = fexpr IN p = pattern

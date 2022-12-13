@@ -373,7 +373,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
       let v = eval_expr loc env e in
       let vs = List.map (get_field loc v) fs in
       eval_concat loc vs
-  | Expr_Slices (e, ss) ->
+  | Expr_Slices (_, e, ss) ->
       let v = eval_expr loc env e in
       let vs =
         List.map
@@ -470,7 +470,7 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
             set_fields (i + w) fs' v'
       in
       eval_lexpr_modify loc env l (set_fields 0 fs)
-  | LExpr_Slices (l, ss) ->
+  | LExpr_Slices (_, l, ss) ->
       let rec eval (o : value) (ss' : AST.slice list) (prev : value) : value =
         match ss' with
         | [] -> prev

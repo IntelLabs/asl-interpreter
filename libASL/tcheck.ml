@@ -44,7 +44,7 @@ let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
   let n = width_of_type ty in
   match (x, ss) with
   (* don't lower the easy case *)
-  | Expr_Var v, ss -> Expr_Slices (x, ss)
+  | Expr_Var v, ss -> Expr_Slices (ty, x, ss)
   (* lower all cases where x is not a variable *)
   | _, [ Slice_Single i ] -> mk_bits_select one n x i
   | _, [ Slice_HiLo (hi, lo) ] ->
@@ -53,13 +53,13 @@ let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
   | _, [ Slice_LoWd (lo, wd) ] -> mk_bits_select wd n x lo
   (* todo: currently don't have a good story for lowering the multi-slice
      case *)
-  | _ -> Expr_Slices (x, ss)
+  | _ -> Expr_Slices (ty, x, ss)
 
 (* Lower int slice expression *)
 let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
   match (x, ss) with
   (* don't lower the easy case *)
-  | Expr_Var v, ss -> Expr_Slices (x, ss)
+  | Expr_Var v, ss -> Expr_Slices (type_integer, x, ss)
   (* lower all cases where x is not a variable *)
   | _, [ Slice_Single i ] -> mk_int_select one x i
   | _, [ Slice_HiLo (hi, lo) ] ->
@@ -68,7 +68,7 @@ let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
   | _, [ Slice_LoWd (lo, wd) ] -> mk_int_select wd x lo
   (* todo: currently don't have a good story for lowering the multi-slice
      case *)
-  | _ -> Expr_Slices (x, ss)
+  | _ -> Expr_Slices (type_integer, x, ss)
 
 let slice_width (x : AST.slice) : AST.expr =
   match x with
@@ -1292,23 +1292,20 @@ and tc_slice_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : expr)
     (ss : (AST.slice * AST.ty) list) : AST.expr * AST.ty =
   if List.length ss = 0 then raise (TypeError (loc, "empty list of subscripts"));
   let ss' = List.map fst ss in
-  let x', ty = tc_expr env u loc x in
-  match derefType (Env.globals env) ty with
+  let x', ty' = tc_expr env u loc x in
+  let ty = type_bits (slices_width ss') in
+  match derefType (Env.globals env) ty' with
   | Type_Array (ixty, elty) -> (
       match ss with
       | [ (Slice_Single i, ity) ] ->
           check_type env u loc (ixtype_basetype ixty) ity;
           (Expr_Array (x', i), elty)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
-  | Type_Bits n ->
-      let ty = type_bits (slices_width ss') in
-      (mk_expr_slices x' ss' ty, ty)
-  | Type_Register (wd, _) ->
-      let ty = type_bits (slices_width ss') in
-      (mk_expr_slices x' ss' ty, ty)
+  | Type_Bits n
+  | Type_Register (n, _) ->
+      (mk_expr_slices x' ss' ty', ty)
   | Type_Integer _ ->
       (* todo: desugar into a call to slice_int? *)
-      let ty = type_bits (slices_width ss') in
       (mk_expr_intslices x' ss', ty)
   | _ -> raise (TypeError (loc, "slice of expr"))
 
@@ -1353,7 +1350,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       | FT_Register rfs ->
           let ss, ty' = get_regfields loc rfs fs in
           (mk_expr_slices e' ss ty', ty'))
-  | Expr_Slices (e, ss) -> (
+  | Expr_Slices (_, e, ss) -> (
       let all_single =
         List.for_all (function Slice_Single _ -> true | _ -> false) ss
       in
@@ -1571,23 +1568,24 @@ let rec tc_slice_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (x : lexpr)
     (ss : (AST.slice * AST.ty) list) : AST.lexpr * AST.ty =
   if List.length ss = 0 then raise (TypeError (loc, "empty list of subscripts"));
   let ss' = List.map fst ss in
-  let x', ty = tc_lexpr2 env u loc x in
-  match derefType (Env.globals env) ty with
+  let x', ty' = tc_lexpr2 env u loc x in
+  let ty = type_bits (slices_width ss') in
+  match derefType (Env.globals env) ty' with
   | Type_Array (ixty, elty) -> (
       match ss with
       | [ (Slice_Single i, ity) ] ->
           check_type env u loc (ixtype_basetype ixty) ity;
           (LExpr_Array (x', i), elty)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
-  | Type_Bits n -> (LExpr_Slices (x', ss'), type_bits (slices_width ss'))
-  | Type_Register (wd, _) ->
-      (LExpr_Slices (x', ss'), type_bits (slices_width ss'))
+  | Type_Bits n
+  | Type_Register (n, _) ->
+    (LExpr_Slices (ty', x', ss'), ty)
   | Type_Integer _ ->
       (* There is an argument for making this operation illegal *)
       if false then
         Format.fprintf fmt "Warning: slice assignment of integer at %s\n"
           (pp_loc loc);
-      (LExpr_Slices (x', ss'), type_bits (slices_width ss'))
+      (LExpr_Slices (ty', x', ss'), ty)
   | _ -> raise (TypeError (loc, "slice of lexpr"))
 
 (** Typecheck left hand side of expression in context where
@@ -1634,7 +1632,7 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
       | FT_Record rfs -> (LExpr_Field (l', f), get_recordfield loc rfs f)
       | FT_Register rfs ->
           let ss, ty' = get_regfield loc rfs f in
-          (LExpr_Slices (l', ss), ty'))
+          (LExpr_Slices (ty, l', ss), ty'))
   | LExpr_Fields (l, fs) -> (
       let l', ty = tc_lexpr2 env u loc l in
       match typeFields (Env.globals env) loc ty with
@@ -1645,8 +1643,8 @@ and tc_lexpr2 (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.lexpr) :
           (LExpr_Fields (l', fs), type_bits w)
       | FT_Register rfs ->
           let ss, ty' = get_regfields loc rfs fs in
-          (LExpr_Slices (l', ss), ty'))
-  | LExpr_Slices (e, ss) -> (
+          (LExpr_Slices (ty, l', ss), ty'))
+  | LExpr_Slices (_, e, ss) -> (
       let all_single =
         List.for_all (function Slice_Single _ -> true | _ -> false) ss
       in
@@ -1753,7 +1751,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
         | FT_Record rfs -> (LExpr_Field (l', f), get_recordfield loc rfs f)
         | FT_Register rfs ->
             let ss, ty' = get_regfield loc rfs f in
-            (LExpr_Slices (l', ss), ty')
+            (LExpr_Slices (ty, l', ss), ty')
       in
       check_type env u loc ty' ty;
       r
@@ -1768,11 +1766,11 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
             (LExpr_Fields (l', fs), type_bits w)
         | FT_Register rfs ->
             let ss, ty' = get_regfields loc rfs fs in
-            (LExpr_Slices (l', ss), ty')
+            (LExpr_Slices (ty, l', ss), ty')
       in
       check_type env u loc ty' ty;
       r
-  | LExpr_Slices (e, ss) ->
+  | LExpr_Slices (_, e, ss) ->
       let all_single =
         List.for_all (function Slice_Single _ -> true | _ -> false) ss
       in
@@ -1830,7 +1828,7 @@ let rec tc_lexpr (env : Env.t) (u : unifier) (loc : AST.l) (ty : AST.ty)
                     (* todo: check slices are integer *)
                     (* todo: check rty is bits(_) *)
                     let ss'' = List.map fst ss' in
-                    (LExpr_Slices (wr, ss''), type_bits (slices_width ss''))
+                    (LExpr_Slices (ty, wr, ss''), type_bits (slices_width ss''))
                 | None, Some _ ->
                     raise
                       (UnknownObject (loc, "var getter function", pprint_ident a))

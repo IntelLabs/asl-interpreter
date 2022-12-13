@@ -1,5 +1,4 @@
 module AST = Asl_ast
-module Utils = Asl_utils
 open Asl_ast
 
 let assign_var = new Asl_utils.nameSupply "__a"
@@ -11,15 +10,16 @@ let xform
     (r : AST.expr)
     : AST.stmt list =
     let tmp_ident = assign_var#fresh in
+    let total_width = Xform_simplify_expr.simplify (Asl_utils.mk_add_ints ws) in
+    let ty = Asl_utils.type_bits total_width in
 
-    let (ss, sum) = List.fold_right2 (fun l w (ss, idx) ->
+    let (ss, _) = List.fold_right2 (fun l w (ss, idx) ->
       let slice = Slice_LoWd (idx, w) in
-      let r' = Expr_Slices (Expr_Var tmp_ident, [slice]) in
-      (Stmt_Assign (l, r', loc) :: ss, Utils.mk_add_int idx w)
-    ) ls ws ([], Utils.zero) in
+      let r' = Expr_Slices (ty, Expr_Var tmp_ident, [slice]) in
+      (Stmt_Assign (l, r', loc) :: ss, Asl_utils.mk_add_int idx w)
+    ) ls ws ([], Asl_utils.zero) in
 
-    let tmp_type = sum |> Xform_simplify_expr.simplify |> Utils.type_bits in
-    let tmp_var = DeclItem_Var (tmp_ident, Some tmp_type) in
+    let tmp_var = DeclItem_Var (tmp_ident, Some ty) in
     let tmp_const_decl = Stmt_ConstDecl (tmp_var, r, loc) in
     tmp_const_decl :: ss
 

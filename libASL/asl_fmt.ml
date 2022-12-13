@@ -400,7 +400,8 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       expr fmt e;
       dot fmt;
       brackets fmt (fun _ -> commasep fmt (fieldname fmt) fs)
-  | Expr_Slices (e, ss) ->
+  | Expr_Slices (t, e, ss) ->
+      if show_tyargs then braces fmt (fun _ -> ty fmt t);
       expr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
   | Expr_RecordInit (tc, fas) ->
@@ -507,7 +508,8 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       lexpr fmt e;
       dot fmt;
       brackets fmt (fun _ -> commasep fmt (fieldname fmt) fs)
-  | LExpr_Slices (e, ss) ->
+  | LExpr_Slices (t, e, ss) ->
+      if show_tyargs then braces fmt (fun _ -> ty fmt t);
       lexpr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
   | LExpr_BitTuple (ws, es) ->

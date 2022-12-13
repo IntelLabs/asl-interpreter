@@ -161,10 +161,11 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
     | Expr_Fields (e, fs) ->
         let e' = visit_expr vis e in
         if e == e' then x else Expr_Fields (e', fs)
-    | Expr_Slices (e, ss) ->
+    | Expr_Slices (t, e, ss) ->
+        let t' = visit_type vis t in
         let e' = visit_expr vis e in
         let ss' = mapNoCopy (visit_slice vis) ss in
-        if e == e' && ss == ss' then x else Expr_Slices (e', ss')
+        if t == t' && e == e' && ss == ss' then x else Expr_Slices (t', e', ss')
     | Expr_RecordInit (tc, fas) ->
         let tc' = visit_var vis Type tc in
         let fas' = mapNoCopy (visit_fieldassignment vis) fas in
@@ -309,10 +310,11 @@ and visit_lexpr (vis : aslVisitor) (x : lexpr) : lexpr =
         let e' = visit_lexpr vis e in
         let fs' = mapNoCopy (visit_var vis Field) fs in
         if e == e' && fs == fs' then x else LExpr_Fields (e', fs')
-    | LExpr_Slices (e, ss) ->
+    | LExpr_Slices (t, e, ss) ->
+        let t' = visit_type vis t in
         let e' = visit_lexpr vis e in
         let ss' = mapNoCopy (visit_slice vis) ss in
-        if e == e' && ss == ss' then x else LExpr_Slices (e', ss')
+        if t == t' && e == e' && ss == ss' then x else LExpr_Slices (t', e', ss')
     | LExpr_BitTuple (ws, es) ->
         let ws' = visit_exprs vis ws in
         let es' = mapNoCopy (visit_lexpr vis) es in

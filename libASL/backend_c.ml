@@ -563,7 +563,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
               expr loc fmt e)
             fas;
           nbsp fmt)
-  | Expr_Slices (e, [ s ]) -> slice loc fmt e s
+  | Expr_Slices (_, e, [ s ]) -> slice loc fmt e s
   | Expr_TApply (f, tes, es) -> funcall loc fmt f tes es loc
   | Expr_Var v -> (
       match v with
@@ -665,7 +665,7 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
 
 let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
   match x with
-  | LExpr_Slices (LExpr_Var v, [ s ]) ->
+  | LExpr_Slices (_, LExpr_Var v, [ s ]) ->
       lslice loc fmt r (Expr_Var v) s;
       semicolon fmt
   | LExpr_Wildcard ->

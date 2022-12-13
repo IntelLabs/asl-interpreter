@@ -481,10 +481,10 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
       dot fmt;
       fieldname fmt f
   (* two special cases of slices are supported *)
-  | Expr_Slices (e, [ s ]) ->
+  | Expr_Slices (_, e, [ s ]) ->
       expr loc fmt e;
       brackets fmt (fun _ -> slice loc fmt s)
-  | Expr_Slices ((Expr_Var v as e), ss) ->
+  | Expr_Slices (_, (Expr_Var v as e), ss) ->
       braces fmt (fun _ ->
           commasep fmt
             (fun s ->
@@ -575,7 +575,7 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
     dot fmt;
     varname fmt f
   (* one special case of slices are supported *)
-  | LExpr_Slices (LExpr_Var v, ss) ->
+  | LExpr_Slices (_, LExpr_Var v, ss) ->
     braces fmt (fun _ ->
       commasep fmt
         (fun s ->

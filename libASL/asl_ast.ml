@@ -200,7 +200,7 @@ and expr =
  | Expr_Unop of unop * expr (* unary operator *)
  | Expr_Field of expr * ident (* field selection *)
  | Expr_Fields of expr * ident list (* multiple field selection *)
- | Expr_Slices of expr * slice list (* bitslice *)
+ | Expr_Slices of ty * expr * slice list (* bitslice *)
  | Expr_RecordInit of ident * (ident * expr) list
  | Expr_In of expr * pattern (* pattern match *)
  | Expr_Var of ident
@@ -252,7 +252,7 @@ lexpr =
  | LExpr_Var of ident
  | LExpr_Field of lexpr * ident
  | LExpr_Fields of lexpr * ident list
- | LExpr_Slices of lexpr * slice list
+ | LExpr_Slices of ty * lexpr * slice list
  | LExpr_BitTuple of expr list * lexpr list
  | LExpr_Tuple of lexpr list
  | LExpr_Array of lexpr * expr (* array assignment *)
