@@ -128,7 +128,7 @@ end = struct
     from_option (ScopeStack.get env.locals x) (fun _ ->
         from_option
           (Option.map Values.singleton
-             (Eval.GlobalEnv.getGlobalConstOpt env.globalConsts x))
+             (Eval.GlobalEnv.get_global_constant env.globalConsts x))
           (fun _ ->
             raise (Concrete.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
 
@@ -143,7 +143,7 @@ let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Concrete.value) list) 
 
 let isConstant (env : Env.t) (x : expr) : bool =
   match x with
-  | Expr_Var v -> Option.is_some (Eval.GlobalEnv.getGlobalConstOpt (Env.globals env) v)
+  | Expr_Var v -> Option.is_some (Eval.GlobalEnv.get_global_constant (Env.globals env) v)
   | _ -> Asl_utils.is_literal_constant x
 
 let value_of_constant (x : expr) : Concrete.value option =
@@ -575,7 +575,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
 let xform_tvs (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
   let genv = Env.globals env in
   let tvs =
-    match Eval.GlobalEnv.getFun genv f with
+    match Eval.GlobalEnv.get_function genv f with
     | Some (tvs, _, _, _) -> tvs
     | _ -> failwith "xform_decl"
   in
@@ -604,7 +604,7 @@ let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
 let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :
     AST.declaration list =
   let isConstant (v : ident) : bool =
-    Option.is_some (Eval.GlobalEnv.getGlobalConstOpt genv v)
+    Option.is_some (Eval.GlobalEnv.get_global_constant genv v)
   in
   let isImpurePrim (v : ident) : bool =
     List.exists (fun p -> Id.matches p v) Concrete.impure_prims

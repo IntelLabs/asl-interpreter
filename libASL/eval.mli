@@ -11,14 +11,14 @@ module AST = Asl_ast
 module GlobalEnv : sig
   type t
 
-  val getGlobalConstOpt : t -> AST.ident -> Value.value option
+  val get_global_constant : t -> AST.ident -> Value.value option
 
-  val getFun :
+  val get_function :
     t ->
     AST.ident ->
     (AST.ident list * AST.ident list * AST.l * AST.stmt list) option
 
-  val setImpdef : t -> string -> Value.value -> unit
+  val set_impl_def : t -> string -> Value.value -> unit
   val pp : t -> unit
 end
 

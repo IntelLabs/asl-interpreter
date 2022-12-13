@@ -22,7 +22,7 @@ let mkCPU (env : Eval.Env.t) : cpu =
   let loc = AST.Unknown in
 
   let setImpdef (key : string) (v : Value.value) : unit =
-    Eval.GlobalEnv.setImpdef genv key v
+    Eval.GlobalEnv.set_impl_def genv key v
   and reset () : unit =
     Eval.eval_proccall loc env (AST.FIdent ("__TakeColdReset", 0)) [] []
   and step () : unit =

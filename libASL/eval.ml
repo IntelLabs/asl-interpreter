@@ -76,7 +76,7 @@ module GlobalEnv = struct
     | Some v -> v
     | None -> failwith "getGlobalConst"
 
-  let getGlobalConstOpt (env : t) (x : ident) : value option =
+  let get_global_constant (env : t) (x : ident) : value option =
     Scope.get env.constants x
 
   let addEnum (env : t) (x : ident) (vs : value list) : unit =
@@ -97,7 +97,7 @@ module GlobalEnv = struct
   let getTypedef (env : t) (x : ident) : AST.ty option =
     Bindings.find_opt x env.typedefs
 
-  let getFun (env : t) (x : ident) :
+  let get_function (env : t) (x : ident) :
       (ident list * ident list * AST.l * stmt list) option =
     Bindings.find_opt x env.functions
 
@@ -115,7 +115,7 @@ module GlobalEnv = struct
       else raise (TC.Ambiguous (loc, "function definition", pprint_ident x));
     env.functions <- Bindings.add x def env.functions
 
-  let setImpdef (env : t) (x : string) (v : value) : unit =
+  let set_impl_def (env : t) (x : string) (v : value) : unit =
     env.impdefs <- ImpDefs.add x v env.impdefs
 
   let getImpdef (loc : l) (env : t) (x : string) : value =
@@ -190,7 +190,7 @@ module Env = struct
             Tracer.trace_var ~is_local:false ~is_read:true x r;
             r
         | None ->
-            from_option (GlobalEnv.getGlobalConstOpt env.globalConsts x)
+            from_option (GlobalEnv.get_global_constant env.globalConsts x)
               (fun _ -> raise (EvalError (loc, "getVar: " ^ pprint_ident x)))
 
   let setVar (loc : l) (env : t) (x : ident) (v : value) : unit =
@@ -660,7 +660,7 @@ and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
       Tracer.trace_function ~is_prim:false ~is_return:false f tvs vs;
       let targs, args, loc, b =
         Utils.from_option
-          (GlobalEnv.getFun (Env.globals env) f)
+          (GlobalEnv.get_function (Env.globals env) f)
           (fun _ ->
             raise (EvalError (loc, "Undeclared function " ^ pprint_ident f)))
       in
@@ -780,7 +780,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           GlobalEnv.addFun loc genv f (tvs, args, loc, [])
       | Decl_EventClause (f, body, loc) ->
           let tvs, args, _, body0 =
-            from_option (GlobalEnv.getFun genv f) (fun _ ->
+            from_option (GlobalEnv.get_function genv f) (fun _ ->
                 raise (EvalError (loc, "Undeclared event " ^ pprint_ident f)))
           in
           GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)
