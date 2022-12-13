@@ -45,36 +45,7 @@ end
  * Note that it is mutable so that we can construct the initial state
  * as each declaration is processed.
  *)
-module GlobalEnv : sig
-  type t
-
-  val empty : t
-  val addGlobalConst : t -> ident -> value -> unit
-  val getGlobalConst : t -> ident -> value
-  val getGlobalConstOpt : t -> ident -> value option
-
-  (* to support generation of unknown values, we need to remember the structure
-   * of user-defined types such as enumerations and records
-   *)
-  val addEnum : t -> ident -> value list -> unit
-  val getEnum : t -> ident -> value list option
-  val isEnumEq : t -> ident -> bool
-  val isEnumNeq : t -> ident -> bool
-  val addRecord : t -> ident -> (ident * AST.ty) list -> unit
-  val getRecord : t -> ident -> (ident * AST.ty) list option
-  val addTypedef : t -> ident -> AST.ty -> unit
-  val getTypedef : t -> ident -> AST.ty option
-
-  val getFun :
-    AST.l -> t -> ident -> (ident list * ident list * AST.l * stmt list) option
-
-  val addFun :
-    AST.l -> t -> ident -> ident list * ident list * AST.l * stmt list -> unit
-
-  val setImpdef : t -> string -> value -> unit
-  val getImpdef : AST.l -> t -> string -> value
-  val pp : t -> unit
-end = struct
+module GlobalEnv = struct
   type t = {
     mutable functions :
       (ident list * ident list * AST.l * stmt list) Bindings.t;
@@ -164,21 +135,7 @@ end = struct
 end
 
 (** Environment representing both global and local state of the system *)
-module Env : sig
-  type t
-
-  val mkEnv : GlobalEnv.t -> value ScopeStack.t -> t
-  val newEnv : GlobalEnv.t -> t
-  val nestTop : t -> (t -> 'a) -> 'a
-  val nest : t -> (t -> 'a) -> 'a
-  val globals : t -> GlobalEnv.t
-  val addLocalVar : AST.l -> t -> ident -> value -> unit
-  val addLocalConst : AST.l -> t -> ident -> value -> unit
-  val addGlobalVar : t -> ident -> value -> unit
-  val getVar : AST.l -> t -> ident -> value
-  val setVar : AST.l -> t -> ident -> value -> unit
-  val pp : Format.formatter -> t -> unit
-end = struct
+module Env = struct
   type t = {
     globalConsts : GlobalEnv.t;
     mutable globalVars : value Scope.t;
