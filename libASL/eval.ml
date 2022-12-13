@@ -50,8 +50,6 @@ module GlobalEnv = struct
     mutable functions :
       (ident list * ident list * AST.l * stmt list) Bindings.t;
     mutable enums : value list Bindings.t;
-    mutable enumEqs : IdentSet.t;
-    mutable enumNeqs : IdentSet.t;
     mutable records : (ident * AST.ty) list Bindings.t;
     mutable typedefs : AST.ty Bindings.t;
     mutable constants : value Scope.t;
@@ -64,8 +62,6 @@ module GlobalEnv = struct
     {
       functions = Bindings.empty;
       enums = Bindings.empty;
-      enumEqs = IdentSet.empty;
-      enumNeqs = IdentSet.empty;
       records = Bindings.empty;
       typedefs = Bindings.empty;
       constants = Scope.empty ();
@@ -88,9 +84,6 @@ module GlobalEnv = struct
 
   let getEnum (env : t) (x : ident) : value list option =
     Bindings.find_opt x env.enums
-
-  let isEnumEq (env : t) (x : ident) : bool = IdentSet.mem x env.enumEqs
-  let isEnumNeq (env : t) (x : ident) : bool = IdentSet.mem x env.enumNeqs
 
   let addRecord (env : t) (x : ident) (fs : (ident * AST.ty) list) : unit =
     env.records <- Bindings.add x fs env.records

@@ -12,8 +12,6 @@ module GlobalEnv : sig
   type t
 
   val getGlobalConstOpt : t -> AST.ident -> Value.value option
-  val isEnumEq : t -> AST.ident -> bool
-  val isEnumNeq : t -> AST.ident -> bool
 
   val getFun :
     AST.l ->
