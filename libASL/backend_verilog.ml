@@ -7,9 +7,9 @@
 
 (** ASL to Verilog backend *)
 
-module PP = Format
 module AST = Asl_ast
 module FMTAST = Asl_fmt
+module PP = Format
 module V = Value
 open Format_utils
 
@@ -161,7 +161,7 @@ let realLit (fmt : PP.formatter) (x : AST.realLit) : unit = constant fmt x
 let strLit (fmt : PP.formatter) (x : string) : unit =
   constant fmt ("\"" ^ x ^ "\"")
 
-let valueLit (fmt : PP.formatter) (x : V.value) : unit =
+let valueLit (loc : AST.l) (fmt : PP.formatter) (x : V.value) : unit =
   match x with
   | VBool b -> constant fmt (if b then kw_true else kw_false)
   | VEnum (e, _) -> ident fmt e
@@ -172,14 +172,14 @@ let valueLit (fmt : PP.formatter) (x : V.value) : unit =
       bitsLit fmt (pad ^ s)
   | VString s -> strLit fmt s
   | _ ->
-      raise (Unimplemented (AST.Unknown, "constant value type", fun fmt -> ()))
+      raise (Unimplemented (loc, "constant value type", fun fmt -> ()))
 
 let ones (fmt : PP.formatter) (x : int) : unit =
   braces fmt (fun _ ->
       intLit fmt (string_of_int x);
       braces fmt (fun _ -> bitsLit fmt "1"))
 
-let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
+let rec ty (loc : AST.l) (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
   | Type_Constructor tc -> tycon fmt tc
   | Type_Integer _ -> kw_integer fmt
@@ -187,54 +187,54 @@ let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
       kw_bit fmt;
       nbsp fmt;
       brackets fmt (fun _ ->
-          constant fmt (string_of_int (const_int_expr n - 1));
+          constant fmt (string_of_int (const_int_expr loc n - 1));
           colon fmt;
           intLit fmt "0")
   | Type_OfExpr e ->
       fn_typeof fmt;
-      parens fmt (fun _ -> expr fmt e)
+      parens fmt (fun _ -> expr loc fmt e)
   | Type_Register (n, _) ->
       kw_bit fmt;
       nbsp fmt;
       brackets fmt (fun _ ->
-          constant fmt (string_of_int (const_int_expr n - 1));
+          constant fmt (string_of_int (const_int_expr loc n - 1));
           colon fmt;
           intLit fmt "0")
   (* unimplemented *)
   | Type_App (_, _) | Type_Array (_, _) | Type_Tuple _ ->
-      raise (Unimplemented (AST.Unknown, "type", fun fmt -> FMTAST.ty fmt x))
+      raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
 
 (* todo: indices need to be reduced to ceil(log2(width(operand))) *)
-and slice (fmt : PP.formatter) (x : AST.slice) : unit =
+and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
   match x with
-  | Slice_Single e -> expr fmt e
+  | Slice_Single e -> expr loc fmt e
   | Slice_HiLo (hi, lo) ->
-      expr fmt hi;
+      expr loc fmt hi;
       nbsp fmt;
       colon fmt;
       nbsp fmt;
-      expr fmt lo
+      expr loc fmt lo
   | Slice_LoWd (lo, wd) ->
-      expr fmt lo;
+      expr loc fmt lo;
       nbsp fmt;
       plus_colon fmt;
       nbsp fmt;
-      expr fmt wd
+      expr loc fmt wd
 
-and ixtype (fmt : PP.formatter) (x : AST.ixtype) : unit =
+and ixtype (loc : AST.l) (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with
   | Index_Enum tc -> tycon fmt tc
-  | Index_Int sz -> expr fmt sz
+  | Index_Int sz -> expr loc fmt sz
 
-and unknown (fmt : PP.formatter) (t : AST.ty) : unit =
+and unknown (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) : unit =
   match t with
   | Type_Bits k ->
-      expr fmt k;
+      expr loc fmt k;
       constant fmt "'X"
   | _ ->
-      raise (Unimplemented (AST.Unknown, "UNKNOWN", fun fmt -> FMTAST.ty fmt t))
+      raise (Unimplemented (loc, "UNKNOWN", fun fmt -> FMTAST.ty fmt t))
 
-and const_expr (x : AST.expr) : V.value =
+and const_expr (loc : AST.l) (x : AST.expr) : V.value =
   match x with
   | Expr_LitInt i -> V.from_intLit i
   | Expr_LitHex i -> V.from_hexLit i
@@ -244,197 +244,197 @@ and const_expr (x : AST.expr) : V.value =
   | Expr_LitString s -> V.from_stringLit s
   | _ ->
     raise (Unimplemented
-            (AST.Unknown,
+            (loc,
              "const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
 
-and const_int_expr (x : AST.expr) : int =
-  match const_expr x with
+and const_int_expr (loc : AST.l) (x : AST.expr) : int =
+  match const_expr loc x with
   | VInt i -> Z.to_int i
   | _ ->
     raise (Unimplemented
-            (AST.Unknown,
+            (loc,
              "const_int_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
 
-and apply (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) : unit
+and apply (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) : unit
     =
   f ();
-  parens fmt (fun _ -> exprs fmt args)
+  parens fmt (fun _ -> exprs loc fmt args)
 
 and cast (fmt : PP.formatter) (f : string) (x : unit -> unit) : unit =
   delimiter fmt (f ^ "'");
   parens fmt x
 
-and zero_extend_bits (fmt : PP.formatter) (target_width : int) (x : AST.expr) :
+and zero_extend_bits (loc : AST.l) (fmt : PP.formatter) (target_width : int) (x : AST.expr) :
     unit =
-  cast fmt (string_of_int target_width) (fun _ -> expr fmt x)
+  cast fmt (string_of_int target_width) (fun _ -> expr loc fmt x)
 
-and sign_extend_bits (fmt : PP.formatter) (target_width : int) (x : AST.expr) :
+and sign_extend_bits (loc : AST.l) (fmt : PP.formatter) (target_width : int) (x : AST.expr) :
     unit =
   cast fmt (string_of_int target_width) (fun _ ->
-      cast fmt "signed" (fun _ -> expr fmt x))
+      cast fmt "signed" (fun _ -> expr loc fmt x))
 
 (** calculate mask of the form '11111100000' with (intwidth-x) ones and x zeros *)
-and notmask_int (fmt : PP.formatter) (x : AST.expr) : unit =
+and notmask_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   parens fmt (fun _ ->
       ones fmt int_width;
       nbsp fmt;
       delimiter fmt "<<";
       nbsp fmt;
-      expr fmt x)
+      expr loc fmt x)
 
-and binop (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
+and binop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with
   | [ x; y ] ->
       parens fmt (fun _ ->
-          expr fmt x;
+          expr loc fmt x;
           nbsp fmt;
           delimiter fmt op;
           nbsp fmt;
-          expr fmt y)
+          expr loc fmt y)
   | _ -> failwith ("binop: " ^ op)
 
-and unop (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
+and unop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with
   | [ x ] ->
       parens fmt (fun _ ->
           delimiter fmt op;
           nbsp fmt;
-          expr fmt x)
+          expr loc fmt x)
   | _ -> failwith "unop"
 
-and cond_cont (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
+and cond_cont (loc : AST.l) (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
     (y : unit -> unit) : unit =
   (* TODO: confirm that SV only evaluates either x or y, not both *)
   parens fmt (fun _ ->
-      expr fmt c;
+      expr loc fmt c;
       nbsp fmt;
       delimiter fmt "?";
       nbsp fmt;
-      expr fmt x;
+      expr loc fmt x;
       nbsp fmt;
       delimiter fmt ":";
       nbsp fmt;
       y ())
 
-and cond (fmt : PP.formatter) (c : AST.expr) (x : AST.expr) (y : AST.expr) :
+and cond (loc : AST.l) (fmt : PP.formatter) (c : AST.expr) (x : AST.expr) (y : AST.expr) :
     unit =
   (* TODO: confirm that SV only evaluates either x or y, not both *)
-  cond_cont fmt c x (fun _ -> expr fmt y)
+  cond_cont loc fmt c x (fun _ -> expr loc fmt y)
 
-and conds (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) (e : AST.expr)
+and conds (loc : AST.l) (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) (e : AST.expr)
     : unit =
   match cts with
-  | [] -> expr fmt e
-  | (c, t) :: cts' -> cond_cont fmt c t (fun _ -> conds fmt cts' e)
+  | [] -> expr loc fmt e
+  | (c, t) :: cts' -> cond_cont loc fmt c t (fun _ -> conds loc fmt cts' e)
 
 and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
-  | FIdent ("eq_bool", _), _ -> binop fmt "==" args
-  | FIdent ("ne_bool", _), _ -> binop fmt "!=" args
-  | FIdent ("not_bool", _), _ -> unop fmt "!" args
-  | FIdent ("and_bool", _), [ x; y ] -> cond fmt x y Asl_utils.asl_false
-  | FIdent ("or_bool", _), [ x; y ] -> cond fmt x Asl_utils.asl_true y
-  | FIdent ("equiv_bool", _), _ -> binop fmt "==" args
-  | FIdent ("implies_bool", _), [ x; y ] -> cond fmt x y Asl_utils.asl_true
-  | FIdent ("eq_int", _), _ -> binop fmt "==" args
-  | FIdent ("ne_int", _), _ -> binop fmt "!=" args
-  | FIdent ("gt_int", _), _ -> binop fmt ">" args
-  | FIdent ("ge_int", _), _ -> binop fmt ">=" args
-  | FIdent ("le_int", _), _ -> binop fmt "<=" args
-  | FIdent ("lt_int", _), _ -> binop fmt "<" args
-  | FIdent ("is_pow2_int", _), _ -> apply fmt (fun _ -> fn_onehot fmt) args
-  | FIdent ("add_int", _), _ -> binop fmt "+" args
-  | FIdent ("neg_int", _), _ -> unop fmt "-" args
-  | FIdent ("sub_int", _), _ -> binop fmt "-" args
-  | FIdent ("shl_int", _), _ -> binop fmt "<<" args
-  | FIdent ("shr_int", _), _ -> binop fmt ">>" args
-  | FIdent ("mul_int", _), _ -> binop fmt "*" args
+  | FIdent ("eq_bool", _), _ -> binop loc fmt "==" args
+  | FIdent ("ne_bool", _), _ -> binop loc fmt "!=" args
+  | FIdent ("not_bool", _), _ -> unop loc fmt "!" args
+  | FIdent ("and_bool", _), [ x; y ] -> cond loc fmt x y Asl_utils.asl_false
+  | FIdent ("or_bool", _), [ x; y ] -> cond loc fmt x Asl_utils.asl_true y
+  | FIdent ("equiv_bool", _), _ -> binop loc fmt "==" args
+  | FIdent ("implies_bool", _), [ x; y ] -> cond loc fmt x y Asl_utils.asl_true
+  | FIdent ("eq_int", _), _ -> binop loc fmt "==" args
+  | FIdent ("ne_int", _), _ -> binop loc fmt "!=" args
+  | FIdent ("gt_int", _), _ -> binop loc fmt ">" args
+  | FIdent ("ge_int", _), _ -> binop loc fmt ">=" args
+  | FIdent ("le_int", _), _ -> binop loc fmt "<=" args
+  | FIdent ("lt_int", _), _ -> binop loc fmt "<" args
+  | FIdent ("is_pow2_int", _), _ -> apply loc fmt (fun _ -> fn_onehot fmt) args
+  | FIdent ("add_int", _), _ -> binop loc fmt "+" args
+  | FIdent ("neg_int", _), _ -> unop loc fmt "-" args
+  | FIdent ("sub_int", _), _ -> binop loc fmt "-" args
+  | FIdent ("shl_int", _), _ -> binop loc fmt "<<" args
+  | FIdent ("shr_int", _), _ -> binop loc fmt ">>" args
+  | FIdent ("mul_int", _), _ -> binop loc fmt "*" args
   | FIdent ("zdiv_int", _), _ ->
-      binop fmt "/" args (* todo: check behaviour on -ve values *)
+      binop loc fmt "/" args (* todo: check behaviour on -ve values *)
   | FIdent ("zrem_int", _), _ ->
-      binop fmt "%" args (* todo: check behaviour on -ve values *)
+      binop loc fmt "%" args (* todo: check behaviour on -ve values *)
   (* todo: I am fairly sure that these are incorrect
-     | (FIdent ("fdiv_int", _), _) -> binop fmt "/" args
-     | (FIdent ("frem_int", _), _) -> binop fmt "%" args
+     | (FIdent ("fdiv_int", _), _) -> binop loc fmt "/" args
+     | (FIdent ("frem_int", _), _) -> binop loc fmt "%" args
   *)
   | FIdent ("mod_pow2_int", _), [ x; y ] ->
       parens fmt (fun _ ->
-          expr fmt x;
+          expr loc fmt x;
           nbsp fmt;
           delimiter fmt "&";
           nbsp fmt;
           delimiter fmt "~";
-          notmask_int fmt y)
+          notmask_int loc fmt y)
   | FIdent ("align_int", _), [ x; y ] ->
       parens fmt (fun _ ->
-          expr fmt x;
+          expr loc fmt x;
           nbsp fmt;
           delimiter fmt "&";
           nbsp fmt;
-          notmask_int fmt y)
+          notmask_int loc fmt y)
   | FIdent ("pow2_int", _), [ x ] ->
       parens fmt (fun _ ->
           intLit fmt "1";
           nbsp fmt;
           delimiter fmt "<<";
           nbsp fmt;
-          expr fmt x)
+          expr loc fmt x)
   (* todo: real is not supported at the moment
-     | (FIdent ("cvt_int_real", _), _) -> binop fmt "" args
-     | (FIdent ("eq_real", _), _) -> binop fmt "" args
-     | (FIdent ("ne_real", _), _) -> binop fmt "" args
-     | (FIdent ("le_real", _), _) -> binop fmt "" args
-     | (FIdent ("lt_real", _), _) -> binop fmt "" args
-     | (FIdent ("gt_real", _), _) -> binop fmt "" args
-     | (FIdent ("ge_real", _), _) -> binop fmt "" args
-     | (FIdent ("add_real", _), _) -> binop fmt "" args
-     | (FIdent ("neg_real", _), _) -> unop fmt "" args
-     | (FIdent ("sub_real", _), _) -> binop fmt "" args
-     | (FIdent ("mul_real", _), _) -> binop fmt "" args
-     | (FIdent ("divide_real", _), _) -> binop fmt "" args
-     | (FIdent ("pow2_real", _), _) -> binop fmt "" args
-     | (FIdent ("round_tozero_real", _), _) -> binop fmt "" args
-     | (FIdent ("round_down_real", _), _) -> binop fmt "" args
-     | (FIdent ("round_up_real", _), _) -> binop fmt "" args
-     | (FIdent ("sqrt_real", _), _) -> binop fmt "" args
+     | (FIdent ("cvt_int_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("eq_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("ne_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("le_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("lt_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("gt_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("ge_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("add_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("neg_real", _), _) -> unop loc fmt "" args
+     | (FIdent ("sub_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("mul_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("divide_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("pow2_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("round_tozero_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("round_down_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("round_up_real", _), _) -> binop loc fmt "" args
+     | (FIdent ("sqrt_real", _), _) -> binop loc fmt "" args
   *)
   | FIdent ("cvt_int_bits", _), [ x; n ] ->
-      expr fmt x;
+      expr loc fmt x;
       brackets fmt (fun _ ->
           intLit fmt "0";
           plus_colon fmt;
-          expr fmt n)
-  | FIdent ("cvt_bits_sint", _), [ x ] -> sign_extend_bits fmt int_width x
-  | FIdent ("cvt_bits_uint", _), [ x ] -> zero_extend_bits fmt int_width x
-  | FIdent ("in_mask", _), _ -> binop fmt "=?=" args
+          expr loc fmt n)
+  | FIdent ("cvt_bits_sint", _), [ x ] -> sign_extend_bits loc fmt int_width x
+  | FIdent ("cvt_bits_uint", _), [ x ] -> zero_extend_bits loc fmt int_width x
+  | FIdent ("in_mask", _), _ -> binop loc fmt "=?=" args
   | FIdent ("notin_mask", _), _ ->
       parens fmt (fun _ ->
           delimiter fmt "!";
-          binop fmt "=?=" args)
-  | FIdent ("eq_bits", _), _ -> binop fmt "==" args
-  | FIdent ("ne_bits", _), _ -> binop fmt "!=" args
-  | FIdent ("add_bits", _), _ -> binop fmt "+" args
-  | FIdent ("sub_bits", _), _ -> binop fmt "-" args
-  | FIdent ("mul_bits", _), _ -> binop fmt "*" args
+          binop loc fmt "=?=" args)
+  | FIdent ("eq_bits", _), _ -> binop loc fmt "==" args
+  | FIdent ("ne_bits", _), _ -> binop loc fmt "!=" args
+  | FIdent ("add_bits", _), _ -> binop loc fmt "+" args
+  | FIdent ("sub_bits", _), _ -> binop loc fmt "-" args
+  | FIdent ("mul_bits", _), _ -> binop loc fmt "*" args
   | FIdent ("frem_bits_int", _), _ ->
-      binop fmt "/" args (* todo: check behaviour on -ve values *)
-  | FIdent ("and_bits", _), _ -> binop fmt "&" args
-  | FIdent ("or_bits", _), _ -> binop fmt "|" args
-  | FIdent ("eor_bits", _), _ -> binop fmt "^" args
-  | FIdent ("not_bits", _), _ -> unop fmt "~" args
+      binop loc fmt "/" args (* todo: check behaviour on -ve values *)
+  | FIdent ("and_bits", _), _ -> binop loc fmt "&" args
+  | FIdent ("or_bits", _), _ -> binop loc fmt "|" args
+  | FIdent ("eor_bits", _), _ -> binop loc fmt "^" args
+  | FIdent ("not_bits", _), _ -> unop loc fmt "~" args
   | FIdent ("zeros_bits", _), [] ->
       let x = List.hd tes in
-      bitsLit fmt (String.make (const_int_expr x) '0')
+      bitsLit fmt (String.make (const_int_expr loc x) '0')
   | FIdent ("ones_bits", _), [] ->
       let x = List.hd tes in
-      bitsLit fmt (String.make (const_int_expr x) '1')
+      bitsLit fmt (String.make (const_int_expr loc x) '1')
   | FIdent ("replicate_bits", _), [ x; y ] ->
       braces fmt (fun _ ->
-          valueLit fmt (const_expr y);
-          braces fmt (fun _ -> expr fmt x))
+          valueLit loc fmt (const_expr loc y);
+          braces fmt (fun _ -> expr loc fmt x))
   (* todo: string operations not supported at the moment
      | (FIdent ("cvt_int_hexstr", _), _) -> ...
      | (FIdent ("cvt_int_decstr", _), _) -> ...
@@ -445,45 +445,45 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
      | (FIdent ("eq_str", _), _) -> ...
      | (FIdent ("ne_str", _), _) -> ...
   *)
-  | FIdent ("print_str", _), _ -> apply fmt (fun _ -> fn_write fmt) args
-  | FIdent ("print_bits", _), _ -> apply fmt (fun _ -> fn_write fmt) args
+  | FIdent ("print_str", _), _ -> apply loc fmt (fun _ -> fn_write fmt) args
+  | FIdent ("print_bits", _), _ -> apply loc fmt (fun _ -> fn_write fmt) args
   | FIdent ("print_char", _), [ c ] ->
       fn_write fmt;
       parens fmt (fun _ ->
           constant fmt "\"%c\"";
           comma fmt;
-          expr fmt c)
-  | _ -> apply fmt (fun _ -> funname fmt f) args
+          expr loc fmt c)
+  | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
-and expr (fmt : PP.formatter) (x : AST.expr) : unit =
+and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_If (c, t, els, e) ->
       let els1 = List.map (function AST.E_Elsif_Cond (c, e) -> (c, e)) els in
-      conds fmt ((c, t) :: els1) e
+      conds loc fmt ((c, t) :: els1) e
   | Expr_Field (e, f) ->
-      expr fmt e;
+      expr loc fmt e;
       dot fmt;
       fieldname fmt f
   (* two special cases of slices are supported *)
   | Expr_Slices (e, [ s ]) ->
-      expr fmt e;
-      brackets fmt (fun _ -> slice fmt s)
+      expr loc fmt e;
+      brackets fmt (fun _ -> slice loc fmt s)
   | Expr_Slices ((Expr_Var v as e), ss) ->
       braces fmt (fun _ ->
           commasep fmt
             (fun s ->
-              expr fmt e;
-              brackets fmt (fun _ -> slice fmt s))
+              expr loc fmt e;
+              brackets fmt (fun _ -> slice loc fmt s))
             ss)
   | Expr_Var v -> (
       match v with
       | Ident "TRUE" -> constant fmt kw_true
       | Ident "FALSE" -> constant fmt kw_false
       | _ -> varname fmt v)
-  | Expr_Parens e -> expr fmt e
-  | Expr_TApply (f, tes, es) -> funcall fmt f tes es AST.Unknown
-  | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs fmt es)
-  | Expr_Unknown t -> unknown fmt t
+  | Expr_Parens e -> expr loc fmt e
+  | Expr_TApply (f, tes, es) -> funcall fmt f tes es loc
+  | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs loc fmt es)
+  | Expr_Unknown t -> unknown loc fmt t
   | Expr_LitInt l -> intLit fmt l
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitReal l -> realLit fmt l
@@ -491,8 +491,8 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitMask l -> maskLit fmt l
   | Expr_LitString l -> strLit fmt l
   | Expr_Array (a, i) ->
-      expr fmt a;
-      brackets fmt (fun _ -> expr fmt i)
+      expr loc fmt a;
+      brackets fmt (fun _ -> expr loc fmt i)
   | Expr_RecordInit (tc, fas) ->
       delimiter fmt "'";
       braces fmt (fun _ ->
@@ -501,19 +501,19 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
             varname fmt f;
             colon fmt;
             nbsp fmt;
-            expr fmt e)
+            expr loc fmt e)
           fas)
   (* unimplemented *)
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
   | Expr_ImpDef (_, _)
   | Expr_Tuple _ | Expr_Fields _ | Expr_AsConstraint _ | Expr_AsType _ ->
       raise
-        (Unimplemented (AST.Unknown, "expression", fun fmt -> FMTAST.expr fmt x))
+        (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
 
-and exprs (fmt : PP.formatter) (es : AST.expr list) : unit =
-  commasep fmt (expr fmt) es
+and exprs (loc : AST.l) (fmt : PP.formatter) (es : AST.expr list) : unit =
+  commasep fmt (expr loc fmt) es
 
-and pattern (fmt : PP.formatter) (x : AST.pattern) : unit =
+and pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
   | Pat_LitInt l -> intLit fmt l
   | Pat_LitHex l -> hexLit fmt l
@@ -521,126 +521,117 @@ and pattern (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_LitMask l -> maskLit fmt l
   | Pat_Const v -> varname fmt v
   | Pat_Wildcard -> delimiter fmt ".*"
-  | Pat_Set ps -> braces fmt (fun _ -> patterns fmt ps)
-  | Pat_Single e -> expr fmt e
+  | Pat_Set ps -> braces fmt (fun _ -> patterns loc fmt ps)
+  | Pat_Single e -> expr loc fmt e
   | Pat_Range (lo, hi) ->
-      expr fmt lo;
+      expr loc fmt lo;
       nbsp fmt;
       dot_dot fmt;
       nbsp fmt;
-      expr fmt hi
+      expr loc fmt hi
   (* unimplemented *)
   | Pat_Tuple _ ->
       raise
-        (Unimplemented (AST.Unknown, "patterns", fun fmt -> FMTAST.pattern fmt x))
+        (Unimplemented (loc, "patterns", fun fmt -> FMTAST.pattern fmt x))
 
-and patterns (fmt : PP.formatter) (ps : AST.pattern list) : unit =
+and patterns (loc : AST.l) (fmt : PP.formatter) (ps : AST.pattern list) : unit =
   match ps with
-  | [ p ] -> pattern fmt p
+  | [ p ] -> pattern loc fmt p
   | _ ->
       raise
         (Unimplemented
-           (AST.Unknown, "patterns", fun fmt -> FMTAST.patterns fmt ps))
+           (loc, "patterns", fun fmt -> FMTAST.patterns fmt ps))
 
-let assign (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
+let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
   l ();
   nbsp fmt;
   eq fmt;
   nbsp fmt;
-  expr fmt r;
+  expr loc fmt r;
   semicolon fmt
 
-let lexpr (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
-  match x with
-  (*
-  | LExpr_Wildcard -> minus fmt
-  *)
-  | LExpr_Var v -> assign fmt (fun _ -> varname fmt v) r
+let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
+  ( match x with
+  | LExpr_Var v -> varname fmt v
   (* one special case of Field - easy to generalise this one *)
-  | LExpr_Field (LExpr_Var v, f) ->
-      assign fmt
-        (fun _ ->
-          varname fmt v;
-          dot fmt;
-          fieldname fmt f)
-        r
+  | LExpr_Field (l, f) ->
+    lexpr loc fmt l;
+    dot fmt;
+    varname fmt f
   (* one special case of slices are supported *)
   | LExpr_Slices (LExpr_Var v, ss) ->
-      assign fmt
-        (fun _ ->
-          braces fmt (fun _ ->
-              commasep fmt
-                (fun s ->
-                  varname fmt v;
-                  brackets fmt (fun _ -> slice fmt s))
-                ss))
-        r
-  (*
-  | LExpr_BitTuple(es) ->
-    assign (fun _ -> braces fmt (fun _ -> lexprs fmt es)) r
-  *)
-  | LExpr_Write (f, [], es) ->
-      apply fmt (fun _ -> funname fmt f) (es @ [ r ]);
-      semicolon fmt
-  | LExpr_Array (LExpr_Var a, i) ->
-      assign fmt
-        (fun _ ->
-          varname fmt a;
-          brackets fmt (fun _ -> expr fmt i))
-        r
+    braces fmt (fun _ ->
+      commasep fmt
+        (fun s ->
+          varname fmt v;
+          brackets fmt (fun _ -> slice loc fmt s))
+        ss)
+  | LExpr_BitTuple(ws, es) ->
+    braces fmt (fun _ -> lexprs loc fmt es)
+  | LExpr_Array (a, i) ->
+    lexpr loc fmt a;
+    brackets fmt (fun _ -> expr loc fmt i)
   (* unimplemented *)
-  | LExpr_Wildcard | LExpr_Field _ | LExpr_Fields _ | LExpr_Slices _
-  | LExpr_BitTuple _ | LExpr_Tuple _
+  | LExpr_Wildcard | LExpr_Fields _ | LExpr_Slices _
+  | LExpr_Tuple _
   | LExpr_Write (_, _, _)
-  | LExpr_ReadWrite (_, _, _, _)
-  | LExpr_Array (_, _) ->
+  | LExpr_ReadWrite (_, _, _, _) ->
       raise
         (Unimplemented
-           (AST.Unknown, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
+           (loc, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
+  )
 
-(*
-and lexprs (fmt: PP.formatter) (ps: AST.lexpr list): unit = commasep fmt (lexpr fmt) ps
-*)
+and lexprs (loc : AST.l) (fmt: PP.formatter) (ps: AST.lexpr list): unit =
+  commasep fmt (lexpr loc fmt) ps
 
-let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
+let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr): unit =
+  ( match x with
+  | LExpr_Wildcard ->
+    expr loc fmt r;
+    semicolon fmt
+  | _ ->
+    assign loc fmt (fun _ -> lexpr loc fmt x) r
+  )
+
+let varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   match t with
   | Type_Array (Index_Int sz, ety) ->
-      ty fmt ety;
+      ty loc fmt ety;
       nbsp fmt;
       varname fmt v;
-      brackets fmt (fun _ -> expr fmt sz)
+      brackets fmt (fun _ -> expr loc fmt sz)
   | _ ->
-      ty fmt t;
+      ty loc fmt t;
       nbsp fmt;
       varname fmt v
 
-let rec declitem (fmt : PP.formatter) (x : AST.decl_item) =
+let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
   match x with
   | DeclItem_Var (v, Some t) ->
-      varty fmt v t;
+      varty loc fmt v t;
       semicolon fmt
-  | DeclItem_Tuple dis -> cutsep fmt (declitem fmt) dis
+  | DeclItem_Tuple dis -> cutsep fmt (declitem loc fmt) dis
   | DeclItem_Var (v, None) ->
       raise
         (Unimplemented
-           ( AST.Unknown,
+           ( loc,
              "decl: type of variable unknown",
              fun fmt -> FMTAST.varname fmt v ))
   | DeclItem_Wildcard _ ->
       raise
-        (Unimplemented (AST.Unknown, "decl: use of wildcard", fun fmt -> ()))
+        (Unimplemented (loc, "decl: use of wildcard", fun fmt -> ()))
 
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
-      ty fmt t;
+      ty loc fmt t;
       nbsp fmt;
       varnames fmt vs;
       semicolon fmt;
       cut fmt
   | Stmt_VarDecl (di, i, loc)
   | Stmt_ConstDecl (di, i, loc) ->
-      declitem fmt di;
+      declitem loc fmt di;
       cut fmt
   | _ -> ()
 
@@ -651,25 +642,24 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
-      assign fmt (fun _ -> varname fmt v) i
-  | Stmt_Assign (l, r, loc) -> lexpr fmt l r
+      assign loc fmt (fun _ -> varname fmt v) i
+  | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
   | Stmt_TCall (f, tes, args, loc) ->
       funcall fmt f tes args loc;
       semicolon fmt
   | Stmt_FunReturn (e, loc) ->
       kw_return fmt;
       nbsp fmt;
-      expr fmt e;
+      expr loc fmt e;
       semicolon fmt
   | Stmt_ProcReturn loc ->
       kw_return fmt;
       semicolon fmt
   | Stmt_Assert (e, loc) ->
-      (* todo: not clear what best translation is *)
-      (*
-    kw_assert fmt; nbsp fmt; expr fmt e; semicolon fmt
-    *)
-      ()
+      (* todo: not clear that this is the best translation *)
+      kw_assert fmt;
+      parens fmt (fun _ -> expr loc fmt e);
+      semicolon fmt
   | Stmt_Block (ss, _) ->
       kw_begin fmt;
       indented_block fmt ss;
@@ -681,7 +671,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           nbsp fmt;
           kw_if fmt;
           nbsp fmt;
-          parens fmt (fun _ -> expr fmt c);
+          parens fmt (fun _ -> expr loc fmt c);
           nbsp fmt;
           kw_begin fmt;
           indented_block fmt t;
@@ -694,7 +684,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
               nbsp fmt;
               kw_if fmt;
               nbsp fmt;
-              parens fmt (fun _ -> expr fmt c);
+              parens fmt (fun _ -> expr loc fmt c);
               nbsp fmt;
               kw_begin fmt;
               indented_block fmt s)
@@ -713,14 +703,13 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       vbox fmt (fun _ ->
           kw_casez fmt;
           nbsp fmt;
-          parens fmt (fun _ -> expr fmt e);
+          parens fmt (fun _ -> expr loc fmt e);
           indented fmt (fun _ ->
               cutsep fmt
                 (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
-                  patterns fmt ps;
+                  patterns loc fmt ps;
                   if Option.is_some oc then
                     raise (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
-                  (* PP.pp_print_option (fun _ c -> nbsp fmt; amp_amp fmt; nbsp fmt; expr fmt c) fmt oc; *)
                   colon fmt;
                   nbsp fmt;
                   kw_begin fmt;
@@ -742,37 +731,39 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           cut fmt;
           kw_endcase fmt)
   (* unimplemented *)
-  | Stmt_VarDecl _
-  | Stmt_ConstDecl _
-  | Stmt_Throw (_, _)
-  | Stmt_For (_, _, _, _, _, _)
-  | Stmt_While (_, _, _)
-  | Stmt_Repeat (_, _, _, _)
-  | Stmt_Try (_, _, _, _, _, _) ->
+  | Stmt_VarDecl (_, _, loc)
+  | Stmt_ConstDecl (_, _, loc)
+  | Stmt_Throw (_, loc)
+  | Stmt_For (_, _, _, _, _, loc)
+  | Stmt_While (_, _, loc)
+  | Stmt_Repeat (_, _, _, loc)
+  | Stmt_Try (_, _, _, _, _, loc) ->
       raise
-        (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
+        (Unimplemented (loc, "statement", fun fmt -> FMTAST.stmt fmt x))
 
 and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
-  indented fmt (fun _ ->
+  if xs <> [] then begin
+    indented fmt (fun _ ->
       map fmt (decl fmt) xs;
       cutsep fmt (stmt fmt) xs)
+  end
 
-let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
-  let v, t = x in
+let formal (loc : AST.l) (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
+  let (v, t) = x in
   kw_input fmt;
   nbsp fmt;
-  varty fmt v t
+  varty loc fmt v t
 
-let formals (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
-  commasep fmt (formal fmt) xs
+let formals (loc : AST.l) (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
+  commasep fmt (formal loc fmt) xs
 
-let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
+let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
     (args : unit -> unit) : unit =
   kw_function fmt;
   nbsp fmt;
   kw_automatic fmt;
   nbsp fmt;
-  PP.pp_print_option ~none:(fun _ _ -> kw_void fmt) (fun _ t -> ty fmt t) fmt ot;
+  PP.pp_print_option ~none:(fun _ _ -> kw_void fmt) (fun _ t -> ty loc fmt t) fmt ot;
   nbsp fmt;
   funname fmt f;
   parens fmt args;
@@ -806,7 +797,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
               indented fmt (fun _ ->
                   cutsep fmt
                     (fun (f, t) ->
-                      varty fmt f t;
+                      varty loc fmt f t;
                       semicolon fmt)
                     fs);
               cut fmt)
@@ -819,7 +810,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           eq fmt;
           nbsp fmt;
-          ty fmt t;
+          ty loc fmt t;
           semicolon fmt;
           cut fmt;
           cut fmt
@@ -837,11 +828,11 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
             cut fmt;
             cut fmt)
       | Decl_FunType (f, ps, args, t, loc) ->
-          function_header fmt (Some t) f (fun _ -> formals fmt args);
+          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           semicolon fmt;
           cut fmt
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
-          function_header fmt (Some t) f (fun _ -> formals fmt args);
+          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
           kw_endfunction fmt;
@@ -852,12 +843,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
-          function_header fmt None f (fun _ -> formals fmt args);
+          function_header loc fmt None f (fun _ -> formals loc fmt args);
           semicolon fmt;
           cut fmt;
           cut fmt
       | Decl_ProcDefn (f, ps, args, b, loc) ->
-          function_header fmt None f (fun _ -> formals fmt args);
+          function_header loc fmt None f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
           kw_endfunction fmt;
@@ -868,12 +859,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_Var (v, ty, loc) ->
-          varty fmt v ty;
+          varty loc fmt v ty;
           semicolon fmt;
           cut fmt;
           cut fmt
       | Decl_ArrayGetterDefn (f, ps, args, t, b, loc) ->
-          function_header fmt (Some t) f (fun _ -> formals fmt args);
+          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
           kw_endfunction fmt;
@@ -884,7 +875,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
-          function_header fmt None f (fun _ -> formals fmt (args @ [ (v, t) ]));
+          function_header loc fmt None f (fun _ -> formals loc fmt (args @ [ (v, t) ]));
           indented_block fmt b;
           cut fmt;
           kw_endfunction fmt;
