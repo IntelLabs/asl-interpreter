@@ -21,30 +21,33 @@ let check_declaration (tcenv : TC.GlobalEnv.t)
 
 let check_none (name : string) (s : string) : unit = ()
 
-let check_c_syntax (name : string) (code : string) : unit =
-  let prog = "gcc" in
-  let args =
-    [| prog; "-std=c99"; "-fsyntax-only"; "-xc"; "-I../runtime/include"; "-" |]
-  in
-  let out = Unix.open_process_args_out prog args in
-  let c_header =
-    String.concat "\n"
-      [
-        "#include <stdbool.h>";
-        "#include <stdint.h>";
-        "#include \"asl/ram.h\"";
-        "\n";
-      ]
-  in
+let check_compiler
+    (language : string)
+    (suffix : string)
+    (prog : string)
+    (args : string array)
+    (name : string)
+    (header : string)
+    (body : string)
+  : unit =
+  let (tmp, chan) = Filename.open_temp_file "test" suffix in
+  Out_channel.output_string chan header;
+  Out_channel.output_string chan body;
+  Out_channel.close chan;
+  let args' = Array.append args [| tmp |] in
 
-  output_string stdout c_header;
-  output_string stdout code;
-  flush stdout;
+  if true then begin
+    (* output test to log - for ease of debugging *)
+    output_string stdout header;
+    output_string stdout body;
 
-  Out_channel.output_string out c_header;
-  Out_channel.output_string out code;
+    Printf.printf "Wrote to %s\n" tmp;
+    Printf.printf "Executing %s %s\n" prog (String.concat " " (Array.to_list args'));
+    flush stdout
+  end;
 
-  let status = Unix.close_process_out out in
+  let p = Unix.open_process_args_out prog args' in
+  let status = Unix.close_process_out p in
   let exit_status =
     match status with
     | Unix.WEXITED s ->
@@ -57,7 +60,33 @@ let check_c_syntax (name : string) (code : string) : unit =
         Printf.printf "%s stopped\n" prog;
         1
   in
-  Alcotest.(check int) ("C syntax: " ^ name) 0 exit_status
+  Sys.remove tmp;
+  Alcotest.(check int) (language ^ " syntax: " ^ name) 0 exit_status
+
+let check_c_syntax (name : string) (code : string) : unit =
+  let prog = "gcc" in
+  let args = [| prog; "-std=c99"; "-fsyntax-only"; "-I../runtime/include"; "-xc" |] in
+  let header =
+    String.concat "\n"
+      [
+        "#include <stdbool.h>";
+        "#include <stdint.h>";
+        "#include \"asl/ram.h\"";
+        "\n"
+      ]
+  in
+  check_compiler "C" ".c" prog args name header code
+
+let check_verilog_syntax (name : string) (code : string) : unit =
+  let prog = "verilator" in
+  let lints = [
+    "/* verilator lint_off WIDTH */";
+    "/* verilator lint_off UNPACKED */";
+    ]
+  in
+  let header = String.concat "\n" lints in
+  let args = [| prog; "--cc" |] in
+  check_compiler "System Verilog" ".v" prog args name header code
 
 let test_builtin_fun (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
@@ -121,7 +150,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
   check_declaration tcenv decls ext "expression (variable)"
     "func F() var i :: integer = 0; var j = i; end";
   check_declaration tcenv decls ext "expression (boolean)"
-    "func F() var i = FALSE; end";
+    "enumeration boolean { FALSE, TRUE };
+    func F() var i = FALSE; end";
   check_declaration tcenv decls ext "expression (if)"
     "func F() var i = if FALSE then 0 else 0; end";
   check_declaration tcenv decls ext "expression (if elsif)"
@@ -129,7 +159,7 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
   check_declaration tcenv decls ext "expression (parentheses)"
     "func F() var i :: integer = ( 0 ); end";
   check_declaration tcenv decls ext "expression (function invocation)"
-    "func B() => integer; func F() var i = B(); end";
+    "func B() => integer return 0; end func F() var i = B(); end";
   check_declaration tcenv decls ext "expression (builtin function invocation)"
     "func F() var i = 1 + 1; end";
   check_declaration tcenv decls ext "expression (slice, lowd)"
@@ -147,9 +177,9 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
   check_declaration tcenv decls ext "statement (return)"
     "func F() return; end";
   check_declaration tcenv decls ext "statement (procedure invocation)"
-    "func B(); func F() B(); end";
+    "func B() end func F() B(); end";
   check_declaration tcenv decls ext "statement (procedure invocation with arg)"
-    "func B(i :: integer); func F() B(0); end";
+    "func B(i :: integer) end func F() B(0); end";
   check_declaration tcenv decls ext "statement (block)"
     "func F() begin end end";
   check_declaration tcenv decls ext "statement (assignment)"
@@ -211,7 +241,8 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
     unit =
   check_declaration tcenv decls ext "expression (IN mask)"
-    "func F(x :: bits(4)) => boolean return x IN '11xx'; end";
+    "enumeration boolean { FALSE, TRUE };
+    func F(x :: bits(4)) => boolean return x IN '11xx'; end";
   check_declaration tcenv decls ext "statement (for, direction to)"
     "func F() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls ext "statement (for, direction downto)"
@@ -249,9 +280,9 @@ let () =
   let fmt = Format.str_formatter in
   Alcotest.run "backend"
     [
-      ("backend c", test_cases (Backend_c.declarations fmt) check_c_syntax);
-      ("backend c only", test_cases_c_only (Backend_c.declarations fmt) check_c_syntax);
-      ("backend verilog", test_cases (Backend_verilog.declarations fmt) check_none);
+      ("backend_c", test_cases (Backend_c.declarations fmt) check_c_syntax);
+      ("backend_c_only", test_cases_c_only (Backend_c.declarations fmt) check_c_syntax);
+      ("backend_verilog", test_cases (Backend_verilog.declarations fmt) check_verilog_syntax);
     ]
 
 (****************************************************************
