@@ -216,31 +216,54 @@ let sint (loc : AST.l) (fmt : PP.formatter) (width : int) : unit =
       (Unimplemented
          (loc, "sint width: " ^ string_of_int width, fun fmt -> ()))
 
-let ty (loc : AST.l) (fmt : PP.formatter) (x : AST.ty) : unit =
-  match x with
-  | Type_Bits n -> uint loc fmt (const_int_expr loc n)
-  | Type_Constructor tc -> (
-      match tc with
-      | Ident "boolean" -> kw_bool fmt
+let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
+  ( match x with
+  | Type_Bits n
+  | Type_Register (n, _) ->
+    uint loc fmt (const_int_expr loc n);
+    nbsp fmt;
+    varname fmt v
+  | Type_Constructor tc ->
+      ( match tc with
+      | Ident "boolean" ->
+        kw_bool fmt;
+        nbsp fmt;
+        varname fmt v
       | Ident "string" ->
-          kw_const fmt;
-          nbsp fmt;
-          kw_char fmt;
-          nbsp fmt;
-          star fmt
-      | _ -> tycon fmt tc)
-  | Type_App (Ident "__RAM", [_]) -> ty_ram fmt
+        kw_const fmt;
+        nbsp fmt;
+        kw_char fmt;
+        nbsp fmt;
+        star fmt;
+        varname fmt v
+      | _ ->
+        tycon fmt tc;
+        nbsp fmt;
+        varname fmt v
+      )
+  | Type_App (Ident "__RAM", [_]) ->
+    ty_ram fmt;
+    nbsp fmt;
+    varname fmt v
   (* TODO implement integer range analysis to determine the correct type width.
    * For now use int64. *)
-  | Type_Integer _ -> kw_int64 fmt
-  | Type_Register (n, _) -> uint loc fmt (const_int_expr loc n)
+  | Type_Integer _ ->
+    kw_int64 fmt;
+    nbsp fmt;
+    varname fmt v
+  | Type_Array (Index_Enum tc, ety) ->
+    varty loc fmt v ety;
+    brackets fmt (fun _ -> tycon fmt tc)
+  | Type_Array (Index_Int sz, ety) ->
+    varty loc fmt v ety;
+    brackets fmt (fun _ -> expr loc fmt sz)
   | Type_App (_, _)
-  | Type_Array (_, _)
   | Type_OfExpr _
   | Type_Tuple _ ->
       raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
+  )
 
-let rec apply (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
+and apply (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
     unit =
   f ();
   parens fmt (fun _ -> exprs loc fmt args)
@@ -647,18 +670,6 @@ let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.exp
       semicolon fmt
   | _ -> assign loc fmt (fun _ -> lexpr loc fmt x) r
 
-let varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
-  match t with
-  | Type_Array (Index_Int sz, ety) ->
-      ty loc fmt ety;
-      nbsp fmt;
-      varname fmt v;
-      brackets fmt (fun _ -> expr loc fmt sz)
-  | _ ->
-      ty loc fmt t;
-      nbsp fmt;
-      varname fmt v
-
 let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
   match x with
   | DeclItem_Var (v, Some t) ->
@@ -679,11 +690,12 @@ let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
-      ty loc fmt t;
-      nbsp fmt;
-      varnames fmt vs;
-      semicolon fmt;
-      cut fmt
+      List.iter (fun v ->
+          varty loc fmt v t;
+          semicolon fmt;
+          cut fmt
+      )
+      vs
   | Stmt_VarDecl (di, i, loc) | Stmt_ConstDecl (di, i, loc) -> declitem loc fmt di
   | _ -> ()
 
@@ -873,21 +885,19 @@ let formals (loc : AST.l) (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) 
 
 let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
     (args : unit -> unit) : unit =
-  PP.pp_print_option ~none:(fun _ _ -> kw_void fmt) (fun _ t -> ty loc fmt t) fmt ot;
-  nbsp fmt;
-  funname fmt f;
+  PP.pp_print_option
+    ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
+    (fun _ t -> varty loc fmt f t) fmt ot;
   parens fmt args
 
 let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
   brace_enclosed_block fmt b;
   cut fmt
 
-let typedef (fmt : PP.formatter) (tc : AST.ident) (pp : unit -> unit) : unit =
+let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
   kw_typedef fmt;
   nbsp fmt;
   pp ();
-  nbsp fmt;
-  tycon fmt tc;
   semicolon fmt;
   cut fmt
 
@@ -908,10 +918,13 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_Enum (tc, es, loc) ->
           if tc = Ident "boolean" then (* is in C99 stdbool.h *) ()
           else (
-            typedef fmt tc (fun _ ->
+            typedef fmt (fun _ ->
                 kw_enum fmt;
                 nbsp fmt;
-                braces fmt (fun _ -> commasep fmt (varname fmt) es));
+                braces fmt (fun _ -> commasep fmt (varname fmt) es);
+                nbsp fmt;
+                tycon fmt tc
+              );
             cut fmt)
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
@@ -934,7 +947,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_Record (tc, fs, loc) ->
-          typedef fmt tc (fun _ ->
+          typedef fmt (fun _ ->
               kw_struct fmt;
               nbsp fmt;
               braces fmt (fun _ ->
@@ -944,10 +957,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                           varty loc fmt f t;
                           semicolon fmt)
                         fs);
-                  cut fmt));
+                  cut fmt);
+              nbsp fmt;
+              tycon fmt tc);
           cut fmt
       | Decl_Typedef (tc, t, loc) ->
-          typedef fmt tc (fun _ -> ty loc fmt t);
+          typedef fmt (fun _ -> varty loc fmt tc t);
           cut fmt
       | Decl_Var (v, ty, loc) ->
           varty loc fmt v ty;
