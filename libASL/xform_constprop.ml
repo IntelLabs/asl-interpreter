@@ -11,18 +11,14 @@ module AST = Asl_ast
 open Asl_utils
 open AST
 open Utils
-module Concrete = Value
 
 let unroll_loops : bool ref = ref true
 
-module Value = struct
-  type t = Concrete.value
-
-  let pp = Concrete.pp_value
-  let equal (x : t) (y : t) : bool = Concrete.eq_value x y
-end
-
-module Values = Lattice.Const (Value)
+module Values = Lattice.Const (struct
+  type t = Value.value
+  let pp = Value.pp_value
+  let equal = Value.eq_value
+end)
 
 module Env = struct
   type value = Values.t
@@ -112,13 +108,13 @@ module Env = struct
           (Option.map Values.singleton
              (Eval.GlobalEnv.get_global_constant env.globalConsts x))
           (fun _ ->
-            raise (Concrete.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
+            raise (Value.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
 
   let setVar (env : t) (x : ident) (v : value) : unit =
     ignore (ScopeStack.set env.locals x v)
 end
 
-let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Concrete.value) list) : Env.t =
+let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Value.value) list) : Env.t =
   let env = Env.newEnv genv in
   List.iter (fun (x, v) -> Env.addLocalConst env x (Values.singleton v)) values;
   env
@@ -128,14 +124,14 @@ let isConstant (env : Env.t) (x : expr) : bool =
   | Expr_Var v -> Option.is_some (Eval.GlobalEnv.get_global_constant (Env.globals env) v)
   | _ -> Asl_utils.is_literal_constant x
 
-let value_of_constant (x : expr) : Concrete.value option =
+let value_of_constant (x : expr) : Value.value option =
   match x with
-  | Expr_LitInt i -> Some (Concrete.from_intLit i)
-  | Expr_LitHex i -> Some (Concrete.from_hexLit i)
-  | Expr_LitReal r -> Some (Concrete.from_realLit r)
-  | Expr_LitBits b -> Some (Concrete.from_bitsLit b)
-  | Expr_LitMask b -> Some (Concrete.from_maskLit b)
-  | Expr_LitString s -> Some (Concrete.from_stringLit s)
+  | Expr_LitInt i -> Some (Value.from_intLit i)
+  | Expr_LitHex i -> Some (Value.from_hexLit i)
+  | Expr_LitReal r -> Some (Value.from_realLit r)
+  | Expr_LitBits b -> Some (Value.from_bitsLit b)
+  | Expr_LitMask b -> Some (Value.from_maskLit b)
+  | Expr_LitString s -> Some (Value.from_stringLit s)
   | _ -> None
 
 let expr_value (env : Env.t) (x : AST.expr) : Values.t =
@@ -144,7 +140,7 @@ let expr_value (env : Env.t) (x : AST.expr) : Values.t =
     Values.singleton (Eval.eval_expr Unknown env0 x)
   else Values.bottom
 
-let rec value_to_expr (x : Concrete.value) : expr option =
+let rec value_to_expr (x : Value.value) : expr option =
   match x with
   | VBool b -> Some (Expr_Var (Ident (if b then "TRUE" else "FALSE")))
   | VEnum (v, _) -> Some (Expr_Var v)
@@ -477,11 +473,11 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       let stop' = xform_expr env stop in
       match (value_of_constant start', value_of_constant stop') with
       | Some x, Some y when !unroll_loops ->
-          let rec eval (i : Concrete.value) =
+          let rec eval (i : Value.value) =
             let c =
               match dir with
-              | Direction_Up -> Concrete.eval_leq loc i y
-              | Direction_Down -> Concrete.eval_leq loc y i
+              | Direction_Up -> Value.eval_leq loc i y
+              | Direction_Down -> Value.eval_leq loc y i
             in
             if c then
               let b' =
@@ -491,8 +487,8 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
               in
               let i' =
                 match dir with
-                | Direction_Up -> Concrete.eval_add_int loc i Concrete.int_one
-                | Direction_Down -> Concrete.eval_sub_int loc i Concrete.int_one
+                | Direction_Up -> Value.eval_add_int loc i Value.int_one
+                | Direction_Down -> Value.eval_sub_int loc i Value.int_one
               in
               Stmt_Block (b', loc) :: eval i'
             else []
@@ -589,7 +585,7 @@ let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :
     Option.is_some (Eval.GlobalEnv.get_global_constant genv v)
   in
   let isImpurePrim (v : ident) : bool =
-    List.exists (fun p -> Ident.matches p v) Concrete.impure_prims
+    List.exists (fun p -> Ident.matches p v) Value.impure_prims
   in
   impure_funs := identify_impure_funs isConstant isImpurePrim ds;
   List.map (xform_decl genv) ds

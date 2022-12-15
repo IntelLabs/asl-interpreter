@@ -21,18 +21,10 @@ module type Lattice = sig
   val pp_abstract : t -> string
 end
 
-module type EqType = sig
-  type t
-
-  val equal : t -> t -> bool
-end
-
 module Const (Concrete : sig
   type t
-
   val pp : t -> string
-
-  include EqType with type t := t
+  val equal : t -> t -> bool
 end) =
 struct
   type elt = Concrete.t
@@ -85,18 +77,10 @@ struct
     | Singleton x -> pp_concrete x
 end
 
-module type OrderedType = sig
-  type t
-
-  val compare : t -> t -> int
-end
-
 module Interval (Concrete : sig
   type t
-
   val pp : t -> string
-
-  include OrderedType with type t := t
+  val compare : t -> t -> int
 end) =
 struct
   type elt = Concrete.t
