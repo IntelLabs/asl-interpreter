@@ -40,9 +40,9 @@ let pp_bindings (pp : 'a -> string) (bs : 'a Bindings.t) : unit =
 module Scope = struct
   type 'a t = { mutable bs : 'a Bindings.t }
 
-  let pp (pp_value : 'a -> string) (env : 'a t) : unit =
+  let pp (pp_value : 'a -> string) (s : 'a t) : unit =
     Printf.printf "{\n";
-    pp_bindings pp_value env.bs;
+    pp_bindings pp_value s.bs;
     Printf.printf "}\n"
 
   let empty () : 'a t =
@@ -61,27 +61,27 @@ module Scope = struct
 
   let map_inplace (f : 'a -> 'a) (s : 'a t) : unit = s.bs <- Bindings.map f s.bs
 
-  let map2 (f : 'a -> 'b -> 'c) (env1 : 'a t) (env2 : 'b t) : 'c t =
+  let map2 (f : 'a -> 'b -> 'c) (s1 : 'a t) (s2 : 'b t) : 'c t =
     let merge v oa ob =
       match (oa, ob) with Some a, Some b -> Some (f a b) | _ -> None
     in
-    { bs = Bindings.merge merge env1.bs env2.bs }
+    { bs = Bindings.merge merge s1.bs s2.bs }
 
-  let merge_inplace (f : 'a -> 'b -> 'a) (env1 : 'a t) (env2 : 'b t) : unit =
+  let merge_inplace (f : 'a -> 'b -> 'a) (s1 : 'a t) (s2 : 'b t) : unit =
     let merge v oa ob =
       match (oa, ob) with Some a, Some b -> Some (f a b) | _ -> None
     in
-    env1.bs <- Bindings.merge merge env1.bs env2.bs
+    s1.bs <- Bindings.merge merge s1.bs s2.bs
 
-  let bindings (env : 'a t) : (ident * 'a) list = Bindings.bindings env.bs
+  let bindings (s : 'a t) : (ident * 'a) list = Bindings.bindings s.bs
 end
 
 (* A collection of nested mutable scopes *)
 module ScopeStack = struct
   type 'a t = 'a Scope.t list
 
-  let pp (pp_value : 'a -> string) (env : 'a t) : unit =
-    List.iter (Scope.pp pp_value) env
+  let pp (pp_value : 'a -> string) (ss : 'a t) : unit =
+    List.iter (Scope.pp pp_value) ss
 
   let empty () : 'a t =
     let base : 'a Scope.t = Scope.empty () in
@@ -108,29 +108,30 @@ module ScopeStack = struct
         if Scope.mem s x then (
           Scope.set s x v;
           true)
-        else set ss' x v
+        else
+          set ss' x v
     | [] -> false
 
-  let map (f : 'a -> 'b) (env : 'a t) : 'b t = List.map (Scope.map f) env
+  let map (f : 'a -> 'b) (ss : 'a t) : 'b t = List.map (Scope.map f) ss
 
-  let filter_map (f : 'a -> 'b option) (env : 'a t) : 'b t =
-    List.map (Scope.filter_map f) env
+  let filter_map (f : 'a -> 'b option) (ss : 'a t) : 'b t =
+    List.map (Scope.filter_map f) ss
 
-  let map_inplace (f : 'a -> 'a) (env : 'a t) : unit =
-    List.iter (Scope.map_inplace f) env
+  let map_inplace (f : 'a -> 'a) (ss : 'a t) : unit =
+    List.iter (Scope.map_inplace f) ss
 
-  let map2 (f : 'a -> 'b -> 'c) (env1 : 'a t) (env2 : 'b t) : 'c t =
-    List.map2 (Scope.map2 f) env1 env2
+  let map2 (f : 'a -> 'b -> 'c) (ss1 : 'a t) (ss2 : 'b t) : 'c t =
+    List.map2 (Scope.map2 f) ss1 ss2
 
-  let merge_inplace (f : 'a -> 'b -> 'a) (env1 : 'a t) (env2 : 'b t) : unit =
-    List.iter2 (Scope.merge_inplace f) env1 env2
+  let merge_inplace (f : 'a -> 'b -> 'a) (ss1 : 'a t) (ss2 : 'b t) : unit =
+    List.iter2 (Scope.merge_inplace f) ss1 ss2
 
-  let nest (env : 'a t) (k : 'a t -> 'b) : 'b =
+  let nest (ss : 'a t) (k : 'a t -> 'b) : 'b =
     let newscope = Scope.empty () in
-    k (newscope :: env)
+    k (newscope :: ss)
 
-  let bindings (env : 'a t) : (ident * 'a) list list =
-    List.map Scope.bindings env
+  let bindings (ss : 'a t) : (ident * 'a) list list =
+    List.map Scope.bindings ss
 end
 
 module IdentSet = Set.Make (Ident)
