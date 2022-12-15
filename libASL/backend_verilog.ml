@@ -128,6 +128,9 @@ let kw_var (fmt : PP.formatter) : unit = keyword fmt "var"
 let kw_void (fmt : PP.formatter) : unit = keyword fmt "void"
 let kw_with (fmt : PP.formatter) : unit = keyword fmt "with"
 
+(* Verilog types defined elsewhere *)
+let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_RAM_t"
+
 (* pseudo-keywords *)
 let kw_false = "1'b0"
 let kw_true = "1'b1"
@@ -179,30 +182,43 @@ let ones (fmt : PP.formatter) (x : int) : unit =
       intLit fmt (string_of_int x);
       braces fmt (fun _ -> bitsLit fmt "1"))
 
-let rec ty (loc : AST.l) (fmt : PP.formatter) (x : AST.ty) : unit =
-  match x with
-  | Type_Constructor tc -> tycon fmt tc
-  | Type_Integer _ -> kw_integer fmt
-  | Type_Bits n ->
-      kw_bit fmt;
-      nbsp fmt;
-      brackets fmt (fun _ ->
-          constant fmt (string_of_int (const_int_expr loc n - 1));
-          colon fmt;
-          intLit fmt "0")
+let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
+  ( match x with
+  | Type_Bits n
+  | Type_Register (n, _) ->
+    kw_bit fmt;
+    brackets fmt (fun _ ->
+      constant fmt (string_of_int (const_int_expr loc n - 1));
+      colon fmt;
+      intLit fmt "0");
+    nbsp fmt;
+    varname fmt v
+  | Type_Constructor tc ->
+    tycon fmt tc;
+    nbsp fmt;
+    varname fmt v
+  | Type_App (Ident "__RAM", [_]) ->
+    ty_ram fmt;
+    nbsp fmt;
+    varname fmt v
+  (* TODO implement integer range analysis to determine the correct type width. *)
+  | Type_Integer _ ->
+    kw_integer fmt;
+    nbsp fmt;
+    varname fmt v
+  | Type_Array (Index_Enum tc, ety) ->
+    varty loc fmt v ety;
+    brackets fmt (fun _ -> tycon fmt tc)
+  | Type_Array (Index_Int sz, ety) ->
+    varty loc fmt v ety;
+    brackets fmt (fun _ -> expr loc fmt sz)
   | Type_OfExpr e ->
       fn_typeof fmt;
       parens fmt (fun _ -> expr loc fmt e)
-  | Type_Register (n, _) ->
-      kw_bit fmt;
-      nbsp fmt;
-      brackets fmt (fun _ ->
-          constant fmt (string_of_int (const_int_expr loc n - 1));
-          colon fmt;
-          intLit fmt "0")
-  (* unimplemented *)
-  | Type_App (_, _) | Type_Array (_, _) | Type_Tuple _ ->
+  | Type_App (_, _)
+  | Type_Tuple _ ->
       raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
+  )
 
 (* todo: indices need to be reduced to ceil(log2(width(operand))) *)
 and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
@@ -593,18 +609,6 @@ let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.exp
     assign loc fmt (fun _ -> lexpr loc fmt x) r
   )
 
-let varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
-  match t with
-  | Type_Array (Index_Int sz, ety) ->
-      ty loc fmt ety;
-      nbsp fmt;
-      varname fmt v;
-      brackets fmt (fun _ -> expr loc fmt sz)
-  | _ ->
-      ty loc fmt t;
-      nbsp fmt;
-      varname fmt v
-
 let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
   match x with
   | DeclItem_Var (v, Some t) ->
@@ -624,11 +628,12 @@ let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
-      ty loc fmt t;
-      nbsp fmt;
-      varnames fmt vs;
-      semicolon fmt;
-      cut fmt
+      List.iter (fun v ->
+          varty loc fmt v t;
+          semicolon fmt;
+          cut fmt
+      )
+      vs
   | Stmt_VarDecl (di, i, loc)
   | Stmt_ConstDecl (di, i, loc) ->
       declitem loc fmt di;
@@ -763,18 +768,16 @@ let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f :
   nbsp fmt;
   kw_automatic fmt;
   nbsp fmt;
-  PP.pp_print_option ~none:(fun _ _ -> kw_void fmt) (fun _ t -> ty loc fmt t) fmt ot;
-  nbsp fmt;
-  funname fmt f;
+  PP.pp_print_option
+    ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
+    (fun _ t -> varty loc fmt f t) fmt ot;
   parens fmt args;
   semicolon fmt
 
-let typedef (fmt : PP.formatter) (tc : AST.ident) (pp : unit -> unit) : unit =
+let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
   kw_typedef fmt;
   nbsp fmt;
   pp ();
-  nbsp fmt;
-  tycon fmt tc;
   semicolon fmt;
   cut fmt
 
@@ -790,7 +793,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                    (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
           )
       | Decl_Record (tc, fs, loc) ->
-          typedef fmt tc (fun _ ->
+          typedef fmt (fun _ ->
             kw_struct fmt;
             nbsp fmt;
             braces fmt (fun _ ->
@@ -800,30 +803,30 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                       varty loc fmt f t;
                       semicolon fmt)
                     fs);
-              cut fmt)
+              cut fmt);
+            nbsp fmt;
+            tycon fmt tc
           );
           cut fmt
       | Decl_Typedef (tc, t, loc) ->
-          kw_typedef fmt;
-          nbsp fmt;
-          ty loc fmt t;
-          nbsp fmt;
-          tycon fmt tc;
-          semicolon fmt;
-          cut fmt;
+          typedef fmt (fun _ -> varty loc fmt tc t);
           cut fmt
       | Decl_Enum (tc, es, loc) ->
-          if tc = Ident "boolean" then typedef fmt tc (fun _ -> kw_bit fmt)
-          else (
-            kw_typedef fmt;
-            nbsp fmt;
-            kw_enum fmt;
-            nbsp fmt;
-            braces fmt (fun _ -> commasep fmt (varname fmt) es);
-            nbsp fmt;
-            tycon fmt tc;
-            semicolon fmt;
-            cut fmt;
+          if tc = Ident "boolean" then (
+            typedef fmt (fun _ ->
+                kw_bit fmt;
+                nbsp fmt;
+                tycon fmt tc
+              );
+            cut fmt
+          ) else (
+            typedef fmt (fun _ ->
+                kw_enum fmt;
+                nbsp fmt;
+                braces fmt (fun _ -> commasep fmt (varname fmt) es);
+                nbsp fmt;
+                tycon fmt tc
+              );
             cut fmt)
       | Decl_FunType (f, ps, args, t, loc) ->
           ()
@@ -888,14 +891,17 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                (AST.Unknown, "declaration", fun fmt -> FMTAST.declaration fmt x)))
 
 let decl_integer (fmt : PP.formatter) : unit =
-  typedef fmt (Ident "asl_integer") (fun _ ->
+  typedef fmt (fun _ ->
       kw_bit fmt;
       nbsp fmt;
       kw_signed fmt;
       brackets fmt (fun _ ->
           constant fmt (string_of_int (int_width - 1));
           colon fmt;
-          constant fmt "0"))
+          constant fmt "0");
+      nbsp fmt;
+      tycon fmt (Ident "asl_integer")
+    )
 
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   decl_integer fmt;
