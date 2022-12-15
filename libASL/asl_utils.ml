@@ -37,24 +37,7 @@ let pp_bindings (pp : 'a -> string) (bs : 'a Bindings.t) : unit =
 (****************************************************************)
 
 (** A mutable binding *)
-module Scope : sig
-  type 'a t
-
-  val empty : unit -> 'a t
-
-  (* make a clean copy that can be independently mutated *)
-  val clone : 'a t -> 'a t
-  val mem : 'a t -> ident -> bool
-  val get : 'a t -> ident -> 'a option
-  val set : 'a t -> ident -> 'a -> unit
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
-  val map_inplace : ('a -> 'a) -> 'a t -> unit
-  val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
-  val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
-  val bindings : 'a t -> (ident * 'a) list
-  val pp : ('a -> string) -> 'a t -> unit
-end = struct
+module Scope = struct
   type 'a t = { mutable bs : 'a Bindings.t }
 
   let pp (pp_value : 'a -> string) (env : 'a t) : unit =
@@ -94,26 +77,7 @@ end = struct
 end
 
 (* A collection of nested mutable scopes *)
-module ScopeStack : sig
-  type 'a t
-
-  val empty : unit -> 'a t
-
-  (* make a clean copy that can be independently mutated *)
-  val clone : 'a t -> 'a t
-  val add : 'a t -> ident -> 'a -> unit
-  val mem : 'a t -> ident -> bool
-  val get : 'a t -> ident -> 'a option
-  val set : 'a t -> ident -> 'a -> bool
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
-  val map_inplace : ('a -> 'a) -> 'a t -> unit
-  val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
-  val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
-  val nest : 'a t -> ('a t -> 'b) -> 'b
-  val bindings : 'a t -> (ident * 'a) list list
-  val pp : ('a -> string) -> 'a t -> unit
-end = struct
+module ScopeStack = struct
   type 'a t = 'a Scope.t list
 
   let pp (pp_value : 'a -> string) (env : 'a t) : unit =
