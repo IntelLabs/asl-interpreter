@@ -24,25 +24,7 @@ end
 
 module Values = Lattice.Const (Value)
 
-module Env : sig
-  type value = Values.t
-  type t
-
-  val globals : t -> Eval.GlobalEnv.t
-  val newEnv : Eval.GlobalEnv.t -> t
-  val nest : t -> (t -> 'a) -> 'a
-  val seq : (t -> 'a) -> (t -> 'b) -> t -> 'a * 'b
-  val fork_join : (t -> 'a) -> (t -> 'b) -> t -> 'a * 'b
-  val to_concrete : t -> Eval.Env.t
-  val set_bottom : t -> unit
-  val fun_return : t -> value -> unit
-  val proc_return : t -> unit
-  val addLocalVar : t -> ident -> value -> unit
-  val addLocalConst : t -> ident -> value -> unit
-  val getVar : t -> ident -> value
-  val setVar : t -> ident -> value -> unit
-  val pp : t -> unit
-end = struct
+module Env = struct
   type value = Values.t
 
   type t = {
