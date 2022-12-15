@@ -21,7 +21,7 @@ module InstanceKey = struct
   type t = AST.ident * Z.t list
 
   let compare (x : t) (y : t) : int =
-    AST.Id.compare (fst x) (fst y) <?> (List.compare Z.compare, snd x, snd y)
+    AST.Ident.compare (fst x) (fst y) <?> (List.compare Z.compare, snd x, snd y)
 end
 
 module Instances = Map.Make (InstanceKey)

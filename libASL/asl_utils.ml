@@ -17,7 +17,7 @@ open Asl_visitor
 (** {2 Bindings and IdentSet}                                   *)
 (****************************************************************)
 
-module Bindings = Map.Make (AST.Id)
+module Bindings = Map.Make (AST.Ident)
 (** {2 Bindings: maps indexed by identifiers} *)
 
 (** add association list to bindings *)
@@ -133,7 +133,7 @@ module ScopeStack = struct
     List.map Scope.bindings env
 end
 
-module IdentSet = Set.Make (Id)
+module IdentSet = Set.Make (Ident)
 (** {2 Sets of identifiers} *)
 
 (** merge a list of sets *)
@@ -713,7 +713,7 @@ let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
   in
 
   let decls = decl_map_of ds in
-  let fs = List.filter Id.isFunction (List.map fst (Bindings.bindings decls)) in
+  let fs = List.filter Ident.isFunction (List.map fst (Bindings.bindings decls)) in
   let rev_next = rev_memoize fs (bindings_to_function decls next) in
   IdentSet.of_list (reach (bindings_to_function rev_next Fun.id) leaves)
 

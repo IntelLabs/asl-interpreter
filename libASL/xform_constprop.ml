@@ -589,7 +589,7 @@ let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :
     Option.is_some (Eval.GlobalEnv.get_global_constant genv v)
   in
   let isImpurePrim (v : ident) : bool =
-    List.exists (fun p -> Id.matches p v) Concrete.impure_prims
+    List.exists (fun p -> Ident.matches p v) Concrete.impure_prims
   in
   impure_funs := identify_impure_funs isConstant isImpurePrim ds;
   List.map (xform_decl genv) ds

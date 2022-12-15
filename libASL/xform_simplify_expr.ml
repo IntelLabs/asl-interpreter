@@ -102,7 +102,7 @@ let neg_mono (x : monomial) : monomial =
 (** Multiply two monomials *)
 let mul_mono (x1 : monomial) (x2 : monomial) : monomial =
   ( match (x1, x2) with
-  | (Right (c1, vs1), Right (c2, vs2)) -> Right (Z.mul c1 c2, List.sort AST.Id.compare (vs1 @ vs2))
+  | (Right (c1, vs1), Right (c2, vs2)) -> Right (Z.mul c1 c2, List.sort AST.Ident.compare (vs1 @ vs2))
   | (Left e1, _) -> Left (Asl_utils.mk_mul_int e1 (monomial_to_expr x2))
   | (_, Left e2) -> Left (Asl_utils.mk_mul_int (monomial_to_expr x1) e2)
   )
@@ -125,7 +125,7 @@ let polynomial_to_expr (p : polynomial) : AST.expr =
 let fmt_poly (fmt : Format.formatter) (x : polynomial) : unit =
   Format.pp_print_list ~pp_sep:(fun fmt _ -> Format.pp_print_string fmt " + ") fmt_mono fmt x
 
-let mk_poly (c : Z.t) (vs : AST.ident list) : polynomial = [Either.right (c, List.sort AST.Id.compare vs)]
+let mk_poly (c : Z.t) (vs : AST.ident list) : polynomial = [Either.right (c, List.sort AST.Ident.compare vs)]
 
 let mk_poly_from_expr (x : AST.expr) = [Either.left x]
 

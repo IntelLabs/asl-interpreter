@@ -117,8 +117,11 @@ let isGenericTyvar (x: ident): bool =
     | FIdent(_,_) -> false
     )
 
-module Id = struct
+(* Ident implements the OrderedType module type signature used
+ * when instansiating Map and Set modules using the Set/Map Make functors. *)
+module Ident = struct
     type t = ident
+
     let compare (x: ident) (y: ident): int =
         (match (x, y) with
         | (Ident x, Ident y) ->
