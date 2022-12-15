@@ -806,11 +806,9 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_Typedef (tc, t, loc) ->
           kw_typedef fmt;
           nbsp fmt;
-          tycon fmt tc;
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
           ty loc fmt t;
+          nbsp fmt;
+          tycon fmt tc;
           semicolon fmt;
           cut fmt;
           cut fmt
@@ -828,9 +826,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
             cut fmt;
             cut fmt)
       | Decl_FunType (f, ps, args, t, loc) ->
-          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
-          semicolon fmt;
-          cut fmt
+          ()
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           indented_block fmt b;
@@ -843,10 +839,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
-          function_header loc fmt None f (fun _ -> formals loc fmt args);
-          semicolon fmt;
-          cut fmt;
-          cut fmt
+          ()
       | Decl_ProcDefn (f, ps, args, b, loc) ->
           function_header loc fmt None f (fun _ -> formals loc fmt args);
           indented_block fmt b;
