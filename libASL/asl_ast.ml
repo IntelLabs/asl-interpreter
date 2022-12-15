@@ -139,7 +139,7 @@ module Ident = struct
         | Ident x -> x = nm
         )
 
-    let isFunction (x: ident): bool =
+    let is_function (x: ident): bool =
         ( match x with
         | FIdent _ -> true
         | _ -> false

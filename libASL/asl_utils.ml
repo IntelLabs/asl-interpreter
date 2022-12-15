@@ -713,7 +713,7 @@ let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
   in
 
   let decls = decl_map_of ds in
-  let fs = List.filter Ident.isFunction (List.map fst (Bindings.bindings decls)) in
+  let fs = List.filter Ident.is_function (List.map fst (Bindings.bindings decls)) in
   let rev_next = rev_memoize fs (bindings_to_function decls next) in
   IdentSet.of_list (reach (bindings_to_function rev_next Fun.id) leaves)
 
