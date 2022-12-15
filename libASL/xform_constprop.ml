@@ -44,14 +44,8 @@ module Env = struct
     }
 
   let nest (env : t) (k : t -> 'a) : 'a =
-    ScopeStack.nest env.locals (fun newenv ->
-        let env' =
-          {
-            globalConsts = env.globalConsts;
-            locals = newenv;
-            return_value = env.return_value;
-          }
-        in
+    ScopeStack.nest env.locals (fun locals' ->
+        let env' = {env with locals = locals' } in
         let r = k env' in
         env.return_value <- env'.return_value;
         r)
@@ -65,13 +59,7 @@ module Env = struct
     (a, b)
 
   let fork_join (f : t -> 'a) (g : t -> 'b) (env : t) : 'a * 'b =
-    let env' =
-      {
-        globalConsts = env.globalConsts;
-        locals = ScopeStack.clone env.locals;
-        return_value = env.return_value;
-      }
-    in
+    let env' = {env with locals = ScopeStack.clone env.locals} in
     let a = f env in
     let b = g env' in
     ScopeStack.merge_inplace Values.glb env.locals env'.locals;
