@@ -21,12 +21,10 @@ module Values = Lattice.Const (struct
 end)
 
 module Env = struct
-  type value = Values.t
-
   type t = {
     globalConsts : Eval.GlobalEnv.t;
-    mutable locals : value ScopeStack.t;
-    mutable return_value : value;
+    mutable locals : Values.t ScopeStack.t;
+    mutable return_value : Values.t;
   }
 
   let pp (env : t) : unit =
@@ -88,21 +86,21 @@ module Env = struct
     let locals = ScopeStack.filter_map Values.to_concrete env.locals in
     Eval.Env.mkEnv env.globalConsts locals
 
-  let fun_return (env : t) (r : value) : unit =
+  let fun_return (env : t) (r : Values.t) : unit =
     env.return_value <- r;
     ScopeStack.map_inplace (Fun.const Values.top) env.locals
 
   let proc_return (env : t) : unit =
     ScopeStack.map_inplace (Fun.const Values.top) env.locals
 
-  let addLocalVar (env : t) (x : ident) (v : value) : unit =
+  let addLocalVar (env : t) (x : ident) (v : Values.t) : unit =
     ScopeStack.add env.locals x v
 
-  let addLocalConst (env : t) (x : ident) (v : value) : unit =
+  let addLocalConst (env : t) (x : ident) (v : Values.t) : unit =
     (* todo: should constants be held separately from local vars? *)
     ScopeStack.add env.locals x v
 
-  let getVar (env : t) (x : ident) : value =
+  let getVar (env : t) (x : ident) : Values.t =
     from_option (ScopeStack.get env.locals x) (fun _ ->
         from_option
           (Option.map Values.singleton
@@ -110,7 +108,7 @@ module Env = struct
           (fun _ ->
             raise (Value.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
 
-  let setVar (env : t) (x : ident) (v : value) : unit =
+  let setVar (env : t) (x : ident) (v : Values.t) : unit =
     ignore (ScopeStack.set env.locals x v)
 end
 
