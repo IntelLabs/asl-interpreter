@@ -550,7 +550,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
     *)
   | _ -> failwith ("xform_stmt: " ^ pp_stmt x)
 
-let xform_tvs (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
+let add_parameters_to_env (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
   let genv = Env.globals env in
   let tvs =
     match Eval.GlobalEnv.get_function genv f with
@@ -559,7 +559,7 @@ let xform_tvs (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
   in
   List.iter (fun tv -> Env.addLocalConst env tv Values.bottom) tvs
 
-let xform_atys (env : Env.t) (atys : (AST.ident * AST.ty) list) : unit =
+let add_arguments_to_env (env : Env.t) (atys : (AST.ident * AST.ty) list) : unit =
   List.iter (fun (v, ty) -> Env.addLocalVar env v Values.bottom) atys
 
 let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
@@ -567,14 +567,14 @@ let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
   match d with
   | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
       let env = Env.newEnv genv in
-      xform_tvs env loc f;
-      xform_atys env atys;
+      add_parameters_to_env env loc f;
+      add_arguments_to_env env atys;
       let body' = xform_stmts env body in
       Decl_FunDefn (f, ps, atys, rty, body', loc)
   | Decl_ProcDefn (f, ps, atys, body, loc) ->
       let env = Env.newEnv genv in
-      xform_tvs env loc f;
-      xform_atys env atys;
+      add_parameters_to_env env loc f;
+      add_arguments_to_env env atys;
       let body' = xform_stmts env body in
       Decl_ProcDefn (f, ps, atys, body', loc)
   | _ -> d
