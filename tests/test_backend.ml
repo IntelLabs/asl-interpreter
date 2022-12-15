@@ -210,7 +210,7 @@ let test_record_decl (tcenv : TC.GlobalEnv.t)
 let test_type_decl (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
     unit =
-  check_declaration tcenv decls ext "type declaration" "type byte of bits(8);";
+  check_declaration tcenv decls ext "type declaration" "type Byte of bits(8);";
   check_declaration tcenv decls ext "type declaration (register)"
     "type Reg of bits(9) { [8] a [1] b };";
   ()
