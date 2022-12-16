@@ -45,11 +45,6 @@ module Env = struct
         let env' = {env with locals = locals' } in
         k env')
 
-  let seq (m : t -> 'a) (k : t -> 'b) (env : t) : 'a * 'b =
-    let a = m env in
-    let b = k env in
-    (a, b)
-
   let fork_join (f : t -> 'a) (g : t -> 'b) (env : t) : 'a * 'b =
     let env' = {env with locals = ScopeStack.clone env.locals} in
     let a = f env in
@@ -329,16 +324,7 @@ let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
       DeclItem_Wildcard oty'
 
 let rec xform_stmts (env : Env.t) (xs : AST.stmt list) : AST.stmt list =
-  let rec xform e (ss : AST.stmt list) : AST.stmt list list =
-    match ss with
-    | [] -> []
-    | s :: ss ->
-        let s', ss' =
-          Env.seq (fun e' -> xform_stmt e' s) (fun e' -> xform e' ss) e
-        in
-        s' :: ss'
-  in
-  Env.nest env (fun env' -> List.concat (xform env' xs))
+  Env.nest env (fun env' -> List.concat_map (fun x -> xform_stmt env' x) xs)
 
 (** Evaluate statement *)
 and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
