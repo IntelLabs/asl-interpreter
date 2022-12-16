@@ -246,11 +246,8 @@ let main () =
             var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
             fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
         | Backend_Verilog ->
-            Format.pp_print_string fmt "/* verilator lint_off WIDTH */";
-            Format.pp_print_cut fmt ();
-            Format.pp_print_string fmt "/* verilator lint_off UNPACKED */";
-            Format.pp_print_cut fmt ();
-            Backend_verilog.declarations fmt ds)
+            Backend_verilog.declarations fmt (List.rev ds)
+      )
   with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())
