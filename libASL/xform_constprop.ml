@@ -45,7 +45,7 @@ module Env = struct
         let env' = {env with locals = locals' } in
         k env')
 
-  let fork_join (f : t -> 'a) (g : t -> 'b) (env : t) : 'a * 'b =
+  let fork_join (env : t) (f : t -> 'a) (g : t -> 'b) : 'a * 'b =
     let env' = {env with locals = ScopeStack.clone env.locals} in
     let a = f env in
     let b = g env' in
@@ -397,10 +397,9 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
             (* todo: add dead code elimination *)
             let c' = xform_expr env c in
             let s', (css'', e') =
-              Env.fork_join
+              Env.fork_join env
                 (fun env' -> xform_stmts env' s)
                 (fun env' -> xform env' css')
-                env
             in
             (S_Elsif_Cond (c', s', loc) :: css'', e')
       in
@@ -421,10 +420,9 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
             let ps' = xform_patterns env ps in
             let oc' = Option.map (xform_expr env) oc in
             let s', (alts'', odefault') =
-              Env.fork_join
+              Env.fork_join env
                 (fun env -> xform_stmts env s)
                 (fun env -> xform env alts')
-                env
             in
             (Alt_Alt (ps', oc', s', loc) :: alts'', odefault')
       in
