@@ -24,15 +24,13 @@ module Env = struct
   type t = {
     globalConsts : Eval.GlobalEnv.t;
     mutable locals : Values.t ScopeStack.t;
-    mutable return_value : Values.t;
   }
 
   let pp (env : t) : unit =
     Printf.printf "globals\n";
     Eval.GlobalEnv.pp env.globalConsts;
     Printf.printf "locals\n";
-    ScopeStack.pp Values.pp_abstract env.locals;
-    Printf.printf "return = %s\n" (Values.pp_abstract env.return_value)
+    ScopeStack.pp Values.pp_abstract env.locals
 
   let globals (env : t) : Eval.GlobalEnv.t = env.globalConsts
 
@@ -40,22 +38,16 @@ module Env = struct
     {
       globalConsts = genv;
       locals = ScopeStack.empty ();
-      return_value = Values.top;
     }
 
   let nest (env : t) (k : t -> 'a) : 'a =
     ScopeStack.nest env.locals (fun locals' ->
         let env' = {env with locals = locals' } in
-        let r = k env' in
-        env.return_value <- env'.return_value;
-        r)
+        k env')
 
   let seq (m : t -> 'a) (k : t -> 'b) (env : t) : 'a * 'b =
     let a = m env in
-    let r = env.return_value in
     let b = k env in
-    env.return_value <- Values.lub env.return_value r;
-    (* REVISIT *)
     (a, b)
 
   let fork_join (f : t -> 'a) (g : t -> 'b) (env : t) : 'a * 'b =
@@ -63,19 +55,16 @@ module Env = struct
     let a = f env in
     let b = g env' in
     ScopeStack.merge_inplace Values.glb env.locals env'.locals;
-    env.return_value <- Values.glb env.return_value env'.return_value;
     (a, b)
 
   let set_bottom (env : t) : unit =
-    ScopeStack.map_inplace (Fun.const Values.bottom) env.locals;
-    env.return_value <- Values.bottom
+    ScopeStack.map_inplace (Fun.const Values.bottom) env.locals
 
   let to_concrete (env : t) : Eval.Env.t =
     let locals = ScopeStack.filter_map Values.to_concrete env.locals in
     Eval.Env.mkEnv env.globalConsts locals
 
   let fun_return (env : t) (r : Values.t) : unit =
-    env.return_value <- r;
     ScopeStack.map_inplace (Fun.const Values.top) env.locals
 
   let proc_return (env : t) : unit =
