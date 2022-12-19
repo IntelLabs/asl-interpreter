@@ -829,6 +829,20 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_TCall (f, tes, args, loc) ->
       funcall loc fmt f tes args loc;
       semicolon fmt
+  | Stmt_VarDeclsNoInit (vs, Type_App (Ident "__RAM", [ _ ]), loc) ->
+      cutsep fmt
+        (fun v ->
+          varname fmt v;
+          nbsp fmt;
+          eq fmt;
+          nbsp fmt;
+          parens fmt (fun _ -> ty_ram fmt);
+          braces fmt (fun _ ->
+              nbsp fmt;
+              intLit fmt "0";
+              nbsp fmt);
+          semicolon fmt)
+        vs
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()

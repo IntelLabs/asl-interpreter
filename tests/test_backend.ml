@@ -23,10 +23,18 @@ let check_none (name : string) (s : string) : unit = ()
 
 let check_c_syntax (name : string) (code : string) : unit =
   let prog = "gcc" in
-  let args = [| prog; "-std=c99"; "-fsyntax-only"; "-xc"; "-" |] in
+  let args =
+    [| prog; "-std=c99"; "-fsyntax-only"; "-xc"; "-I../runtime/include"; "-" |]
+  in
   let out = Unix.open_process_args_out prog args in
   let c_header =
-    String.concat "\n" [ "#include <stdbool.h>"; "#include <stdint.h>"; "\n" ]
+    String.concat "\n"
+      [
+        "#include <stdbool.h>";
+        "#include <stdint.h>";
+        "#include \"asl/ram.h\"";
+        "\n";
+      ]
   in
 
   output_string stdout c_header;
@@ -216,6 +224,8 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func F() repeat return; until TRUE; end";
   check_declaration tcenv decls ext "statement (while loop)"
     "func F() while TRUE do return; end end";
+  check_declaration tcenv decls ext "statement (variable, __RAM)"
+    "func F() var i :: __RAM(8); end";
   ()
 
 let test_var_c_only (tcenv : TC.GlobalEnv.t)

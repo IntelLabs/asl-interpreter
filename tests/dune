@@ -13,7 +13,8 @@
  (modes exe)
  (flags
   (-cclib -lstdc++))
- (libraries alcotest libASL))
+ (libraries alcotest libASL)
+ (deps (glob_files ../runtime/include/asl/*)))
 
 (rule
  (deps test_project1.prj test_project2.prj)
