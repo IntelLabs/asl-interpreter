@@ -157,6 +157,16 @@ let tests : unit Alcotest.test_case list =
        func T() A[] = TRUE; end"
       (Some "DoesNotMatch(file \"\" line 2 char 16 - 27,type,integer,boolean)")
       None;
+    test_static_error globals "type parameter - argument mismatch"
+     "func F{A}(A :: integer, src :: bits(A))
+      end
+      func Test()
+          let src = Zeros(10);
+          F(5, src);
+      end
+     "
+     (Some "TypeError(file \"\" line 5 char 10 - 20,Type mismatch)")
+     None;
     test_static globals false "var decls"
       "func F(x :: bits(8*N))
            var a :: bits(8*N) = UNKNOWN :: bits(8*N);

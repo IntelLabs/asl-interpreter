@@ -2105,8 +2105,10 @@ let tc_arguments (env : Env.t) (loc : AST.l)
       List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
     else
       (* If parameter list was supplied, add any arguments if they are in
-         freevar list *)
+         freevar list but not already in the parameter list *)
       let extra = List.filter (fun (v, ty) -> IdentSet.mem v fvs) args in
+      let pnames = List.map (fun (v, oty) -> v) ps in
+      let extra = List.filter (fun (v, ty) -> not (List.mem v pnames)) extra in
       let extra = List.map (fun (v, ty) -> (v, Some ty)) extra in
       List.append extra ps
   in
