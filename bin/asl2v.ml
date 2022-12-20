@@ -237,19 +237,7 @@ let main () =
 
     let ds = Xform_rmw.xform_decls ds in
     if true then
-      Utils.to_file "tmp.13.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_bittuples.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.15.bittuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_mono.monomorphize ds in
-    if true then
-      Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_bitslices.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.43.bitslices.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+      Utils.to_file "tmp.60.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
     Utils.to_file !output_file (fun fmt ->
         match !opt_backend with
