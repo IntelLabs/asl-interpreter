@@ -962,6 +962,7 @@ let asl_true = mk_enum "TRUE"
 let mk_litint (x : int) : AST.expr = Expr_LitInt (string_of_int x)
 let mk_litbigint (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x)
 
+let minus_one = Expr_LitInt "-1"
 let zero = Expr_LitInt "0"
 let one = Expr_LitInt "1"
 let two = Expr_LitInt "2"
@@ -1020,6 +1021,8 @@ let mk_neg_int (x : AST.expr) : AST.expr =
 let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = one then y
   else if y = one then x
+  else if x = minus_one then mk_neg_int y
+  else if y = minus_one then mk_neg_int x
   else mk_binop "mul_int" [] x y
 
 (** Construct "eq_bits{w}(x, y)" *)
