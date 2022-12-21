@@ -4,7 +4,12 @@ open Asl_ast
 
 let assign_var = new Asl_utils.nameSupply "__a"
 
-let xform ls ws r loc =
+let xform
+    (loc : AST.l)
+    (ws : AST.expr list)
+    (ls : AST.lexpr list)
+    (r : AST.expr)
+    : AST.stmt list =
     let tmp_ident = assign_var#fresh in
 
     let (ss, sum) = List.fold_right2 (fun l w (ss, idx) ->
@@ -25,7 +30,7 @@ class replace_bittuples (ds : AST.declaration list option) =
     method! vstmt s =
       match s with
       | Stmt_Assign (LExpr_BitTuple (ws, ls), r, loc) ->
-          Visitor.ChangeTo (xform ls ws r loc)
+          Visitor.ChangeTo (xform loc ws ls r)
       | _ -> DoChildren
   end
 
