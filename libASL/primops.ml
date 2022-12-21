@@ -183,6 +183,10 @@ let prim_not_bits (x : bitvector) : bitvector = mkBits x.n (Z.lognot x.v)
 let prim_zeros_bits (x : bigint) : bitvector = mkBits (Z.to_int x) Z.zero
 let prim_ones_bits (x : bigint) : bitvector = mkBits (Z.to_int x) Z.minus_one
 
+let prim_lsl (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_left x.v (Z.to_int d))
+let prim_lsr (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_right_trunc x.v (Z.to_int d))
+let prim_asr (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_right x.v (Z.to_int d))
+
 let prim_append_bits (x : bitvector) (y : bitvector) : bitvector =
   mkBits (x.n + y.n) (Z.logor (Z.shift_left x.v y.n) y.v)
 
@@ -227,6 +231,16 @@ let prim_insert (x : bitvector) (i : bigint) (w : bigint) (y : bitvector) :
   let nmsk = Z.lognot msk in
   let y' = Z.shift_left (z_extract y.v 0 w') i' in
   mkBits x.n (Z.logor (Z.logand nmsk x.v) (Z.logand msk y'))
+
+let prim_mk_mask (w : bigint) (n : bigint) : bitvector =
+  let w' = Z.to_int w in
+  let n' = Z.to_int n in
+  assert (0 <= w');
+  assert (0 <= n');
+  assert (w' <= n');
+  let msk = Z.sub (Z.shift_left Z.one w') Z.one in
+  mkBits n' msk
+
 
 (****************************************************************)
 (** {2 Mask primops}                                            *)

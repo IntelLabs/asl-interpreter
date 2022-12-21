@@ -80,6 +80,14 @@ __builtin func eor_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
 __builtin func not_bits{N}(x :: bits(N)) => bits(N);
 __builtin func zeros_bits{N}() => bits(N);
 __builtin func ones_bits{N}() => bits(N);
+__builtin func lsl_bits{N}(x :: bits(N), i :: integer) => bits(N);
+__builtin func lsr_bits{N}(x :: bits(N), i :: integer) => bits(N);
+__builtin func asr_bits{N}(x :: bits(N), i :: integer) => bits(N);
+
+// Construct 'ZeroExtend(Ones(w), N)'
+// e.g. mk_mask(3, 8) == '00000 111'
+// This is used in the bitmask lowering transformation
+__builtin func mk_mask(w :: integer, N :: integer) => bits(N);
 
 func add_bits_int{N}(x :: bits(N), y :: integer) => bits(N)
     return add_bits(x, cvt_int_bits(y, N));
@@ -519,17 +527,17 @@ end
 
 func ShiftLeft(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
-    return [x, Zeros(N)][N-distance +: N];
+    return lsl_bits(x, distance);
 end
 
 func ShiftRightLogical(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
-    return ZeroExtend(x, 2*N)[distance +: N];
+    return lsr_bits(x, distance);
 end
 
 func ShiftRightArithmetic(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
-    return SignExtend(x, 2*N)[distance +: N];
+    return asr_bits(x, distance);
 end
 
 func ParityEven(x :: bits(N)) => boolean

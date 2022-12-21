@@ -426,12 +426,16 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
         (fun _ -> mask_int loc fmt n)
   | FIdent ("eor_bits", _), _ -> binop loc fmt "^" args
   | FIdent ("eq_bits", _), _ -> binop loc fmt "==" args
+  | FIdent ("mk_mask", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("frem_bits_int", _), _
   | FIdent ("in_mask", _), _
   | FIdent ("notin_mask", _), _ ->
       raise
         (Unimplemented
            (loc, "bitvector builtin function", fun fmt -> FMTAST.funname fmt f))
+  | FIdent ("lsl_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
+  | FIdent ("lsr_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
+  | FIdent ("asr_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("mul_bits", _), _ -> binop loc fmt "*" args
   | FIdent ("ne_bits", _), _ -> binop loc fmt "!=" args
   | FIdent ("not_bits", _), _ -> unop loc fmt "~" args

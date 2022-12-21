@@ -31,6 +31,28 @@ ASL_is_pow2_int(uint64_t x)
 }
 
 static inline uint64_t
+ASL_lsl_bits(uint64_t x, int d)
+{
+        return x << d;
+}
+
+static inline uint64_t
+ASL_lsr_bits(uint64_t x, int d)
+{
+        return x >> d;
+}
+
+static inline uint64_t
+ASL_asr_bits(uint64_t x, int d)
+{
+        /* Note: it is implementation-defined whether this performs
+         * an arithmetic shift or a logical shift.
+         * On gcc, it performs an arithmetic shift.
+         */
+        return (uint64_t)(((int64_t) x) >> d);
+}
+
+static inline uint64_t
 ASL_replicate_bits(uint64_t x, int n, int x_width)
 {
         uint64_t r = 0;
@@ -40,6 +62,12 @@ ASL_replicate_bits(uint64_t x, int n, int x_width)
 }
 
 #define ASL_mask(width) ((1ULL << (width)) - 1)
+
+static inline uint64_t
+ASL_mk_mask(int w, int n)
+{
+    return ASL_mask(w);
+}
 
 static inline uint64_t
 ASL_slice_lowd(uint64_t x, int lo, int width)

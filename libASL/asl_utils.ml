@@ -1049,23 +1049,27 @@ let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   | _ -> mk_binop "or_bits" [n] x y
   )
 
-(** Construct "shr_bits{N}(x, y)" *)
-let mk_shr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+(** Construct "lsr_bits{N}(x, y)" *)
+let mk_lsr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   if y = zero then
     x
   else
-    mk_binop "shr_bits" [n] x y
+    mk_binop "lsr_bits" [n] x y
 
-(** Construct "shl_bits{N}(x, y)" *)
-let mk_shl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+(** Construct "lsl_bits{N}(x, y)" *)
+let mk_lsl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   if y = zero then
     x
   else
-    mk_binop "shl_bits" [n] x y
+    mk_binop "lsl_bits" [n] x y
 
 (** Construct "zeros_bits{N}(N)" *)
 let mk_zero_bits (n : AST.expr) : AST.expr =
   mk_unop "zeros_bits" [n] n 
+
+(** Construct "ones_bits{N}(N)" *)
+let mk_ones_bits (n : AST.expr) : AST.expr =
+  mk_unop "ones_bits" [n] n 
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
@@ -1081,6 +1085,15 @@ let mk_zero_extend (w : AST.expr) (n : AST.expr) (x : AST.expr) =
     x
   else
     Expr_TApply (FIdent ("ZeroExtend", 0), [w; n], [x; w])
+
+(** Construct "mk_mask{n}(w, n)" which is equivalent to
+ *  'ZeroExtend{n}(Ones(w), n)'
+ *)
+let mk_mask (w : AST.expr) (n : AST.expr) =
+  if w = n then
+    mk_ones_bits n
+  else
+    Expr_TApply (FIdent ("mk_mask", 0), [n], [w; n])
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =

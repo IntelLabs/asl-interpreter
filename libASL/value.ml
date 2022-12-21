@@ -505,10 +505,14 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
   | "not_bits", [ VInt n ], [ VBits x ] -> Some (VBits (prim_not_bits x))
   | "zeros_bits", [ VInt n ], [] -> Some (VBits (prim_zeros_bits n))
   | "ones_bits", [ VInt n ], [] -> Some (VBits (prim_ones_bits n))
+  | "lsl_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_lsl x d))
+  | "lsr_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_lsr x d))
+  | "asr_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_asr x d))
   | "replicate_bits", [ _; _ ], [ VBits x; VInt y ] ->
       Some (VBits (prim_replicate_bits x y))
   | "append_bits", [ VInt m; VInt n ], [ VBits x; VBits y ] ->
       Some (VBits (prim_append_bits x y))
+  | "mk_mask", [ _ ], [ VInt w; VInt n ] -> Some (VBits (prim_mk_mask w n))
   | "eq_str", [], [ VString x; VString y ] -> Some (VBool (prim_eq_str x y))
   | "ne_str", [], [ VString x; VString y ] -> Some (VBool (prim_ne_str x y))
   | "append_str_str", [], [ VString x; VString y ] ->

@@ -386,14 +386,17 @@ val mk_and_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 (** Construct "or_bits{N}(x, y)" *)
 val mk_or_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "shr_bits{N}(x, y)" *)
-val mk_shr_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+(** Construct "lsr_bits{N}(x, y)" *)
+val mk_lsr_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "shl_bits{N}(x, y)" *)
-val mk_shl_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+(** Construct "lsl_bits{N}(x, y)" *)
+val mk_lsl_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
 (** Construct "zero_bits{N}(N)" *)
 val mk_zero_bits : AST.expr -> AST.expr
+
+(** Construct "ones_bits{N}(N)" *)
+val mk_ones_bits : AST.expr -> AST.expr
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 val mk_bits_select : AST.expr -> AST.expr -> AST.expr -> AST.expr -> AST.expr
@@ -403,6 +406,9 @@ val mk_int_select : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
 (** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
 val mk_zero_extend : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "mk_mask{n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
+val mk_mask : AST.expr -> AST.expr -> AST.expr
 
 (** Construct "(0 + x1) + ... + xn" *)
 val mk_add_ints : AST.expr list -> AST.expr
