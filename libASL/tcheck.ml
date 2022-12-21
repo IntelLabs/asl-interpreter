@@ -35,11 +35,8 @@ exception InternalError of string (* internal invariants have been broken *)
 (****************************************************************)
 
 let width_of_type (ty : AST.ty) : AST.expr =
-  ( match ty with 
-  | Type_Bits n -> n
-  | Type_Register (w, _) -> w
-  | _ -> raise (InternalError "width_of_type")
-  )
+  Utils.from_option (Asl_utils.width_of_type ty)
+    (fun _ -> raise (InternalError "width_of_type"))
 
 (* Lower bit slice expression *)
 let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr

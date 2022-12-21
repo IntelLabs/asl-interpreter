@@ -1103,6 +1103,16 @@ let tupleTypes (t : AST.ty) : AST.ty list =
   | AST.Type_Tuple ts -> ts
   | _ -> [t]
 
+(** Bitwidth of type (which is expected to be a bitvector) *)
+let width_of_type (ty : AST.ty) : AST.expr option =
+  ( match ty with 
+  | Type_Bits n
+  | Type_Register (n, _)
+    -> Some n
+  | _
+    -> None
+  )
+
 (** Is an expression a literal constant? *)
 let is_literal_constant (x : expr) : bool =
   ( match x with
