@@ -16,6 +16,7 @@
 
 #include "asl/arith.h"
 #include "asl/error.h"
+#include "asl/ram.h"
 #include "asl/trace.h"
 
 #endif  // ASL_RUNTIME_H
