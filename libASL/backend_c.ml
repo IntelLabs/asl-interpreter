@@ -352,6 +352,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("ne_bool", _), _ -> binop loc fmt "!=" args
   | FIdent ("not_bool", _), _ -> unop loc fmt "!" args
   | FIdent ("or_bool", _), _ -> binop loc fmt "||" args
+  (* Enumeration builtin functions *)
+  | FIdent ("eq_enum", _), _ -> binop loc fmt "==" args
+  | FIdent ("ne_enum", _), _ -> binop loc fmt "!=" args
   (* Integer builtin functions *)
   | FIdent ("add_int", _), _ -> binop loc fmt "+" args
   | FIdent ("align_int", _), [ x; y ] ->
