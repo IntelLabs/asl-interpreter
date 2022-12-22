@@ -38,23 +38,6 @@ let width_of_type (ty : AST.ty) : AST.expr =
   Utils.from_option (Asl_utils.width_of_type ty)
     (fun _ -> raise (InternalError "width_of_type"))
 
-(* Lower bit slice expression *)
-let mk_expr_slices (x : AST.expr) (ss : AST.slice list) (ty : AST.ty) : AST.expr
-    =
-  let n = width_of_type ty in
-  match (x, ss) with
-  (* don't lower the easy case *)
-  | Expr_Var v, ss -> Expr_Slices (ty, x, ss)
-  (* lower all cases where x is not a variable *)
-  | _, [ Slice_Single i ] -> mk_bits_select one n x i
-  | _, [ Slice_HiLo (hi, lo) ] ->
-      let w = Xform_simplify_expr.simplify (mk_add_int (mk_sub_int hi lo) one) in
-      mk_bits_select w n x lo
-  | _, [ Slice_LoWd (lo, wd) ] -> mk_bits_select wd n x lo
-  (* todo: currently don't have a good story for lowering the multi-slice
-     case *)
-  | _ -> Expr_Slices (ty, x, ss)
-
 (* Lower int slice expression *)
 let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
   match (x, ss) with
@@ -1303,7 +1286,7 @@ and tc_slice_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : expr)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
   | Type_Bits n
   | Type_Register (n, _) ->
-      (mk_expr_slices x' ss' ty', ty)
+      (Expr_Slices (ty', x', ss'), ty)
   | Type_Integer _ ->
       (* todo: desugar into a call to slice_int? *)
       (mk_expr_intslices x' ss', ty)
@@ -1332,16 +1315,17 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
       let y', yty = tc_expr env u loc y in
       let fty = tc_binop (Env.globals env) u loc op x' y' xty yty in
       (Expr_TApply (fty.funname, funtype_parameters fty, [ x'; y' ]), fty.rty)
-  | Expr_Field (e, f) -> (
+  | Expr_Field (e, f) ->
       let e', ty = tc_expr env u loc e in
-      match typeFields (Env.globals env) loc ty with
+      ( match typeFields (Env.globals env) loc ty with
       | FT_Record rfs -> (Expr_Field (e', f), get_recordfield loc rfs f)
       | FT_Register rfs ->
           let ss, ty' = get_regfield loc rfs f in
-          (mk_expr_slices e' ss ty', ty'))
-  | Expr_Fields (e, fs) -> (
+          (Expr_Slices (ty, e', ss), ty')
+      )
+  | Expr_Fields (e, fs) ->
       let e', ty = tc_expr env u loc e in
-      match typeFields (Env.globals env) loc ty with
+      ( match typeFields (Env.globals env) loc ty with
       | FT_Record rfs ->
           let tys = List.map (get_recordfield loc rfs) fs in
           let ws = List.map width_of_type tys in
@@ -1349,7 +1333,8 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
           (Expr_Fields (e', fs), type_bits w)
       | FT_Register rfs ->
           let ss, ty' = get_regfields loc rfs fs in
-          (mk_expr_slices e' ss ty', ty'))
+          (Expr_Slices (ty, e', ss), ty')
+      )
   | Expr_Slices (_, e, ss) -> (
       let all_single =
         List.for_all (function Slice_Single _ -> true | _ -> false) ss
