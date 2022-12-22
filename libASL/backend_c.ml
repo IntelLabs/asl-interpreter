@@ -164,7 +164,7 @@ let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   constant fmt ("0x" ^ Z.format "%x" integer)
 
 let strLit (fmt : PP.formatter) (x : string) : unit =
-  constant fmt ("\"" ^ x ^ "\"")
+  constant fmt ("\"" ^ String.escaped x ^ "\"")
 
 let const_expr (loc : AST.l) (x : AST.expr) : V.value =
   match x with
@@ -754,7 +754,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                           )
                     | None ->
                         indented fmt (fun _ ->
-                          let loc_string = AST.Expr_LitString (String.escaped (AST.pp_loc loc)) in
+                          let loc_string = AST.Expr_LitString (AST.pp_loc loc) in
                           apply loc fmt (fun _ -> fn_error_unmatched_case fmt) [loc_string];
                           semicolon fmt
                         );

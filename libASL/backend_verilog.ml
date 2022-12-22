@@ -162,7 +162,7 @@ let maskLit (fmt : PP.formatter) (x : AST.maskLit) : unit =
 let realLit (fmt : PP.formatter) (x : AST.realLit) : unit = constant fmt x
 
 let strLit (fmt : PP.formatter) (x : string) : unit =
-  constant fmt ("\"" ^ x ^ "\"")
+  constant fmt ("\"" ^ String.escaped x ^ "\"")
 
 let valueLit (loc : AST.l) (fmt : PP.formatter) (x : V.value) : unit =
   match x with

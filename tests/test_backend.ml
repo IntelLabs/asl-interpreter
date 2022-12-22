@@ -147,6 +147,8 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func F() let i :: bits(8) = '1111 0000'; end";
   check_declaration tcenv decls ext "let, literal (string)"
     "func F() let i :: string = \"str\"; end";
+  check_declaration tcenv decls ext "let, literal (string escapes)"
+    "func F() let i :: string = \"Hello \\\" World\"; end";
   check_declaration tcenv decls ext "expression (variable)"
     "func F() var i :: integer = 0; var j = i; end";
   check_declaration tcenv decls ext "expression (boolean)"
