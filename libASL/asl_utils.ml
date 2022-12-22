@@ -349,6 +349,13 @@ class freevarClass =
       | LExpr_Var v ->
           free_vars <- IdentSet.add v free_vars;
           SkipChildren
+      | LExpr_Write (f, tes, es) ->
+          free_funs <- IdentSet.add f free_funs;
+          DoChildren
+      | LExpr_ReadWrite (f, g, tes, es) ->
+          free_funs <- IdentSet.add f free_funs;
+          free_funs <- IdentSet.add g free_funs;
+          DoChildren
       | _ -> DoChildren
 
     method! vstmt s =

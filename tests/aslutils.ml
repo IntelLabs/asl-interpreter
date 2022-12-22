@@ -238,6 +238,20 @@ let reachable_decls_tests : unit Alcotest.test_case list =
         func T() var x = Read(); Write(x); end"
        ["T"] ["T.0"; "Write.0"; "Read.0"; "X"]
     );
+    ("lexpr write", `Quick, test_reachable_decls globals prelude
+       "getter F => bits(1);
+        setter F = value :: bits(1);
+        func T() F = '0'; end"
+       ["T"] ["T.0"; "F_write.0"]
+    );
+    ("lexpr read-write", `Quick, test_reachable_decls globals prelude
+       "getter F => bits(1);
+        setter F = x :: bits(1);
+        getter G => bits(1);
+        setter G = x :: bits(1);
+        func T() [F, G] = '00'; end"
+       ["T"] ["T.0"; "G_write.0"; "G_read.0"; "F_write.0"; "F_read.0"]
+    );
   ]
 
 (****************************************************************
