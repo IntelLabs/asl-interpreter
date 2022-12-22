@@ -242,7 +242,7 @@ let main () =
     Utils.to_file !output_file (fun fmt ->
         match !opt_backend with
         | Backend_C ->
-            type_decls ds |> Asl_utils.topological_sort |> emit_c_code (!output_file ^ "_types.h");
+            type_decls ds |> Asl_utils.topological_sort |> List.rev |> emit_c_code (!output_file ^ "_types.h");
             var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
             fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
         | Backend_Verilog ->
