@@ -137,45 +137,10 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func F() var i :: integer; end";
   check_declaration tcenv decls ext "uninitialized variables"
     "func F() var i1, i2 :: integer; end";
-  check_declaration tcenv decls ext "variable, literal (integer)"
+  check_declaration tcenv decls ext "variable"
     "func F() var i :: integer = 0; end";
-  check_declaration tcenv decls ext "let, literal (integer)"
+  check_declaration tcenv decls ext "constant"
     "func F() let i :: integer = 0; end";
-  check_declaration tcenv decls ext "let, literal (hexadecimal)"
-    "func F() let i :: integer = 0x1; end";
-  check_declaration tcenv decls ext "let, literal (bits)"
-    "func F() let i :: bits(8) = '1111 0000'; end";
-  check_declaration tcenv decls ext "let, literal (string)"
-    "func F() let i :: string = \"str\"; end";
-  check_declaration tcenv decls ext "let, literal (string escapes)"
-    "func F() let i :: string = \"Hello \\\" World\"; end";
-  check_declaration tcenv decls ext "expression (variable)"
-    "func F() var i :: integer = 0; var j = i; end";
-  check_declaration tcenv decls ext "expression (boolean)"
-    "enumeration boolean { FALSE, TRUE };
-    func F() var i = FALSE; end";
-  check_declaration tcenv decls ext "expression (if)"
-    "func F() var i = if FALSE then 0 else 0; end";
-  check_declaration tcenv decls ext "expression (if elsif)"
-    "func F() var i = if FALSE then 0 elsif FALSE then 0 else 0; end";
-  check_declaration tcenv decls ext "expression (parentheses)"
-    "func F() var i :: integer = ( 0 ); end";
-  check_declaration tcenv decls ext "expression (function invocation)"
-    "func B() => integer return 0; end func F() var i = B(); end";
-  check_declaration tcenv decls ext "expression (builtin function invocation)"
-    "func F() var i = 1 + 1; end";
-  check_declaration tcenv decls ext "expression (slice, lowd)"
-    "func F() var i :: bits(16); var j :: bits(8); j = i[4 +: 8]; end";
-  check_declaration tcenv decls ext "expression (slice, hilo)"
-    "func F() var i :: bits(16); var j :: bits(8); j = i[11:4]; end";
-  check_declaration tcenv decls ext "expression (slice, single)"
-    "func F() var i :: bits(16); var j :: bits(1); j = i[4]; end";
-  check_declaration tcenv decls ext "expression (record initializer)"
-    "record R { i :: integer; }; func F() var r = R { i = 1 }; end";
-  check_declaration tcenv decls ext "expression (field selection)"
-    "record R { i :: integer; }; func F() var r :: R; var j = r.i; end";
-  check_declaration tcenv decls ext "expression (bitvector concatenation)"
-    "func F() var i :: bits(8); var j :: bits(4); var k :: bits(2); var r :: bits(14); r = [k, j, i]; end";
   check_declaration tcenv decls ext "statement (return)"
     "func F() return; end";
   check_declaration tcenv decls ext "statement (procedure invocation)"
@@ -200,6 +165,48 @@ let test_proc_defn (tcenv : TC.GlobalEnv.t)
     "func F() case 0 of when 0: return; otherwise: return; end end";
   check_declaration tcenv decls ext "statement (case few whens)"
     "func F() case 0 of when 0x0: return; when 0x1: return; end end";
+  ()
+
+let test_expr (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
+    unit =
+  check_declaration tcenv decls ext "expression (if)"
+    "func F() => integer return if FALSE then 0 else 0; end";
+  check_declaration tcenv decls ext "expression (elsif)"
+    "func F() => integer return if FALSE then 0 elsif FALSE then 0 else 0; end";
+  check_declaration tcenv decls ext "expression (binary operation)"
+    "func F() => integer return 1 + 1; end";
+  check_declaration tcenv decls ext "expression (field selection)"
+    "record X { i :: integer; }; func F(x :: X) => integer return x.i; end";
+  check_declaration tcenv decls ext "expression (bitslice single)"
+    "func F(x :: bits(16)) => bits(1) return x[4]; end";
+  check_declaration tcenv decls ext "expression (bitslice hilo)"
+    "func F(x :: bits(16)) => bits(8) return x[11:4]; end";
+  check_declaration tcenv decls ext "expression (bitslice lowd)"
+    "func F(x :: bits(16)) => bits(8) return x[4 +: 8]; end";
+  check_declaration tcenv decls ext "expression (record initializer)"
+    "record X { i :: integer; }; func F() => X return X { i = 1 }; end";
+  check_declaration tcenv decls ext "expression (literal integer)"
+    "func F() => integer return 0; end";
+  check_declaration tcenv decls ext "expression (literal hexadecimal)"
+    "func F() => integer return 0x1; end";
+  check_declaration tcenv decls ext "expression (literal bitvector)"
+    "func F() => bits(8) return '1111 0000'; end";
+  check_declaration tcenv decls ext "expression (literal string)"
+    "func F() => string return \"str\"; end";
+  check_declaration tcenv decls ext "expression (literal string with escapes)"
+    "func F() => string return \"Hello \\\" World\"; end";
+  check_declaration tcenv decls ext "expression (variable)"
+    "func F(x :: integer) => integer return x; end";
+  check_declaration tcenv decls ext "expression (variable boolean)"
+    "enumeration boolean { FALSE, TRUE };
+     func F() => boolean return FALSE; end";
+  check_declaration tcenv decls ext "expression (function invocation)"
+    "func B() => integer return 0; end func F() => integer return B(); end";
+  check_declaration tcenv decls ext "expression (parentheses)"
+    "func F() => integer return ( 0 ); end";
+  check_declaration tcenv decls ext "expression (bitvector concatenation)"
+    "func F(x :: bits(8), i :: bits(4), j :: bits(2)) => bits(14) return [x, i, j]; end";
   ()
 
 let test_record_decl (tcenv : TC.GlobalEnv.t)
@@ -235,6 +242,7 @@ let test_cases (decls : AST.declaration list -> unit)
     ("function definition", `Quick, test_fun_defn tcenv decls ext);
     ("procedure declaration", `Quick, test_proc_decl tcenv decls ext);
     ("procedure definition", `Quick, test_proc_defn tcenv decls ext);
+    ("expression", `Quick, test_expr tcenv decls ext);
     ("record declaration", `Quick, test_record_decl tcenv decls ext);
     ("type declaration", `Quick, test_type_decl tcenv decls ext);
     ("variable", `Quick, test_var tcenv decls ext);
@@ -243,9 +251,6 @@ let test_cases (decls : AST.declaration list -> unit)
 let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
     unit =
-  check_declaration tcenv decls ext "expression (IN mask)"
-    "enumeration boolean { FALSE, TRUE };
-    func F(x :: bits(4)) => boolean return x IN '11xx'; end";
   check_declaration tcenv decls ext "statement (for, direction to)"
     "func F() for i = 0 to 1 do return; end end";
   check_declaration tcenv decls ext "statement (for, direction downto)"
@@ -262,6 +267,14 @@ let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
     "func F() var i :: __RAM(8); end";
   ()
 
+let test_expr_c_only (tcenv : TC.GlobalEnv.t)
+    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
+    unit =
+  check_declaration tcenv decls ext "expression (pattern match, literal mask)"
+    "enumeration boolean { FALSE, TRUE };
+     func F(x :: bits(4)) => boolean return x IN '11xx'; end";
+  ()
+
 let test_var_c_only (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
     unit =
@@ -273,6 +286,7 @@ let test_cases_c_only (decls : AST.declaration list -> unit)
   let tcenv = TC.env0 in
   [
     ("procedure definition", `Quick, test_proc_defn_c_only tcenv decls ext);
+    ("expression", `Quick, test_expr_c_only tcenv decls ext);
     ("variable", `Quick, test_var_c_only tcenv decls ext);
   ]
 
