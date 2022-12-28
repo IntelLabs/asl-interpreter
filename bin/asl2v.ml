@@ -239,15 +239,14 @@ let main () =
     if true then
       Utils.to_file "tmp.60.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
-    Utils.to_file !output_file (fun fmt ->
-        match !opt_backend with
-        | Backend_C ->
-            type_decls ds |> Asl_utils.topological_sort |> List.rev |> emit_c_code (!output_file ^ "_types.h");
-            var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
-            fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
-        | Backend_Verilog ->
-            Backend_verilog.declarations fmt (List.rev ds)
-      )
+    match !opt_backend with
+    | Backend_C ->
+        type_decls ds |> Asl_utils.topological_sort |> List.rev |> emit_c_code (!output_file ^ "_types.h");
+        var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
+        fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
+    | Backend_Verilog ->
+        Utils.to_file !output_file (fun fmt ->
+            Backend_verilog.declarations fmt (List.rev ds))
   with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())
