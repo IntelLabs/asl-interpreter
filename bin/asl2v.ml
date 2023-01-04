@@ -57,7 +57,7 @@ let rec type_decls (xs : AST.declaration list) : AST.declaration list =
       -> None
     )
   in
-  Utils.flatmap_option mk_type_decl xs
+  List.filter_map mk_type_decl xs
 
 let rec var_decls (xs : AST.declaration list) : AST.declaration list =
   let is_var_decl (x : AST.declaration) : bool =

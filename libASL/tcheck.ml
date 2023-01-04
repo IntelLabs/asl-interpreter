@@ -757,7 +757,7 @@ class unifier (loc : AST.l) (assumptions : expr list) =
       let binds =
         Bindings.map
           (fun vs ->
-            flatmap_option
+            List.filter_map
               (fun v -> Bindings.find_opt v bindings)
               (IdentSet.elements vs))
           classes

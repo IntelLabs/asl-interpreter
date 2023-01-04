@@ -702,14 +702,14 @@ let reachable_decls (roots : ident list) (ds : declaration list) :
 
   let decls = decl_map_of ds in
   let reachable = reach (bindings_to_function decls next) roots in
-  Utils.flatmap_option (fun x -> Bindings.find_opt x decls) reachable
+  List.filter_map (fun x -> Bindings.find_opt x decls) reachable
 
 (* Topological sort of declarations
  *
  * The declarations should be acyclic
  *)
 let topological_sort (ds : declaration list) : declaration list =
-  let roots = Utils.flatmap_option decl_name ds in
+  let roots = List.filter_map decl_name ds in
   reachable_decls roots ds
 
 let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =

@@ -103,16 +103,6 @@ let flatten_option (os : 'a option list) : 'a list =
   in
   aux [] os
 
-(* extract all non-None elements from a list *)
-let flatmap_option (f : 'a -> 'b option) (xs : 'a list) : 'b list =
-  let rec aux r xs =
-    match xs with
-    | [] -> List.rev r
-    | x :: xs' -> (
-        match f x with Some b -> aux (b :: r) xs' | None -> aux r xs')
-  in
-  aux [] xs
-
 (* todo: give this a better name *)
 let flatten_map_option (f : 'a -> 'b option) (xs : 'a list) : 'b list option =
   let rec aux r xs =
