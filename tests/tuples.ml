@@ -16,7 +16,7 @@ module TC = Tcheck
  ****************************************************************)
 
 let tuple_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   let stmts = test_xform_stmts Xform_tuples.xform_stmts globals prelude in

@@ -36,7 +36,7 @@ let test_case_stmts (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) 
   Alcotest.check stmts what r' l''
 
 let case_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   [
@@ -84,7 +84,7 @@ let case_tests : unit Alcotest.test_case list =
   ]
 
 let in_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   [

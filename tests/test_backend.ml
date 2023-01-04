@@ -291,7 +291,7 @@ let test_cases_c_only (decls : AST.declaration list -> unit)
   ]
 
 let () =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   ignore (LoadASL.read_file paths "prelude.asl" true false);
 
   let fmt = Format.str_formatter in

@@ -30,7 +30,7 @@ let test_bittuple_stmts (globals : TC.GlobalEnv.t) (prelude : AST.declaration li
   Alcotest.check stmts what r' l''
 
 let tuple_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   [

@@ -14,14 +14,19 @@
  (flags
   (-cclib -lstdc++))
  (libraries alcotest libASL)
- (deps (glob_files ../runtime/include/asl/*)))
+ (deps
+  ../prelude.asl
+  (glob_files ../runtime/include/asl/*)))
 
 (rule
- (deps test_project1.prj test_project2.prj)
+ (deps
+  ../prelude.asl
+  test_project1.prj
+  test_project2.prj)
  (action
-   (with-stdout-to test_asli_project.output
-    (setenv ASL_PATH "../../.."
-     (run ../bin/asli.exe --nobanner --project=test_project1.prj --project=test_project2.prj)))))
+  (with-stdout-to test_asli_project.output
+   (setenv ASL_PATH ".."
+    (run ../bin/asli.exe --nobanner --project=test_project1.prj --project=test_project2.prj)))))
 
 (rule
  (alias runtest)

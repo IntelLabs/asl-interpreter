@@ -28,7 +28,7 @@ let test_simplify_expr_id (globals : TC.GlobalEnv.t) (prelude : AST.declaration 
   test_simplify_expr globals prelude decls x x ()
 
 let simplify_expr_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   let decl_x = "var x :: integer;" in

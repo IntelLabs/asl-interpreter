@@ -112,7 +112,7 @@ let test_xform (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
   Alcotest.check value "transformed code" r1 r2
 
 let tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
+  let paths = [ ".." ] in
   let prelude = LoadASL.read_file paths "prelude.asl" true false in
   let globals = TC.env0 in
   [
