@@ -344,6 +344,9 @@ val zero : AST.expr
 val one : AST.expr
 val two : AST.expr
 
+(** Construct "!x" *)
+val mk_not : AST.expr -> AST.expr
+
 (** Construct "x && y" *)
 val mk_and : AST.expr -> AST.expr -> AST.expr
 

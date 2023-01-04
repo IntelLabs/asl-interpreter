@@ -972,6 +972,12 @@ let mk_unop (op : string) (tys : AST.expr list) (x : AST.expr) : AST.expr =
 let mk_binop (op : string) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
   Expr_TApply (FIdent (op, 0), tys, [x; y])
 
+(** Construct "!x" *)
+let mk_not (x : AST.expr) : AST.expr =
+  if x = asl_false then asl_true
+  else if x = asl_true then asl_false
+  else mk_unop "not_bool" [] x
+
 (** Construct "x && y" *)
 let mk_and (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = asl_false then asl_false
