@@ -836,7 +836,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       nbsp fmt;
       kw_while fmt;
       nbsp fmt;
-      parens fmt (fun _ -> expr loc fmt c);
+      parens fmt (fun _ -> expr loc fmt (Asl_utils.mk_not c));
       semicolon fmt
   | Stmt_ProcReturn loc ->
       kw_return fmt;
