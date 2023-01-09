@@ -6,6 +6,7 @@
  ****************************************************************)
 
 open LibASL
+open Test_utils
 module AST = Asl_ast
 module TC = Tcheck
 
@@ -291,9 +292,7 @@ let test_cases_c_only (decls : AST.declaration list -> unit)
   ]
 
 let () =
-  let paths = [ ".." ] in
-  ignore (LoadASL.read_file paths "prelude.asl" true false);
-
+  ignore (load_test_libraries ());
   let fmt = Format.str_formatter in
   Alcotest.run "backend"
     [

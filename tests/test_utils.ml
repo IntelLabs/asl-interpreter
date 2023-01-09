@@ -10,6 +10,14 @@ module TC = Tcheck
 module AST = Asl_ast
 
 (****************************************************************
+ * Support code for setting up tests
+ ****************************************************************)
+
+let load_test_libraries () : AST.declaration list =
+  let paths = [ ".." ] in
+  LoadASL.read_file paths "prelude.asl" true false
+
+(****************************************************************
  * Alcotest testable functions
  ****************************************************************)
 
@@ -34,7 +42,7 @@ let stmts =
   Alcotest.testable Asl_fmt.indented_block eq_stmts
 
 (****************************************************************
- * support code for parsing, typechecking and building environments
+ * Support code for parsing, typechecking and building environments
  ****************************************************************)
 
 let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) : (TC.Env.t * AST.declaration list) =
@@ -48,7 +56,6 @@ let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decl
   let (tcenv, ds) = extend_tcenv globals decls in
   let env = Eval.build_evaluation_environment (List.append prelude ds) in
   (tcenv, env)
-
 
 (****************************************************************
  * Support code for checking transformations

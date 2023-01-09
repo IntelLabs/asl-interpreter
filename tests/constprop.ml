@@ -38,8 +38,7 @@ let test_cp_stmts (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (d
   Alcotest.check Alcotest.string what r l'''
 
 let constprop_tests : unit Alcotest.test_case list =
-  let paths = [ ".." ] in
-  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let prelude = load_test_libraries () in
   let globals = TC.env0 in
   [
     ("add", `Quick, test_cp_expr globals prelude "" "1 + 1" "2");

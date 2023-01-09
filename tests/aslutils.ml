@@ -63,8 +63,7 @@ let test_side_effects (globals : TC.GlobalEnv.t) (prelude : AST.declaration list
   Alcotest.check Alcotest.bool "throws" ex_throws throws
 
 let side_effect_tests : unit Alcotest.test_case list =
-  let paths = [ ".." ] in
-  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let prelude = load_test_libraries () in
   let globals = TC.env0 in
   [
     ("empty function", `Quick, test_side_effects globals prelude
@@ -105,8 +104,7 @@ let test_impure_functions (globals : TC.GlobalEnv.t) (prelude : AST.declaration 
   List.iter (fun f -> if not (in_identSet impure f) then Alcotest.fail ("Function " ^ f ^ " incorrectly marked pure")) ex_impure
 
 let impure_function_tests : unit Alcotest.test_case list =
-  let paths = [ ".." ] in
-  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let prelude = load_test_libraries () in
   let globals = TC.env0 in
   [
     ("prelude functions", `Quick, test_impure_functions globals prelude
@@ -227,8 +225,7 @@ let test_reachable_decls (globals : TC.GlobalEnv.t)
   Alcotest.(check (list string)) "sorted declarations" expected reachable
 
 let reachable_decls_tests : unit Alcotest.test_case list =
-  let paths = [ ".." ] in
-  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let prelude = load_test_libraries () in
   let globals = TC.env0 in
   [
     ("diamond graph", `Quick, test_reachable_decls globals prelude
