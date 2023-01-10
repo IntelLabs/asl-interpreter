@@ -120,9 +120,9 @@ let read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
 let read_files (paths : string list) (filenames : string list) (verbose : bool)
     : AST.declaration list =
   let parse fname =
-    if Utils.endswith fname ".spec" then
+    if String.ends_with fname ~suffix:".spec" then
       parse_spec paths fname verbose
-    else if Utils.endswith fname ".asl" then
+    else if String.ends_with fname ~suffix:".asl" then
       parse_file paths fname false verbose
     else
       failwith ("Unrecognized file suffix on " ^ fname)

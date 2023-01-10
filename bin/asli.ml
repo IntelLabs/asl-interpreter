@@ -78,11 +78,11 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
       let x, e = LoadASL.read_impdef tcenv loc cmd in
       let v = Eval.eval_expr loc cpu.env e in
       cpu.setImpdef x v
- | [ ":set"; flag ] when Utils.startswith flag "+" -> (
+ | [ ":set"; flag ] when String.starts_with flag ~prefix:"+" -> (
      match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
      | None -> Printf.printf "Unknown flag %s\n" flag
      | Some (f, _) -> f := true)
- | [ ":set"; flag ] when Utils.startswith flag "-" -> (
+ | [ ":set"; flag ] when String.starts_with flag ~prefix:"-" -> (
      match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
      | None -> Printf.printf "Unknown flag %s\n" flag
      | Some (f, _) -> f := false)

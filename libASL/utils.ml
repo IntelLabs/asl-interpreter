@@ -132,24 +132,6 @@ let rec first_option (f : 'a -> 'b option) (xs : 'a list) : 'b option =
  * String related
  ****************************************************************)
 
-(** Test whether 'x' starts with (is prefixed by) 'y' *)
-let startswith (x : string) (y : string) : bool =
-  let lx = String.length x in
-  let ly = String.length y in
-  if lx < ly then false
-  else
-    let head = String.sub x 0 ly in
-    String.equal head y
-
-(** Test whether 'x' ends with (is suffixed by) 'y' *)
-let endswith (x : string) (y : string) : bool =
-  let lx = String.length x in
-  let ly = String.length y in
-  if lx < ly then false
-  else
-    let tail = String.sub x (lx - ly) ly in
-    String.equal tail y
-
 (** Drop first n characters from string *)
 let stringDrop (n : int) (s : string) : string =
   let l = String.length s in
