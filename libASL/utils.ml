@@ -133,7 +133,7 @@ let rec first_option (f : 'a -> 'b option) (xs : 'a list) : 'b option =
  ****************************************************************)
 
 (** Drop first n characters from string *)
-let stringDrop (n : int) (s : string) : string =
+let string_drop (n : int) (s : string) : string =
   let l = String.length s in
   if n > l then "" else String.sub s n (l - n)
 

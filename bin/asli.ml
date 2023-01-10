@@ -79,11 +79,11 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
       let v = Eval.eval_expr loc cpu.env e in
       cpu.setImpdef x v
  | [ ":set"; flag ] when String.starts_with flag ~prefix:"+" -> (
-     match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
+     match Flags.FlagMap.find_opt (Utils.string_drop 1 flag) !Flags.flags with
      | None -> Printf.printf "Unknown flag %s\n" flag
      | Some (f, _) -> f := true)
  | [ ":set"; flag ] when String.starts_with flag ~prefix:"-" -> (
-     match Flags.FlagMap.find_opt (Utils.stringDrop 1 flag) !Flags.flags with
+     match Flags.FlagMap.find_opt (Utils.string_drop 1 flag) !Flags.flags with
      | None -> Printf.printf "Unknown flag %s\n" flag
      | Some (f, _) -> f := false)
   | [ ":project"; prj ] -> (
