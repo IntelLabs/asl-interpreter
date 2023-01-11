@@ -52,6 +52,16 @@ module Env = struct
     ScopeStack.merge_inplace Values.glb env.locals env'.locals;
     (a, b)
 
+  let rec fixpoint (env : t) (f : t -> 'a) : 'a =
+    let env' = {env with locals = ScopeStack.clone env.locals} in
+    let orig = {env with locals = ScopeStack.clone env.locals} in
+    let a = f env' in
+    ScopeStack.merge_inplace Values.glb env.locals env'.locals;
+    if ScopeStack.equal Values.equal env.locals orig.locals then
+      a
+    else
+      fixpoint env f
+
   let set_bottom (env : t) : unit =
     ScopeStack.map_inplace (Fun.const Values.bottom) env.locals
 
@@ -455,15 +465,10 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           in
           eval x
       | _ ->
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
-          let b' =
-            Env.nest env (fun env' ->
-                Env.addLocalVar env' v Values.bottom;
-                xform_stmts env' b)
+          let b' = Env.fixpoint env  (fun env' ->
+              Env.addLocalVar env' v Values.bottom;
+              xform_stmts env' b)
           in
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
           [ Stmt_For (v, start', dir, stop', b', loc) ])
     | Stmt_While(c, b, loc) ->
           (* todo: this is overkill: only need to set variables modified to b *)

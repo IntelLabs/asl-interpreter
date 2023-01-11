@@ -25,21 +25,15 @@ let test_cp_expr (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (de
   let what = l ^ " == " ^ r in
   Alcotest.check Alcotest.string what r (Asl_utils.pp_expr (Xform_constprop.xform_expr env l'))
 
-(** Test xform_stmts *)
-let test_cp_stmts (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
-    (l : string) (r : string) () : unit =
-  let (tcenv, ds) = extend_tcenv globals decls in
-  let genv = Eval.build_constant_environment (prelude @ ds) in
-  let env = Xform_constprop.mkEnv genv [] in
-  let l' = LoadASL.read_stmt tcenv l in
-  let l'' = Xform_constprop.xform_stmts env [l'] in
-  let l''' = String.concat " " (List.map Asl_utils.pp_stmt l'') in
-  let what = l ^ " == " ^ r in
-  Alcotest.check Alcotest.string what r l'''
-
 let constprop_tests : unit Alcotest.test_case list =
   let prelude = load_test_libraries () in
   let globals = TC.env0 in
+  let test_cp_stmts (decls : string) (l : string) (r : string) () : unit =
+    let (tcenv, ds) = extend_tcenv globals decls in
+    let genv = Eval.build_constant_environment (prelude @ ds) in
+    let env = Xform_constprop.mkEnv genv [] in
+    test_xform_stmts (Xform_constprop.xform_stmts env) globals prelude decls l r ()
+  in
   [
     ("add", `Quick, test_cp_expr globals prelude "" "1 + 1" "2");
     ("add_mul", `Quick, test_cp_expr globals prelude "" "1 + (2 * 3)" "7");
@@ -49,8 +43,99 @@ let constprop_tests : unit Alcotest.test_case list =
     ("enum", `Quick, test_cp_expr globals prelude
        "enumeration T { E1, E2 };" "if TRUE then E1 else E2" "E1");
 
-    ("let", `Quick, test_cp_stmts globals prelude ""
+    ("let", `Quick, test_cp_stmts ""
        "let x = 1 + 1;" "let x :: integer = 2;");
+    ("assignment", `Quick, test_cp_stmts ""
+      "let c :: bits(2) = '11';
+       let a :: bits(2) = c;"
+      "let c :: bits(2) = '11'; let a :: bits(2) = '11';");
+    ("if-else", `Quick, test_cp_stmts "var d :: boolean;"
+      "var c :: bits(2);
+       if d then
+           c = '11';
+       else
+           c = '11';
+       end
+       let a = c;"
+      "var c :: bits(2);
+       if d then
+           c = '11';
+       else
+           c = '11';
+       end
+       let a :: bits(2) = '11';");
+    (* Make sure c = '11' gets propagated to after loop *)
+    ("for loop 1", `Quick, test_cp_stmts "var d :: integer;"
+      "let c = '11';
+       var x :: integer;
+       for i = 0 to d do
+           x = 0;
+       end
+       let a = c;"
+      "let c :: bits(2) = '11';
+       var x :: integer;
+       for i = 0 to d do
+           x = 0;
+       end
+       let a :: bits(2) = '11';");
+
+    (* Make sure we still except c to be '10' after loop *)
+    ("for loop 2", `Quick, test_cp_stmts "var d :: integer;"
+      "var c :: bits(2) = '10';
+       for i = 0 to d do
+           c = '10';
+       end
+       let a = c;"
+      "var c :: bits(2) = '10';
+       for i = 0 to d do
+           c = '10';
+       end
+       let a :: bits(2) = '10';");
+
+    (* Make sure a = c is intact when altering c inside loop. *)
+    ("for loop 3", `Quick, test_cp_stmts "var d :: integer;"
+      "var c :: bits(2) = '10';
+       for i = 0 to d do
+           c = '11';
+       end
+       let a = c;"
+      "var c :: bits(2) = '10';
+       for i = 0 to d do
+           c = '11';
+       end
+       let a :: bits(2) = c;");
+
+    (* This will trigger more than 2 fixpoint iterations *)
+    ("for loop 4", `Quick, test_cp_stmts "var d :: integer;"
+      "var x1 = 0;
+       var x2 = 0;
+       var x3 = 0;
+       var x4 = 1;
+       for i = 0 to d do
+           x3 = x2;
+           x2 = x1;
+           x1 = 1;
+           x4 = 1;
+       end
+       let a = x1;
+       let b = x2;
+       let c = x3;
+       let d = x4;"
+      "var x1 = 0;
+       var x2 = 0;
+       var x3 = 0;
+       var x4 = 1;
+       for i = 0 to d do
+           x3 = x2;
+           x2 = x1;
+           x1 = 1;
+           x4 = 1;
+       end
+       let a = x1;
+       let b = x2;
+       let c = x3;
+       let d = 1;");
+
   ]
 
 (****************************************************************
