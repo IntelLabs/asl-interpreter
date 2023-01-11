@@ -72,6 +72,7 @@ module ScopeStack : sig
   val nest : 'a t -> ('a t -> 'b) -> 'b
   val bindings : 'a t -> (AST.ident * 'a) list list
   val pp : ('a -> string) -> 'a t -> unit
+  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 end
 
 module IdentSet : Set.S with type elt = AST.ident

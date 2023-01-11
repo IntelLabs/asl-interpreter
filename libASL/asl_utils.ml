@@ -49,6 +49,9 @@ module Scope = struct
     let bs = Bindings.empty in
     { bs }
 
+  let equal (eq : 'a -> 'a -> bool) (s1 : 'a t) (s2 : 'a t) : bool =
+    Bindings.equal eq s1.bs s2.bs
+
   (* create copy of a scope that can be independently mutated *)
   let clone (s : 'a t) : 'a t = { bs = s.bs }
   let mem (s : 'a t) (k : ident) : bool = Bindings.mem k s.bs
@@ -132,6 +135,10 @@ module ScopeStack = struct
 
   let bindings (ss : 'a t) : (ident * 'a) list list =
     List.map Scope.bindings ss
+
+  let equal (eq : 'a -> 'a -> bool) (ss1 : 'a t) (ss2 : 'a t) : bool =
+    let scope_eq (s1 : 'a Scope.t) (s2 : 'a Scope.t) = Scope.equal eq s1 s2 in
+    List.equal scope_eq ss1 ss2
 end
 
 module IdentSet = Set.Make (Ident)
