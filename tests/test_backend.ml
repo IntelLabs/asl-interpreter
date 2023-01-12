@@ -66,14 +66,27 @@ let check_compiler
 
 let check_c_syntax (name : string) (code : string) : unit =
   let prog = "gcc" in
-  let args = [| prog; "-std=c99"; "-fsyntax-only"; "-I../runtime/include"; "-xc" |] in
+  let args =
+    [|
+      prog;
+      "-std=c99";
+      "-fsyntax-only";
+      "-I../runtime/include";
+      "-Werror";
+      "-xc";
+    |]
+  in
   let header =
     String.concat "\n"
       [
+        "#include <assert.h>";
         "#include <stdbool.h>";
         "#include <stdint.h>";
+        "";
+        "#include \"asl/arith.h\"";
+        "#include \"asl/error.h\"";
         "#include \"asl/ram.h\"";
-        "\n"
+        "\n";
       ]
   in
   check_compiler "C" ".c" prog args name header code
