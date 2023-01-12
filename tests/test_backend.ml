@@ -1,14 +1,285 @@
 (****************************************************************
- * Test ASL backends
+ * Test cases and utilities for use in backend tests
  *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
 open LibASL
-open Test_utils
 module AST = Asl_ast
 module TC = Tcheck
+
+type backend = Backend_C | Backend_Verilog
+type test_case = string * backend list * string
+
+let test_cases_expr : test_case list =
+  [
+    ( "if",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return if FALSE then 0 else 0; end" );
+
+    ( "elsif",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return if FALSE then 0 elsif FALSE then 0 else 0; end" );
+
+    ( "binary operation",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return 1 + 1; end" );
+
+    ( "field selection",
+      [ Backend_C; Backend_Verilog ],
+      "record X { i :: integer; }; func F(x :: X) => integer return x.i; end" );
+
+    ( "bitslice single",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: bits(16)) => bits(1) return x[4]; end" );
+
+    ( "bitslice hilo",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: bits(16)) => bits(8) return x[11:4]; end" );
+
+    ( "bitslice lowd",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: bits(16)) => bits(8) return x[4 +: 8]; end" );
+
+    ( "record initializer",
+      [ Backend_C; Backend_Verilog ],
+      "record X { i :: integer; }; func F() => X return X { i = 1 }; end" );
+
+    ( "pattern match (literal mask)",
+      [ Backend_C ],
+      "enumeration boolean { FALSE, TRUE };
+       func F(x :: bits(4)) => boolean return x IN '11xx'; end" );
+
+    ( "literal integer",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return 0; end" );
+
+    ( "literal hexadecimal",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return 0x1; end" );
+
+    ( "literal bitvector",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(8) return '1111 0000'; end" );
+
+    ( "literal string",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => string return \"str\"; end" );
+
+    ( "literal string with escapes",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => string return \"Hello \\\" World\"; end" );
+
+    ( "variable",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: integer) => integer return x; end" );
+
+    ( "variable boolean",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration boolean { FALSE, TRUE };
+       func F() => boolean return FALSE; end" );
+
+    ( "function invocation",
+      [ Backend_C; Backend_Verilog ],
+      "func B() => integer return 0; end func F() => integer return B(); end" );
+
+    ( "parentheses",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return ( 0 ); end" );
+
+    ( "bitvector concatenation",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: bits(8), y :: bits(4), z :: bits(2)) => bits(14) return [x, y, z]; end" );
+  ]
+
+let test_cases_fun_decl : test_case list  =
+  [
+    ( "built-in",
+      [ Backend_C; Backend_Verilog ],
+      "__builtin func f() => integer;" );
+
+    ( "type",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer;" );
+
+    ( "definition",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer end" );
+
+    ( "definition with params",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: integer, y :: integer) => integer end" );
+  ]
+
+let test_cases_proc_decl : test_case list  =
+  [
+    ( "type",
+      [ Backend_C; Backend_Verilog ],
+      "func F();" );
+
+    ( "definition",
+      [ Backend_C; Backend_Verilog ],
+      "func F() end" );
+
+    ( "definition with params",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: integer, y :: integer) end" );
+  ]
+
+let test_cases_stmt : test_case list  =
+  [
+    ( "uninitialized variable",
+      [ Backend_C; Backend_Verilog ],
+      "func F() var x :: integer; end" );
+
+    ( "uninitialized variables",
+      [ Backend_C; Backend_Verilog ],
+      "func F() var x, y :: integer; end" );
+
+    ( "variable",
+      [ Backend_C; Backend_Verilog ],
+      "func F() var x = 0; end" );
+
+    ( "variable (wildcard)",
+      [ Backend_C ],
+      "func F() var - = 0; end" );
+
+    ( "variable (__RAM)",
+      [ Backend_C ],
+      "func F() var x :: __RAM(8); end" );
+
+    ( "constant",
+      [ Backend_C; Backend_Verilog ],
+      "func F() let x = 0; end" );
+
+    ( "assignment",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: integer, y :: integer) x = y; end" );
+
+    ( "assignment to slice",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x :: bits(8)) x[4 +: 2] = '10'; end" );
+
+    ( "assignment to field",
+      [ Backend_C; Backend_Verilog ],
+      "record X { i :: integer; }; func F(x :: X) x.i = 0; end" );
+
+    ( "assignment to wildcard",
+      [ Backend_C ],
+      "func F() - = 0; end" );
+
+    ( "procedure call",
+      [ Backend_C; Backend_Verilog ],
+      "func B() end func F() B(); end" );
+
+    ( "procedure call with argument",
+      [ Backend_C; Backend_Verilog ],
+      "func B(x :: integer) end func F() B(0); end" );
+
+    ( "procedure return",
+      [ Backend_C; Backend_Verilog ],
+      "func F() return; end" );
+
+    ( "function return",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer return 0; end" );
+
+    ( "assert",
+      [ Backend_C; Backend_Verilog ],
+      "func F() assert FALSE; end" );
+
+    ( "if",
+      [ Backend_C; Backend_Verilog ],
+      "func F() if FALSE then return; elsif FALSE then return; else return; end end" );
+
+    ( "if with several elsifs",
+      [ Backend_C; Backend_Verilog ],
+      "func F() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end" );
+
+    ( "case",
+      [ Backend_C; Backend_Verilog ],
+      "func F() case 0 of when 0: return; otherwise: return; end end" );
+
+    ( "case with several whens",
+      [ Backend_C; Backend_Verilog ],
+      "func F() case 0 of when 0: return; when 1: return; end end" );
+
+    ( "for loop (direction to)",
+      [ Backend_C ],
+      "func F() for x = 0 to 1 do return; end end" );
+
+    ( "for loop (direction downto)",
+      [ Backend_C ],
+      "func F() for x = 1 downto 0 do return; end end" );
+
+    ( "while loop",
+      [ Backend_C ],
+      "func F() while TRUE do return; end end" );
+
+    ( "repeat loop",
+      [ Backend_C ],
+      "func F() repeat return; until TRUE; end" );
+
+    ( "block",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin end end" );
+  ]
+
+let test_cases_type_decl : test_case list  =
+  [
+    ( "record",
+      [ Backend_C; Backend_Verilog ],
+      "record X { i :: integer; b :: bit; };" );
+
+    ( "typedef",
+      [ Backend_C; Backend_Verilog ],
+      "type Byte of bits(8);" );
+
+    ( "typedef (register)",
+      [ Backend_C; Backend_Verilog ],
+      "type Reg of bits(9) { [8] i [1] b };" );
+
+    ( "enumeration",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration signal { LOW, HIGH };" );
+
+    ( "enumeration (boolean)",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration boolean { FALSE, TRUE };" );
+  ]
+
+let test_cases_var_decl : test_case list  =
+  [
+    ( "bits",
+      [ Backend_C; Backend_Verilog ],
+      "var x :: bits(8);" );
+
+    ( "integer",
+      [ Backend_C; Backend_Verilog ],
+      "var x :: integer;" );
+
+    ( "array",
+      [ Backend_C; Backend_Verilog ],
+      "var x :: array [1] of integer;" );
+
+    ( "array2",
+      [ Backend_C; Backend_Verilog ],
+      "var x :: array [1] of array [2] of integer;" );
+
+    ( "const (integer)",
+      [ Backend_C ],
+      "let x :: integer = 0;" );
+  ]
+
+let make_tests (b : backend) (test_fun : string -> string -> unit)
+    (test_cases : test_case list) : unit Alcotest.test_case list =
+  List.filter_map
+    (fun (name, backends, s) ->
+      if List.mem b backends
+      then Some (name, `Quick, fun _ -> test_fun name s)
+      else None)
+    test_cases
 
 let check_declaration (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit)
@@ -19,8 +290,6 @@ let check_declaration (tcenv : TC.GlobalEnv.t)
 
   let s = Format.flush_str_formatter () in
   check_ext name s
-
-let check_none (name : string) (s : string) : unit = ()
 
 let check_compiler
     (language : string)
@@ -63,256 +332,6 @@ let check_compiler
   in
   Sys.remove tmp;
   Alcotest.(check int) (language ^ " syntax: " ^ name) 0 exit_status
-
-let check_c_syntax (name : string) (code : string) : unit =
-  let prog = "gcc" in
-  let args =
-    [|
-      prog;
-      "-std=c99";
-      "-fsyntax-only";
-      "-I../runtime/include";
-      "-Werror";
-      "-xc";
-    |]
-  in
-  let header =
-    String.concat "\n"
-      [
-        "#include <assert.h>";
-        "#include <stdbool.h>";
-        "#include <stdint.h>";
-        "";
-        "#include \"asl/arith.h\"";
-        "#include \"asl/error.h\"";
-        "#include \"asl/ram.h\"";
-        "\n";
-      ]
-  in
-  check_compiler "C" ".c" prog args name header code
-
-let check_verilog_syntax (name : string) (code : string) : unit =
-  let prog = "verilator" in
-  let lints = [
-    "/* verilator lint_off WIDTH */";
-    "/* verilator lint_off UNPACKED */";
-    ]
-  in
-  let header = String.concat "\n" lints in
-  let args = [| prog; "--cc" |] in
-  check_compiler "System Verilog" ".v" prog args name header code
-
-let test_builtin_fun (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "ignored" "__builtin func f() => integer;";
-  ()
-
-let test_enum (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit)
-    (ext : string -> string -> unit) () : unit =
-  check_declaration tcenv decls ext "boolean (ignored)"
-    "enumeration boolean { FALSE, TRUE };";
-  check_declaration tcenv decls ext "few enum literals"
-    "enumeration signal { LOW, HIGH };";
-  ()
-
-let test_fun_decl (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "no params, empty body"
-    "func F() => integer;";
-  ()
-
-let test_fun_defn (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "no params, empty body"
-    "func F() => integer end";
-  check_declaration tcenv decls ext "few params, empty body"
-    "func F(p1 :: integer, p2 :: integer) => integer end";
-  check_declaration tcenv decls ext "statement (return)"
-    "func F() => integer return 0; end";
-  ()
-
-let test_proc_decl (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "no params, empty body" "func F();";
-  ()
-
-let test_proc_defn (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "no params, empty body"
-    "func F() end";
-  check_declaration tcenv decls ext "few params, empty body"
-    "func F(p1 :: integer, p2 :: integer) end";
-  check_declaration tcenv decls ext "uninitialized variable"
-    "func F() var i :: integer; end";
-  check_declaration tcenv decls ext "uninitialized variables"
-    "func F() var i1, i2 :: integer; end";
-  check_declaration tcenv decls ext "variable"
-    "func F() var i :: integer = 0; end";
-  check_declaration tcenv decls ext "constant"
-    "func F() let i :: integer = 0; end";
-  check_declaration tcenv decls ext "statement (return)"
-    "func F() return; end";
-  check_declaration tcenv decls ext "statement (procedure invocation)"
-    "func B() end func F() B(); end";
-  check_declaration tcenv decls ext "statement (procedure invocation with arg)"
-    "func B(i :: integer) end func F() B(0); end";
-  check_declaration tcenv decls ext "statement (block)"
-    "func F() begin end end";
-  check_declaration tcenv decls ext "statement (assignment)"
-    "func F() var i, j :: integer; i = j; end";
-  check_declaration tcenv decls ext "statement (assignment to slice)"
-    "func F() var i :: bits(8); i[4 +: 2] = '10'; end";
-  check_declaration tcenv decls ext "statement (assignment to field)"
-    "record R { i :: integer; }; func F() var r :: R; r.i = 0; end";
-  check_declaration tcenv decls ext "statement (assert)"
-    "func F() assert FALSE; end";
-  check_declaration tcenv decls ext "statement (if)"
-    "func F() if FALSE then return; elsif FALSE then return; else return; end end";
-  check_declaration tcenv decls ext "statement (if few elsifs)"
-    "func F() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end";
-  check_declaration tcenv decls ext "statement (case)"
-    "func F() case 0 of when 0: return; otherwise: return; end end";
-  check_declaration tcenv decls ext "statement (case few whens)"
-    "func F() case 0 of when 0x0: return; when 0x1: return; end end";
-  ()
-
-let test_expr (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "expression (if)"
-    "func F() => integer return if FALSE then 0 else 0; end";
-  check_declaration tcenv decls ext "expression (elsif)"
-    "func F() => integer return if FALSE then 0 elsif FALSE then 0 else 0; end";
-  check_declaration tcenv decls ext "expression (binary operation)"
-    "func F() => integer return 1 + 1; end";
-  check_declaration tcenv decls ext "expression (field selection)"
-    "record X { i :: integer; }; func F(x :: X) => integer return x.i; end";
-  check_declaration tcenv decls ext "expression (bitslice single)"
-    "func F(x :: bits(16)) => bits(1) return x[4]; end";
-  check_declaration tcenv decls ext "expression (bitslice hilo)"
-    "func F(x :: bits(16)) => bits(8) return x[11:4]; end";
-  check_declaration tcenv decls ext "expression (bitslice lowd)"
-    "func F(x :: bits(16)) => bits(8) return x[4 +: 8]; end";
-  check_declaration tcenv decls ext "expression (record initializer)"
-    "record X { i :: integer; }; func F() => X return X { i = 1 }; end";
-  check_declaration tcenv decls ext "expression (literal integer)"
-    "func F() => integer return 0; end";
-  check_declaration tcenv decls ext "expression (literal hexadecimal)"
-    "func F() => integer return 0x1; end";
-  check_declaration tcenv decls ext "expression (literal bitvector)"
-    "func F() => bits(8) return '1111 0000'; end";
-  check_declaration tcenv decls ext "expression (literal string)"
-    "func F() => string return \"str\"; end";
-  check_declaration tcenv decls ext "expression (literal string with escapes)"
-    "func F() => string return \"Hello \\\" World\"; end";
-  check_declaration tcenv decls ext "expression (variable)"
-    "func F(x :: integer) => integer return x; end";
-  check_declaration tcenv decls ext "expression (variable boolean)"
-    "enumeration boolean { FALSE, TRUE };
-     func F() => boolean return FALSE; end";
-  check_declaration tcenv decls ext "expression (function invocation)"
-    "func B() => integer return 0; end func F() => integer return B(); end";
-  check_declaration tcenv decls ext "expression (parentheses)"
-    "func F() => integer return ( 0 ); end";
-  check_declaration tcenv decls ext "expression (bitvector concatenation)"
-    "func F(x :: bits(8), i :: bits(4), j :: bits(2)) => bits(14) return [x, i, j]; end";
-  ()
-
-let test_record_decl (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "record declaration"
-    "record R { i :: integer; b :: bit; };";
-  ()
-
-let test_type_decl (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "type declaration" "type Byte of bits(8);";
-  check_declaration tcenv decls ext "type declaration (register)"
-    "type Reg of bits(9) { [8] a [1] b };";
-  ()
-
-let test_var (tcenv : TC.GlobalEnv.t) (decls : AST.declaration list -> unit)
-    (ext : string -> string -> unit) () : unit =
-  check_declaration tcenv decls ext "bits" "var i :: bits(8);";
-  check_declaration tcenv decls ext "integer" "var i :: integer;";
-  check_declaration tcenv decls ext "array" "var i :: array [1] of integer;";
-  check_declaration tcenv decls ext "array2" "var i :: array [1] of array [2] of integer;";
-  ()
-
-let test_cases (decls : AST.declaration list -> unit)
-    (ext : string -> string -> unit) : unit Alcotest.test_case list =
-  let tcenv = TC.env0 in
-  [
-    ("built-in function", `Quick, test_builtin_fun tcenv decls ext);
-    ("enumeration", `Quick, test_enum tcenv decls ext);
-    ("function declaration", `Quick, test_fun_decl tcenv decls ext);
-    ("function definition", `Quick, test_fun_defn tcenv decls ext);
-    ("procedure declaration", `Quick, test_proc_decl tcenv decls ext);
-    ("procedure definition", `Quick, test_proc_defn tcenv decls ext);
-    ("expression", `Quick, test_expr tcenv decls ext);
-    ("record declaration", `Quick, test_record_decl tcenv decls ext);
-    ("type declaration", `Quick, test_type_decl tcenv decls ext);
-    ("variable", `Quick, test_var tcenv decls ext);
-  ]
-
-let test_proc_defn_c_only (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "statement (for, direction to)"
-    "func F() for i = 0 to 1 do return; end end";
-  check_declaration tcenv decls ext "statement (for, direction downto)"
-    "func F() for i = 1 downto 0 do return; end end";
-  check_declaration tcenv decls ext "statement (wildcard declaration)"
-    "func F() var - = 0; end";
-  check_declaration tcenv decls ext "statement (assignment to wildcard)"
-    "func F() - = 0; end";
-  check_declaration tcenv decls ext "statement (repeat loop)"
-    "func F() repeat return; until TRUE; end";
-  check_declaration tcenv decls ext "statement (while loop)"
-    "func F() while TRUE do return; end end";
-  check_declaration tcenv decls ext "statement (variable, __RAM)"
-    "func F() var i :: __RAM(8); end";
-  ()
-
-let test_expr_c_only (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "expression (pattern match, literal mask)"
-    "enumeration boolean { FALSE, TRUE };
-     func F(x :: bits(4)) => boolean return x IN '11xx'; end";
-  ()
-
-let test_var_c_only (tcenv : TC.GlobalEnv.t)
-    (decls : AST.declaration list -> unit) (ext : string -> string -> unit) () :
-    unit =
-  check_declaration tcenv decls ext "const integer" "let i :: integer = 0;";
-  ()
-
-let test_cases_c_only (decls : AST.declaration list -> unit)
-    (ext : string -> string -> unit) : unit Alcotest.test_case list =
-  let tcenv = TC.env0 in
-  [
-    ("procedure definition", `Quick, test_proc_defn_c_only tcenv decls ext);
-    ("expression", `Quick, test_expr_c_only tcenv decls ext);
-    ("variable", `Quick, test_var_c_only tcenv decls ext);
-  ]
-
-let () =
-  ignore (load_test_libraries ());
-  let fmt = Format.str_formatter in
-  Alcotest.run "backend"
-    [
-      ("backend_c", test_cases (Backend_c.declarations fmt) check_c_syntax);
-      ("backend_c_only", test_cases_c_only (Backend_c.declarations fmt) check_c_syntax);
-      ("backend_verilog", test_cases (Backend_verilog.declarations fmt) check_verilog_syntax);
-    ]
 
 (****************************************************************
  * End

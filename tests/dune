@@ -1,13 +1,14 @@
 (tests
  (names
   aslutils
+  backend_c
+  backend_verilog
   bitslice
   bittuples
   case
   constprop
   simplify_expr
   test_asl
-  test_backend
   test_loadasl
   test_utils
   tuples)
