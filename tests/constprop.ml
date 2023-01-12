@@ -136,6 +136,77 @@ let constprop_tests : unit Alcotest.test_case list =
        let c = x3;
        let d = 1;");
 
+    (* Make sure c = '11' gets propagated to after loop *)
+    ("while loop 1", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+      "let c = '11';
+       var x :: integer;
+       while i != d do
+           x = 0;
+       end
+       let a = c;"
+      "let c :: bits(2) = '11';
+       var x :: integer;
+       while i != d do
+           x = 0;
+       end
+       let a :: bits(2) = '11';");
+
+    (* Make sure we still except c to be '10' after loop *)
+    ("while loop 2", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+      "var c :: bits(2) = '10';
+       while i != d do
+           c = '10';
+       end
+       let a = c;"
+      "var c :: bits(2) = '10';
+       while i != d do
+           c = '10';
+       end
+       let a :: bits(2) = '10';");
+
+    (* Make sure a = c is intact when altering c inside loop. *)
+    ("while loop 3", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+      "var c :: bits(2) = '10';
+       while i != d do
+           c = '11';
+       end
+       let a = c;"
+      "var c :: bits(2) = '10';
+       while i != d do
+           c = '11';
+       end
+       let a :: bits(2) = c;");
+
+    (* This will trigger more than 2 fixpoint iterations *)
+    ("while loop 4", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+      "var x1 = 0;
+       var x2 = 0;
+       var x3 = 0;
+       var x4 = 1;
+       while i != d do
+           x3 = x2;
+           x2 = x1;
+           x1 = 1;
+           x4 = 1;
+       end
+       let a = x1;
+       let b = x2;
+       let c = x3;
+       let d = x4;"
+      "var x1 = 0;
+       var x2 = 0;
+       var x3 = 0;
+       var x4 = 1;
+       while i != d do
+           x3 = x2;
+           x2 = x1;
+           x1 = 1;
+           x4 = 1;
+       end
+       let a = x1;
+       let b = x2;
+       let c = x3;
+       let d = 1;");
   ]
 
 (****************************************************************

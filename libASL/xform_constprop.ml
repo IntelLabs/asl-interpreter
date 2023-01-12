@@ -471,12 +471,11 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           in
           [ Stmt_For (v, start', dir, stop', b', loc) ])
     | Stmt_While(c, b, loc) ->
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
-          let c' = xform_expr env c in
-          let b' = xform_stmts env b in
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
+          let (c', b') = Env.fixpoint env  (fun env' ->
+              let c' = xform_expr env' c in
+              let b' = xform_stmts env' b in
+              (c', b'))
+          in
           [ Stmt_While(c', b', loc) ]
     | Stmt_Repeat(b, c, pos, loc) ->
           (* todo: this is overkill: only need to set variables modified to b *)
