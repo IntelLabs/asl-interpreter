@@ -62,9 +62,6 @@ module Env = struct
     else
       fixpoint env f
 
-  let set_bottom (env : t) : unit =
-    ScopeStack.map_inplace (Fun.const Values.bottom) env.locals
-
   let to_concrete (env : t) : Eval.Env.t =
     let locals = ScopeStack.filter_map Values.to_concrete env.locals in
     Eval.Env.mkEnv env.globalConsts locals
@@ -478,12 +475,11 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           in
           [ Stmt_While(c', b', loc) ]
     | Stmt_Repeat(b, c, pos, loc) ->
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
-          let b' = xform_stmts env b in
-          let c' = xform_expr env c in
-          (* todo: this is overkill: only need to set variables modified to b *)
-          Env.set_bottom env;
+          let (c', b') = Env.fixpoint env  (fun env' ->
+              let b' = xform_stmts env' b in
+              let c' = xform_expr env' c in
+              (c', b'))
+          in
           [ Stmt_Repeat(b', c', pos, loc) ]
   (*
     | Stmt_Try(tb, ev, pos, catchers, odefault, loc) ->
