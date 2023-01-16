@@ -18,7 +18,7 @@ let check_syntax (name : string) (code : string) : unit =
     ]
   in
   let header = String.concat "\n" lints in
-  let args = [| prog; "--cc" |] in
+  let args = [ "--cc" ] in
   check_compiler "System Verilog" ".v" prog args name header code
 
 let test_declaration (name : string) (s : string) : unit =

@@ -295,7 +295,7 @@ let check_compiler
     (language : string)
     (suffix : string)
     (prog : string)
-    (args : string array)
+    (args : string list)
     (name : string)
     (header : string)
     (body : string)
@@ -304,7 +304,7 @@ let check_compiler
   Out_channel.output_string chan header;
   Out_channel.output_string chan body;
   Out_channel.close chan;
-  let args' = Array.append args [| tmp |] in
+  let args' = List.append args [ tmp ] in
 
   if true then begin
     (* output test to log - for ease of debugging *)
@@ -312,11 +312,11 @@ let check_compiler
     output_string stdout body;
 
     Printf.printf "Wrote to %s\n" tmp;
-    Printf.printf "Executing %s %s\n" prog (String.concat " " (Array.to_list args'));
+    Printf.printf "Executing %s %s\n" prog (String.concat " " args');
     flush stdout
   end;
 
-  let p = Unix.open_process_args_out prog args' in
+  let p = Unix.open_process_args_out prog (Array.of_list (prog :: args')) in
   let status = Unix.close_process_out p in
   let exit_status =
     match status with

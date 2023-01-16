@@ -13,14 +13,13 @@ module TC = Tcheck
 let check_syntax (name : string) (code : string) : unit =
   let prog = "gcc" in
   let args =
-    [|
-      prog;
+    [
       "-std=c99";
       "-fsyntax-only";
       "-I../runtime/include";
       "-Werror";
       "-xc";
-    |]
+    ]
   in
   let header =
     String.concat "\n"
