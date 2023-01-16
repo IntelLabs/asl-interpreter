@@ -10,7 +10,7 @@ let xform
     (r : AST.expr)
     : AST.stmt list =
     let tmp_ident = assign_var#fresh in
-    let total_width = Xform_simplify_expr.simplify (Asl_utils.mk_add_ints ws) in
+    let total_width = Xform_simplify_expr.mk_add_ints ws in
     let ty = Asl_utils.type_bits total_width in
 
     let (ss, _) = List.fold_right2 (fun l w (ss, idx) ->

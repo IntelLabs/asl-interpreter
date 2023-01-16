@@ -18,6 +18,12 @@ module AST = Asl_ast
 (** Simplify an expression by simplifying integer +,-,*,c,v *)
 val simplify : AST.expr -> AST.expr
 
+(** Add ints and simplify *)
+val mk_add_int : AST.expr -> AST.expr -> AST.expr
+
+(** Add ints and simplify *)
+val mk_add_ints : AST.expr list -> AST.expr
+
 (****************************************************************)
 (* End                                                          *)
 (****************************************************************)

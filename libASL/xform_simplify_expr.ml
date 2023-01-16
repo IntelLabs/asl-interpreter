@@ -210,6 +210,14 @@ let simplify (x : AST.expr) : AST.expr =
   if verbose then Format.fprintf Format.std_formatter "simplified to %a\n" fmt_poly p;
   polynomial_to_expr p
 
+(* Add ints and simplify - this pattern is surprisingly common *)
+let mk_add_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  simplify (Asl_utils.mk_add_int x y)
+
+(* Add ints and simplify - this pattern is surprisingly common *)
+let mk_add_ints (ws : AST.expr list) : AST.expr =
+  simplify (Asl_utils.mk_add_ints ws)
+
 (****************************************************************)
 (* End                                                          *)
 (****************************************************************)
