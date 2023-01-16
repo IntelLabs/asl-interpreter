@@ -348,6 +348,7 @@ and conds (loc : AST.l) (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) 
 and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
+  (* Boolean builtin functions *)
   | FIdent ("eq_bool", _), _ -> binop loc fmt "==" args
   | FIdent ("ne_bool", _), _ -> binop loc fmt "!=" args
   | FIdent ("not_bool", _), _ -> unop loc fmt "!" args
@@ -355,6 +356,10 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
   | FIdent ("or_bool", _), [ x; y ] -> cond loc fmt x Asl_utils.asl_true y
   | FIdent ("equiv_bool", _), _ -> binop loc fmt "==" args
   | FIdent ("implies_bool", _), [ x; y ] -> cond loc fmt x y Asl_utils.asl_true
+  (* Enumeration builtin functions *)
+  | FIdent ("eq_enum", _), _ -> binop loc fmt "==" args
+  | FIdent ("ne_enum", _), _ -> binop loc fmt "!=" args
+  (* Integer builtin functions *)
   | FIdent ("eq_int", _), _ -> binop loc fmt "==" args
   | FIdent ("ne_int", _), _ -> binop loc fmt "!=" args
   | FIdent ("gt_int", _), _ -> binop loc fmt ">" args
