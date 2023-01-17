@@ -137,8 +137,7 @@ module ScopeStack = struct
     List.map Scope.bindings ss
 
   let equal (eq : 'a -> 'a -> bool) (ss1 : 'a t) (ss2 : 'a t) : bool =
-    let scope_eq (s1 : 'a Scope.t) (s2 : 'a Scope.t) = Scope.equal eq s1 s2 in
-    List.equal scope_eq ss1 ss2
+    List.equal (Scope.equal eq) ss1 ss2
 end
 
 module IdentSet = Set.Make (Ident)
@@ -1073,11 +1072,11 @@ let mk_lsl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
 
 (** Construct "zeros_bits{N}(N)" *)
 let mk_zero_bits (n : AST.expr) : AST.expr =
-  mk_unop "zeros_bits" [n] n 
+  mk_unop "zeros_bits" [n] n
 
 (** Construct "ones_bits{N}(N)" *)
 let mk_ones_bits (n : AST.expr) : AST.expr =
-  mk_unop "ones_bits" [n] n 
+  mk_unop "ones_bits" [n] n
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
@@ -1150,7 +1149,7 @@ let tupleTypes (t : AST.ty) : AST.ty list =
 
 (** Bitwidth of type (which is expected to be a bitvector) *)
 let width_of_type (ty : AST.ty) : AST.expr option =
-  ( match ty with 
+  ( match ty with
   | Type_Bits n
   | Type_Register (n, _)
     -> Some n
