@@ -10,7 +10,13 @@ CC = gcc
 CPPFLAGS = -Iinclude
 CFLAGS = -g -Wall -Werror -std=c99
 
-C_FILES = error.c ram.c trace.c
+C_FILES = bits128.c \
+          bits256.c \
+          bits512.c \
+          error.c \
+          ram.c \
+          trace.c
+
 OBJ_FILES = $(C_FILES:%.c=$(BUILD_DIR)/%.o)
 DEP_FILES = $(OBJ_FILES:%.o=%.d)
 

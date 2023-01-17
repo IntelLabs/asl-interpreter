@@ -14,8 +14,10 @@
 extern "C" {
 #endif
 
+typedef uint64_t ASL_bits64_t;
+
 static inline int64_t
-ASL_cvt_bits_sint(uint64_t x, int x_width)
+ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
 {
         const uint64_t mask = 1ULL << (x_width - 1);
         /* If the sign bit is 1 then, after XOR-ing,
@@ -23,32 +25,32 @@ ASL_cvt_bits_sint(uint64_t x, int x_width)
         return (x ^ mask) - mask;
 }
 
-static inline uint64_t
-ASL_lsl_bits(uint64_t x, int d)
+static inline ASL_bits64_t
+ASL_lsl_bits(ASL_bits64_t x, int d)
 {
         return x << d;
 }
 
-static inline uint64_t
-ASL_lsr_bits(uint64_t x, int d)
+static inline ASL_bits64_t
+ASL_lsr_bits(ASL_bits64_t x, int d)
 {
         return x >> d;
 }
 
-static inline uint64_t
-ASL_asr_bits(uint64_t x, int d)
+static inline ASL_bits64_t
+ASL_asr_bits(ASL_bits64_t x, int d)
 {
         /* Note: it is implementation-defined whether this performs
          * an arithmetic shift or a logical shift.
          * On gcc, it performs an arithmetic shift.
          */
-        return (uint64_t)(((int64_t) x) >> d);
+        return (ASL_bits64_t)(((int64_t) x) >> d);
 }
 
-static inline uint64_t
-ASL_replicate_bits(uint64_t x, int n, int x_width)
+static inline ASL_bits64_t
+ASL_replicate_bits(ASL_bits64_t x, int n, int x_width)
 {
-        uint64_t r = 0;
+        ASL_bits64_t r = 0;
         while (n-- > 0)
                 r = (r << x_width) | x;
         return r;
@@ -56,32 +58,35 @@ ASL_replicate_bits(uint64_t x, int n, int x_width)
 
 #define ASL_mask(width) ((1ULL << (width)) - 1)
 
-static inline uint64_t
+static inline ASL_bits64_t
 ASL_mk_mask(int w, int n)
 {
     return ASL_mask(w);
 }
 
-static inline uint64_t
-ASL_slice_lowd(uint64_t x, int lo, int width)
+#define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \
+        ASL_slice_lowd_##sizeof_x##_##sizeof_res((x), (lo), (width))
+
+static inline ASL_bits64_t
+ASL_slice_lowd_64_64(ASL_bits64_t x, int lo, int width)
 {
         return (x >> lo) & ASL_mask(width);
 }
 
-static inline uint64_t
-ASL_slice_hilo(uint64_t x, int hi, int lo)
+static inline ASL_bits64_t
+ASL_slice_hilo(ASL_bits64_t x, int hi, int lo)
 {
         return (x & ASL_mask(hi + 1)) >> lo;
 }
 
-static inline uint64_t
-ASL_slice_lowd_w(uint64_t val, uint64_t x, int lo, int width)
+static inline ASL_bits64_t
+ASL_slice_lowd_w(ASL_bits64_t val, ASL_bits64_t x, int lo, int width)
 {
         return (x & ~(ASL_mask(width) << lo)) | (val << lo);
 }
 
-static inline uint64_t
-ASL_slice_hilo_w(uint64_t val, uint64_t x, int hi, int lo)
+static inline ASL_bits64_t
+ASL_slice_hilo_w(ASL_bits64_t val, ASL_bits64_t x, int hi, int lo)
 {
         return (x & ~(ASL_mask(hi - lo + 1) << lo)) | (val << lo);
 }

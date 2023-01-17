@@ -16,6 +16,9 @@
 
 #include "asl/arith.h"
 #include "asl/bits64.h"
+#include "asl/bits128.h"
+#include "asl/bits256.h"
+#include "asl/bits512.h"
 #include "asl/error.h"
 #include "asl/ram.h"
 #include "asl/trace.h"
