@@ -10,7 +10,6 @@
   simplify_expr
   test_asl
   test_loadasl
-  test_utils
   tuples)
  (modes exe)
  (flags
