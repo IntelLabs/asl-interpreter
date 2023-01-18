@@ -45,13 +45,10 @@ let rec match_pattern (loc : AST.l) (e : AST.expr) (p : AST.pattern) : AST.expr 
 and match_any_pattern (loc : AST.l) (e : AST.expr) (ps : AST.pattern list) : AST.expr =
   mk_ors (List.map (match_pattern loc e) ps)
 
-let match_all_patterns (loc : AST.l) (e : AST.expr) (ps : AST.pattern list) : AST.expr =
-  mk_ands (List.map (match_pattern loc e) ps)
-
 let alt_to_branch (e : AST.expr) (x : AST.alt) : (AST.expr * AST.stmt list * AST.l) =
   ( match x with
-  | Alt_Alt (ps, Some c, s, loc) -> (mk_and (match_all_patterns loc e ps) c, s, loc)
-  | Alt_Alt (ps, None, s, loc) -> (match_all_patterns loc e ps, s, loc)
+  | Alt_Alt (ps, Some c, s, loc) -> (mk_and (match_any_pattern loc e ps) c, s, loc)
+  | Alt_Alt (ps, None, s, loc) -> (match_any_pattern loc e ps, s, loc)
   )
 
 (* Detect patterns that can be directly used in
