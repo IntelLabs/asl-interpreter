@@ -133,14 +133,10 @@ let kw_int32 (fmt : PP.formatter) : unit = keyword fmt "int32_t"
 let kw_int64 (fmt : PP.formatter) : unit = keyword fmt "int64_t"
 let kw_int8 (fmt : PP.formatter) : unit = keyword fmt "int8_t"
 let kw_true (fmt : PP.formatter) : unit = keyword fmt "true"
-let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 let kw_uint16 (fmt : PP.formatter) : unit = keyword fmt "uint16_t"
 let kw_uint32 (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
-let kw_uint128 (fmt : PP.formatter) : unit = keyword fmt "uint128_t"
-let kw_uint256 (fmt : PP.formatter) : unit = keyword fmt "uint256_t"
-let kw_uint512 (fmt : PP.formatter) : unit = keyword fmt "uint512_t"
-let kw_uint1024 (fmt : PP.formatter) : unit = keyword fmt "uint1024_t"
+let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
 (* C types defined elsewhere *)
 let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_ram_t"
@@ -192,35 +188,24 @@ let const_int_expr (loc : AST.l) (x : AST.expr) : int =
              "const_int_expr: integer expected '" ^ V.pp_value v ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
 
-let uint (loc : AST.l) (fmt : PP.formatter) (width : int) : unit =
-  if width <= 8 then kw_uint8 fmt
-  else if width <= 16 then kw_uint16 fmt
-  else if width <= 32 then kw_uint32 fmt
-  else if width <= 64 then kw_uint64 fmt
-  else if width <= 128 then kw_uint128 fmt
-  else if width <= 256 then kw_uint256 fmt
-  else if width <= 512 then kw_uint512 fmt
-  else if width <= 1024 then kw_uint1024 fmt
-  else
-    raise
-      (Unimplemented
-         (loc, "uint width: " ^ string_of_int width, fun fmt -> ()))
+let round_up_to_pow2 (x : int) : int =
+  let x = Z.log2up (Z.of_int x) in
+  Z.to_int (Z.shift_left Z.one x)
 
-let sint (loc : AST.l) (fmt : PP.formatter) (width : int) : unit =
-  if width <= 8 then kw_int8 fmt
-  else if width <= 16 then kw_int16 fmt
-  else if width <= 32 then kw_int32 fmt
-  else if width <= 64 then kw_int64 fmt
-  else
-    raise
-      (Unimplemented
-         (loc, "sint width: " ^ string_of_int width, fun fmt -> ()))
+let c_int_width (width : int) : int =
+  if width > 8 then round_up_to_pow2 width else 8
+
+let uint (fmt : PP.formatter) (width : int) : unit =
+  keyword fmt ("uint" ^ string_of_int (c_int_width width) ^ "_t")
+
+let sint (fmt : PP.formatter) (width : int) : unit =
+  keyword fmt ("int" ^ string_of_int (c_int_width width) ^ "_t")
 
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
   ( match x with
   | Type_Bits n
   | Type_Register (n, _) ->
-    uint loc fmt (const_int_expr loc n);
+    uint fmt (const_int_expr loc n);
     nbsp fmt;
     varname fmt v
   | Type_Constructor tc ->
@@ -414,7 +399,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       let x_width = const_int_expr loc (List.hd tes) in
       match x_width with
       | 64 | 32 | 16 | 8 ->
-          make_cast fmt (fun _ -> sint loc fmt x_width) (fun _ -> expr loc fmt x)
+          make_cast fmt (fun _ -> sint fmt x_width) (fun _ -> expr loc fmt x)
       | _ -> apply loc fmt (fun _ -> fn_extern fmt f) (args @ [ List.hd tes ]))
   | FIdent ("cvt_bits_uint", _), [ x ] ->
       (* TODO determine correct type width. For now use uint64. *)
