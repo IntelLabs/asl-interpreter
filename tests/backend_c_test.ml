@@ -29,6 +29,7 @@ let check_syntax (name : string) (code : string) : unit =
         "#include <stdint.h>";
         "";
         "#include \"asl/arith.h\"";
+        "#include \"asl/bits64.h\"";
         "#include \"asl/error.h\"";
         "#include \"asl/ram.h\"";
         "\n";

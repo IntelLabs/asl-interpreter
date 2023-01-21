@@ -15,6 +15,7 @@
 #include "stdlib.h"
 
 #include "asl/arith.h"
+#include "asl/bits64.h"
 #include "asl/error.h"
 #include "asl/ram.h"
 #include "asl/trace.h"
