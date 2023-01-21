@@ -9,8 +9,11 @@
 
 VERSION = 0.2.0
 
+export DUNE_BUILD_DIR ?= $(CURDIR)/_build
+
 build::
 	dune build
+	$(MAKE) -C runtime BUILD_DIR=$(DUNE_BUILD_DIR)/runtime
 
 install::
 	dune build @install
