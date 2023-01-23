@@ -48,7 +48,7 @@ let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
 (* integer representation is a signed value of some width
  * this width should be large enough that data does not overflow
  *)
-let int_width = 66
+let int_width = ref 66
 
 (* Verilog delimiters *)
 
@@ -144,7 +144,7 @@ let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
-  constant fmt (string_of_int int_width ^ "'sh" ^ x)
+  constant fmt (string_of_int !int_width ^ "'sh" ^ x)
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let bits = Value.drop_chars x ' ' in
@@ -294,7 +294,7 @@ and sign_extend_bits (loc : AST.l) (fmt : PP.formatter) (target_width : int) (x 
 (** calculate mask of the form '11111100000' with (intwidth-x) ones and x zeros *)
 and notmask_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   parens fmt (fun _ ->
-      ones fmt int_width;
+      ones fmt !int_width;
       nbsp fmt;
       delimiter fmt "<<";
       nbsp fmt;
@@ -423,8 +423,8 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
           intLit fmt "0";
           plus_colon fmt;
           expr loc fmt n)
-  | FIdent ("cvt_bits_sint", _), [ x ] -> sign_extend_bits loc fmt int_width x
-  | FIdent ("cvt_bits_uint", _), [ x ] -> zero_extend_bits loc fmt int_width x
+  | FIdent ("cvt_bits_sint", _), [ x ] -> sign_extend_bits loc fmt !int_width x
+  | FIdent ("cvt_bits_uint", _), [ x ] -> zero_extend_bits loc fmt !int_width x
   | FIdent ("in_mask", _), _ -> binop loc fmt "=?=" args
   | FIdent ("notin_mask", _), _ ->
       parens fmt (fun _ ->
@@ -896,7 +896,7 @@ let decl_integer (fmt : PP.formatter) : unit =
       nbsp fmt;
       kw_signed fmt;
       brackets fmt (fun _ ->
-          constant fmt (string_of_int (int_width - 1));
+          constant fmt (string_of_int (!int_width - 1));
           colon fmt;
           constant fmt "0");
       nbsp fmt;
