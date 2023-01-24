@@ -24,6 +24,7 @@ let delimiter (fmt : PP.formatter) (s : string) : unit =
   PP.pp_print_string fmt s
 
 let keyword (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
+let asl_keyword (fmt : PP.formatter) (s : string) : unit = keyword fmt ("ASL_" ^ s)
 let constant (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
 
 let ident_str (fmt : PP.formatter) (x : string) : unit =
@@ -139,17 +140,17 @@ let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
 (* C types defined elsewhere *)
-let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_ram_t"
+let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
 (* C functions defined elsewhere *)
-let fn_slice_lowd (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd"
-let fn_slice_hilo (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo"
-let fn_slice_lowd_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_lowd_w"
-let fn_slice_hilo_w (fmt : PP.formatter) : unit = keyword fmt "ASL_slice_hilo_w"
-let fn_error_unmatched_case (fmt : PP.formatter) : unit = keyword fmt "ASL_error_unmatched_case"
+let fn_slice_lowd (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd"
+let fn_slice_hilo (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo"
+let fn_slice_lowd_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd_w"
+let fn_slice_hilo_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo_w"
+let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error_unmatched_case"
 
 let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
-  keyword fmt ("ASL_" ^ AST.name_of_FIdent x)
+  asl_keyword fmt (AST.name_of_FIdent x)
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
