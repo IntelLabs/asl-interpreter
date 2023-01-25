@@ -109,7 +109,14 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
           for i = 1 to n do
             cpu.step ();
           done
-      with e -> Error.print_exception e; error ())
+      with
+      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
+        Printf.printf "Exception taken\n";
+        error ()
+      | Value.EvalError (loc, msg) ->
+        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
+        error ()
+      )
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
