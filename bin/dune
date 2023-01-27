@@ -5,7 +5,7 @@
  (modules asli)
  (flags
   (-cclib -lstdc++))
- (libraries libASL linenoise pprint))
+ (libraries libASL linenoise))
 
 (executable
  (name asl2v)
@@ -14,7 +14,7 @@
  (modules asl2v)
  (flags
   (-cclib -lstdc++))
- (libraries libASL linenoise pprint))
+ (libraries libASL linenoise))
 
 (executable
  (name testlexer)
