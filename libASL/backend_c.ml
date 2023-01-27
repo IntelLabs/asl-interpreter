@@ -462,7 +462,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       let x = List.hd tes in
       bitsLit fmt (String.make (const_int_expr loc x) '0')
   (* String builtin functions *)
-  | FIdent ("append_str_str", _), _
+  | FIdent ("append_str_str", _), [x; y] -> expr loc fmt x (* not perfect but better than nothing *)
   | FIdent ("cvt_bits_str", _), _
   | FIdent ("cvt_bool_str", _), _
   | FIdent ("cvt_int_decstr", _), _
