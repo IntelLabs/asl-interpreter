@@ -159,6 +159,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) begin return '1' OR '0'; end" );
 
+    ( "built-in fun call (replicate_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return replicate_bits('1', 2); end" );
+
     ( "built-in fun call (sub_bits)",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) begin return '1' - '0'; end" );

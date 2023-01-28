@@ -120,6 +120,15 @@ ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 }
 
 ASL_bits64_t
+ASL_replicate_bits_64_64(int width, ASL_bits64_t x, int n)
+{
+        ASL_bits64_t r = 0;
+        while (n-- > 0)
+                r = (r << width) | x;
+        return r;
+}
+
+ASL_bits64_t
 ASL_sub_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
         return (x - y) & ASL_mk_mask_64(width);

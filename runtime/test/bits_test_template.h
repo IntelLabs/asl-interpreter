@@ -138,6 +138,12 @@ TEST_F(ASL_CC_INDIR(Bits, N), Or)
     EXPECT_EQ( ones, ASL_or_bits(N, N, zeros,  ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Replicate)
+{
+    EXPECT_EQ(ASL_mk_mask(N, 32 * ((N >> 5) - 1)),
+              ASL_replicate_bits(N, N, 32, ASL_mk_mask(N, 32), (N >> 5) - 1));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Sub)
 {
     int width = N - 1;

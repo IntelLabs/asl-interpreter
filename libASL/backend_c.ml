@@ -444,8 +444,12 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
   | FIdent ("replicate_bits", _), _ ->
-      let x_width = List.nth tes 1 in
-      apply loc fmt (fun _ -> fn_extern fmt f) (args @ [x_width])
+      let n = List.nth tes 0 in
+      let m = List.nth tes 1 in
+      let nm = Asl_utils.mk_litint (const_int_expr loc n * const_int_expr loc m) in
+      apply loc fmt
+        (fun _ -> fn_extern fmt f)
+        (c_int_width_64up_expr loc m :: c_int_width_64up_expr loc nm :: m :: args)
   | FIdent ("sub_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)

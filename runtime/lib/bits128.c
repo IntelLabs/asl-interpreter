@@ -45,6 +45,12 @@ ASL_lsr_bits_128(int width, ASL_bits128_t x, int d)
         return x;
 }
 
+ASL_bits128_t
+ASL_replicate_bits_64_128(int width, ASL_bits64_t x, int n)
+{
+        return ASL_replicate_bits_128_128(width, ASL_cast_bits_64_128(x), n);
+}
+
 ASL_bits64_t
 ASL_slice_lowd_128_64(ASL_bits128_t x, int lo, int width)
 {

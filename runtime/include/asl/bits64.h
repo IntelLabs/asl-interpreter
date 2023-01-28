@@ -82,14 +82,10 @@ ASL_bits64_t ASL_lsl_bits_64(int width, ASL_bits64_t x, int d);
 
 ASL_bits64_t ASL_lsr_bits_64(int width, ASL_bits64_t x, int d);
 
-static inline ASL_bits64_t
-ASL_replicate_bits(ASL_bits64_t x, int n, int x_width)
-{
-        ASL_bits64_t r = 0;
-        while (n-- > 0)
-                r = (r << x_width) | x;
-        return r;
-}
+#define ASL_replicate_bits(sizeof_x, sizeof_res, m, x, n) \
+        ASL_CC4(ASL_replicate_bits_, sizeof_x, _, sizeof_res)(m, x, n)
+
+ASL_bits64_t ASL_replicate_bits_64_64(int width, ASL_bits64_t x, int n);
 
 #define ASL_mk_mask(n, w) \
         ASL_CC(ASL_mk_mask_, n)(w)
