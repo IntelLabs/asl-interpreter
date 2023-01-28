@@ -442,7 +442,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       raise
         (Unimplemented
            (loc, "bitvector builtin function", fun fmt -> FMTAST.funname fmt f))
-  | FIdent ("lsl_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
+  | FIdent ("lsl_bits", _), _ ->
+      let n = List.hd tes in
+      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
   | FIdent ("lsr_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("asr_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("mul_bits", _), _ -> binop loc fmt "*" args

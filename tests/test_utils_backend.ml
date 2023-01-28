@@ -105,6 +105,10 @@ let test_cases_expr : test_case list =
       "enumeration boolean { FALSE, TRUE };
        func F() => boolean return '1' == '0'; end" );
 
+    ( "built-in fun call (lsl_bits)",
+      [ Backend_C ],
+      "func F() => bits(2) return lsl_bits('01', 1); end" );
+
     ( "built-in fun call (mk_mask)",
       [ Backend_C ],
       "func F() => bits(2) return mk_mask(1, 2); end" );

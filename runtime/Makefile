@@ -12,6 +12,7 @@ CFLAGS = -g -Wall -Werror -std=c99
 C_FILES = bits128.c \
           bits256.c \
           bits512.c \
+          bits64.c \
           error.c \
           ram.c \
           trace.c

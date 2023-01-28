@@ -14,6 +14,34 @@
 #undef N
 
 ASL_bits512_t
+ASL_lsl_bits_512(int width, ASL_bits512_t x, int d)
+{
+        if (d == 0)
+                return x;
+        if (d < 64) {
+                x.v[7] = (x.v[6] >> (64 - d)) | (x.v[7] << d);
+                x.v[6] = (x.v[5] >> (64 - d)) | (x.v[6] << d);
+                x.v[5] = (x.v[4] >> (64 - d)) | (x.v[5] << d);
+                x.v[4] = (x.v[3] >> (64 - d)) | (x.v[4] << d);
+                x.v[3] = (x.v[2] >> (64 - d)) | (x.v[3] << d);
+                x.v[2] = (x.v[1] >> (64 - d)) | (x.v[2] << d);
+                x.v[1] = (x.v[0] >> (64 - d)) | (x.v[1] << d);
+                x.v[0] = x.v[0] << d;
+        } else {
+                x.v[7] = x.v[6];
+                x.v[6] = x.v[5];
+                x.v[5] = x.v[4];
+                x.v[4] = x.v[3];
+                x.v[3] = x.v[2];
+                x.v[2] = x.v[1];
+                x.v[1] = x.v[0];
+                x.v[0] = 0;
+                x = ASL_lsl_bits_512(width, x, d - 64);
+        }
+        return ASL_and_bits_512(width, x, ASL_mk_mask_512(width));
+}
+
+ASL_bits512_t
 ASL_lsr_bits_512(ASL_bits512_t x, int d)
 {
         if (d == 0)
