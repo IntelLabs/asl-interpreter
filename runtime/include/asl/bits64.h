@@ -20,11 +20,11 @@ typedef uint64_t ASL_bits64_t;
 #define ASL_CC(x, y) x##y
 #define ASL_CC_INDIR(x, y) ASL_CC(x, y)
 
-#define ASL_and_bits(sizeof_x, x, y) \
-        ASL_CC(ASL_and_bits_, sizeof_x)(x, y)
+#define ASL_and_bits(sizeof_x, n, x, y) \
+        ASL_CC(ASL_and_bits_, sizeof_x)(n, x, y)
 
 static inline ASL_bits64_t
-ASL_and_bits_64(ASL_bits64_t x, ASL_bits64_t y)
+ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
         return x & y;
 }

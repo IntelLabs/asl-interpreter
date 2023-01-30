@@ -92,6 +92,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func B() => integer return 0; end func F() => integer return B(); end" );
 
+    ( "built-in fun call (and_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) return '1' AND '0'; end" );
+
     ( "built-in fun call (eor_bits)",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' EOR '0'; end" );

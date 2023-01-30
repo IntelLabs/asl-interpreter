@@ -14,14 +14,6 @@
 #undef N
 
 ASL_bits512_t
-ASL_and_bits_512(ASL_bits512_t x, ASL_bits512_t y)
-{
-        for (int i = 0; i < 8; ++i)
-             x.v[i] &= y.v[i];
-        return x;
-}
-
-ASL_bits512_t
 ASL_lsr_bits_512(ASL_bits512_t x, int d)
 {
         if (d == 0)
@@ -59,7 +51,7 @@ ASL_bits512_t
 ASL_slice_lowd_512_512(ASL_bits512_t x, int lo, int width)
 {
         x = ASL_lsr_bits_512(x, lo);
-        return ASL_and_bits_512(x, ASL_mk_mask_512(width));
+        return ASL_and_bits_512(256, x, ASL_mk_mask_512(width));
 }
 
 ASL_bits256_t

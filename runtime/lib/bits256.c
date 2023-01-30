@@ -14,14 +14,6 @@
 #undef N
 
 ASL_bits256_t
-ASL_and_bits_256(ASL_bits256_t x, ASL_bits256_t y)
-{
-        for (int i = 0; i < 4; ++i)
-             x.v[i] &= y.v[i];
-        return x;
-}
-
-ASL_bits256_t
 ASL_lsr_bits_256(ASL_bits256_t x, int d)
 {
         if (d == 0)
@@ -51,7 +43,7 @@ ASL_bits256_t
 ASL_slice_lowd_256_256(ASL_bits256_t x, int lo, int width)
 {
         x = ASL_lsr_bits_256(x, lo);
-        return ASL_and_bits_256(x, ASL_mk_mask_256(width));
+        return ASL_and_bits_256(256, x, ASL_mk_mask_256(width));
 }
 
 ASL_bits128_t
