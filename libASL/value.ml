@@ -364,7 +364,7 @@ module TextTracer = struct
     if enabled then
       let kind = if is_data then "D" else "I" in
       trace
-        (if is_read then "virt_mem_read_"^kind else "phys_mem_write_"^kind)
+        (if is_read then "virt_mem_read_"^kind else "virt_mem_write_"^kind)
         [ string_of_int data.n
         ; Z.format "%#04x" context
         ; Z.format "%#08x" virt_addr
