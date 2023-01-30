@@ -12,6 +12,8 @@ module AST = Asl_ast
 module CP = Xform_constprop
 module ASL_FMT = Asl_fmt
 
+open Yojson
+
 (****************************************************************
  * C backend support
  *
@@ -152,6 +154,69 @@ let xform_reachable (roots : AST.ident list) (ds : AST.declaration list) : AST.d
   ds'
 
 (****************************************************************
+ * JSON file reading support
+ ****************************************************************)
+
+(* Attempt to get a Json string *)
+let get_string (tree : Safe.t) : string option =
+  ( match tree with
+  | `String s -> Some s
+  | _ -> None
+  )
+
+(* Attempt to get a Json list *)
+let get_list (tree : Safe.t) : Safe.t list option =
+  ( match tree with
+  | `List s -> Some s
+  | _ -> None
+  )
+
+(* Attempt to get a Json association list entry by key *)
+let get_entry (key : string) (tree : Safe.t) : Safe.t option =
+  ( match tree with
+  | `Assoc kvs -> List.assoc_opt key kvs
+  | _ -> None
+  )
+
+(* Read list of identifiers from Json *)
+let get_idents (key : string) (transforms : Safe.t list) : AST.ident list =
+  let nms = List.concat_map (fun json ->
+      Option.bind (get_entry key json) (fun e ->
+      Option.bind (get_list e) (fun es ->
+      Some (List.filter_map get_string es)
+      ))
+      |> Option.value ~default:[]
+    )
+    transforms
+  in
+  (* The names could be either functions or variables/types
+   * so treat them as both.
+   *)
+  let xs = List.map (fun f -> AST.FIdent (f, 0)) nms in
+  let ys = List.map (fun f -> AST.Ident f) nms in
+  xs @ ys
+
+(****************************************************************
+ * Callgraph surgery
+ ****************************************************************)
+
+(* Replace a function definition with a function declaration
+ * (i.e., delete the function body) if it occurs in the list
+ * of functions to be deleted.
+ *)
+let delete_function (discard : AST.ident list) (x : AST.declaration) =
+  ( match x with
+  | AST.Decl_FunDefn (f, ps, args, ty, b, loc) when List.mem f discard ->
+    AST.Decl_FunType (f, ps, args, ty, loc)
+  | AST.Decl_ProcDefn (f, ps, args, b, loc) when List.mem f discard ->
+    AST.Decl_ProcType (f, ps, args, loc)
+  | _ -> x
+  )
+
+let delete_functions (discard : AST.ident list) (ds : AST.declaration list) : AST.declaration list =
+  List.map (delete_function discard) ds
+
+(****************************************************************
  * Application
  ****************************************************************)
 
@@ -160,8 +225,7 @@ type backend = Backend_C | Backend_Verilog
 let opt_filenames : string list ref = ref []
 let opt_verbose = ref false
 let opt_backend = ref Backend_Verilog
-let roots : string list ref = ref []
-let keeps : string list ref = ref []
+let transforms : Yojson.Safe.t list ref = ref []
 let output_file : string ref = ref ""
 let backend_pairs = [ ("c", Backend_C); ("verilog", Backend_Verilog) ]
 let backend_symbols = List.map fst backend_pairs
@@ -176,12 +240,11 @@ let options =
       ( "--backend",
         Arg.Symbol (backend_symbols, match_backend),
         "       Backend type (default: verilog)" );
-      ( "--root",
-        Arg.String (fun s -> roots := !roots @ [ s ]),
-        "       Add function to convert" );
-      ( "--keep",
-        Arg.String (fun s -> keeps := !keeps @ [ s ]),
-        "       Add variable to keep" );
+      ( "--transforms",
+        Arg.String (fun s ->
+            let ops = Yojson.Safe.from_file s in
+            transforms := !transforms @ [ops]),
+        "       Apply transformations");
       ("-o", Arg.Set_string output_file, "       Output file");
       ("--no-unroll", Arg.Clear CP.unroll_loops, "       Do not unroll loops");
       ("--max-verilog-width", Arg.Int (fun i -> Backend_verilog.int_width := i), "       Maximum width used in Verilog");
@@ -212,16 +275,16 @@ let main () =
   let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"." in
   let paths = String.split_on_char ':' paths in
 
+  if !output_file = "" then
+    failwith "Output file not specified (use -o foo to specify)";
+
+  let imports = get_idents "imports" !transforms in
+  let exports = get_idents "exports" !transforms in
+
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
     let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
     let ds = t @ ts in
-    let roots = List.map (fun f -> AST.FIdent (f, 0)) !roots in
-    let keeps = List.map (fun r -> AST.Ident r) !keeps in
-    let exports = roots @ keeps in
-
-    if !output_file = "" then
-      failwith "Output file not specified (use -o foo.v to specify)";
 
     let ds = transform "init0" Fun.id ds in
     let ds = transform "keep_exports" (xform_reachable exports) ds in
@@ -238,6 +301,7 @@ let main () =
     let ds = transform "tuples" Xform_tuples.xform_decls ds in
     let ds = transform "getset" Xform_getset.xform_decls ds in
     let ds = transform "rmw" Xform_rmw.xform_decls ds in
+    let ds = transform "delete_imports" (delete_functions imports) ds in 
 
     match !opt_backend with
     | Backend_C ->
