@@ -78,8 +78,8 @@ __builtin func and_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
 __builtin func or_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
 __builtin func eor_bits{N}(x :: bits(N), y :: bits(N)) => bits(N);
 __builtin func not_bits{N}(x :: bits(N)) => bits(N);
-__builtin func zeros_bits{N}() => bits(N);
-__builtin func ones_bits{N}() => bits(N);
+__builtin func zeros_bits(N :: integer) => bits(N);
+__builtin func ones_bits(N :: integer) => bits(N);
 __builtin func lsl_bits{N}(x :: bits(N), i :: integer) => bits(N);
 __builtin func lsr_bits{N}(x :: bits(N), i :: integer) => bits(N);
 __builtin func asr_bits{N}(x :: bits(N), i :: integer) => bits(N);
@@ -364,19 +364,19 @@ func Replicate{M}(x :: bits(M), N :: integer) => bits(M*N)
 end
 
 func Zeros(N :: integer) => bits(N)
-    return zeros_bits();
+    return zeros_bits(N);
 end
 
 func Ones(N :: integer) => bits(N)
-    return ones_bits();
+    return ones_bits(N);
 end
 
 func Zeros{N}() => bits(N)
-    return zeros_bits();
+    return zeros_bits(N);
 end
 
 func Ones{N}() => bits(N)
-    return ones_bits();
+    return ones_bits(N);
 end
 
 func IsOnes{N}(x :: bits(N)) => boolean

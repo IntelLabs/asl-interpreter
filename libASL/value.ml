@@ -503,8 +503,8 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
   | "eor_bits", [ VInt n ], [ VBits x; VBits y ] ->
       Some (VBits (prim_eor_bits x y))
   | "not_bits", [ VInt n ], [ VBits x ] -> Some (VBits (prim_not_bits x))
-  | "zeros_bits", [ VInt n ], [] -> Some (VBits (prim_zeros_bits n))
-  | "ones_bits", [ VInt n ], [] -> Some (VBits (prim_ones_bits n))
+  | "zeros_bits", [ VInt n ], [VInt x] -> Some (VBits (prim_zeros_bits x))
+  | "ones_bits", [ VInt n ], [VInt x] -> Some (VBits (prim_ones_bits x))
   | "lsl_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_lsl x d))
   | "lsr_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_lsr x d))
   | "asr_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_asr x d))

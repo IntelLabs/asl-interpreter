@@ -441,10 +441,10 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
   | FIdent ("or_bits", _), _ -> binop loc fmt "|" args
   | FIdent ("eor_bits", _), _ -> binop loc fmt "^" args
   | FIdent ("not_bits", _), _ -> unop loc fmt "~" args
-  | FIdent ("zeros_bits", _), [] ->
+  | FIdent ("zeros_bits", _), [_] ->
       let x = List.hd tes in
       bitsLit fmt (String.make (const_int_expr loc x) '0')
-  | FIdent ("ones_bits", _), [] ->
+  | FIdent ("ones_bits", _), [_] ->
       let x = List.hd tes in
       bitsLit fmt (String.make (const_int_expr loc x) '1')
   | FIdent ("replicate_bits", _), [ x; y ] ->
