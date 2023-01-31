@@ -220,9 +220,6 @@ let main () =
     if true then
       Utils.to_file "tmp.30.mono.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
 
-    let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
-    if ds = [] then failwith "Couldn't find any roots";
-
     let ds = Xform_mono.monomorphize ds in
     if true then
       Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
@@ -230,6 +227,9 @@ let main () =
     let ds = Xform_bitslices.xform_decls ds in
     if true then
       Utils.to_file "tmp.43.bitslices.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+
+    let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
+    if ds = [] then failwith "Couldn't find any roots";
 
     let ds = Xform_tuples.xform_decls ds in
     if true then
