@@ -897,6 +897,18 @@ let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
+      | Decl_BuiltinType (tc, loc) -> (
+          match tc with
+          | Ident "real"
+          | Ident "string"
+          | Ident "__mask"
+          | Ident "__Exception"
+          | Ident "__RAM" -> ()
+          | _ ->
+              raise
+                (Unimplemented
+                   (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
+          )
       | Decl_Const (v, ty, e, loc) ->
           kw_const fmt;
           nbsp fmt;
@@ -963,7 +975,6 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
-      | Decl_BuiltinType (_, _) -> ()
       | _ ->
           raise
             (Unimplemented
