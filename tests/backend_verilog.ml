@@ -34,11 +34,11 @@ let () =
   Alcotest.run "backend_verilog"
     [
       ("expression", make_tests test_cases_expr);
-      ("function decl", make_tests test_cases_fun_decl);
-      ("procedure decl", make_tests test_cases_proc_decl);
+      ("function_decl", make_tests test_cases_fun_decl);
+      ("procedure_decl", make_tests test_cases_proc_decl);
       ("statement", make_tests test_cases_stmt);
-      ("type decl", make_tests test_cases_type_decl);
-      ("variable decl", make_tests test_cases_var_decl);
+      ("type_decl", make_tests test_cases_type_decl);
+      ("variable_decl", make_tests test_cases_var_decl);
     ]
 
 (****************************************************************
