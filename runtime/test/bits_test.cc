@@ -8,6 +8,7 @@
 class Bits64 : public ::testing::Test {
  protected:
     ASL_bits64_t zeros = 0;
+    ASL_bits64_t ones = UINT64_MAX;
 };
 
 TEST_F(Bits64, MkMask)
@@ -22,6 +23,13 @@ TEST_F(Bits64, Not)
 
     EXPECT_EQ(zeros, ASL_not_bits_64(width, mask));
     EXPECT_EQ(mask, ASL_not_bits_64(width, zeros));
+}
+
+TEST_F(Bits64, Or)
+{
+    EXPECT_EQ(zeros, ASL_or_bits_64(64, zeros, zeros));
+    EXPECT_EQ( ones, ASL_or_bits_64(64,  ones,  ones));
+    EXPECT_EQ( ones, ASL_or_bits_64(64, zeros,  ones));
 }
 
 #define EXPECT_BITS_EQ(size, expected, actual) \

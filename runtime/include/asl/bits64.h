@@ -86,6 +86,15 @@ ASL_not_bits_64(int width, ASL_bits64_t x)
         return ~x & ASL_mk_mask_64(width);
 }
 
+#define ASL_or_bits(sizeof_x, n, x, y) \
+        ASL_CC(ASL_or_bits_, sizeof_x)(n, x, y)
+
+static inline ASL_bits64_t
+ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return x | y;
+}
+
 #define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \
         ASL_slice_lowd_##sizeof_x##_##sizeof_res((x), (lo), (width))
 
