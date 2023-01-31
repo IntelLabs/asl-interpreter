@@ -1102,6 +1102,9 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   else
     Expr_TApply (FIdent ("mk_mask", 0), [n], [w; n])
 
+let mk_not_mask(m : AST.expr) (n : AST.expr) =
+  Expr_TApply (FIdent ("not_bits", 0), [n], [m])
+
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =
   List.fold_left mk_add_int zero xs

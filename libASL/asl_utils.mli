@@ -408,6 +408,9 @@ val mk_int_select : AST.expr -> AST.expr -> AST.expr -> AST.expr
 (** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
 val mk_zero_extend : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
+(** Construct "not_bits{n}(m)" *)
+val mk_not_mask : AST.expr -> AST.expr -> AST.expr
+
 (** Construct "mk_mask{n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
 val mk_mask : AST.expr -> AST.expr -> AST.expr
 
