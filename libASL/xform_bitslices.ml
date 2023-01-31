@@ -47,8 +47,32 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
     let e2 = mk_lsr_bits n e1 ix in
     let e3 = mk_and_bits n e2 (mk_mask one n) in
     mk_lsl_bits n e3 i
+  | Expr_TApply (FIdent ("Ones", _), [_], [_]) ->
+    mk_lsl_bits n (mk_mask w n) i
+  | Expr_TApply (FIdent ("Zeros", _), [_], [_]) ->
+    mk_zero_bits n
   | _ -> mk_lsl_bits n (mk_zero_extend w n x) i
   )
+
+let transform_assignment (lident : AST.ident)
+    (width : AST.expr)
+    (slice_width : AST.expr)
+    (shift : AST.expr)
+    (rhs : AST.expr)
+    (l : AST.l) =
+  (* Generate masks for clearing affected bits in slice *)
+  let slice_mask = mk_lsl_bits width (mk_mask slice_width width) shift in
+  let slice_not_mask = mk_not_mask slice_mask width in
+
+  (* Transform the rhs. The transformed rhs should already be correctly shifted
+   * and masked *)
+  let rhs' = transform width slice_width shift rhs in
+
+  (* lhs = (lhs & ~slice_mask) | rhs' *)
+  let or_op1 = mk_and_bits width (AST.Expr_Var lident) slice_not_mask in
+  let rhs'' = mk_or_bits width or_op1 rhs' in
+
+  Visitor.ChangeTo [AST.Stmt_Assign (LExpr_Var lident, rhs'', l)]
 
 class bitsliceClass =
   object
@@ -74,11 +98,36 @@ class bitsliceClass =
         ChangeTo x'
       | _ -> DoChildren
       )
+
+    method! vstmt s =
+      match s with
+      | Stmt_Assign (
+          LExpr_Slices (
+            Type_Bits (Expr_LitInt _ as w),
+            LExpr_Var lident,
+            [Slice_HiLo (hi, lo)]),
+          rhs,
+          l) ->
+        let sw = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) (AST.Expr_LitInt "1") in
+        transform_assignment lident w sw lo rhs l
+      | Stmt_Assign (
+          LExpr_Slices (
+            Type_Bits (Expr_LitInt _ as w),
+            LExpr_Var lident,
+            [Slice_LoWd (lo, sw)]),
+          rhs,
+          l) ->
+        transform_assignment lident w sw lo rhs l
+      | _ -> DoChildren
   end
 
 let xform_expr (x : AST.expr) : AST.expr =
   let simplify = new bitsliceClass in
   Asl_visitor.visit_expr (simplify :> Asl_visitor.aslVisitor) x
+
+let xform_stmts (ss : AST.stmt list) : AST.stmt list =
+  let simplify = new bitsliceClass in
+  Asl_visitor.visit_stmts (simplify :> Asl_visitor.aslVisitor) ss
 
 let xform_decls (ds : AST.declaration list) : AST.declaration list =
   let simplify = new bitsliceClass in
