@@ -38,6 +38,10 @@ ASL_bits_max_128()
         return ASL_bits_128(UINT64_MAX, UINT64_MAX);
 }
 
+#define N 128
+#include "asl/bits_template.h"
+#undef N
+
 static inline ASL_bits64_t
 ASL_cast_bits_128_64(ASL_bits128_t x)
 {

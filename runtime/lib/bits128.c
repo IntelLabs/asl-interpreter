@@ -7,6 +7,10 @@
 
 #include "asl/bits128.h"
 
+#define N 128
+#include "bits_template_c.h"
+#undef N
+
 ASL_bits128_t
 ASL_and_bits_128(ASL_bits128_t x, ASL_bits128_t y)
 {

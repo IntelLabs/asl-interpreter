@@ -96,6 +96,10 @@ let test_cases_expr : test_case list =
       [ Backend_C ],
       "func F() => bits(2) return mk_mask(1, 2); end" );
 
+    ( "built-in fun call (not_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) return NOT '0'; end" );
+
     ( "parentheses",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer return ( 0 ); end" );

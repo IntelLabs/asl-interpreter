@@ -7,6 +7,10 @@
 
 #include "asl/bits256.h"
 
+#define N 256
+#include "bits_template_c.h"
+#undef N
+
 ASL_bits256_t
 ASL_and_bits_256(ASL_bits256_t x, ASL_bits256_t y)
 {

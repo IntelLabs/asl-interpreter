@@ -17,6 +17,16 @@ extern "C" {
 typedef uint64_t ASL_bits64_t;
 
 #define ASL_CC(x, y) x##y
+#define ASL_CC_INDIR(x, y) ASL_CC(x, y)
+
+#define ASL_and_bits(sizeof_x, x, y) \
+        ASL_CC(ASL_and_bits_, sizeof_x)(x, y)
+
+static inline ASL_bits64_t
+ASL_and_bits_64(ASL_bits64_t x, ASL_bits64_t y)
+{
+        return x & y;
+}
 
 static inline int64_t
 ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
@@ -65,6 +75,15 @@ static inline ASL_bits64_t
 ASL_mk_mask_64(int w)
 {
         return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
+}
+
+#define ASL_not_bits(sizeof_x, n, x) \
+        ASL_CC(ASL_not_bits_, sizeof_x)(n, x)
+
+static inline ASL_bits64_t
+ASL_not_bits_64(int width, ASL_bits64_t x)
+{
+        return ~x & ASL_mk_mask_64(width);
 }
 
 #define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \

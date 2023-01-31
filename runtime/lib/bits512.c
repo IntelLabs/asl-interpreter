@@ -7,6 +7,10 @@
 
 #include "asl/bits512.h"
 
+#define N 512
+#include "bits_template_c.h"
+#undef N
+
 ASL_bits512_t
 ASL_and_bits_512(ASL_bits512_t x, ASL_bits512_t y)
 {

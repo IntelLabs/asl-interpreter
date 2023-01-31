@@ -42,6 +42,10 @@ ASL_bits_max_512()
                             UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
 }
 
+#define N 512
+#include "asl/bits_template.h"
+#undef N
+
 static inline ASL_bits64_t
 ASL_cast_bits_512_64(ASL_bits512_t x)
 {
