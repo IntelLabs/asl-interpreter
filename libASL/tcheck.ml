@@ -549,6 +549,7 @@ let rec simplify_expr (x : AST.expr) : AST.expr =
   | Expr_TApply (f, tes, es) -> (
       let es' = List.map simplify_expr es in
       match (f, flatten_map_option eval es') with
+      | FIdent ("neg_int", _), Some [ a ]    -> to_expr (Z.neg a)
       | FIdent ("add_int", _), Some [ a; b ] -> to_expr (Z.add a b)
       | FIdent ("sub_int", _), Some [ a; b ] -> to_expr (Z.sub a b)
       | FIdent ("mul_int", _), Some [ a; b ] -> to_expr (Z.mul a b)
@@ -617,6 +618,8 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
         (Z3.Arithmetic.mk_mul ctx
            [ z3_of_expr ctx ufs c; z3_of_expr ctx ufs a ])
         (z3_of_expr ctx ufs b)
+  | Expr_TApply (FIdent ("neg_int", _), [], [x]) ->
+      Z3.Arithmetic.mk_unary_minus ctx (z3_of_expr ctx ufs x)
   | Expr_TApply (FIdent ("add_int", _), [], xs) ->
       Z3.Arithmetic.mk_add ctx (List.map (z3_of_expr ctx ufs) xs)
   | Expr_TApply (FIdent ("sub_int", _), [], xs) ->
