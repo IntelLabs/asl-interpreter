@@ -140,6 +140,18 @@ let emit_c_code (filename : string) (ds : AST.declaration list) : unit =
   )
 
 (****************************************************************
+ * Small transformations
+ ****************************************************************)
+
+let xform_reachable (roots : AST.ident list) (ds : AST.declaration list) : AST.declaration list =
+  let ds' = Asl_utils.reachable_decls roots ds in
+  (* A minimal sanity check on code generation is that the result
+   * should contain at least one definition.
+   *)
+  if ds' = [] then failwith "Couldn't find any roots";
+  ds'
+
+(****************************************************************
  * Application
  ****************************************************************)
 
@@ -180,6 +192,21 @@ let usage_msg = version ^ "\nusage: asl2v <options> <file1> ... <fileN>\n"
 let _ =
   Arg.parse options (fun s -> opt_filenames := !opt_filenames @ [ s ]) usage_msg
 
+type 'a xform = 'a -> 'a
+
+let  transform_count = ref 0
+
+let transform
+    (name : string)
+    (f : AST.declaration list xform)
+    (ds : AST.declaration list)
+  : AST.declaration list =
+  let ds' = f ds in
+  transform_count := !transform_count + 1;
+  let filename = Printf.sprintf "tmp.%02d.%s.asl" !transform_count name in
+  if !opt_verbose then Utils.to_file filename (fun fmt -> ASL_FMT.declarations fmt ds');
+  ds'
+
 let main () =
   let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"." in
   let paths = String.split_on_char ':' paths in
@@ -190,58 +217,26 @@ let main () =
     let ds = t @ ts in
     let roots = List.map (fun f -> AST.FIdent (f, 0)) !roots in
     let keeps = List.map (fun r -> AST.Ident r) !keeps in
-
-    if true then
-      Utils.to_file "tmp.00.init0.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-    let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
-    if ds = [] then failwith "Couldn't find any roots";
+    let exports = roots @ keeps in
 
     if !output_file = "" then
       failwith "Output file not specified (use -o foo.v to specify)";
 
-    if true then
-      Utils.to_file "tmp.10.init.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_bittuples.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.15.bittuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_case.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.17.case.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+    let ds = transform "init0" Fun.id ds in
+    let ds = transform "keep_exports" (xform_reachable exports) ds in
+    let ds = transform "bittuples" Xform_bittuples.xform_decls ds in
+    let ds = transform "case" Xform_case.xform_decls ds in
 
     let genv = Eval.build_constant_environment ds in
-    let ds = CP.xform_decls genv ds in
+    let ds = transform "constprop" (CP.xform_decls genv) ds in
 
-    if true then
-      Utils.to_file "tmp.20.constprop.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_mono.monomorphize ds in
-    if true then
-      Utils.to_file "tmp.30.mono.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_mono.monomorphize ds in
-    if true then
-      Utils.to_file "tmp.40.mono2.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_bitslices.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.43.bitslices.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Asl_utils.reachable_decls (List.append roots keeps) ds in
-    if ds = [] then failwith "Couldn't find any roots";
-
-    let ds = Xform_tuples.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.45.tuples.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_getset.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.50.getset.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
-
-    let ds = Xform_rmw.xform_decls ds in
-    if true then
-      Utils.to_file "tmp.60.rmw.asl" (fun fmt -> ASL_FMT.declarations fmt ds);
+    let ds = transform "mono" Xform_mono.monomorphize ds in
+    let ds = transform "keep_mono" (xform_reachable exports) ds in
+    let ds = transform "mono2" Xform_mono.monomorphize ds in
+    let ds = transform "bitslices" Xform_bitslices.xform_decls ds in
+    let ds = transform "tuples" Xform_tuples.xform_decls ds in
+    let ds = transform "getset" Xform_getset.xform_decls ds in
+    let ds = transform "rmw" Xform_rmw.xform_decls ds in
 
     match !opt_backend with
     | Backend_C ->
