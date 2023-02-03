@@ -403,6 +403,10 @@ func Extend{M}(x :: bits(M), N :: integer, unsigned :: boolean) => bits(N)
     return (if unsigned then ZeroExtend(x, N) else SignExtend(x, N));
 end
 
+func Len{N}(x :: bits(N)) => integer
+    return N;
+end
+
 func Sqrt(x :: real) => real
     return sqrt_real(x);
 end
@@ -435,28 +439,12 @@ func IsExceptionTaken(x :: __Exception) => boolean
     return is_exctaken_exc(x);
 end
 
-func UInt(N :: integer, x :: bits(N)) => integer
-    return cvt_bits_uint(x);
-end
-
 func UInt(x :: bits(N)) => integer
     return cvt_bits_uint(x);
 end
 
-func SInt(N :: integer, x :: bits(N)) => integer
-    return cvt_bits_sint(x);
-end
-
 func SInt{N}(x :: bits(N)) => integer
     return cvt_bits_sint(x);
-end
-
-func Align{N}(x :: bits(N), y :: integer) => bits(N)
-    return align_int(cvt_bits_uint(x), y)[N-1:0];
-end
-
-func Align(x :: integer, y :: integer) => integer
-    return align_int(x, y);
 end
 
 func Min(x :: integer, y :: integer) => integer
@@ -473,6 +461,17 @@ func Abs(x :: integer) => integer
     else
         return -x;
     end
+end
+
+// Calculate the logarithm base 2 of the input. Input must be a power of 2.
+func Log2(a :: integer) => integer
+    assert IsPowerOfTwo(a);
+    var r = 0;
+    while a > 1 do
+       a = a DIV 2;
+       r = r + 1;
+    end
+    return r;
 end
 
 func SignedSat(x :: integer, N :: integer) => bits(N)
@@ -525,6 +524,34 @@ func CountLeadingSignBits(x :: bits(N)) => integer
     return CountLeadingZeroBits(x[N-1:1] EOR x[N-2:0]);
 end
 
+// align down to nearest multiple of 2^y
+func AlignDown(x :: integer, y :: integer) => integer
+    return align_int(x, y);
+end
+
+// align up to nearest multiple of 2^y
+func AlignUp(x :: integer, y :: integer) => integer
+    return align_int(x + 2^y - 1, y);
+end
+
+// align down to nearest multiple of 2^y
+func AlignDown{N}(x :: bits(N), y :: integer) => bits(N)
+    var result = x;
+    result[y-1:0] = Zeros(y);
+    return result;
+end
+
+// align up to nearest multiple of 2^y
+// returns zero if the result is not representable in N bits
+func AlignUp{N}(x :: bits(N), y :: integer) => bits(N)
+    let result = AlignDown(x + 2^y - 1, y);
+    if UInt(result) < UInt(x) then
+        return Zeros(N);
+    else
+        return result;
+    end
+end
+
 func ShiftLeft(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
     return lsl_bits(x, distance);
@@ -546,6 +573,12 @@ func ParityEven(x :: bits(N)) => boolean
         r = r EOR x[i];
     end
     return r == '0';
+end
+
+// Unreachable() is used to indicate that part of a subprogram should be unreachable.
+// This can be used to guarantee termination of subprograms on error conditions.
+func Unreachable()
+    assert FALSE;
 end
 
 ////////////////////////////////////////////////////////////////
