@@ -1,10 +1,9 @@
-.PHONY: default all clean
+.PHONY: default all clean test
 
-BUILD_DIR ?= build
+BUILD_DIR ?= $(CURDIR)/build
 LIB := $(BUILD_DIR)/libASL.a
 
-default: $(LIB)
-all: default
+default: $(LIB) test
 
 CC = gcc
 CPPFLAGS = -Iinclude
@@ -33,5 +32,7 @@ build_dir:
 	mkdir -p $(BUILD_DIR)
 
 clean:
-	$(RM) $(OBJ_FILES) $(DEP_FILES) $(LIB)
-	$(RM) -d $(BUILD_DIR)
+	$(RM) -r $(BUILD_DIR)
+
+test: $(LIB)
+	$(MAKE) -C test BUILD_DIR=$(BUILD_DIR)/test
