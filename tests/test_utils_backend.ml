@@ -34,7 +34,7 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F(x :: bits(16)) => bits(1) return x[4]; end" );
 
-    ( "bitslice single (> 64 bits)",
+    ( "bitslice single (> 64b)",
       [ Backend_C; Backend_Verilog ],
       "func F(x :: bits(65)) => bits(1) return x[4]; end" );
 
@@ -46,7 +46,7 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F(x :: bits(16)) => bits(8) return x[4 +: 8]; end" );
 
-    ( "bitslice lowd (> 64 bits)",
+    ( "bitslice lowd (> 64b)",
       [ Backend_C; Backend_Verilog ],
       "func F(x :: bits(129)) => bits(65) return x[4 +: 65]; end" );
 
@@ -88,7 +88,7 @@ let test_cases_expr : test_case list =
       "enumeration boolean { FALSE, TRUE };
        func F() => boolean return FALSE; end" );
 
-    ( "function invocation",
+    ( "function call",
       [ Backend_C; Backend_Verilog ],
       "func B() => integer return 0; end func F() => integer return B(); end" );
 
