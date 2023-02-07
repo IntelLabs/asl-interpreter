@@ -199,6 +199,9 @@ let c_int_width (width : int) : int =
 let c_int_width_64up (width : int) : int =
   if width > 64 then round_up_to_pow2 width else 64
 
+let c_int_width_64up_expr (loc : AST.l) (width : AST.expr) : AST.expr =
+  Asl_utils.mk_litint (c_int_width_64up (const_int_expr loc width))
+
 let bits (fmt : PP.formatter) (width : int) : unit =
   asl_keyword fmt ("bits" ^ string_of_int (c_int_width_64up width) ^ "_t")
 
@@ -501,18 +504,15 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
     (s : AST.slice) : unit =
-  let ew =
-    Asl_utils.mk_litint
-      (c_int_width_64up (const_int_expr loc (Option.get (size_of_type t))))
-  in
+  let ew = c_int_width_64up_expr loc (Option.get (size_of_type t)) in
   match s with
   | Slice_HiLo (hi, lo) ->
       apply loc fmt (fun _ -> fn_slice_hilo fmt) [ e; hi; lo ]
   | Slice_LoWd (lo, wd) ->
-      let wdw = Asl_utils.mk_litint (c_int_width_64up (const_int_expr loc wd)) in
+      let wdw = c_int_width_64up_expr loc wd in
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; wd ]
   | Slice_Single lo ->
-      let wdw = Asl_utils.mk_litint (c_int_width_64up 1) in
+      let wdw = c_int_width_64up_expr loc Asl_utils.one in
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; Asl_utils.one ]
 
 and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
