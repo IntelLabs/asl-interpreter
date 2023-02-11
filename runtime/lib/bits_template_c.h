@@ -2,6 +2,14 @@
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
 
 ASL_BITS_TYPE
+ASL_eor_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
+{
+        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+             x.v[i] ^= y.v[i];
+        return x;
+}
+
+ASL_BITS_TYPE
 ASL_not_bits(N, int width, ASL_BITS_TYPE x)
 {
         for (int i = 0; i < ASL_BITS_CHUNKS; ++i)

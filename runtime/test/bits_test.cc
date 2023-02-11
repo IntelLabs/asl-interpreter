@@ -11,6 +11,13 @@ class Bits64 : public ::testing::Test {
     ASL_bits64_t ones = UINT64_MAX;
 };
 
+TEST_F(Bits64, Eor)
+{
+    EXPECT_EQ(zeros, ASL_eor_bits_64(64, zeros, zeros));
+    EXPECT_EQ(zeros, ASL_eor_bits_64(64,  ones,  ones));
+    EXPECT_EQ( ones, ASL_eor_bits_64(64, zeros,  ones));
+}
+
 TEST_F(Bits64, MkMask)
 {
     EXPECT_EQ(1ULL, ASL_mk_mask_64(1));
