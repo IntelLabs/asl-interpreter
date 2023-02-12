@@ -19,6 +19,12 @@ TEST_F(ASL_CC_INDIR(Bits, N), Eq)
     EXPECT_TRUE(ASL_eq_bits(N, N, ones, ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Ne)
+{
+    EXPECT_TRUE(ASL_ne_bits(N, N, zeros, ones));
+    EXPECT_FALSE(ASL_ne_bits(N, N, ones, ones));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Not)
 {
     int width = N - 1;

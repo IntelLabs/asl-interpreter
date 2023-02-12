@@ -96,6 +96,15 @@ ASL_mk_mask_64(int w)
         return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
 }
 
+#define ASL_ne_bits(sizeof_x, n, x, y) \
+        ASL_CC(ASL_ne_bits_, sizeof_x)(n, x, y)
+
+static inline bool
+ASL_ne_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return x != y;
+}
+
 #define ASL_not_bits(sizeof_x, n, x) \
         ASL_CC(ASL_not_bits_, sizeof_x)(n, x)
 

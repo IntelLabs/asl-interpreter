@@ -19,6 +19,12 @@ ASL_eor_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return x;
 }
 
+bool
+ASL_ne_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
+{
+        return !ASL_eq_bits(N, width, x, y);
+}
+
 ASL_BITS_TYPE
 ASL_not_bits(N, int width, ASL_BITS_TYPE x)
 {

@@ -29,6 +29,12 @@ TEST_F(Bits64, MkMask)
     EXPECT_EQ(1ULL, ASL_mk_mask_64(1));
 }
 
+TEST_F(Bits64, Ne)
+{
+    EXPECT_TRUE(ASL_ne_bits_64(64, zeros, ones));
+    EXPECT_FALSE(ASL_ne_bits_64(64, ones, ones));
+}
+
 TEST_F(Bits64, Not)
 {
     int width = 63;
