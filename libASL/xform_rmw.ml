@@ -36,7 +36,7 @@ class replaceRmwClass (ds : AST.declaration list) =
             let wrap_stmts (ss : AST.stmt list) = function
               | AST.LExpr_ReadWrite (f, g, tes, es), v ->
                   let e = AST.Expr_TApply (f, tes, es) in
-                  let fd = Option.get (Asl_utils.findFun f ds) in
+                  let fd = Option.get (Asl_utils.find_decl f ds) in
                   let rty = Option.get (getFunReturnType fd) in
                   let r =
                     AST.Stmt_VarDecl (AST.DeclItem_Var (v, Some rty), e, loc)

@@ -32,13 +32,13 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     val mutable instances : AST.declaration Instances.t = Instances.empty
     method getInstances = List.map snd (Instances.bindings instances)
 
-    method monomorphize (genv : Eval.GlobalEnv.t) (f : AST.ident)
+    method monomorphize_fun (genv : Eval.GlobalEnv.t) (f : AST.ident)
         (d : AST.declaration) (szs : Z.t list) (args : AST.expr list)
       : (AST.ident * AST.expr list) option =
       let (tvs, arg_names) =
         match Eval.GlobalEnv.get_function genv f with
         | Some (tvs, arg_names, _, _) -> (tvs, arg_names)
-        | _ -> failwith "monomorphize"
+        | _ -> failwith "monomorphize_fun"
       in
       assert (List.length tvs = List.length szs);
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
@@ -126,8 +126,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes args)
+                (Option.bind (find_decl f ds) (fun d ->
+                     Option.bind (self#monomorphize_fun genv f d sizes args)
                        (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
@@ -143,8 +143,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes es)
+                (Option.bind (find_decl f ds) (fun d ->
+                     Option.bind (self#monomorphize_fun genv f d sizes es)
                        (fun (f', es') ->
                          Some
                            (ChangeDoChildrenPost
@@ -160,8 +160,8 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (findFun f ds) (fun d ->
-                     Option.bind (self#monomorphize genv f d sizes args)
+                (Option.bind (find_decl f ds) (fun d ->
+                     Option.bind (self#monomorphize_fun genv f d sizes args)
                        (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost

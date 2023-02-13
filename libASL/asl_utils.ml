@@ -1169,25 +1169,30 @@ let is_literal_constant (x : expr) : bool =
   | _ -> false
   )
 
-(** Find subprogram (function, procedure, getters and setters)
+(** Find declaration (type, function, procedure, getters and setters)
     definition by an identifier *)
-let rec findFun (f : AST.ident) (ds : AST.declaration list) :
+let rec find_decl (f : AST.ident) (ds : AST.declaration list) :
     AST.declaration option =
-  match ds with
+  ( match ds with
   | [] -> None
+  | (Decl_Record (tc, ps, fs, loc) as d) :: ds' ->
+      if f = tc then Some d else find_decl f ds'
+  | (Decl_Typedef (tc, ps, ty, loc) as d) :: ds' ->
+      if f = tc then Some d else find_decl f ds'
   | (Decl_FunDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
+      if f = f' then Some d else find_decl f ds'
   | (Decl_ProcDefn (f', ps, atys, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
+      if f = f' then Some d else find_decl f ds'
   | (Decl_ArrayGetterDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
+      if f = f' then Some d else find_decl f ds'
   | (Decl_ArraySetterDefn (f', ps, atys, v, t, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
+      if f = f' then Some d else find_decl f ds'
   | (Decl_VarGetterDefn (f', ps, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
+      if f = f' then Some d else find_decl f ds'
   | (Decl_VarSetterDefn (f', ps, v, t, body, loc) as d) :: ds' ->
-      if f = f' then Some d else findFun f ds'
-  | _ :: ds' -> findFun f ds'
+      if f = f' then Some d else find_decl f ds'
+  | _ :: ds' -> find_decl f ds'
+  )
 
 (****************************************************************
  * End

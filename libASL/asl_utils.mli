@@ -453,7 +453,7 @@ val width_of_type : AST.ty -> AST.expr option
 
 (** Find subprogram (function, procedure, getters and setters)
     definition by an identifier *)
-val findFun : AST.ident -> AST.declaration list -> AST.declaration option
+val find_decl : AST.ident -> AST.declaration list -> AST.declaration option
 
 (****************************************************************
  * End
