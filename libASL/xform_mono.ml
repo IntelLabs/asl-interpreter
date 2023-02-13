@@ -32,6 +32,50 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     val mutable instances : AST.declaration Instances.t = Instances.empty
     method getInstances = List.map snd (Instances.bindings instances)
 
+    method monomorphize_type (genv : Eval.GlobalEnv.t) (tc : AST.ident)
+        (d : AST.declaration) (szs : Z.t list)
+      : AST.ident option =
+      let ps =
+        ( match Eval.GlobalEnv.get_typedef genv tc with
+        | Some (ps, ty) -> ps
+        | _ -> ( match Eval.GlobalEnv.get_record genv tc with
+               | Some (ps, ty) -> ps
+               | _ -> failwith "monomorphize_type"
+               )
+        )
+      in
+      assert (List.length ps = List.length szs);
+      List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
+      let suffices =
+        List.map2
+          (fun p sz -> AST.pprint_ident p ^ "_" ^ Z.to_string sz)
+          ps szs
+      in
+      let tc' = AST.addSuffix tc (String.concat "_" suffices) in
+      let key = (tc, szs) in
+      if Instances.mem key instances then (
+        Some tc'
+      ) else (
+        let env = Xform_constprop.mkEnv genv (List.map2 (fun p sz -> (p, Value.VInt sz)) ps szs) in
+
+        ( match d with
+        | Decl_Typedef (_, ps, ty, loc) ->
+            let ty' = Xform_constprop.xform_ty env ty in
+            let d' = AST.Decl_Typedef (tc', [], ty', loc) in
+            let d' = visit_decl (self :> aslVisitor) d' in
+            instances <- Instances.add key d' instances;
+            Some tc'
+        | Decl_Record (_, ps, fs, loc) ->
+            let fs' = List.map (fun (f, ty) -> (f, Xform_constprop.xform_ty env ty)) fs in
+            let d' = AST.Decl_Record (tc', [], fs', loc) in
+            let d' = visit_decl (self :> aslVisitor) d' in
+            instances <- Instances.add key d' instances;
+            Some tc'
+        | _ ->
+            None
+        )
+      )
+
     method monomorphize_fun (genv : Eval.GlobalEnv.t) (f : AST.ident)
         (d : AST.declaration) (szs : Z.t list) (args : AST.expr list)
       : (AST.ident * AST.expr list) option =
@@ -118,6 +162,26 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
             instances <- Instances.add key d' instances;
             Some (f', args')
         | _ -> None)
+
+    method! vtype x =
+      ( match x with
+      | Type_Constructor (tc, es) -> (
+          ( match Utils.flatten_map_option const_int_expr es with
+          | Some [] -> DoChildren
+          | Some sizes ->
+              Option.value
+                (Option.bind (find_decl tc ds) (fun d ->
+                 Option.bind (self#monomorphize_type genv tc d sizes) (fun tc' ->
+                 Some
+                   (ChangeDoChildrenPost
+                     (AST.Type_Constructor (tc', []), Fun.id))))
+                )
+                ~default:DoChildren
+          | None -> DoChildren
+          )
+        )
+      | _ -> DoChildren
+      )
 
     method! vexpr x =
       match x with
