@@ -13,6 +13,9 @@ module GlobalEnv : sig
 
   val get_global_constant : t -> AST.ident -> Value.value option
 
+  val get_record : t -> AST.ident -> (AST.ident list * (AST.ident * AST.ty) list) option
+  val get_typedef : t -> AST.ident -> (AST.ident list * AST.ty) option
+
   val get_function :
     t ->
     AST.ident ->

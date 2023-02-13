@@ -88,13 +88,13 @@ module GlobalEnv = struct
   let addRecord (env : t) (x : ident) (ps : ident list) (fs : (ident * AST.ty) list) : unit =
     env.records <- Bindings.add x (ps, fs) env.records
 
-  let getRecord (env : t) (x : ident) : (ident list * (ident * AST.ty) list) option =
+  let get_record (env : t) (x : ident) : (ident list * (ident * AST.ty) list) option =
     Bindings.find_opt x env.records
 
   let addTypedef (env : t) (x : ident) (ps : ident list) (ty : AST.ty) : unit =
     env.typedefs <- Bindings.add x (ps, ty) env.typedefs
 
-  let getTypedef (env : t) (x : ident) : (ident list * AST.ty) option =
+  let get_typedef (env : t) (x : ident) : (ident list * AST.ty) option =
     Bindings.find_opt x env.typedefs
 
   let get_function (env : t) (x : ident) :
@@ -260,12 +260,12 @@ let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
 and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
   match x with
   | Type_Constructor (tc, es) ->
-      ( match GlobalEnv.getRecord (Env.globals env) tc with
+      ( match GlobalEnv.get_record (Env.globals env) tc with
       | Some (ps, fs) ->
           mkrecord
             (List.map (fun (f, ty) -> (f, mk_uninitialized loc env (expand_type ps ty es))) fs)
       | None ->
-          ( match GlobalEnv.getTypedef (Env.globals env) tc with
+          ( match GlobalEnv.get_typedef (Env.globals env) tc with
           | Some (ps, ty') -> mk_uninitialized loc env (expand_type ps ty' es)
           | None -> VUninitialized
           )
@@ -299,12 +299,12 @@ and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
             (EvalError
                (loc, "eval_unknown unknown type constructor " ^ pp_type x))
       | None -> (
-          match GlobalEnv.getRecord (Env.globals env) tc with
+          match GlobalEnv.get_record (Env.globals env) tc with
           | Some (ps, fs) ->
               mkrecord
                 (List.map (fun (f, ty) -> (f, eval_unknown loc env (expand_type ps ty es))) fs)
           | None ->
-              ( match GlobalEnv.getTypedef (Env.globals env) tc with
+              ( match GlobalEnv.get_typedef (Env.globals env) tc with
               | Some (ps, ty') -> eval_unknown loc env (expand_type ps ty' es)
               | None -> raise (EvalError (loc, "eval_unknown " ^ pp_type x))
               )
