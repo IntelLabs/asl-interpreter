@@ -213,6 +213,17 @@ let tests : unit Alcotest.test_case list =
     ("prelude (mul_bits_int)", `Quick, test_bits globals prelude "" "'00111' * 3" "10101"); (* == 21 *)
     ("prelude (DecStr)",       `Quick, test_string globals prelude "" "DecStr('10101')" "21");
     ("prelude (HexStr)",       `Quick, test_string globals prelude "" "HexStr('10101')" "0x15");
+
+    (* This regression test is for a typechecker bug where the typechecker did not handle negations
+     * correctly (and subtractions 'x-y' were being transformed into 'x + (-y)' *)
+    ("tcheck regression (neg_int)", `Quick, test_bits globals prelude
+     "func F(i :: integer, N :: integer) => bits(N)
+          var result = Ones(N);
+          result[N-1 : i] = Zeros(N-i);
+          return result;
+      end"
+    "F(3,8)" "00000111");
+
     ("setters (var)",          `Quick, test_bool globals prelude
        "var _A :: boolean;
        getter A => boolean return _A; end
