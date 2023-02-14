@@ -1,8 +1,31 @@
+(****************************************************************
+ * ASL bittuple transform
+ *
+ * This simplifies 'bittuple' L-expression assignments such as
+ *
+ *     var x :: bits(8);
+ *     var y :: bits(8);
+ *     var z :: bits(16);
+ *     ...
+ *     [x,y,z] = e;
+ * ==>
+ *     let tmp = e;
+ *     x = tmp[24 +: 8];
+ *     y = tmp[16 +: 8];
+ *     z = tmp[0 +: 16];
+ *
+ * Note that, in the general case, x, y and z can be any L-expressions.
+ *
+ * Copyright Intel Inc (c) 2022-2023
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 module AST = Asl_ast
 open Asl_ast
 
 let assign_var = new Asl_utils.nameSupply "__a"
 
+(* Transform '[l1, ... ln] = r;' where, for each 'i', 'li :: bits(wi) *)
 let xform
     (loc : AST.l)
     (ws : AST.expr list)
@@ -41,3 +64,7 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
 let xform_decls (ds : AST.declaration list) : AST.declaration list =
   let replacer = new replace_bittuples (Some ds) in
   List.map (Asl_visitor.visit_decl (replacer :> Asl_visitor.aslVisitor)) ds
+
+(****************************************************************
+ * End
+ ****************************************************************)
