@@ -1,7 +1,7 @@
 (****************************************************************
  * ASL bittuple transforms
  *
- * This simplifies assignments involving multiple slices
+ * This simplifies assignments and expressions involving multiple slices
  *
  * 1) 'bittuple' L-expression assignments such as
  *
@@ -29,6 +29,19 @@
  *        x[8 +: 8] = tmp[16 +: 8];
  *        x[16 +: 8] = tmp[8 +: 8];
  *        x[24 +: 8] = tmp[0 +: 8];
+ *
+ * 3) multiple slice R-expressions such as
+ *
+ *        ... = e[0 +: 8, 8 +: 8];
+ *    ==>
+ *        ... = [e[0 +: 8], e[8 +: 8]];
+ *
+ *    todo: this should really make sure that e is atomic
+ *    by assigning to a tmp if needed
+ *
+ *    ==>
+ *        tmp = e;
+ *        ... = [tmp[0 +: 8], tmp[8 +: 8]];
  *
  * Copyright Intel Inc (c) 2022-2023
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -70,6 +83,15 @@ let slice_width (x : AST.slice) : AST.expr =
 class replace_bittuples (ds : AST.declaration list option) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
+
+    method! vexpr x =
+      ( match x with
+      | Expr_Slices (ty, e, ss) when List.length ss > 1 -> (* todo: only if e is atomic *)
+        let ws = List.map slice_width ss in
+        let es = List.map (fun s -> Expr_Slices (ty, e, [s])) ss in
+        Visitor.ChangeTo (Expr_Concat (ws, es))
+      | _ -> DoChildren
+      )
 
     method! vstmt s =
       match s with
