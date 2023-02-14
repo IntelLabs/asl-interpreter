@@ -42,6 +42,19 @@ let case_tests : unit Alcotest.test_case list =
             z = 2;
         end");
 
+    ("pattern set", `Quick, test_case_stmts globals prelude
+       "var x :: integer;
+        var z :: integer;"
+       "case x of
+            when 1, 2: z = 1;
+            otherwise: z = 2;
+        end"
+       "if x == 1 || x == 2 then
+            z = 1;
+        else
+            z = 2;
+        end");
+
     ("tuple", `Quick, test_case_stmts globals prelude
        "var x :: integer;
         var y :: integer;
