@@ -1,20 +1,34 @@
 (****************************************************************
- * ASL bittuple transform
+ * ASL bittuple transforms
  *
- * This simplifies 'bittuple' L-expression assignments such as
+ * This simplifies assignments involving multiple slices
  *
- *     var x :: bits(8);
- *     var y :: bits(8);
- *     var z :: bits(16);
- *     ...
- *     [x,y,z] = e;
- * ==>
- *     let tmp = e;
- *     x = tmp[24 +: 8];
- *     y = tmp[16 +: 8];
- *     z = tmp[0 +: 16];
+ * 1) 'bittuple' L-expression assignments such as
  *
- * Note that, in the general case, x, y and z can be any L-expressions.
+ *        var x :: bits(8);
+ *        var y :: bits(8);
+ *        var z :: bits(16);
+ *        ...
+ *        [x,y,z] = e;
+ *    ==>
+ *        let tmp = e;
+ *        x = tmp[24 +: 8];
+ *        y = tmp[16 +: 8];
+ *        z = tmp[0 +: 16];
+ *
+ *    Note that, in the general case, x, y and z can be any L-expressions.
+ *
+ * 2) multiple slice L-expression assignments such as
+ *
+ *        x[0 +: 8, 8 +: 8, 16 +: 8, 24 +: 8] = e; // byte-reverse
+ *    ==>
+ *        [x[0 +: 8], x[8 +: 8], x[16 +: 8], x[24 +: 8]] = e; // byte-reverse
+ *    ==>
+ *        let tmp = e;
+ *        x[0 +: 8] = e[24 +: 8];
+ *        x[8 +: 8] = e[16 +: 8];
+ *        x[16 +: 8] = e[8 +: 8];
+ *        x[24 +: 8] = e[0 +: 8];
  *
  * Copyright Intel Inc (c) 2022-2023
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -46,6 +60,13 @@ let xform
     let tmp_const_decl = Stmt_ConstDecl (tmp_var, r, loc) in
     tmp_const_decl :: ss
 
+let slice_width (x : AST.slice) : AST.expr =
+  ( match x with
+  | Slice_Single e -> Asl_utils.one
+  | Slice_HiLo (hi, lo) -> Xform_simplify_expr.mk_add_int (Asl_utils.mk_sub_int hi lo) Asl_utils.one
+  | Slice_LoWd (lo, wd) -> wd
+  )
+
 class replace_bittuples (ds : AST.declaration list option) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
@@ -53,6 +74,12 @@ class replace_bittuples (ds : AST.declaration list option) =
     method! vstmt s =
       match s with
       | Stmt_Assign (LExpr_BitTuple (ws, ls), r, loc) ->
+          Visitor.ChangeTo (xform loc ws ls r)
+      | Stmt_Assign (LExpr_Slices (ty, l, ss), r, loc) when List.length ss > 1 ->
+          let (ws, ls) =
+            List.map (fun s -> (slice_width s, LExpr_Slices (ty, l, [s]))) ss
+            |> List.split
+          in
           Visitor.ChangeTo (xform loc ws ls r)
       | _ -> DoChildren
   end
