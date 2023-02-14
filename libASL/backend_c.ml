@@ -126,7 +126,6 @@ let kw_while (fmt : PP.formatter) : unit = keyword fmt "while"
 
 (* C pseudo-keywords *)
 
-let kw_assert (fmt : PP.formatter) : unit = keyword fmt "assert"
 let kw_bool (fmt : PP.formatter) : unit = keyword fmt "bool"
 let kw_false (fmt : PP.formatter) : unit = keyword fmt "false"
 let kw_int16 (fmt : PP.formatter) : unit = keyword fmt "int16_t"
@@ -148,6 +147,7 @@ let fn_slice_hilo (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo"
 let fn_slice_lowd_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd_w"
 let fn_slice_hilo_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo_w"
 let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error_unmatched_case"
+let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
 let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
   asl_keyword fmt (AST.name_of_FIdent x)
@@ -730,8 +730,9 @@ let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
   | Stmt_Assert (e, loc) ->
-      kw_assert fmt;
-      parens fmt (fun _ -> expr loc fmt e);
+      let expr_string = AST.Expr_LitString (Utils.to_string2 (Fun.flip FMTAST.expr e)) in
+      let loc_string = AST.Expr_LitString (AST.pp_loc loc) in
+      apply loc fmt (fun _ -> fn_assert fmt) [loc_string; expr_string; e];
       semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
   | Stmt_Block (ss, _) -> brace_enclosed_block fmt ss

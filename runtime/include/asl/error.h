@@ -23,6 +23,8 @@ NORETURN void ASL_error(const char *loc, const char *msg);
 NORETURN void runtime_error(const char *msg);
 void runtime_error_if(bool cond, const char *msg);
 
+void ASL_assert(const char* loc, const char* expr, bool c);
+
 #ifdef __cplusplus
 }
 #endif
