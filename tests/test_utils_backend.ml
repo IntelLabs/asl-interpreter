@@ -310,7 +310,8 @@ let test_cases_type_decl : test_case list  =
 
     ( "record",
       [ Backend_C; Backend_Verilog ],
-      "record X { i :: integer; b :: bit; };" );
+      "type bit of bits(1);
+       record X { i :: integer; b :: bit; };" );
 
     ( "typedef",
       [ Backend_C; Backend_Verilog ],
