@@ -7,6 +7,8 @@
 
 #include "asl/bits128.h"
 
+#include <stdbool.h>
+
 #define N 128
 #include "bits_template_c.h"
 #undef N

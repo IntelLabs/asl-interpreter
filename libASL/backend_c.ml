@@ -427,10 +427,10 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
         (fun _ -> amp fmt)
         (fun _ -> expr loc fmt x)
         (fun _ -> mask_int loc fmt n)
-  | FIdent ("eor_bits", _), _ ->
+  | FIdent ("eor_bits", _), _
+  | FIdent ("eq_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
-  | FIdent ("eq_bits", _), _ -> binop loc fmt "==" args
   | FIdent ("mk_mask", _), [ w; _ ] ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) [(c_int_width_64up_expr loc n); w]

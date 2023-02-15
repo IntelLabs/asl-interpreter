@@ -8,6 +8,7 @@
 #ifndef ASL_BITS64_H
 #define ASL_BITS64_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -44,6 +45,15 @@ static inline ASL_bits64_t
 ASL_eor_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
         return x ^ y;
+}
+
+#define ASL_eq_bits(sizeof_x, n, x, y) \
+        ASL_CC(ASL_eq_bits_, sizeof_x)(n, x, y)
+
+static inline bool
+ASL_eq_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return x == y;
 }
 
 static inline ASL_bits64_t

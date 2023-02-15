@@ -8,6 +8,7 @@
 #ifndef ASL_BITS512_H
 #define ASL_BITS512_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "asl/bits64.h"

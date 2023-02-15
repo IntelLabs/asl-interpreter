@@ -18,6 +18,12 @@ TEST_F(Bits64, Eor)
     EXPECT_EQ( ones, ASL_eor_bits_64(64, zeros,  ones));
 }
 
+TEST_F(Bits64, Eq)
+{
+    EXPECT_FALSE(ASL_eq_bits_64(64, zeros, ones));
+    EXPECT_TRUE(ASL_eq_bits_64(64, ones, ones));
+}
+
 TEST_F(Bits64, MkMask)
 {
     EXPECT_EQ(1ULL, ASL_mk_mask_64(1));

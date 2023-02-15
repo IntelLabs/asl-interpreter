@@ -96,6 +96,11 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' EOR '0'; end" );
 
+    ( "built-in fun call (eq_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration boolean { FALSE, TRUE };
+       func F() => boolean return '1' == '0'; end" );
+
     ( "built-in fun call (mk_mask)",
       [ Backend_C ],
       "func F() => bits(2) return mk_mask(1, 2); end" );
