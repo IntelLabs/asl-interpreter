@@ -10,6 +10,11 @@ class Bits64 : public ::testing::Test {
     ASL_bits64_t zeros = 0;
 };
 
+TEST_F(Bits64, MkMask)
+{
+    EXPECT_EQ(1ULL, ASL_mk_mask_64(1));
+}
+
 TEST_F(Bits64, Not)
 {
     int width = 63;
@@ -41,3 +46,30 @@ TEST_F(Bits64, Not)
 #define N 512
 #include "bits_test_template.h"
 #undef N
+
+#define EXPECT_BITS128_EQ(expected, actual) \
+    EXPECT_BITS_EQ(128, expected, actual)
+
+#define EXPECT_BITS256_EQ(expected, actual) \
+    EXPECT_BITS_EQ(256, expected, actual)
+
+#define EXPECT_BITS512_EQ(expected, actual) \
+    EXPECT_BITS_EQ(512, expected, actual)
+
+TEST_F(Bits128, MkMask)
+{
+    EXPECT_BITS128_EQ(ASL_bits_128(1, UINT64_MAX),
+                      ASL_mk_mask_128(1 + 64));
+}
+
+TEST_F(Bits256, MkMask)
+{
+    EXPECT_BITS256_EQ(ASL_bits_256(0, 1, UINT64_MAX, UINT64_MAX),
+                      ASL_mk_mask_256(1 + 128));
+}
+
+TEST_F(Bits512, MkMask)
+{
+    EXPECT_BITS512_EQ(ASL_bits_512(0, 0, 0, 1, UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX),
+                      ASL_mk_mask_512(1 + 256));
+}
