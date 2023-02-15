@@ -49,7 +49,6 @@ let bang_eq (fmt : PP.formatter) : unit = delimiter fmt "!="
 let bar_bar (fmt : PP.formatter) : unit = delimiter fmt "||"
 let caret (fmt : PP.formatter) : unit = delimiter fmt "^"
 let colon (fmt : PP.formatter) : unit = delimiter fmt ":"
-let coloncolon (fmt : PP.formatter) : unit = delimiter fmt "::"
 let dot (fmt : PP.formatter) : unit = delimiter fmt "."
 let dot_dot (fmt : PP.formatter) : unit = delimiter fmt ".."
 let eq (fmt : PP.formatter) : unit = delimiter fmt "="
@@ -430,7 +429,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Unknown t ->
       kw_unknown fmt;
       nbsp fmt;
-      coloncolon fmt;
+      colon fmt;
       nbsp fmt;
       ty fmt t
   | Expr_ImpDef (os, t) ->
@@ -438,7 +437,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       nbsp fmt;
       PP.pp_print_option strLit fmt os;
       nbsp fmt;
-      coloncolon fmt;
+      colon fmt;
       nbsp fmt;
       ty fmt t
   | Expr_Array (a, e) ->
@@ -547,7 +546,7 @@ and lexprs (fmt : PP.formatter) (ps : AST.lexpr list) : unit =
 let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
   varname fmt v;
   nbsp fmt;
-  coloncolon fmt;
+  colon fmt;
   nbsp fmt;
   ty fmt t
 
@@ -571,7 +570,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       nbsp fmt;
       varnames fmt vs;
       nbsp fmt;
-      coloncolon fmt;
+      colon fmt;
       nbsp fmt;
       ty fmt t;
       semicolon fmt;
@@ -844,7 +843,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                     (fun (f, t) ->
                       fieldname fmt f;
                       nbsp fmt;
-                      coloncolon fmt;
+                      colon fmt;
                       nbsp fmt;
                       ty fmt t;
                       semicolon fmt)

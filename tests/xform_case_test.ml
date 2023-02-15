@@ -30,8 +30,8 @@ let case_tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   [
     ("mask", `Quick, test_case_stmts globals prelude
-       "var x :: bits(4);
-        var z :: integer;"
+       "var x : bits(4);
+        var z : integer;"
        "case x of
             when '11xx': z = 1;
             otherwise: z = 2;
@@ -43,8 +43,8 @@ let case_tests : unit Alcotest.test_case list =
         end");
 
     ("pattern set", `Quick, test_case_stmts globals prelude
-       "var x :: integer;
-        var z :: integer;"
+       "var x : integer;
+        var z : integer;"
        "case x of
             when 1, 2: z = 1;
             otherwise: z = 2;
@@ -56,9 +56,9 @@ let case_tests : unit Alcotest.test_case list =
         end");
 
     ("tuple", `Quick, test_case_stmts globals prelude
-       "var x :: integer;
-        var y :: integer;
-        var z :: integer;"
+       "var x : integer;
+        var y : integer;
+        var z : integer;"
        "case (x, y) of
             when (1, 2): z = 1;
             otherwise: z = 2;
@@ -70,9 +70,9 @@ let case_tests : unit Alcotest.test_case list =
         end");
 
     ("guard", `Quick, test_case_stmts globals prelude
-       "var x :: integer;
-        var y :: integer;
-        var z :: integer;"
+       "var x : integer;
+        var y : integer;
+        var z : integer;"
        "case x of
             when 1 where y < 3 : z = 1;
             otherwise: z = 2;
@@ -90,8 +90,8 @@ let in_tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   [
     ("tuple", `Quick, test_case_expr globals prelude
-       "var x :: integer;
-        var y :: integer;"
+       "var x : integer;
+        var y : integer;"
        "(x, y) IN (1, 2)"
        "x == 1 && y == 2");
 

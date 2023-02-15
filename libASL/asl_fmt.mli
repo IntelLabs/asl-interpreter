@@ -40,7 +40,6 @@ val bang_eq : formatter -> unit
 val bar_bar : formatter -> unit
 val caret : formatter -> unit
 val colon : formatter -> unit
-val coloncolon : formatter -> unit
 val dot : formatter -> unit
 val dot_dot : formatter -> unit
 val eq : formatter -> unit

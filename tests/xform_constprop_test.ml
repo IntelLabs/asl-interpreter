@@ -44,69 +44,69 @@ let constprop_tests : unit Alcotest.test_case list =
        "enumeration T { E1, E2 };" "if TRUE then E1 else E2" "E1");
 
     ("let", `Quick, test_cp_stmts ""
-       "let x = 1 + 1;" "let x :: integer = 2;");
+       "let x = 1 + 1;" "let x : integer = 2;");
     ("assignment", `Quick, test_cp_stmts ""
-      "let c :: bits(2) = '11';
-       let a :: bits(2) = c;"
-      "let c :: bits(2) = '11'; let a :: bits(2) = '11';");
-    ("if-else", `Quick, test_cp_stmts "var d :: boolean;"
-      "var c :: bits(2);
+      "let c : bits(2) = '11';
+       let a : bits(2) = c;"
+      "let c : bits(2) = '11'; let a : bits(2) = '11';");
+    ("if-else", `Quick, test_cp_stmts "var d : boolean;"
+      "var c : bits(2);
        if d then
            c = '11';
        else
            c = '11';
        end
        let a = c;"
-      "var c :: bits(2);
+      "var c : bits(2);
        if d then
            c = '11';
        else
            c = '11';
        end
-       let a :: bits(2) = '11';");
+       let a : bits(2) = '11';");
     (* Make sure c = '11' gets propagated to after loop *)
-    ("for loop 1", `Quick, test_cp_stmts "var d :: integer;"
+    ("for loop 1", `Quick, test_cp_stmts "var d : integer;"
       "let c = '11';
-       var x :: integer;
+       var x : integer;
        for i = 0 to d do
            x = 0;
        end
        let a = c;"
-      "let c :: bits(2) = '11';
-       var x :: integer;
+      "let c : bits(2) = '11';
+       var x : integer;
        for i = 0 to d do
            x = 0;
        end
-       let a :: bits(2) = '11';");
+       let a : bits(2) = '11';");
 
     (* Make sure we still except c to be '10' after loop *)
-    ("for loop 2", `Quick, test_cp_stmts "var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("for loop 2", `Quick, test_cp_stmts "var d : integer;"
+      "var c : bits(2) = '10';
        for i = 0 to d do
            c = '10';
        end
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        for i = 0 to d do
            c = '10';
        end
-       let a :: bits(2) = '10';");
+       let a : bits(2) = '10';");
 
     (* Make sure a = c is intact when altering c inside loop. *)
-    ("for loop 3", `Quick, test_cp_stmts "var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("for loop 3", `Quick, test_cp_stmts "var d : integer;"
+      "var c : bits(2) = '10';
        for i = 0 to d do
            c = '11';
        end
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        for i = 0 to d do
            c = '11';
        end
-       let a :: bits(2) = c;");
+       let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("for loop 4", `Quick, test_cp_stmts "var d :: integer;"
+    ("for loop 4", `Quick, test_cp_stmts "var d : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;
@@ -137,48 +137,48 @@ let constprop_tests : unit Alcotest.test_case list =
        let d = 1;");
 
     (* Make sure c = '11' gets propagated to after loop *)
-    ("while loop 1", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+    ("while loop 1", `Quick, test_cp_stmts "var i : integer; var d : integer;"
       "let c = '11';
-       var x :: integer;
+       var x : integer;
        while i != d do
            x = 0;
        end
        let a = c;"
-      "let c :: bits(2) = '11';
-       var x :: integer;
+      "let c : bits(2) = '11';
+       var x : integer;
        while i != d do
            x = 0;
        end
-       let a :: bits(2) = '11';");
+       let a : bits(2) = '11';");
 
     (* Make sure we still except c to be '10' after loop *)
-    ("while loop 2", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("while loop 2", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+      "var c : bits(2) = '10';
        while i != d do
            c = '10';
        end
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        while i != d do
            c = '10';
        end
-       let a :: bits(2) = '10';");
+       let a : bits(2) = '10';");
 
     (* Make sure a = c is intact when altering c inside loop. *)
-    ("while loop 3", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("while loop 3", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+      "var c : bits(2) = '10';
        while i != d do
            c = '11';
        end
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        while i != d do
            c = '11';
        end
-       let a :: bits(2) = c;");
+       let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("while loop 4", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+    ("while loop 4", `Quick, test_cp_stmts "var i : integer; var d : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;
@@ -209,48 +209,48 @@ let constprop_tests : unit Alcotest.test_case list =
        let d = 1;");
 
     (* Make sure c = '11' gets propagated to after loop *)
-    ("repeat loop 1", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+    ("repeat loop 1", `Quick, test_cp_stmts "var i : integer; var d : integer;"
       "let c = '11';
-       var x :: integer;
+       var x : integer;
        repeat
            x = 0;
        until i != d;
        let a = c;"
-      "let c :: bits(2) = '11';
-       var x :: integer;
+      "let c : bits(2) = '11';
+       var x : integer;
        repeat
            x = 0;
        until i != d;
-       let a :: bits(2) = '11';");
+       let a : bits(2) = '11';");
 
     (* Make sure we still except c to be '10' after loop *)
-    ("repeat loop 2", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("repeat loop 2", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+      "var c : bits(2) = '10';
        repeat
            c = '10';
        until i != d;
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        repeat
            c = '10';
        until i != d;
-       let a :: bits(2) = '10';");
+       let a : bits(2) = '10';");
 
     (* Make sure a = c is intact when altering c inside loop. *)
-    ("repeat loop 3", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
-      "var c :: bits(2) = '10';
+    ("repeat loop 3", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+      "var c : bits(2) = '10';
        repeat
            c = '11';
        until i != d;
        let a = c;"
-      "var c :: bits(2) = '10';
+      "var c : bits(2) = '10';
        repeat
            c = '11';
        until i != d;
-       let a :: bits(2) = c;");
+       let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("repeat loop 4", `Quick, test_cp_stmts "var i :: integer; var d :: integer;"
+    ("repeat loop 4", `Quick, test_cp_stmts "var i : integer; var d : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;

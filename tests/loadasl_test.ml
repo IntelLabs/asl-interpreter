@@ -6,7 +6,7 @@ let test_function_declaration () : unit =
   let (full_f1,o1) = Filename.open_temp_file "prefix" ".asl" in
   let (full_f2,o2) = Filename.open_temp_file "prefix" ".asl" in
 
-  Out_channel.output_string o1 "func f (x :: integer) => integer return x; end";
+  Out_channel.output_string o1 "func f (x : integer) => integer return x; end";
   Out_channel.output_string o2 "func main () => ()  let b = f(5); end";
   Out_channel.flush o1;
   Out_channel.flush o2;

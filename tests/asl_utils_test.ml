@@ -69,17 +69,17 @@ let side_effect_tests : unit Alcotest.test_case list =
     ("empty function", `Quick, test_side_effects globals prelude
        "func T() return; end" "T" ([], [], [], false));
     ("identity function", `Quick, test_side_effects globals prelude
-       "func T(x :: integer) => integer return x; end" "T" ([], [], [], false));
+       "func T(x : integer) => integer return x; end" "T" ([], [], [], false));
     ("length function", `Quick, test_side_effects globals prelude
-       "func T(x :: bits(N)) => integer return N; end" "T" ([], [], [], false));
+       "func T(x : bits(N)) => integer return N; end" "T" ([], [], [], false));
     ("increment function", `Quick, test_side_effects globals prelude
-       "func T(x :: integer) => integer return x + 1; end" "T" ([], [], ["add_int"], false));
+       "func T(x : integer) => integer return x + 1; end" "T" ([], [], ["add_int"], false));
     ("destructive increment function", `Quick, test_side_effects globals prelude
-       "func T(x :: integer) => integer x = x + 1; return x; end" "T" ([], [], ["add_int"], false));
+       "func T(x : integer) => integer x = x + 1; return x; end" "T" ([], [], ["add_int"], false));
     ("global read function", `Quick, test_side_effects globals prelude
-       "var X :: integer; func T() => integer return X; end" "T" (["X"], [], [], false));
+       "var X : integer; func T() => integer return X; end" "T" (["X"], [], [], false));
     ("global write function", `Quick, test_side_effects globals prelude
-       "var X :: integer; func T() X = 1; return; end" "T" ([], ["X"], [], false));
+       "var X : integer; func T() X = 1; return; end" "T" ([], ["X"], [], false));
   ]
 
 (****************************************************************
@@ -119,12 +119,12 @@ let impure_function_tests : unit Alcotest.test_case list =
     ("user-defined functions", `Quick, test_impure_functions globals prelude
        "
        func Null() return; end
-       func Id(x :: integer) => integer return x; end
-       func Len2(x :: bits(N)) => integer return N; end
-       func Inc(x :: integer) => integer return x + 1; end
-       func Inc2(x :: integer) => integer x = x + 1; return x; end
-       let K42 :: integer = 42;
-       var X :: integer;
+       func Id(x : integer) => integer return x; end
+       func Len2(x : bits(N)) => integer return N; end
+       func Inc(x : integer) => integer return x + 1; end
+       func Inc2(x : integer) => integer x = x + 1; return x; end
+       let K42 : integer = 42;
+       var X : integer;
        func ReadConst() => integer return K42; end
        func Read() => integer return X; end
        func Write() X = 1; return; end
@@ -229,23 +229,23 @@ let reachable_decls_tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   [
     ("diamond graph", `Quick, test_reachable_decls globals prelude
-       "var X :: integer;
+       "var X : integer;
         func Read() => integer return X; end
-        func Write(x :: integer) X = x; end
+        func Write(x : integer) X = x; end
         func T() var x = Read(); Write(x); end"
        ["T"] ["T.0"; "Write.0"; "Read.0"; "X"]
     );
     ("lexpr write", `Quick, test_reachable_decls globals prelude
        "getter F => bits(1);
-        setter F = value :: bits(1);
+        setter F = value : bits(1);
         func T() F = '0'; end"
        ["T"] ["T.0"; "F_write.0"]
     );
     ("lexpr read-write", `Quick, test_reachable_decls globals prelude
        "getter F => bits(1);
-        setter F = x :: bits(1);
+        setter F = x : bits(1);
         getter G => bits(1);
-        setter G = x :: bits(1);
+        setter G = x : bits(1);
         func T() [F, G] = '00'; end"
        ["T"] ["T.0"; "G_write.0"; "G_read.0"; "F_write.0"; "F_read.0"]
     );

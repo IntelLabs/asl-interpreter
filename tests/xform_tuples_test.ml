@@ -21,16 +21,16 @@ let tuple_tests : unit Alcotest.test_case list =
   let stmts = test_xform_stmts Xform_tuples.xform_stmts globals prelude in
   [
     ("assign", `Quick, stmts
-       "var x :: integer; var y :: integer;"
+       "var x : integer; var y : integer;"
        "(x, y) = (1, 2);"
        "x = 1; y = 2;");
 
     ("let-if", `Quick, stmts
-       "var p :: boolean;"
+       "var p : boolean;"
        "let (x, y) = if p then (1, 2) else (2, 1);"
-       "var __t0 :: integer; var __t1 :: integer;
+       "var __t0 : integer; var __t1 : integer;
         if p then __t0 = 1; __t1 = 2; else __t0 = 2; __t1 = 1; end
-        let x :: integer = __t0; let y :: integer = __t1;
+        let x : integer = __t0; let y : integer = __t1;
        ");
   ]
 

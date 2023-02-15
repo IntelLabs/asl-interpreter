@@ -30,13 +30,13 @@ let test_simplify_expr_id (globals : TC.GlobalEnv.t) (prelude : AST.declaration 
 let simplify_expr_tests : unit Alcotest.test_case list =
   let prelude = load_test_libraries () in
   let globals = TC.env0 in
-  let decl_x = "var x :: integer;" in
-  let decl_xy = "var x :: integer; var y :: integer;" in
+  let decl_x = "var x : integer;" in
+  let decl_xy = "var x : integer; var y : integer;" in
   [
     (* test some identities *)
     ("id_const", `Quick, test_simplify_expr_id globals prelude "" "3");
-    ("id_var", `Quick, test_simplify_expr_id globals prelude "var x :: integer;" "x");
-    ("id_add_var_const", `Quick, test_simplify_expr_id globals prelude "var x :: integer;" "3 + x");
+    ("id_var", `Quick, test_simplify_expr_id globals prelude "var x : integer;" "x");
+    ("id_add_var_const", `Quick, test_simplify_expr_id globals prelude "var x : integer;" "3 + x");
 
     (* test that non-integer expressions are not changed *)
     ("non_int", `Quick, test_simplify_expr_id globals prelude "" "3[0]");
@@ -44,7 +44,7 @@ let simplify_expr_tests : unit Alcotest.test_case list =
 
     (* test that simplifications are being performed *)
     ("add_const", `Quick, test_simplify_expr globals prelude "" "1 + 1" "2");
-    ("add_const_var", `Quick, test_simplify_expr globals prelude "var x :: integer;" "x + 3" "x + 3");
+    ("add_const_var", `Quick, test_simplify_expr globals prelude "var x : integer;" "x + 3" "x + 3");
     ("add_var_var", `Quick, test_simplify_expr globals prelude decl_x "x + x" "2 * x");
     ("add_mul_add1", `Quick, test_simplify_expr globals prelude decl_x "2 * (x + 3)" "2*x + 6");
     ("add_mul_add2", `Quick, test_simplify_expr globals prelude decl_xy "2 * (x + y)" "2*x + 2*y");

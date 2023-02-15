@@ -34,40 +34,40 @@ let tuple_tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   [
     ("bittuple-lexpr transform 1", `Quick, test_bittuple_stmts globals prelude
-      "var x :: bits(3); var y :: bits(2);"
+      "var x : bits(3); var y : bits(2);"
        "[x, y] = '100 01';"
-       "let __a0 :: bits(5) = '100 01';
+       "let __a0 : bits(5) = '100 01';
         x = __a0[2 +: 3];
         y = __a0[0 +: 2];
        ");
 
     ("bittuple-lexpr transform 2", `Quick, test_bittuple_stmts globals prelude
-      "var x :: bits(3); var y :: bits(2);"
+      "var x : bits(3); var y : bits(2);"
        "let m = '100 01';
         [x, y] = m;
        "
        "let m = '100 01';
-        let __a1 :: bits(5) = m;
+        let __a1 : bits(5) = m;
         x = __a1[2 +: 3];
         y = __a1[0 +: 2];
        ");
 
     ("bittuple-lexpr transform 3", `Quick, test_bittuple_stmts globals prelude
-      "var x :: bits(3); var y :: bits(2);
+      "var x : bits(3); var y : bits(2);
        func t_f() => bits(5)
            return '100 01';
        end
       "
       "[x, y] = t_f();"
-      "let __a2 :: bits(5) = t_f();
+      "let __a2 : bits(5) = t_f();
        x = __a2[2 +: 3];
        y = __a2[0 +: 2];
       ");
 
     ("bittuple-lexpr transform 4", `Quick, test_bittuple_stmts globals prelude
-      "var x :: bits(3); var y :: bits(2); var c :: boolean;"
+      "var x : bits(3); var y : bits(2); var c : boolean;"
       "[x, y] = if c then '100 01' else '111 11';"
-      "let __a3 :: bits(5) = if c then '100 01' else '111 11';
+      "let __a3 : bits(5) = if c then '100 01' else '111 11';
        x = __a3[2 +: 3];
        y = __a3[0 +: 2];
       ")

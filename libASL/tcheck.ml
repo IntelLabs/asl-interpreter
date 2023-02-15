@@ -110,7 +110,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
                 (fun (f, ty) ->
                   FMT.fieldname fmt f;
                   FMTUtils.nbsp fmt;
-                  FMT.coloncolon fmt;
+                  FMT.colon fmt;
                   FMTUtils.nbsp fmt;
                   FMT.ty fmt ty;
                   FMT.semicolon fmt)
@@ -142,7 +142,7 @@ type funtype =
 let pp_funtype (fty : funtype) : unit =
   FMT.varname fmt fty.funname;
   FMTUtils.nbsp fmt;
-  FMT.coloncolon fmt;
+  FMT.colon fmt;
   FMTUtils.nbsp fmt;
   FMTUtils.braces fmt (fun _ -> FMT.parameters fmt fty.params);
   if fty.isArray then FMTUtils.brackets fmt (fun _ -> FMT.formals fmt fty.atys)

@@ -28,36 +28,36 @@ let test_cases_expr : test_case list =
 
     ( "field selection",
       [ Backend_C; Backend_Verilog ],
-      "record X { i :: integer; }; func F(x :: X) => integer return x.i; end" );
+      "record X { i : integer; }; func F(x : X) => integer return x.i; end" );
 
     ( "bitslice single",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(16)) => bits(1) return x[4]; end" );
+      "func F(x : bits(16)) => bits(1) return x[4]; end" );
 
     ( "bitslice single (> 64b)",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(65)) => bits(1) return x[4]; end" );
+      "func F(x : bits(65)) => bits(1) return x[4]; end" );
 
     ( "bitslice hilo",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(16)) => bits(8) return x[11:4]; end" );
+      "func F(x : bits(16)) => bits(8) return x[11:4]; end" );
 
     ( "bitslice lowd",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(16)) => bits(8) return x[4 +: 8]; end" );
+      "func F(x : bits(16)) => bits(8) return x[4 +: 8]; end" );
 
     ( "bitslice lowd (> 64b)",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(129)) => bits(65) return x[4 +: 65]; end" );
+      "func F(x : bits(129)) => bits(65) return x[4 +: 65]; end" );
 
     ( "record initializer",
       [ Backend_C; Backend_Verilog ],
-      "record X { i :: integer; }; func F() => X return X { i = 1 }; end" );
+      "record X { i : integer; }; func F() => X return X { i = 1 }; end" );
 
     ( "pattern match (literal mask)",
       [ Backend_C ],
       "enumeration boolean { FALSE, TRUE };
-       func F(x :: bits(4)) => boolean return x IN '11xx'; end" );
+       func F(x : bits(4)) => boolean return x IN '11xx'; end" );
 
     ( "literal integer",
       [ Backend_C; Backend_Verilog ],
@@ -81,7 +81,7 @@ let test_cases_expr : test_case list =
 
     ( "variable",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: integer) => integer return x; end" );
+      "func F(x : integer) => integer return x; end" );
 
     ( "variable boolean",
       [ Backend_C; Backend_Verilog ],
@@ -174,11 +174,11 @@ let test_cases_expr : test_case list =
 
     ( "bitvector concatenation",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(8), y :: bits(4), z :: bits(2)) => bits(14) return [x, y, z]; end" );
+      "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) return [x, y, z]; end" );
 
     ( "array",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) var x :: array [1] of bits(1); return x[0]; end" );
+      "func F() => bits(1) var x : array [1] of bits(1); return x[0]; end" );
   ]
 
 let test_cases_fun_decl : test_case list  =
@@ -197,7 +197,7 @@ let test_cases_fun_decl : test_case list  =
 
     ( "definition with params",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: integer, y :: integer) => integer end" );
+      "func F(x : integer, y : integer) => integer end" );
   ]
 
 let test_cases_proc_decl : test_case list  =
@@ -212,18 +212,18 @@ let test_cases_proc_decl : test_case list  =
 
     ( "definition with params",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: integer, y :: integer) end" );
+      "func F(x : integer, y : integer) end" );
   ]
 
 let test_cases_stmt : test_case list  =
   [
     ( "uninitialized variable",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x :: integer; end" );
+      "func F() var x : integer; end" );
 
     ( "uninitialized variables",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x, y :: integer; end" );
+      "func F() var x, y : integer; end" );
 
     ( "variable",
       [ Backend_C; Backend_Verilog ],
@@ -235,7 +235,7 @@ let test_cases_stmt : test_case list  =
 
     ( "variable (__RAM)",
       [ Backend_C ],
-      "func F() var x :: __RAM(8); end" );
+      "func F() var x : __RAM(8); end" );
 
     ( "constant",
       [ Backend_C; Backend_Verilog ],
@@ -243,15 +243,15 @@ let test_cases_stmt : test_case list  =
 
     ( "assignment",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: integer, y :: integer) x = y; end" );
+      "func F(x : integer, y : integer) x = y; end" );
 
     ( "assignment to slice",
       [ Backend_C; Backend_Verilog ],
-      "func F(x :: bits(8)) x[4 +: 2] = '10'; end" );
+      "func F(x : bits(8)) x[4 +: 2] = '10'; end" );
 
     ( "assignment to field",
       [ Backend_C; Backend_Verilog ],
-      "record X { i :: integer; }; func F(x :: X) x.i = 0; end" );
+      "record X { i : integer; }; func F(x : X) x.i = 0; end" );
 
     ( "assignment to wildcard",
       [ Backend_C ],
@@ -259,7 +259,7 @@ let test_cases_stmt : test_case list  =
 
     ( "assignment to array element",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x :: array [1] of bits(1); x[0] = '0'; end" );
+      "func F() var x : array [1] of bits(1); x[0] = '0'; end" );
 
     ( "procedure call",
       [ Backend_C; Backend_Verilog ],
@@ -267,7 +267,7 @@ let test_cases_stmt : test_case list  =
 
     ( "procedure call with argument",
       [ Backend_C; Backend_Verilog ],
-      "func B(x :: integer) end func F() B(0); end" );
+      "func B(x : integer) end func F() B(0); end" );
 
     ( "procedure return",
       [ Backend_C; Backend_Verilog ],
@@ -343,7 +343,7 @@ let test_cases_type_decl : test_case list  =
     ( "record",
       [ Backend_C; Backend_Verilog ],
       "type bit of bits(1);
-       record X { i :: integer; b :: bit; };" );
+       record X { i : integer; b : bit; };" );
 
     ( "typedef",
       [ Backend_C; Backend_Verilog ],
@@ -366,23 +366,23 @@ let test_cases_var_decl : test_case list  =
   [
     ( "bits",
       [ Backend_C; Backend_Verilog ],
-      "var x :: bits(8);" );
+      "var x : bits(8);" );
 
     ( "integer",
       [ Backend_C; Backend_Verilog ],
-      "var x :: integer;" );
+      "var x : integer;" );
 
     ( "array",
       [ Backend_C; Backend_Verilog ],
-      "var x :: array [1] of integer;" );
+      "var x : array [1] of integer;" );
 
     ( "array2",
       [ Backend_C; Backend_Verilog ],
-      "var x :: array [1] of array [2] of integer;" );
+      "var x : array [1] of array [2] of integer;" );
 
     ( "const (integer)",
       [ Backend_C ],
-      "let x :: integer = 0;" );
+      "let x : integer = 0;" );
   ]
 
 let make_tests (b : backend) (test_fun : string -> string -> unit)

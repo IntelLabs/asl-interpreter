@@ -202,15 +202,22 @@ ty_params_opt:
 | LPAREN ps = separated_nonempty_list(COMMA, ident) RPAREN { ps }
 | { [] }
 
+(* To provide a period of backwards compatibility, we support
+ * both : and :: (deprecated) in type annotations.
+ *)
+colon:
+| COLON          { () }
+| COLON_COLON    { () }
+
 field:
-| ident = ident COLON_COLON ty = ty SEMICOLON { (ident, ty) }
+| ident = ident colon ty = ty SEMICOLON { (ident, ty) }
 
 variable_declaration:
-| VAR v = ident COLON_COLON ty = ty SEMICOLON
+| VAR v = ident colon ty = ty SEMICOLON
     { Decl_Var(v, ty, Range($symbolstartpos, $endpos)) }
-| CONSTANT v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+| CONSTANT v = ident colon ty = ty EQ e = expr SEMICOLON
     { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
-| LET v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+| LET v = ident colon ty = ty EQ e = expr SEMICOLON
     { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
 
 ixtype:
@@ -242,14 +249,14 @@ parameter:
 | par = ident ty = ty_opt { (par, ty) }
 
 ty_opt:
-| COLON_COLON ty = ty { Some ty }
+| colon ty = ty { Some ty }
 | { None }
 
 formal_list:
 | formal0 = separated_list(COMMA, formal) { formal0 }
 
 formal:
-| ident = ident COLON_COLON ty = ty { (ident, ty) }
+| ident = ident colon ty = ty { (ident, ty) }
 
 getter_declaration:
 | GETTER f = ident ps = parameters_opt EQ_GT ty = ty SEMICOLON
@@ -262,13 +269,13 @@ getter_declaration:
     { Decl_ArrayGetterDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 
 setter_declaration:
-| SETTER f = ident ps = parameters_opt EQ v = ident COLON_COLON ty = ty SEMICOLON
+| SETTER f = ident ps = parameters_opt EQ v = ident colon ty = ty SEMICOLON
     { Decl_VarSetterType(f, ps, v, ty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt EQ v = ident COLON_COLON ty = ty b = block END
+| SETTER f = ident ps = parameters_opt EQ v = ident colon ty = ty b = block END
     { Decl_VarSetterDefn(f, ps, v, ty, b, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON_COLON ty = ty SEMICOLON
+| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident colon ty = ty SEMICOLON
     { Decl_ArraySetterType(f, ps, args, v, ty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON_COLON ty = ty b = block END
+| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident colon ty = ty b = block END
     { Decl_ArraySetterDefn(f, ps, args, v, ty, b, Range($symbolstartpos, $endpos)) }
 
 internal_definition:
@@ -284,7 +291,7 @@ internal_definition:
     { Decl_NewMapDefn(v, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 | UNDERSCORE_UNDERSCORE_MAP v = ident vs = separated_list(COMMA, mapfield) oc = optmapcond THEN b = block END
     { Decl_MapClause(v, vs, oc, b, Range($symbolstartpos, $endpos)) }
-| CONFIG v = ident COLON_COLON ty = ty EQ e = expr SEMICOLON
+| CONFIG v = ident colon ty = ty EQ e = expr SEMICOLON
     { Decl_Config(v, ty, e, Range($symbolstartpos, $endpos)) }
 
 optmapcond:
@@ -346,9 +353,9 @@ block:
 | stmts = list(stmt) { stmts }
 
 assignment_stmt:
-| VAR v = ident COMMA vs = separated_list(COMMA, ident) COLON_COLON ty = ty SEMICOLON
+| VAR v = ident COMMA vs = separated_list(COMMA, ident) colon ty = ty SEMICOLON
     { Stmt_VarDeclsNoInit(v :: vs, ty, Range($symbolstartpos, $endpos)) }
-| VAR v = ident COLON_COLON ty = ty SEMICOLON
+| VAR v = ident colon ty = ty SEMICOLON
     { Stmt_VarDeclsNoInit([v], ty, Range($symbolstartpos, $endpos)) }
 | VAR dis = decl_item EQ i = expr SEMICOLON
     { Stmt_VarDecl(dis, i, Range($symbolstartpos, $endpos)) }
@@ -537,9 +544,9 @@ aexpr:
     { Expr_Tuple(es) }
 | LBRACK es = separated_nonempty2_list(COMMA, expr) RBRACK
     { Expr_Concat([], es) }
-| UNKNOWN COLON_COLON t = ty
+| UNKNOWN colon t = ty
     { Expr_Unknown(t) }
-| IMPLEMENTATION_UNDERSCORE_DEFINED os = opt_stringLit COLON_COLON t = ty
+| IMPLEMENTATION_UNDERSCORE_DEFINED os = opt_stringLit colon t = ty
     { Expr_ImpDef(os, t) }
 | e = aexpr AS c = constraints
     { Expr_AsConstraint(e, c) }
