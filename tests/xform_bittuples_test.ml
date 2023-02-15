@@ -55,6 +55,7 @@ let tuple_tests : unit Alcotest.test_case list =
     ("bittuple-lexpr transform 3", `Quick, test_bittuple_stmts globals prelude
       "var x : bits(3); var y : bits(2);
        func t_f() => bits(5)
+       begin
            return '100 01';
        end
       "

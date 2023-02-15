@@ -904,6 +904,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_func fmt;
           nbsp fmt;
           function_header fmt (Some t) f ps (fun _ -> formals fmt args);
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -918,6 +920,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_func fmt;
           nbsp fmt;
           function_header fmt None f ps (fun _ -> formals fmt args);
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -939,6 +943,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           eq_gt fmt;
           nbsp fmt;
           ty fmt t;
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -965,6 +971,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           eq_gt fmt;
           nbsp fmt;
           ty fmt t;
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -989,6 +997,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           eq fmt;
           nbsp fmt;
           varty fmt v t;
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -1015,6 +1025,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           eq fmt;
           nbsp fmt;
           varty fmt v t;
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -1049,6 +1061,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_underscore_event fmt;
           nbsp fmt;
           funname fmt f;
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt
@@ -1057,6 +1071,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_underscore_newevent fmt;
           nbsp fmt;
           function_header fmt (Some t) f ps (fun _ -> formals fmt args);
+          cut fmt;
+          kw_begin fmt;
           indented_block fmt b;
           cut fmt;
           kw_end fmt

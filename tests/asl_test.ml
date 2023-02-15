@@ -133,50 +133,53 @@ let tests : unit Alcotest.test_case list =
       \                      let t : T = 0x12345678[31:0];\n\
       \                     " "t.hi";
     test_static_error globals "return type mismatch"
-      "func F(x : boolean) => integer return x; end"
-      (Some "DoesNotMatch(file \"\" line 1 char 31 - 40,type,integer,boolean)")
+      "func F(x : boolean) => integer begin return x; end"
+      (Some "DoesNotMatch(file \"\" line 1 char 37 - 46,type,integer,boolean)")
       None;
     test_static_error globals "#line directive"
       "\n# 42 \"foobar.asl\"\nx == 0"
       (Some "ParseError()") (Some "'foobar.asl' 42 0");
     test_static_error globals "record initializer (missing field)"
       "record R{ x : integer; y : integer; };
-      func T() => R return R{x=1, z=3}; end"
-      (Some "TypeError(file \"\" line 2 char 20 - 39,record initializer is missing fields y and/or has extra fields z)") None;
+      func T() => R begin return R{x=1, z=3}; end"
+      (Some "TypeError(file \"\" line 2 char 26 - 45,record initializer is missing fields y and/or has extra fields z)") None;
     test_static_error globals "record initializer (parameterization error)"
       "record R(M) { x : bits(M); };
-      func S4(r : R(4)) => bits(4) return r.x; end
-      func T() let t = S4(R{x='111'}); end"
-      (Some "TypeError(file \"\" line 3 char 15 - 38,wrong number of type parameters)") None;
+      func S4(r : R(4)) => bits(4) begin return r.x; end
+      func T() begin let t = S4(R{x='111'}); end"
+      (Some "TypeError(file \"\" line 3 char 21 - 44,wrong number of type parameters)") None;
     test_static_error globals "function missing"
-      "func T() UndefinedFunction(); end"
-      (Some "UnknownObject(file \"\" line 1 char 9 - 29,procedure,UndefinedFunction)") None;
+      "func T() begin UndefinedFunction(); end"
+      (Some "UnknownObject(file \"\" line 1 char 15 - 35,procedure,UndefinedFunction)") None;
     test_static_error globals "function type error (args)"
-      "func IntFunction(x : integer) end
-       func T() IntFunction(TRUE); end"
-      (Some "TypeError(file \"\" line 2 char 16 - 34,function arguments)") None;
+      "func IntFunction(x : integer) begin end
+       func T() begin IntFunction(TRUE); end"
+      (Some "TypeError(file \"\" line 2 char 22 - 40,function arguments)") None;
     test_static_error globals "var setter arg mismatch"
       "setter A = value : integer;
-       func T() A = TRUE; end"
-      (Some "DoesNotMatch(file \"\" line 2 char 16 - 25,type,integer,boolean)")
+       func T() begin A = TRUE; end"
+      (Some "DoesNotMatch(file \"\" line 2 char 22 - 31,type,integer,boolean)")
       None;
     test_static_error globals "array setter arg mismatch"
       "setter A[] = value : integer;
-       func T() A[] = TRUE; end"
-      (Some "DoesNotMatch(file \"\" line 2 char 16 - 27,type,integer,boolean)")
+       func T() begin A[] = TRUE; end"
+      (Some "DoesNotMatch(file \"\" line 2 char 22 - 33,type,integer,boolean)")
       None;
     test_static_error globals "type parameter - argument mismatch"
      "func F{A}(A : integer, src : bits(A))
+      begin
       end
       func Test()
+      begin
           let src = Zeros(10);
           F(5, src);
       end
      "
-     (Some "TypeError(file \"\" line 5 char 10 - 20,Type mismatch)")
+     (Some "TypeError(file \"\" line 7 char 10 - 20,Type mismatch)")
      None;
     test_static globals false "var decls"
       "func F(x : bits(8*N))
+       begin
            var a : bits(8*N) = UNKNOWN : bits(8*N);
            var b : bits(8*N) = Zeros(8*N);
            var c : bits(8*N);
@@ -198,6 +201,7 @@ let tests : unit Alcotest.test_case list =
        end" "1";
     test_static globals false "case statements"
       "func F(x : bits(3), y : boolean) => integer
+       begin
            case x of
                when '000': return 0;
                when '001': return 0;
@@ -227,6 +231,7 @@ let tests : unit Alcotest.test_case list =
      * correctly (and subtractions 'x-y' were being transformed into 'x + (-y)' *)
     ("tcheck regression (neg_int)", `Quick, test_bits globals prelude
      "func F(i : integer, N : integer) => bits(N)
+      begin
           var result = Ones(N);
           result[N-1 : i] = Zeros(N-i);
           return result;
@@ -235,9 +240,10 @@ let tests : unit Alcotest.test_case list =
 
     ("setters (var)",          `Quick, test_bool globals prelude
        "var _A : boolean;
-       getter A => boolean return _A; end
-       setter A = v : boolean _A = v; end
+       getter A => boolean begin return _A; end
+       setter A = v : boolean begin _A = v; end
        func Test(v : boolean) => boolean
+       begin
            A = v;
            return A;
        end
@@ -245,6 +251,7 @@ let tests : unit Alcotest.test_case list =
        "Test(TRUE)" true);
     ("bittuple LExpr_BitTuple", `Quick, test_bool globals prelude
      "func expand() => boolean
+      begin
         var x : bits(4);
         var y : bits(8);
         var z : bits(12);
@@ -255,9 +262,10 @@ let tests : unit Alcotest.test_case list =
      "expand()" true);
     ("setters (array)",        `Quick, test_bool globals prelude
        "var _A : array [4] of boolean;
-       getter A[i : integer] => boolean return _A[i]; end
-       setter A[i : integer] = v : boolean _A[i] = v; end
+       getter A[i : integer] => boolean begin return _A[i]; end
+       setter A[i : integer] = v : boolean begin _A[i] = v; end
        func Test(i : integer, v : boolean) => boolean
+       begin
            A[i] = v;
            return A[i];
        end
@@ -265,53 +273,54 @@ let tests : unit Alcotest.test_case list =
        "Test(1,TRUE)" true);
     ("parameterized record",   `Quick, test_bits globals prelude
        "record R(M) { x : bits(M); };
-       func S(b : bits(M)) => R(M) return R(M){x=b}; end
-       func T(r : R(M)) => bits(M) return r.x; end"
+       func S(b : bits(M)) => R(M) begin return R(M){x=b}; end
+       func T(r : R(M)) => bits(M) begin return r.x; end"
        "T(S('111'))" "111");
     ("parameterized type",     `Quick, test_bits globals prelude
        "type B(M) of bits(M);
-       func T(b : bits(M)) => B(M) return b; end"
+       func T(b : bits(M)) => B(M) begin return b; end"
        "T('111')" "111");
     ("parameterized record extract", `Quick, test_bits globals prelude
        "record R(M) { x : bits(M); };
        func F() => bits(8)
+       begin
            let a = R(3){ x = '111' };
            return ZeroExtend(a.x, 8);
        end"
        "F()" "00000111");
     ("statements (while)",     `Quick, test_int globals prelude
-      "func TestWhile(x : integer) => integer var i = 0; while i < x do i = i + 1; end return i; end"
+      "func TestWhile(x : integer) => integer begin var i = 0; while i < x do i = i + 1; end return i; end"
       "TestWhile(3)" 3);
     ("statements (repeat)",    `Quick, test_int globals prelude
-      "func TestRepeat(x : integer) => integer var i = 0; repeat i = i + 1; until i >= x; return i; end"
+      "func TestRepeat(x : integer) => integer begin var i = 0; repeat i = i + 1; until i >= x; return i; end"
       "TestRepeat(3)" 3);
     ("tuple transform",        `Quick, test_xform globals prelude Xform_tuples.xform_decls
-      "func F() => (integer, integer) return (1,2); end
-       func T() => integer let (x, y) = F(); return x + y; end"
+      "func F() => (integer, integer) begin return (1,2); end
+       func T() => integer begin let (x, y) = F(); return x + y; end"
       "T() == 3");
     ("tuple transform (in getter)", `Quick, test_xform globals prelude Xform_tuples.xform_decls
-      "func F() => (integer, integer) return (1,2); end
-       getter T => integer let (x, y) = F(); return x + y; end"
+      "func F() => (integer, integer) begin return (1,2); end
+       getter T => integer begin let (x, y) = F(); return x + y; end"
       "T == 3");
     ("getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
       "var i : integer;
-       getter G => integer return i; end
-       setter S = value : integer i = value; end
-       func P() S = G + 1; end
-       func T() => integer i = 1; P(); S = G + 1; return i; end"
+       getter G => integer begin return i; end
+       setter S = value : integer begin i = value; end
+       func P() begin S = G + 1; end
+       func T() => integer begin i = 1; P(); S = G + 1; return i; end"
       "T() == 3");
     ("array getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
       "var i : array [2] of integer;
-       getter G{N}[x : bits(N)] => integer return i[UInt(x)]; end
-       setter S{N}[x : bits(N)] = value : integer i[UInt(x)] = value; end
-       func P() S['0'] = G['0'] + 1; end
-       func T() => integer i[0] = 1; P(); S['0'] = G['0'] + 1; return i[0]; end"
+       getter G{N}[x : bits(N)] => integer begin return i[UInt(x)]; end
+       setter S{N}[x : bits(N)] = value : integer begin i[UInt(x)] = value; end
+       func P() begin S['0'] = G['0'] + 1; end
+       func T() => integer begin i[0] = 1; P(); S['0'] = G['0'] + 1; return i[0]; end"
       "T() == 3");
     ("read-modify-write transform", `Quick, test_xform globals prelude Xform_rmw.xform_decls
       "var i : array [2] of bits(3);
-       getter I{N}[x : bits(N)] => bits(3) return i[UInt(x)]; end
-       setter I{N}[x : bits(N)] = value : bits(3) i[UInt(x)] = value; end
-       func T() => bits(3) i[0] = '001'; I['0'][1 : 0] = '10'; return i[0]; end"
+       getter I{N}[x : bits(N)] => bits(3) begin return i[UInt(x)]; end
+       setter I{N}[x : bits(N)] = value : bits(3) begin i[UInt(x)] = value; end
+       func T() => bits(3) begin i[0] = '001'; I['0'][1 : 0] = '10'; return i[0]; end"
       "T() == '010'");
   ]
 

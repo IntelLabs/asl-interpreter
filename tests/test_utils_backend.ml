@@ -16,169 +16,169 @@ let test_cases_expr : test_case list =
   [
     ( "if",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return if FALSE then 0 else 0; end" );
+      "func F() => integer begin return if FALSE then 0 else 0; end" );
 
     ( "elsif",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return if FALSE then 0 elsif FALSE then 0 else 0; end" );
+      "func F() => integer begin return if FALSE then 0 elsif FALSE then 0 else 0; end" );
 
     ( "binary operation",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return 1 + 1; end" );
+      "func F() => integer begin return 1 + 1; end" );
 
     ( "field selection",
       [ Backend_C; Backend_Verilog ],
-      "record X { i : integer; }; func F(x : X) => integer return x.i; end" );
+      "record X { i : integer; }; func F(x : X) => integer begin return x.i; end" );
 
     ( "bitslice single",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(16)) => bits(1) return x[4]; end" );
+      "func F(x : bits(16)) => bits(1) begin return x[4]; end" );
 
     ( "bitslice single (> 64b)",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(65)) => bits(1) return x[4]; end" );
+      "func F(x : bits(65)) => bits(1) begin return x[4]; end" );
 
     ( "bitslice hilo",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(16)) => bits(8) return x[11:4]; end" );
+      "func F(x : bits(16)) => bits(8) begin return x[11:4]; end" );
 
     ( "bitslice lowd",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(16)) => bits(8) return x[4 +: 8]; end" );
+      "func F(x : bits(16)) => bits(8) begin return x[4 +: 8]; end" );
 
     ( "bitslice lowd (> 64b)",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(129)) => bits(65) return x[4 +: 65]; end" );
+      "func F(x : bits(129)) => bits(65) begin return x[4 +: 65]; end" );
 
     ( "record initializer",
       [ Backend_C; Backend_Verilog ],
-      "record X { i : integer; }; func F() => X return X { i = 1 }; end" );
+      "record X { i : integer; }; func F() => X begin return X { i = 1 }; end" );
 
     ( "pattern match (literal mask)",
       [ Backend_C ],
       "enumeration boolean { FALSE, TRUE };
-       func F(x : bits(4)) => boolean return x IN '11xx'; end" );
+       func F(x : bits(4)) => boolean begin return x IN '11xx'; end" );
 
     ( "literal integer",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return 0; end" );
+      "func F() => integer begin return 0; end" );
 
     ( "literal hexadecimal",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return 0x1; end" );
+      "func F() => integer begin return 0x1; end" );
 
     ( "literal bitvector",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(8) return '1111 0000'; end" );
+      "func F() => bits(8) begin return '1111 0000'; end" );
 
     ( "literal string",
       [ Backend_C; Backend_Verilog ],
-      "func F() => string return \"str\"; end" );
+      "func F() => string begin return \"str\"; end" );
 
     ( "literal string with escapes",
       [ Backend_C; Backend_Verilog ],
-      "func F() => string return \"Hello \\\" World\"; end" );
+      "func F() => string begin return \"Hello \\\" World\"; end" );
 
     ( "variable",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : integer) => integer return x; end" );
+      "func F(x : integer) => integer begin return x; end" );
 
     ( "variable boolean",
       [ Backend_C; Backend_Verilog ],
       "enumeration boolean { FALSE, TRUE };
-       func F() => boolean return FALSE; end" );
+       func F() => boolean begin return FALSE; end" );
 
     ( "function call",
       [ Backend_C; Backend_Verilog ],
-      "func B() => integer return 0; end func F() => integer return B(); end" );
+      "func B() => integer begin return 0; end func F() => integer begin return B(); end" );
 
     ( "built-in fun call (eq_enum)",
       [ Backend_C; Backend_Verilog ],
       "enumeration boolean { FALSE, TRUE };
        enumeration T { A, B, C };
-       func F() => boolean return A == B; end" );
+       func F() => boolean begin return A == B; end" );
 
     ( "built-in fun call (add_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return '1' + '0'; end" );
+      "func F() => bits(1) begin return '1' + '0'; end" );
 
     ( "built-in fun call (and_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return '1' AND '0'; end" );
+      "func F() => bits(1) begin return '1' AND '0'; end" );
 
     ( "built-in fun call (asr_bits)",
       [ Backend_C ],
-      "func F() => bits(2) return asr_bits('10', 1); end" );
+      "func F() => bits(2) begin return asr_bits('10', 1); end" );
 
     ( "built-in fun call (cvt_bits_sint)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return cvt_bits_sint('1'); end" );
+      "func F() => integer begin return cvt_bits_sint('1'); end" );
 
     ( "built-in fun call (cvt_bits_uint)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return cvt_bits_uint('1'); end" );
+      "func F() => integer begin return cvt_bits_uint('1'); end" );
 
     ( "built-in fun call (cvt_int_bits)",
       [ Backend_C ], (* TODO fails for verilog: part-select on literal *)
-      "func F() => bits(1) return cvt_int_bits(1, 1); end" );
+      "func F() => bits(1) begin return cvt_int_bits(1, 1); end" );
 
     ( "built-in fun call (eor_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return '1' EOR '0'; end" );
+      "func F() => bits(1) begin return '1' EOR '0'; end" );
 
     ( "built-in fun call (eq_bits)",
       [ Backend_C; Backend_Verilog ],
       "enumeration boolean { FALSE, TRUE };
-       func F() => boolean return '1' == '0'; end" );
+       func F() => boolean begin return '1' == '0'; end" );
 
     ( "built-in fun call (lsl_bits)",
       [ Backend_C ],
-      "func F() => bits(2) return lsl_bits('01', 1); end" );
+      "func F() => bits(2) begin return lsl_bits('01', 1); end" );
 
     ( "built-in fun call (lsr_bits)",
       [ Backend_C ],
-      "func F() => bits(2) return lsr_bits('10', 1); end" );
+      "func F() => bits(2) begin return lsr_bits('10', 1); end" );
 
     ( "built-in fun call (mk_mask)",
       [ Backend_C ],
-      "func F() => bits(2) return mk_mask(1, 2); end" );
+      "func F() => bits(2) begin return mk_mask(1, 2); end" );
 
     ( "built-in fun call (ne_bits)",
       [ Backend_C; Backend_Verilog ],
       "enumeration boolean { FALSE, TRUE };
-       func F() => boolean return '1' != '0'; end" );
+       func F() => boolean begin return '1' != '0'; end" );
 
     ( "built-in fun call (not_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return NOT '0'; end" );
+      "func F() => bits(1) begin return NOT '0'; end" );
 
     ( "built-in fun call (ones_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) return ones_bits(2); end" );
+      "func F() => bits(2) begin return ones_bits(2); end" );
 
     ( "built-in fun call (or_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return '1' OR '0'; end" );
+      "func F() => bits(1) begin return '1' OR '0'; end" );
 
     ( "built-in fun call (sub_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) return '1' - '0'; end" );
+      "func F() => bits(1) begin return '1' - '0'; end" );
 
     ( "built-in fun call (zeros_bits)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) return zeros_bits(2); end" );
+      "func F() => bits(2) begin return zeros_bits(2); end" );
 
     ( "parentheses",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return ( 0 ); end" );
+      "func F() => integer begin return ( 0 ); end" );
 
     ( "bitvector concatenation",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) return [x, y, z]; end" );
+      "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) begin return [x, y, z]; end" );
 
     ( "array",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) var x : array [1] of bits(1); return x[0]; end" );
+      "func F() => bits(1) begin var x : array [1] of bits(1); return x[0]; end" );
   ]
 
 let test_cases_fun_decl : test_case list  =
@@ -193,11 +193,11 @@ let test_cases_fun_decl : test_case list  =
 
     ( "definition",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer end" );
+      "func F() => integer begin end" );
 
     ( "definition with params",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : integer, y : integer) => integer end" );
+      "func F(x : integer, y : integer) => integer begin end" );
   ]
 
 let test_cases_proc_decl : test_case list  =
@@ -208,114 +208,114 @@ let test_cases_proc_decl : test_case list  =
 
     ( "definition",
       [ Backend_C; Backend_Verilog ],
-      "func F() end" );
+      "func F() begin end" );
 
     ( "definition with params",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : integer, y : integer) end" );
+      "func F(x : integer, y : integer) begin end" );
   ]
 
 let test_cases_stmt : test_case list  =
   [
     ( "uninitialized variable",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x : integer; end" );
+      "func F() begin var x : integer; end" );
 
     ( "uninitialized variables",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x, y : integer; end" );
+      "func F() begin var x, y : integer; end" );
 
     ( "variable",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x = 0; end" );
+      "func F() begin var x = 0; end" );
 
     ( "variable (wildcard)",
       [ Backend_C ],
-      "func F() var - = 0; end" );
+      "func F() begin var - = 0; end" );
 
     ( "variable (__RAM)",
       [ Backend_C ],
-      "func F() var x : __RAM(8); end" );
+      "func F() begin var x : __RAM(8); end" );
 
     ( "constant",
       [ Backend_C; Backend_Verilog ],
-      "func F() let x = 0; end" );
+      "func F() begin let x = 0; end" );
 
     ( "assignment",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : integer, y : integer) x = y; end" );
+      "func F(x : integer, y : integer) begin x = y; end" );
 
     ( "assignment to slice",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(8)) x[4 +: 2] = '10'; end" );
+      "func F(x : bits(8)) begin x[4 +: 2] = '10'; end" );
 
     ( "assignment to field",
       [ Backend_C; Backend_Verilog ],
-      "record X { i : integer; }; func F(x : X) x.i = 0; end" );
+      "record X { i : integer; }; func F(x : X) begin x.i = 0; end" );
 
     ( "assignment to wildcard",
       [ Backend_C ],
-      "func F() - = 0; end" );
+      "func F() begin - = 0; end" );
 
     ( "assignment to array element",
       [ Backend_C; Backend_Verilog ],
-      "func F() var x : array [1] of bits(1); x[0] = '0'; end" );
+      "func F() begin var x : array [1] of bits(1); x[0] = '0'; end" );
 
     ( "procedure call",
       [ Backend_C; Backend_Verilog ],
-      "func B() end func F() B(); end" );
+      "func B() begin end func F() begin B(); end" );
 
     ( "procedure call with argument",
       [ Backend_C; Backend_Verilog ],
-      "func B(x : integer) end func F() B(0); end" );
+      "func B(x : integer) begin end func F() begin B(0); end" );
 
     ( "procedure return",
       [ Backend_C; Backend_Verilog ],
-      "func F() return; end" );
+      "func F() begin return; end" );
 
     ( "function return",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer return 0; end" );
+      "func F() => integer begin return 0; end" );
 
     ( "assert",
       [ Backend_C; Backend_Verilog ],
-      "func F() assert FALSE; end" );
+      "func F() begin assert FALSE; end" );
 
     ( "if",
       [ Backend_C; Backend_Verilog ],
-      "func F() if FALSE then return; elsif FALSE then return; else return; end end" );
+      "func F() begin if FALSE then return; elsif FALSE then return; else return; end end" );
 
     ( "if with several elsifs",
       [ Backend_C; Backend_Verilog ],
-      "func F() if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end" );
+      "func F() begin if FALSE then return; elsif FALSE then return; elsif FALSE then return; end end" );
 
     ( "case",
       [ Backend_C; Backend_Verilog ],
-      "func F() case 0 of when 0: return; otherwise: return; end end" );
+      "func F() begin case 0 of when 0: return; otherwise: return; end end" );
 
     ( "case with several whens",
       [ Backend_C; Backend_Verilog ],
-      "func F() case 0 of when 0: return; when 1: return; end end" );
+      "func F() begin case 0 of when 0: return; when 1: return; end end" );
 
     ( "for loop (direction to)",
       [ Backend_C ],
-      "func F() for x = 0 to 1 do return; end end" );
+      "func F() begin for x = 0 to 1 do return; end end" );
 
     ( "for loop (direction downto)",
       [ Backend_C ],
-      "func F() for x = 1 downto 0 do return; end end" );
+      "func F() begin for x = 1 downto 0 do return; end end" );
 
     ( "while loop",
       [ Backend_C ],
-      "func F() while TRUE do return; end end" );
+      "func F() begin while TRUE do return; end end" );
 
     ( "repeat loop",
       [ Backend_C ],
-      "func F() repeat return; until TRUE; end" );
+      "func F() begin repeat return; until TRUE; end" );
 
     ( "block",
       [ Backend_C; Backend_Verilog ],
-      "func F() begin end end" );
+      "func F() begin begin end end" );
   ]
 
 let test_cases_type_decl : test_case list  =

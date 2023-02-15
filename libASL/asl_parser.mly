@@ -224,18 +224,34 @@ ixtype:
 | ident = ident { Index_Enum(ident) }
 | expr = expr { Index_Int(expr) }
 
+(* To provide a period of backwards compatibily, we support
+ * both use of the 'begin' keyword at the start of a function
+ * and omitting the keyword (deprecated).
+ *
+ * Note that this terminal cannot be called 'begin' because
+ * that is a reserved word in OCaml
+ *
+ * Note that making the keyword optional creates a large number
+ * of shift-reduce conflicts. These all seem to be resolved
+ * in the correct way but we will want to make the begin
+ * keyword mandatory ASAP to remove this issue.
+ *)
+begin1:
+| BEGIN { () }
+|       { () }
+
 function_declaration:
 | UNDERSCORE_UNDERSCORE_BUILTIN FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
     { Decl_BuiltinFunction(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
     { Decl_FunType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty b = block END
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty begin1 b = block END
     { Decl_FunDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 
 procedure_declaration:
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
     { Decl_ProcType(f, ps, args, Range($symbolstartpos, $endpos)) }
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN b = block END
+| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN begin1 b = block END
     { Decl_ProcDefn(f, ps, args, b, Range($symbolstartpos, $endpos)) }
 
 parameters_opt:
@@ -261,21 +277,21 @@ formal:
 getter_declaration:
 | GETTER f = ident ps = parameters_opt EQ_GT ty = ty SEMICOLON
     { Decl_VarGetterType(f, ps, ty, Range($symbolstartpos, $endpos)) }
-| GETTER f = ident ps = parameters_opt EQ_GT ty = ty b = block END
+| GETTER f = ident ps = parameters_opt EQ_GT ty = ty begin1 b = block END
     { Decl_VarGetterDefn(f, ps, ty, b, Range($symbolstartpos, $endpos)) }
 | GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty SEMICOLON
     { Decl_ArrayGetterType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
-| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty b = block END
+| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty begin1 b = block END
     { Decl_ArrayGetterDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
 
 setter_declaration:
 | SETTER f = ident ps = parameters_opt EQ v = ident colon ty = ty SEMICOLON
     { Decl_VarSetterType(f, ps, v, ty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt EQ v = ident colon ty = ty b = block END
+| SETTER f = ident ps = parameters_opt EQ v = ident colon ty = ty begin1 b = block END
     { Decl_VarSetterDefn(f, ps, v, ty, b, Range($symbolstartpos, $endpos)) }
 | SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident colon ty = ty SEMICOLON
     { Decl_ArraySetterType(f, ps, args, v, ty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident colon ty = ty b = block END
+| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident colon ty = ty begin1 b = block END
     { Decl_ArraySetterDefn(f, ps, args, v, ty, b, Range($symbolstartpos, $endpos)) }
 
 internal_definition:
@@ -285,11 +301,11 @@ internal_definition:
     { Decl_Operator2(op, vs, Range($symbolstartpos, $endpos)) }
 | UNDERSCORE_UNDERSCORE_NEWEVENT v = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
     { Decl_NewEventDefn(v, ps, args, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_EVENT v = ident b = block END
+| UNDERSCORE_UNDERSCORE_EVENT v = ident begin1 b = block END
     { Decl_EventClause(v, b, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_NEWMAP v = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty b = block END
+| UNDERSCORE_UNDERSCORE_NEWMAP v = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty begin1 b = block END
     { Decl_NewMapDefn(v, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_MAP v = ident vs = separated_list(COMMA, mapfield) oc = optmapcond THEN b = block END
+| UNDERSCORE_UNDERSCORE_MAP v = ident vs = separated_list(COMMA, mapfield) oc = optmapcond THEN begin1 b = block END
     { Decl_MapClause(v, vs, oc, b, Range($symbolstartpos, $endpos)) }
 | CONFIG v = ident colon ty = ty EQ e = expr SEMICOLON
     { Decl_Config(v, ty, e, Range($symbolstartpos, $endpos)) }
