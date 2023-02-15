@@ -42,7 +42,7 @@ ASL_lsl_bits_512(int width, ASL_bits512_t x, int d)
 }
 
 ASL_bits512_t
-ASL_lsr_bits_512(ASL_bits512_t x, int d)
+ASL_lsr_bits_512(int width, ASL_bits512_t x, int d)
 {
         if (d == 0)
                 return x;
@@ -64,7 +64,7 @@ ASL_lsr_bits_512(ASL_bits512_t x, int d)
                 x.v[5] = x.v[6];
                 x.v[6] = x.v[7];
                 x.v[7] = 0;
-                x = ASL_lsr_bits_512(x, d - 64);
+                x = ASL_lsr_bits_512(width, x, d - 64);
         }
         return x;
 }
@@ -72,14 +72,14 @@ ASL_lsr_bits_512(ASL_bits512_t x, int d)
 ASL_bits512_t
 ASL_mk_mask_512(int width)
 {
-        return ASL_lsr_bits_512(ASL_bits_max_512(), 512 - width);
+        return ASL_lsr_bits_512(512, ASL_bits_max_512(), 512 - width);
 }
 
 ASL_bits512_t
 ASL_slice_lowd_512_512(ASL_bits512_t x, int lo, int width)
 {
-        x = ASL_lsr_bits_512(x, lo);
-        return ASL_and_bits_512(256, x, ASL_mk_mask_512(width));
+        x = ASL_lsr_bits_512(512, x, lo);
+        return ASL_and_bits_512(512, x, ASL_mk_mask_512(width));
 }
 
 ASL_bits256_t

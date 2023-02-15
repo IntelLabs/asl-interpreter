@@ -109,6 +109,10 @@ let test_cases_expr : test_case list =
       [ Backend_C ],
       "func F() => bits(2) return lsl_bits('01', 1); end" );
 
+    ( "built-in fun call (lsr_bits)",
+      [ Backend_C ],
+      "func F() => bits(2) return lsr_bits('10', 1); end" );
+
     ( "built-in fun call (mk_mask)",
       [ Backend_C ],
       "func F() => bits(2) return mk_mask(1, 2); end" );

@@ -61,8 +61,11 @@ ASL_eq_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 
 ASL_bits64_t ASL_lsl_bits_64(int width, ASL_bits64_t x, int d);
 
+#define ASL_lsr_bits(sizeof_x, n, x, d) \
+        ASL_CC(ASL_lsr_bits_, sizeof_x)(n, x, d)
+
 static inline ASL_bits64_t
-ASL_lsr_bits(ASL_bits64_t x, int d)
+ASL_lsr_bits_64(int width, ASL_bits64_t x, int d)
 {
         return x >> d;
 }
