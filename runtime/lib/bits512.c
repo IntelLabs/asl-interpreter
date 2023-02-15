@@ -44,7 +44,7 @@ ASL_lsr_bits_512(ASL_bits512_t x, int d)
 }
 
 ASL_bits512_t
-ASL_mask_512(int width)
+ASL_mk_mask_512(int width)
 {
         return ASL_lsr_bits_512(ASL_bits_max_512(), 512 - width);
 }
@@ -53,7 +53,7 @@ ASL_bits512_t
 ASL_slice_lowd_512_512(ASL_bits512_t x, int lo, int width)
 {
         x = ASL_lsr_bits_512(x, lo);
-        return ASL_and_bits_512(x, ASL_mask_512(width));
+        return ASL_and_bits_512(x, ASL_mk_mask_512(width));
 }
 
 ASL_bits256_t

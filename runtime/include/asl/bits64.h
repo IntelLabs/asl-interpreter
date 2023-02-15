@@ -16,6 +16,8 @@ extern "C" {
 
 typedef uint64_t ASL_bits64_t;
 
+#define ASL_CC(x, y) x##y
+
 static inline int64_t
 ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
 {
@@ -56,12 +58,13 @@ ASL_replicate_bits(ASL_bits64_t x, int n, int x_width)
         return r;
 }
 
-#define ASL_mask(width) ((1ULL << (width)) - 1)
+#define ASL_mk_mask(n, w) \
+        ASL_CC(ASL_mk_mask_, n)(w)
 
 static inline ASL_bits64_t
-ASL_mk_mask(int w, int n)
+ASL_mk_mask_64(int w)
 {
-    return ASL_mask(w);
+        return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
 }
 
 #define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \
@@ -70,25 +73,25 @@ ASL_mk_mask(int w, int n)
 static inline ASL_bits64_t
 ASL_slice_lowd_64_64(ASL_bits64_t x, int lo, int width)
 {
-        return (x >> lo) & ASL_mask(width);
+        return (x >> lo) & ASL_mk_mask_64(width);
 }
 
 static inline ASL_bits64_t
 ASL_slice_hilo(ASL_bits64_t x, int hi, int lo)
 {
-        return (x & ASL_mask(hi + 1)) >> lo;
+        return (x & ASL_mk_mask_64(hi + 1)) >> lo;
 }
 
 static inline ASL_bits64_t
 ASL_slice_lowd_w(ASL_bits64_t val, ASL_bits64_t x, int lo, int width)
 {
-        return (x & ~(ASL_mask(width) << lo)) | (val << lo);
+        return (x & ~(ASL_mk_mask_64(width) << lo)) | (val << lo);
 }
 
 static inline ASL_bits64_t
 ASL_slice_hilo_w(ASL_bits64_t val, ASL_bits64_t x, int hi, int lo)
 {
-        return (x & ~(ASL_mask(hi - lo + 1) << lo)) | (val << lo);
+        return (x & ~(ASL_mk_mask_64(hi - lo + 1) << lo)) | (val << lo);
 }
 
 #ifdef __cplusplus
