@@ -84,22 +84,14 @@ let read_impdef (tcenv : TC.Env.t) (loc : AST.l) (s : string) :
     string * AST.expr =
   let lexbuf = Lexing.from_string s in
   let (CLI_Impdef (x, e)) = Parser.impdef_command_start Lexer.token lexbuf in
-  let s, e' =
-    TC.with_unify tcenv loc (fun u ->
-        let e', _ = TC.tc_expr tcenv u loc e in
-        e')
-  in
-  (x, TC.unify_subst_e s e')
+  let e', _ = TC.tc_expr tcenv loc e in
+  (x, e')
 
 let read_expr (tcenv : TC.Env.t) (loc : AST.l) (s : string) : AST.expr =
   let lexbuf = Lexing.from_string s in
   let e = Parser.expr_command_start Lexer.token lexbuf in
-  let s, e' =
-    TC.with_unify tcenv loc (fun u ->
-        let e', _ = TC.tc_expr tcenv u loc e in
-        e')
-  in
-  TC.unify_subst_e s e'
+  let e', _ = TC.tc_expr tcenv loc e in
+  e'
 
 let read_stmt (tcenv : TC.Env.t) (s : string) : AST.stmt =
   let lexbuf = Lexing.from_string s in

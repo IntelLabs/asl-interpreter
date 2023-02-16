@@ -175,7 +175,7 @@ let tests : unit Alcotest.test_case list =
           F(5, src);
       end
      "
-     (Some "TypeError(file \"\" line 7 char 10 - 20,Type mismatch)")
+     (Some "DoesNotMatch(file \"\" line 7 char 10 - 20,type width parameter,5,10)")
      None;
     test_static globals false "var decls"
       "func F(x : bits(8*N))
