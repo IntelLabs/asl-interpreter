@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////
+// Tests for C runtime bitvector support library
+//
+// Copyright Intel Inc (c) 2023
+// SPDX-Licence-Identifier: BSD-3-Clause
+////////////////////////////////////////////////////////////////
+
 #include "asl/bits64.h"
 #include "asl/bits128.h"
 #include "asl/bits256.h"
