@@ -200,23 +200,6 @@ __builtin func sleep_request() => ();
 __builtin func wakeup_request() => ();
 __builtin func program_end() => ();
 
-func print{N}(x :: bits(N))
-    print_bits(x);
-end
-
-func print(x :: string)
-    print_str(x);
-end
-
-func println()
-    print_char(10);
-end
-
-func println(x :: string)
-    print_str(x);
-    print_char(10);
-end
-
 func putchar(c :: integer)
     print_char(c);
 end
@@ -283,10 +266,6 @@ end
 
 __operator2 ^ = pow_int_int, pow_real_int;
 
-func Real(x :: integer) => real
-    return cvt_int_real(x);
-end
-
 func frem_bits_int{N}(x :: bits(N), y :: integer) => integer
     assert y > 0;
     return frem_int(cvt_bits_uint(x), y);
@@ -304,22 +283,6 @@ __operator2 AND  = and_bits;
 __operator2 OR   = or_bits;
 __operator2 EOR  = eor_bits;
 __operator1 NOT  = not_bits;
-
-func HexStr(x :: integer) => string
-    return cvt_int_hexstr(x);
-end
-
-func DecStr(x :: integer) => string
-    return cvt_int_decstr(x);
-end
-
-func HexStr(x :: bits(N)) => string
-    return HexStr(cvt_bits_uint(x));
-end
-
-func DecStr(x :: bits(N)) => string
-    return DecStr(cvt_bits_uint(x));
-end
 
 func append_str_bool(x :: string, y :: boolean) => string
     return append_str_str(x, cvt_bool_str(y));
@@ -346,11 +309,11 @@ func append_real_str(x :: real, y :: string) => string
 end
 
 func append_str_int(x :: string, y :: integer) => string
-    return append_str_str(x, DecStr(y));
+    return append_str_str(x, cvt_int_decstr(y));
 end
 
 func append_int_str(x :: integer, y :: string) => string
-    return append_str_str(DecStr(x), y);
+    return append_str_str(cvt_int_decstr(x), y);
 end
 
 __operator2 ++ = append_str_str;
@@ -358,70 +321,6 @@ __operator2 ++ = append_str_bool, append_bool_str;
 __operator2 ++ = append_str_real, append_real_str;
 __operator2 ++ = append_str_bits, append_bits_str;
 __operator2 ++ = append_str_int,  append_int_str;
-
-func Replicate{M}(x :: bits(M), N :: integer) => bits(M*N)
-    return replicate_bits(x, N);
-end
-
-func Zeros(N :: integer) => bits(N)
-    return zeros_bits(N);
-end
-
-func Ones(N :: integer) => bits(N)
-    return ones_bits(N);
-end
-
-func Zeros{N}() => bits(N)
-    return zeros_bits(N);
-end
-
-func Ones{N}() => bits(N)
-    return ones_bits(N);
-end
-
-func IsOnes{N}(x :: bits(N)) => boolean
-    return x == Ones();
-end
-
-func IsZero{N}(x :: bits(N)) => boolean
-    return x == Zeros();
-end
-
-func SignExtend{M}(x :: bits(M), N :: integer) => bits(N)
-    assert N >= M;
-    let sign = x[M-1];
-    return [Replicate(sign, N-M), x];
-end
-
-func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
-    assert N >= M;
-    return [Zeros(N-M), x];
-end
-
-func Extend{M}(x :: bits(M), N :: integer, unsigned :: boolean) => bits(N)
-    assert N >= M;
-    return (if unsigned then ZeroExtend(x, N) else SignExtend(x, N));
-end
-
-func Len{N}(x :: bits(N)) => integer
-    return N;
-end
-
-func Sqrt(x :: real) => real
-    return sqrt_real(x);
-end
-
-func RoundTowardsZero(x :: real) => integer
-    return round_tozero_real(x);
-end
-
-func RoundDown(x :: real) => integer
-    return round_down_real(x);
-end
-
-func RoundUp(x :: real) => integer
-    return round_up_real(x);
-end
 
 func IsUNDEFINED(x :: __Exception) => boolean
     return is_undefined_exc(x);
@@ -439,28 +338,34 @@ func IsExceptionTaken(x :: __Exception) => boolean
     return is_exctaken_exc(x);
 end
 
-func UInt(x :: bits(N)) => integer
+////////////////////////////////////////////////////////////////
+// 9.1 Standard integer functions and procedures
+////////////////////////////////////////////////////////////////
+
+// Absolute value of an integer.
+func Abs(x :: integer) => integer
+    return if x >= 0 then x else -x;
+end
+
+// Convert a bitvector to an unsigned integer, where bit 0 is LSB.
+// This is the recommended way to convert a bit vector to an integer.
+func UInt{N}(x :: bits(N)) => integer {0 .. 2^N-1}
     return cvt_bits_uint(x);
 end
 
-func SInt{N}(x :: bits(N)) => integer
+// Convert a 2s complement bitvector to a signed integer.
+func SInt{N}(x :: bits(N)) => integer {-(2^(N-1)) .. 2^(N-1)-1}
     return cvt_bits_sint(x);
 end
 
-func Min(x :: integer, y :: integer) => integer
-    return if x <= y then x else y;
+// Maximum of two integers.
+func Max(a :: integer, b :: integer) => integer
+    return if a >= b then a else b;
 end
 
-func Max(x :: integer, y :: integer) => integer
-    return if x >= y then x else y;
-end
-
-func Abs(x :: integer) => integer
-    if x >= 0 then
-        return x;
-    else
-        return -x;
-    end
+// Minimum of two integers.
+func Min(a :: integer, b :: integer) => integer
+    return if a <= b then a else b;
 end
 
 // Calculate the logarithm base 2 of the input. Input must be a power of 2.
@@ -472,6 +377,114 @@ func Log2(a :: integer) => integer
        r = r + 1;
     end
     return r;
+end
+
+// align down to nearest multiple of 2^y
+func AlignDown(x :: integer, y :: integer) => integer
+    return align_int(x, y);
+end
+
+// align up to nearest multiple of 2^y
+func AlignUp(x :: integer, y :: integer) => integer
+    return align_int(x + 2^y - 1, y);
+end
+
+////////////////////////////////////////////////////////////////
+// 9.2 Standard real functions and procedures
+////////////////////////////////////////////////////////////////
+
+// Convert integer to rational value.
+func Real(x :: integer) => real
+    return cvt_int_real(x);
+end
+
+// Nearest integer, rounding towards negative infinity.
+func RoundDown(x :: real) => integer
+    return round_down_real(x);
+end
+
+// Nearest integer, rounding towards positive infinity.
+func RoundUp(x :: real) => integer
+    return round_up_real(x);
+end
+
+// Nearest integer, rounding towards zero.
+func RoundTowardsZero(x :: real) => integer
+    return round_tozero_real(x);
+end
+
+// Absolute value.
+func Abs(x :: real) => real
+    return if x >= 0.0 then x else -x;
+end
+
+// Maximum of reals.
+func Max(a :: real, b :: real) => real
+    return if a >= b then a else b;
+end
+
+// Minimum of reals.
+func Min(a :: real, b :: real) => real
+    return if a <= b then a else b;
+end
+
+func Sqrt(x :: real) => real
+    return sqrt_real(x);
+end
+
+////////////////////////////////////////////////////////////////
+// 9.3 Standard bitvector functions and procedures
+////////////////////////////////////////////////////////////////
+
+// Return the concatenation of 1 or more copies of a bitvector.
+func Replicate{M}(x :: bits(M), N :: integer) => bits(M*N)
+    return replicate_bits(x, N);
+end
+
+// Return a bitvector consisting entirely of N '0' bits.
+func Zeros(N :: integer) => bits(N)
+    return zeros_bits(N);
+end
+
+// Return a bitvector consisting entirely of '1' bits.
+func Ones(N :: integer) => bits(N)
+    return ones_bits(N);
+end
+
+// Return true if bitvector consists entirely of '0' bits.
+func IsZero{N}(x :: bits(N)) => boolean
+    return x == Zeros(N);
+end
+
+// Return true if bitvector consists entirely of '1' bits.
+func IsOnes{N}(x :: bits(N)) => boolean
+    return x == Ones(N);
+end
+
+// Zero-extend a bitvector to the same or a wider width.
+func ZeroExtend{M}(x :: bits(M), N :: integer) => bits(N)
+    assert N >= M;
+    return [Zeros(N-M), x];
+end
+
+// Sign-extend a bitvector (treated as 2s complement) to the same or a wider width.
+func SignExtend{M}(x :: bits(M), N :: integer) => bits(N)
+    assert N >= M;
+    let sign = x[M-1];
+    return [Replicate(sign, N-M), x];
+end
+
+// Extend a bitvector to a specified width, treating as signed or unsigned.
+// The output width might be narrower than the input, in which case the
+// function is equivalent to a bit slice.
+func Extend{M}(x :: bits(M), N :: integer, unsigned :: boolean) => bits(N)
+    assert N >= M;
+    return (if unsigned then ZeroExtend(x, N) else SignExtend(x, N));
+end
+
+// Return the width of a bitvector argument, without regard to its value.
+func Len{N}(x :: bits(N)) => integer {N}
+    return N;
 end
 
 func SignedSat(x :: integer, N :: integer) => bits(N)
@@ -488,7 +501,12 @@ func UnsignedSat(x :: integer, N :: integer) => bits(N)
     return r[0 +: N];
 end
 
-func BitCount(x :: bits(N)) => integer
+func Sat(x :: integer, N :: integer, unsigned :: boolean) => bits(N)
+    return (if unsigned then UnsignedSat(x, N) else SignedSat(x, N));
+end
+
+// Count the number of 1 bits in a bitvector.
+func BitCount(x :: bits(N)) => integer {0 .. N}
     var result :: integer = 0;
     for i = 0 to N-1 do
         if x[i] == '1' then
@@ -498,7 +516,9 @@ func BitCount(x :: bits(N)) => integer
     return result;
 end
 
-func LowestSetBit(x :: bits(N)) => integer
+// Position of the lowest 1 bit in a bitvector.
+// If the bitvector is entirely zero, return the width.
+func LowestSetBit(x :: bits(N)) => integer {0 .. N}
     for i = 0 to N-1 do
         if x[i] == '1' then
             return i;
@@ -507,7 +527,9 @@ func LowestSetBit(x :: bits(N)) => integer
     return N;
 end
 
-func HighestSetBit(x :: bits(N)) => integer
+// Position of the highest 1 bit in a bitvector.
+// If the bitvector is entirely zero, return -1
+func HighestSetBit(x :: bits(N)) => integer {-1 .. N-1}
     for i = N-1 downto 0 do
         if x[i] == '1' then
             return i;
@@ -516,52 +538,47 @@ func HighestSetBit(x :: bits(N)) => integer
     return -1;
 end
 
-func CountLeadingZeroBits(x :: bits(N)) => integer
+// Leading zero bits in a bitvector.
+func CountLeadingZeroBits(x :: bits(N)) => integer {0 .. N}
     return N - 1 - HighestSetBit(x);
 end
 
-func CountLeadingSignBits(x :: bits(N)) => integer
+// Leading sign bits in a bitvector. Count the number of consecutive
+// bits following the leading bit, that are equal to it.
+func CountLeadingSignBits(x :: bits(N)) => integer {0 .. N}
     return CountLeadingZeroBits(x[N-1:1] EOR x[N-2:0]);
 end
 
-// align down to nearest multiple of 2^y
-func AlignDown(x :: integer, y :: integer) => integer
-    return align_int(x, y);
-end
-
-// align up to nearest multiple of 2^y
-func AlignUp(x :: integer, y :: integer) => integer
-    return align_int(x + 2^y - 1, y);
-end
-
-// align down to nearest multiple of 2^y
+// Treating input as an integer, align down to nearest multiple of 2^y.
 func AlignDown{N}(x :: bits(N), y :: integer) => bits(N)
     var result = x;
     result[y-1:0] = Zeros(y);
     return result;
 end
 
-// align up to nearest multiple of 2^y
-// returns zero if the result is not representable in N bits
+// Treating input as an integer, align up to nearest multiple of 2^y.
+// Returns zero if the result is not representable in N bits.
 func AlignUp{N}(x :: bits(N), y :: integer) => bits(N)
-    let result = AlignDown(x + 2^y - 1, y);
-    if UInt(result) < UInt(x) then
-        return Zeros(N);
+    if IsZero(x[y-1:0]) then
+        return x;
     else
-        return result;
+        return [x[N-1 : y]+1, Zeros(y)];
     end
 end
 
+// Logical left shift
 func ShiftLeft(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
     return lsl_bits(x, distance);
 end
 
+// Logical right shift, shifting zeroes into higher bits.
 func ShiftRightLogical(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
     return lsr_bits(x, distance);
 end
 
+// Arithmetic right shift, shifting sign bits into higher bits.
 func ShiftRightArithmetic(x :: bits(N), distance :: integer) => bits(N)
     assert distance IN {0 .. N-1};
     return asr_bits(x, distance);
@@ -573,6 +590,48 @@ func ParityEven(x :: bits(N)) => boolean
         r = r EOR x[i];
     end
     return r == '0';
+end
+
+////////////////////////////////////////////////////////////////
+// 9.5 Other functions and procedures
+////////////////////////////////////////////////////////////////
+
+// Print one or more arguments, to an implementation defined output channel.
+// This function is provided for diagnostics and does not form part of an architectural specification.
+func print{N}(x :: bits(N))
+    print_bits(x);
+end
+
+func print(x :: string)
+    print_str(x);
+end
+
+func println()
+    print_char(10);
+end
+
+func println(x :: string)
+    print_str(x);
+    print_char(10);
+end
+
+// Convert an integer to a decimal string, prefixing with '-' if negative.
+func DecStr(x :: integer) => string
+    return cvt_int_decstr(x);
+end
+
+func DecStr(x :: bits(N)) => string
+    return DecStr(cvt_bits_uint(x));
+end
+
+// Convert an integer to a hexadecimal string, prefixing with '-' if negative.
+// The exact format of the string is implementation defined.
+func HexStr(x :: integer) => string
+    return cvt_int_hexstr(x);
+end
+
+func HexStr(x :: bits(N)) => string
+    return HexStr(cvt_bits_uint(x));
 end
 
 // Unreachable() is used to indicate that part of a subprogram should be unreachable.
