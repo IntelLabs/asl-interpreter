@@ -82,9 +82,6 @@ TEST_F(Bits64, Or)
 #define ASL_bits_zero(sizeof_x) \
         ASL_CC(ASL_bits_zero_, sizeof_x)()
 
-#define ASL_bits_max(sizeof_x) \
-        ASL_CC(ASL_bits_max_, sizeof_x)()
-
 #define N 128
 #include "bits_test_template.h"
 #undef N

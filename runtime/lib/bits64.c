@@ -15,6 +15,12 @@ ASL_lsl_bits_64(int width, ASL_bits64_t x, int d)
         return (x << d) & ASL_mk_mask_64(width);
 }
 
+ASL_bits64_t
+ASL_mk_mask_64(int w)
+{
+        return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
+}
+
 ////////////////////////////////////////////////////////////////
 // End
 ////////////////////////////////////////////////////////////////

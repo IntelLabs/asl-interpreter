@@ -46,12 +46,6 @@ ASL_lsr_bits_128(int width, ASL_bits128_t x, int d)
 }
 
 ASL_bits128_t
-ASL_mk_mask_128(int width)
-{
-        return ASL_lsr_bits_128(128, ASL_bits_max_128(), 128 - width);
-}
-
-ASL_bits128_t
 ASL_slice_lowd_128_128(ASL_bits128_t x, int lo, int width)
 {
         x = ASL_lsr_bits_128(128, x, lo);

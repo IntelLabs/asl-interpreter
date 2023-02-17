@@ -27,6 +27,12 @@ ASL_eor_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return x;
 }
 
+ASL_BITS_TYPE
+ASL_mk_mask(N, int width)
+{
+        return ASL_lsr_bits(N, N, ASL_bits_max(N), N - width);
+}
+
 bool
 ASL_ne_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {

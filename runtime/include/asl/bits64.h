@@ -20,6 +20,15 @@ typedef uint64_t ASL_bits64_t;
 #define ASL_CC(x, y) x##y
 #define ASL_CC_INDIR(x, y) ASL_CC(x, y)
 
+#define ASL_bits_max(sizeof_x) \
+        ASL_CC(ASL_bits_max_, sizeof_x)()
+
+static inline ASL_bits64_t
+ASL_bits_max_64()
+{
+        return UINT64_MAX;
+}
+
 #define ASL_and_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_and_bits_, sizeof_x)(n, x, y)
 
@@ -92,11 +101,7 @@ ASL_replicate_bits(ASL_bits64_t x, int n, int x_width)
 #define ASL_mk_mask(n, w) \
         ASL_CC(ASL_mk_mask_, n)(w)
 
-static inline ASL_bits64_t
-ASL_mk_mask_64(int w)
-{
-        return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
-}
+ASL_bits64_t ASL_mk_mask_64(int w);
 
 #define ASL_ne_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_ne_bits_, sizeof_x)(n, x, y)
