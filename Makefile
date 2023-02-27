@@ -9,6 +9,10 @@
 
 VERSION = 0.2.0
 
+ifneq ($(V),1)
+MAKEFLAGS += --silent
+endif
+
 export DUNE_BUILD_DIR ?= $(CURDIR)/_build
 
 build::

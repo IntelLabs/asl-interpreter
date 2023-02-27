@@ -23,10 +23,12 @@ DEP_FILES = $(OBJ_FILES:%.o=%.d)
 -include $(DEP_FILES)
 
 $(BUILD_DIR)/%.o: lib/%.c | build_dir
+	$(info CC      $(@F))
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -c $< -o $@
 
 $(LIB): $(OBJ_FILES)
 	$(RM) $@
+	$(info AR      $(@F))
 	$(AR) cr $@ $^
 
 build_dir:

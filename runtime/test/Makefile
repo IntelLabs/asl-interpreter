@@ -21,6 +21,7 @@ DEP_FILES = $(OBJ_FILES:%.o=%.d)
 -include $(DEP_FILES)
 
 $(OBJ_DIR)/%.o: %.cc | obj_dir
+	$(info CXX     $(@F))
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -c $< -o $@
 
 obj_dir:
@@ -34,5 +35,6 @@ gtest_build_dir:
 	mkdir -p $(GTEST_BUILD_DIR)
 
 $(TARGET): gtest $(OBJ_FILES)
+	$(info CXX     $(@F))
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJ_FILES) -L$(BUILD_DIR)/.. -lASL -L$(GTEST_BUILD_DIR)/lib -lgtest -lgtest_main -o $@
 	$(TARGET)
