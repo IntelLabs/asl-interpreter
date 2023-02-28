@@ -1,6 +1,7 @@
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
 #define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
+ASL_BITS_TYPE ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_asr_bits(N, int width, ASL_BITS_TYPE x, int d);
 ASL_INT_TYPE ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x);

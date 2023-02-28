@@ -13,6 +13,12 @@
 #include "asl/integer.h"
 
 ASL_bits64_t
+ASL_add_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return (x + y) & ASL_mk_mask_64(width);
+}
+
+ASL_bits64_t
 ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
         return x & y;

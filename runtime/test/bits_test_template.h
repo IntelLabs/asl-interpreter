@@ -11,6 +11,19 @@ class ASL_CC_INDIR(Bits, N) : public ::testing::Test {
     ASL_INT_TYPE zero = ASL_int_zero(N);
 };
 
+TEST_F(ASL_CC_INDIR(Bits, N), Add)
+{
+    int width = N - 1;
+    ASL_BITS_TYPE one = ASL_mk_mask(N, 1);
+    ASL_BITS_TYPE minus_one = ASL_mk_mask(N, width);
+    ASL_BITS_TYPE two = ASL_lsl_bits(N, width, one, 1);
+    ASL_BITS_TYPE minus_two = ASL_not_bits(N, width, one);
+
+    EXPECT_BITS_EQ(N, two, ASL_add_bits(N, width, one, one));
+    EXPECT_BITS_EQ(N, minus_two, ASL_add_bits(N, width, minus_one, minus_one));
+    EXPECT_BITS_EQ(N, zeros, ASL_add_bits(N, width, minus_one, one));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), And)
 {
     EXPECT_BITS_EQ(N, zeros, ASL_and_bits(N, N, zeros, zeros));

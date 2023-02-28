@@ -18,6 +18,15 @@ class Bits64 : public ::testing::Test {
     ASL_bits64_t ones = UINT64_MAX;
 };
 
+TEST_F(Bits64, Add)
+{
+    int width = 3;
+
+    EXPECT_EQ(2ULL, ASL_add_bits_64(width, 1ULL, 1ULL));
+    EXPECT_EQ(6ULL, ASL_add_bits_64(width, 7ULL, 7ULL));
+    EXPECT_EQ(0ULL, ASL_add_bits_64(width, 1ULL, 7ULL));
+}
+
 TEST_F(Bits64, And)
 {
     EXPECT_EQ(zeros, ASL_and_bits_64(64, zeros, zeros));

@@ -98,6 +98,10 @@ let test_cases_expr : test_case list =
        enumeration T { A, B, C };
        func F() => boolean return A == B; end" );
 
+    ( "built-in fun call (add_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) return '1' + '0'; end" );
+
     ( "built-in fun call (and_bits)",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' AND '0'; end" );

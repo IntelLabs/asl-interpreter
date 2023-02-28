@@ -408,7 +408,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
              "real builtin function",
              fun fmt -> FMTAST.funname fmt f ))
   (* Bitvector builtin functions *)
-  | FIdent ("add_bits", _), _ -> binop loc fmt "+" args
+  | FIdent ("add_bits", _), _
   | FIdent ("and_bits", _), _
   | FIdent ("asr_bits", _), _
   | FIdent ("cvt_bits_sint", _), _
