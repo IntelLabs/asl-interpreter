@@ -128,6 +128,15 @@ TEST_F(Bits64, Or)
     EXPECT_EQ( ones, ASL_or_bits_64(64, zeros,  ones));
 }
 
+TEST_F(Bits64, Sub)
+{
+    int width = 3;
+
+    EXPECT_EQ(0ULL, ASL_sub_bits_64(width, 1ULL, 1ULL));
+    EXPECT_EQ(7ULL, ASL_sub_bits_64(width, 0ULL, 1ULL));
+    EXPECT_EQ(1ULL, ASL_sub_bits_64(width, 0ULL, 7ULL));
+}
+
 TEST_F(Bits64, Zeros)
 {
     EXPECT_EQ(0ULL, ASL_zeros_bits_64(3));

@@ -121,6 +121,18 @@ ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return x;
 }
 
+ASL_BITS_TYPE
+ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
+{
+        ASL_BITS_TYPE r;
+        uint64_t carry = 0;
+        for (int i = 0; i < ASL_BITS_CHUNKS; ++i) {
+                 r.v[i] = x.v[i] - y.v[i] - carry;
+                 carry = (carry & (r.v[i] == x.v[i])) | (r.v[i] > x.v[i]);
+        }
+        return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
+}
+
 #undef ASL_BITS_CHUNKS
 #undef ASL_BITS_TYPE
 #undef ASL_INT_TYPE

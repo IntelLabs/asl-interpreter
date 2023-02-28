@@ -112,6 +112,17 @@ TEST_F(ASL_CC_INDIR(Bits, N), Or)
     EXPECT_BITS_EQ(N,  ones, ASL_or_bits(N, N, zeros,  ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Sub)
+{
+    int width = N - 1;
+    ASL_BITS_TYPE one = ASL_mk_mask(N, 1);
+    ASL_BITS_TYPE minus_one = ASL_mk_mask(N, width);
+
+    EXPECT_BITS_EQ(N, zeros, ASL_sub_bits(N, width, one, one));
+    EXPECT_BITS_EQ(N, minus_one, ASL_sub_bits(N, width, zeros, one));
+    EXPECT_BITS_EQ(N, one, ASL_sub_bits(N, width, zeros, minus_one));
+}
+
 #undef ASL_BITS_CHUNKS
 #undef ASL_BITS_TYPE
 #undef ASL_INT_TYPE

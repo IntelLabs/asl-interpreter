@@ -448,7 +448,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("replicate_bits", _), _ ->
       let x_width = List.nth tes 1 in
       apply loc fmt (fun _ -> fn_extern fmt f) (args @ [x_width])
-  | FIdent ("sub_bits", _), _ -> binop loc fmt "-" args
+  | FIdent ("sub_bits", _), _ ->
+      let n = List.hd tes in
+      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
   | FIdent ("zeros_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: args)

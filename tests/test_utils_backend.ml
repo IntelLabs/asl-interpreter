@@ -160,6 +160,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' OR '0'; end" );
 
+    ( "built-in fun call (sub_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) return '1' - '0'; end" );
+
     ( "built-in fun call (zeros_bits)",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) return zeros_bits(2); end" );
