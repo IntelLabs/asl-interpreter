@@ -101,6 +101,16 @@ TEST_F(Bits64, MkMask)
     EXPECT_EQ(1ULL, ASL_mk_mask_64(1));
 }
 
+TEST_F(Bits64, Mul)
+{
+    int width = 3;
+
+    EXPECT_EQ(1ULL, ASL_mul_bits_64(width, 1ULL, 1ULL));
+    EXPECT_EQ(1ULL, ASL_mul_bits_64(width, 7ULL, 7ULL));
+    EXPECT_EQ(7ULL, ASL_mul_bits_64(width, 1ULL, 7ULL));
+    EXPECT_EQ(0ULL, ASL_mul_bits_64(width, 1ULL, 0ULL));
+}
+
 TEST_F(Bits64, Ne)
 {
     EXPECT_TRUE(ASL_ne_bits_64(64, zeros, ones));

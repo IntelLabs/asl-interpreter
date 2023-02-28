@@ -89,6 +89,12 @@ ASL_mk_mask_64(int w)
         return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
 }
 
+ASL_bits64_t
+ASL_mul_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return (x * y) & ASL_mk_mask_64(width);
+}
+
 bool
 ASL_ne_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {

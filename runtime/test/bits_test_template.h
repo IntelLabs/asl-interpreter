@@ -96,6 +96,18 @@ TEST_F(ASL_CC_INDIR(Bits, N), Eq)
     EXPECT_TRUE(ASL_eq_bits(N, N, ones, ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Mul)
+{
+    int width = N - 2;
+    ASL_BITS_TYPE one = ASL_mk_mask(N, 1);
+    ASL_BITS_TYPE minus_one = ASL_mk_mask(N, width);
+
+    EXPECT_EQ(one, ASL_mul_bits(N, width, one, one));
+    EXPECT_EQ(one, ASL_mul_bits(N, width, minus_one, minus_one));
+    EXPECT_EQ(minus_one, ASL_mul_bits(N, width, one, minus_one));
+    EXPECT_EQ(zeros, ASL_mul_bits(N, width, one, zeros));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Ne)
 {
     EXPECT_TRUE(ASL_ne_bits(N, N, zeros, ones));
