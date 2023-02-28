@@ -32,11 +32,7 @@ ASL_bits_max_64()
 #define ASL_and_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_and_bits_, sizeof_x)(n, x, y)
 
-static inline ASL_bits64_t
-ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
-{
-        return x & y;
-}
+ASL_bits64_t ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 static inline int64_t
 ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
@@ -50,20 +46,12 @@ ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
 #define ASL_eor_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_eor_bits_, sizeof_x)(n, x, y)
 
-static inline ASL_bits64_t
-ASL_eor_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
-{
-        return x ^ y;
-}
+ASL_bits64_t ASL_eor_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 #define ASL_eq_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_eq_bits_, sizeof_x)(n, x, y)
 
-static inline bool
-ASL_eq_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
-{
-        return x == y;
-}
+bool ASL_eq_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 #define ASL_lsl_bits(sizeof_x, n, x, d) \
         ASL_CC(ASL_lsl_bits_, sizeof_x)(n, x, d)
@@ -73,11 +61,7 @@ ASL_bits64_t ASL_lsl_bits_64(int width, ASL_bits64_t x, int d);
 #define ASL_lsr_bits(sizeof_x, n, x, d) \
         ASL_CC(ASL_lsr_bits_, sizeof_x)(n, x, d)
 
-static inline ASL_bits64_t
-ASL_lsr_bits_64(int width, ASL_bits64_t x, int d)
-{
-        return x >> d;
-}
+ASL_bits64_t ASL_lsr_bits_64(int width, ASL_bits64_t x, int d);
 
 static inline ASL_bits64_t
 ASL_asr_bits(ASL_bits64_t x, int d)
@@ -106,29 +90,17 @@ ASL_bits64_t ASL_mk_mask_64(int w);
 #define ASL_ne_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_ne_bits_, sizeof_x)(n, x, y)
 
-static inline bool
-ASL_ne_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
-{
-        return x != y;
-}
+bool ASL_ne_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 #define ASL_not_bits(sizeof_x, n, x) \
         ASL_CC(ASL_not_bits_, sizeof_x)(n, x)
 
-static inline ASL_bits64_t
-ASL_not_bits_64(int width, ASL_bits64_t x)
-{
-        return ~x & ASL_mk_mask_64(width);
-}
+ASL_bits64_t ASL_not_bits_64(int width, ASL_bits64_t x);
 
 #define ASL_or_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_or_bits_, sizeof_x)(n, x, y)
 
-static inline ASL_bits64_t
-ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
-{
-        return x | y;
-}
+ASL_bits64_t ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 #define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \
         ASL_slice_lowd_##sizeof_x##_##sizeof_res((x), (lo), (width))
