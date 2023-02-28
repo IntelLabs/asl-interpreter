@@ -90,29 +90,35 @@ __builtin func asr_bits{N}(x : bits(N), i : integer) => bits(N);
 __builtin func mk_mask(w : integer, N : integer) => bits(N);
 
 func add_bits_int{N}(x : bits(N), y : integer) => bits(N)
+begin
     return add_bits(x, cvt_int_bits(y, N));
 end
 
 func sub_bits_int{N}(x : bits(N), y : integer) => bits(N)
+begin
     return sub_bits(x, cvt_int_bits(y, N));
 end
 
 func mul_bits_int{N}(x : bits(N), y : integer) => bits(N)
+begin
     return mul_bits(x, cvt_int_bits(y, N));
 end
 
 // Bit slice helper functions used in some backends
 func asl_extract_int(x : integer, lo : integer, W : integer) => bits(W)
+begin
     return x[lo +: W];
 end
 
 // Bit slice helper functions used in some backends
 func asl_extract_bits(x : bits(N), lo : integer, W : integer) => bits(W)
+begin
     return x[lo +: W];
 end
 
 // Bit slice helper functions used in some backends
 func asl_bits_set(x : bits(N), lo : integer, v : bits(W))
+begin
     x[lo +: W] = v;
 end
 
@@ -155,14 +161,17 @@ __builtin func ram_read(A : integer, N : integer, ram : __RAM(A), address : bits
 __builtin func ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N)) => ();
 
 func __InitRAM(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
+begin
     ram_init(A, N, ram, val);
 end
 
 func __ReadRAM(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N)
+begin
     return ram_read(A, N, ram, address);
 end
 
 func __WriteRAM(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N))
+begin
     ram_write(A, N, ram, address, val);
 end
 
@@ -201,10 +210,12 @@ __builtin func wakeup_request() => ();
 __builtin func program_end() => ();
 
 func putchar(c : integer)
+begin
     print_char(c);
 end
 
 func __abort()
+begin
     program_end();
 end
 
@@ -226,16 +237,19 @@ __operator2 <  = lt_int, lt_real;
 __operator2 >  = gt_int, gt_real;
 
 func eq_bits_int(x : bits(N), y : integer) => boolean
+begin
     return x == y[0 +: N];
 end
 
 __operator2 == = eq_bits_int; // workaround
 
 func shift_left_int(x : integer, y : integer) => integer
+begin
     return if y >= 0 then shl_int(x, y) else shr_int(x, -y);
 end
 
 func shift_right_int(x : integer, y : integer) => integer
+begin
     return if y >= 0 then shr_int(x, y) else shl_int(x, -y);
 end
 
@@ -243,10 +257,12 @@ __operator2 << = shift_left_int;
 __operator2 >> = shift_right_int;
 
 func IsPowerOfTwo(x : integer) => boolean
+begin
     return is_pow2_int(x);
 end
 
 func pow_int_int(x : integer, y : integer) => integer
+begin
     if x == 2 then
         return pow2_int(y); // optimized case
     else
@@ -260,6 +276,7 @@ func pow_int_int(x : integer, y : integer) => integer
 end
 
 func pow_real_int(x : real, y : integer) => real
+begin
     assert x == 2.0;
     return pow2_real(y);
 end
@@ -267,6 +284,7 @@ end
 __operator2 ^ = pow_int_int, pow_real_int;
 
 func frem_bits_int{N}(x : bits(N), y : integer) => integer
+begin
     assert y > 0;
     return frem_int(cvt_bits_uint(x), y);
 end
@@ -285,34 +303,42 @@ __operator2 EOR  = eor_bits;
 __operator1 NOT  = not_bits;
 
 func append_str_bool(x : string, y : boolean) => string
+begin
     return append_str_str(x, cvt_bool_str(y));
 end
 
 func append_bool_str(x : boolean, y : string) => string
+begin
     return append_str_str(cvt_bool_str(x), y);
 end
 
 func append_str_bits{N}(x : string, y : bits(N)) => string
+begin
     return append_str_str(x, cvt_bits_str(N, y));
 end
 
 func append_bits_str{N}(x : bits(N), y : string) => string
+begin
     return append_str_str(cvt_bits_str(N, x), y);
 end
 
 func append_str_real(x : string, y : real) => string
+begin
     return append_str_str(x, cvt_real_str(y));
 end
 
 func append_real_str(x : real, y : string) => string
+begin
     return append_str_str(cvt_real_str(x), y);
 end
 
 func append_str_int(x : string, y : integer) => string
+begin
     return append_str_str(x, cvt_int_decstr(y));
 end
 
 func append_int_str(x : integer, y : string) => string
+begin
     return append_str_str(cvt_int_decstr(x), y);
 end
 
@@ -323,18 +349,22 @@ __operator2 ++ = append_str_bits, append_bits_str;
 __operator2 ++ = append_str_int,  append_int_str;
 
 func IsUNDEFINED(x : __Exception) => boolean
+begin
     return is_undefined_exc(x);
 end
 
 func IsUNPREDICTABLE(x : __Exception) => boolean
+begin
     return is_unpred_exc(x);
 end
 
 func IsSEE(x : __Exception) => boolean
+begin
     return is_see_exc(x);
 end
 
 func IsExceptionTaken(x : __Exception) => boolean
+begin
     return is_exctaken_exc(x);
 end
 
@@ -344,32 +374,38 @@ end
 
 // Absolute value of an integer.
 func Abs(x : integer) => integer
+begin
     return if x >= 0 then x else -x;
 end
 
 // Convert a bitvector to an unsigned integer, where bit 0 is LSB.
 // This is the recommended way to convert a bit vector to an integer.
 func UInt{N}(x : bits(N)) => integer {0 .. 2^N-1}
+begin
     return cvt_bits_uint(x);
 end
 
 // Convert a 2s complement bitvector to a signed integer.
 func SInt{N}(x : bits(N)) => integer {-(2^(N-1)) .. 2^(N-1)-1}
+begin
     return cvt_bits_sint(x);
 end
 
 // Maximum of two integers.
 func Max(a : integer, b : integer) => integer
+begin
     return if a >= b then a else b;
 end
 
 // Minimum of two integers.
 func Min(a : integer, b : integer) => integer
+begin
     return if a <= b then a else b;
 end
 
 // Calculate the logarithm base 2 of the input. Input must be a power of 2.
 func Log2(a : integer) => integer
+begin
     assert IsPowerOfTwo(a);
     var r = 0;
     while a > 1 do
@@ -381,11 +417,13 @@ end
 
 // align down to nearest multiple of 2^y
 func AlignDown(x : integer, y : integer) => integer
+begin
     return align_int(x, y);
 end
 
 // align up to nearest multiple of 2^y
 func AlignUp(x : integer, y : integer) => integer
+begin
     return align_int(x + 2^y - 1, y);
 end
 
@@ -395,40 +433,48 @@ end
 
 // Convert integer to rational value.
 func Real(x : integer) => real
+begin
     return cvt_int_real(x);
 end
 
 // Nearest integer, rounding towards negative infinity.
 func RoundDown(x : real) => integer
+begin
     return round_down_real(x);
 end
 
 // Nearest integer, rounding towards positive infinity.
 func RoundUp(x : real) => integer
+begin
     return round_up_real(x);
 end
 
 // Nearest integer, rounding towards zero.
 func RoundTowardsZero(x : real) => integer
+begin
     return round_tozero_real(x);
 end
 
 // Absolute value.
 func Abs(x : real) => real
+begin
     return if x >= 0.0 then x else -x;
 end
 
 // Maximum of reals.
 func Max(a : real, b : real) => real
+begin
     return if a >= b then a else b;
 end
 
 // Minimum of reals.
 func Min(a : real, b : real) => real
+begin
     return if a <= b then a else b;
 end
 
 func Sqrt(x : real) => real
+begin
     return sqrt_real(x);
 end
 
@@ -438,37 +484,44 @@ end
 
 // Return the concatenation of 1 or more copies of a bitvector.
 func Replicate{M}(x : bits(M), N : integer) => bits(M*N)
+begin
     return replicate_bits(x, N);
 end
 
 // Return a bitvector consisting entirely of N '0' bits.
 func Zeros(N : integer) => bits(N)
+begin
     return zeros_bits(N);
 end
 
 // Return a bitvector consisting entirely of '1' bits.
 func Ones(N : integer) => bits(N)
+begin
     return ones_bits(N);
 end
 
 // Return true if bitvector consists entirely of '0' bits.
 func IsZero{N}(x : bits(N)) => boolean
+begin
     return x == Zeros(N);
 end
 
 // Return true if bitvector consists entirely of '1' bits.
 func IsOnes{N}(x : bits(N)) => boolean
+begin
     return x == Ones(N);
 end
 
 // Zero-extend a bitvector to the same or a wider width.
 func ZeroExtend{M}(x : bits(M), N : integer) => bits(N)
+begin
     assert N >= M;
     return [Zeros(N-M), x];
 end
 
 // Sign-extend a bitvector (treated as 2s complement) to the same or a wider width.
 func SignExtend{M}(x : bits(M), N : integer) => bits(N)
+begin
     assert N >= M;
     let sign = x[M-1];
     return [Replicate(sign, N-M), x];
@@ -478,16 +531,19 @@ end
 // The output width might be narrower than the input, in which case the
 // function is equivalent to a bit slice.
 func Extend{M}(x : bits(M), N : integer, unsigned : boolean) => bits(N)
+begin
     assert N >= M;
     return (if unsigned then ZeroExtend(x, N) else SignExtend(x, N));
 end
 
 // Return the width of a bitvector argument, without regard to its value.
 func Len{N}(x : bits(N)) => integer {N}
+begin
     return N;
 end
 
 func SignedSat(x : integer, N : integer) => bits(N)
+begin
     let r = if x >= 2^(N-1) then 2^(N-1) - 1
             elsif x < - 2^(N-1) then - 2^(N-1)
             else x;
@@ -495,6 +551,7 @@ func SignedSat(x : integer, N : integer) => bits(N)
 end
 
 func UnsignedSat(x : integer, N : integer) => bits(N)
+begin
     let r = if x >= 2^N then 2^N - 1
             elsif x < 0 then 0
             else x;
@@ -502,11 +559,13 @@ func UnsignedSat(x : integer, N : integer) => bits(N)
 end
 
 func Sat(x : integer, N : integer, unsigned : boolean) => bits(N)
+begin
     return (if unsigned then UnsignedSat(x, N) else SignedSat(x, N));
 end
 
 // Count the number of 1 bits in a bitvector.
 func BitCount(x : bits(N)) => integer {0 .. N}
+begin
     var result : integer = 0;
     for i = 0 to N-1 do
         if x[i] == '1' then
@@ -519,6 +578,7 @@ end
 // Position of the lowest 1 bit in a bitvector.
 // If the bitvector is entirely zero, return the width.
 func LowestSetBit(x : bits(N)) => integer {0 .. N}
+begin
     for i = 0 to N-1 do
         if x[i] == '1' then
             return i;
@@ -530,6 +590,7 @@ end
 // Position of the highest 1 bit in a bitvector.
 // If the bitvector is entirely zero, return -1
 func HighestSetBit(x : bits(N)) => integer {-1 .. N-1}
+begin
     for i = N-1 downto 0 do
         if x[i] == '1' then
             return i;
@@ -540,17 +601,20 @@ end
 
 // Leading zero bits in a bitvector.
 func CountLeadingZeroBits(x : bits(N)) => integer {0 .. N}
+begin
     return N - 1 - HighestSetBit(x);
 end
 
 // Leading sign bits in a bitvector. Count the number of consecutive
 // bits following the leading bit, that are equal to it.
 func CountLeadingSignBits(x : bits(N)) => integer {0 .. N}
+begin
     return CountLeadingZeroBits(x[N-1:1] EOR x[N-2:0]);
 end
 
 // Treating input as an integer, align down to nearest multiple of 2^y.
 func AlignDown{N}(x : bits(N), y : integer) => bits(N)
+begin
     var result = x;
     result[y-1:0] = Zeros(y);
     return result;
@@ -559,6 +623,7 @@ end
 // Treating input as an integer, align up to nearest multiple of 2^y.
 // Returns zero if the result is not representable in N bits.
 func AlignUp{N}(x : bits(N), y : integer) => bits(N)
+begin
     if IsZero(x[y-1:0]) then
         return x;
     else
@@ -568,23 +633,27 @@ end
 
 // Logical left shift
 func ShiftLeft(x : bits(N), distance : integer) => bits(N)
+begin
     assert distance IN {0 .. N-1};
     return lsl_bits(x, distance);
 end
 
 // Logical right shift, shifting zeroes into higher bits.
 func ShiftRightLogical(x : bits(N), distance : integer) => bits(N)
+begin
     assert distance IN {0 .. N-1};
     return lsr_bits(x, distance);
 end
 
 // Arithmetic right shift, shifting sign bits into higher bits.
 func ShiftRightArithmetic(x : bits(N), distance : integer) => bits(N)
+begin
     assert distance IN {0 .. N-1};
     return asr_bits(x, distance);
 end
 
 func ParityEven(x : bits(N)) => boolean
+begin
     var r : bit = '0';
     for i = 0 to N - 1 do
         r = r EOR x[i];
@@ -599,44 +668,53 @@ end
 // Print one or more arguments, to an implementation defined output channel.
 // This function is provided for diagnostics and does not form part of an architectural specification.
 func print{N}(x : bits(N))
+begin
     print_bits(x);
 end
 
 func print(x : string)
+begin
     print_str(x);
 end
 
 func println()
+begin
     print_char(10);
 end
 
 func println(x : string)
+begin
     print_str(x);
     print_char(10);
 end
 
 // Convert an integer to a decimal string, prefixing with '-' if negative.
 func DecStr(x : integer) => string
+begin
     return cvt_int_decstr(x);
 end
 
 func DecStr(x : bits(N)) => string
+begin
     return DecStr(cvt_bits_uint(x));
 end
 
 // Convert an integer to a hexadecimal string, prefixing with '-' if negative.
 // The exact format of the string is implementation defined.
 func HexStr(x : integer) => string
+begin
     return cvt_int_hexstr(x);
 end
 
 func HexStr(x : bits(N)) => string
+begin
     return HexStr(cvt_bits_uint(x));
 end
 
 // Unreachable() is used to indicate that part of a subprogram should be unreachable.
 // This can be used to guarantee termination of subprograms on error conditions.
 func Unreachable()
+begin
     assert FALSE;
 end
 
