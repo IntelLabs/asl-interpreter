@@ -177,6 +177,16 @@ let tests : unit Alcotest.test_case list =
      "
      (Some "DoesNotMatch(file \"\" line 7 char 10 - 20,type width parameter,5,10)")
      None;
+    test_static_error globals "type constants"
+     "func F{A}(A : integer) => boolean
+      begin
+        var B : integer;
+        B = A;
+        return Zeros(A) == Zeros(B);
+      end
+     "
+     (Some "DoesNotMatch(file \"\" line 5 char 8 - 36,type width parameter,A,B)")
+     None;
     test_static globals false "var decls"
       "func F(x : bits(8*N))
        begin
