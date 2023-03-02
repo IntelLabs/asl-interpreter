@@ -67,6 +67,13 @@ let split3 (xyzs : ('x * 'y * 'z) list) : ('x list * 'y list * 'z list) =
     xyzs
     ([], [], [])
 
+(** iter3 f [x1;x2;...] [y1;y2;...] [z1;z2;...] = f x1 y1 z1; f x2 y2 z2; ... *)
+let rec iter3 (f : 'a -> 'b -> 'c -> unit) (xs : 'a list) (ys : 'b list) (zs : 'c list) =
+  ( match (xs, ys, zs) with
+  | ([], [], []) -> ()
+  | (x :: xs, y :: ys, z :: zs) -> f x y z; iter3 f xs ys zs
+  | _ -> failwith "iter3 with mismatched lengths"
+  )
 
 (****************************************************************
  * Option related
