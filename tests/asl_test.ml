@@ -175,7 +175,7 @@ let tests : unit Alcotest.test_case list =
           F(5, src);
       end
      "
-     (Some "DoesNotMatch(file \"\" line 7 char 10 - 20,type width parameter,5,10)")
+     (Some "DoesNotMatch(file \"\" line 7 char 10 - 20,type width parameter,10,5)")
      None;
     test_static_error globals "type constants"
      "func F{A}(A : integer) => boolean
@@ -185,8 +185,45 @@ let tests : unit Alcotest.test_case list =
         return Zeros(A) == Zeros(B);
       end
      "
-     (Some "DoesNotMatch(file \"\" line 5 char 8 - 36,type width parameter,A,B)")
+     (Some "DoesNotMatch(file \"\" line 5 char 8 - 36,type width parameter,B,A)")
      None;
+    test_static_error globals "unsynthesizable parameters"
+     (* parameters cannot be synthesized for this type *)
+     "func F1(x : bits(8*N));
+      func T()
+      begin
+          F1(Zeros(16));
+      end
+     "
+     (Some "TypeError(file \"\" line 4 char 10 - 24,unable to synthesize type parameter N)")
+     None;
+    test_static globals false "parameter synthesis 1"
+      (* parameters can be synthesized from explicit argument values *)
+      "func F(N : integer, x : bits(8*N));
+       func T() => integer
+       begin
+           F(2, Zeros(16));
+           return 0;
+       end
+      " "0";
+    test_static globals false "parameter synthesis 2"
+      (* order of parameters should not affect synthesis *)
+      "func F(x : bits(8*N), N : integer);
+       func T() => integer
+       begin
+           F(Zeros(16), 2);
+           return 0;
+       end
+      " "0";
+    test_static globals false "parameter synthesis 3"
+      (* parameters can be synthesized from the type of actual arguments *)
+      "func F(x : bits(8*N), y : bits(N));
+       func T() => integer
+       begin
+           F(Zeros(16), '00');
+           return 0;
+       end
+      " "0";
     test_static globals false "var decls"
       "func F(x : bits(8*N))
        begin
