@@ -36,4 +36,4 @@ gtest_build_dir:
 $(TESTS_BIN): gtest $(OBJ_FILES)
 	$(info CXX     $(@F))
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJ_FILES) -L$(BUILD_DIR)/.. -lASL -L$(GTEST_BUILD_DIR)/lib -lgtest -lgtest_main -o $@
-	$(TESTS_BIN)
+	$(TESTS_BIN) --gtest_brief
