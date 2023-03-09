@@ -16,6 +16,7 @@ endif
 export DUNE_BUILD_DIR ?= $(CURDIR)/_build
 
 DUNE := dune
+OPAM := opam
 
 build::
 	$(DUNE) build
@@ -31,7 +32,7 @@ uninstall::
 
 publish::
 	$(DUNE) build @install
-	opam publish https://github.com/alastairreid/asl-interpreter/archive/$(VERSION).tar.gz
+	$(OPAM) publish https://github.com/alastairreid/asl-interpreter/archive/$(VERSION).tar.gz
 
 doc::
 	$(DUNE) build @doc-private
