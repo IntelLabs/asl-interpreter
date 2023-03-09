@@ -3,7 +3,7 @@
 BUILD_DIR ?= $(CURDIR)/build
 LIB := $(BUILD_DIR)/libASL.a
 
-default: $(LIB) test
+default: $(LIB)
 
 CC = gcc
 CPPFLAGS = -Iinclude
