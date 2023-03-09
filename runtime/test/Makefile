@@ -5,10 +5,9 @@ CMAKE = cmake
 GTEST_DIR = ../external/googletest
 GTEST_BUILD_DIR = $(BUILD_DIR)/gtest
 OBJ_DIR = $(BUILD_DIR)/obj
+TESTS_BIN = $(BUILD_DIR)/tests
 
-TARGET = $(BUILD_DIR)/tests
-
-default: $(TARGET)
+default: $(TESTS_BIN)
 
 CXX = g++
 CPPFLAGS = -I$(GTEST_DIR)/googletest/include -I../include
@@ -34,7 +33,7 @@ gtest: | gtest_build_dir
 gtest_build_dir:
 	mkdir -p $(GTEST_BUILD_DIR)
 
-$(TARGET): gtest $(OBJ_FILES)
+$(TESTS_BIN): gtest $(OBJ_FILES)
 	$(info CXX     $(@F))
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJ_FILES) -L$(BUILD_DIR)/.. -lASL -L$(GTEST_BUILD_DIR)/lib -lgtest -lgtest_main -o $@
-	$(TARGET)
+	$(TESTS_BIN)
