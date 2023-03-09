@@ -15,29 +15,31 @@ endif
 
 export DUNE_BUILD_DIR ?= $(CURDIR)/_build
 
+DUNE := dune
+
 build::
-	dune build
+	$(DUNE) build
 	$(MAKE) -C runtime BUILD_DIR=$(DUNE_BUILD_DIR)/runtime
 
 install::
-	dune build @install
-	dune install
+	$(DUNE) build @install
+	$(DUNE) install
 
 uninstall::
-	dune build @install
-	dune uninstall
+	$(DUNE) build @install
+	$(DUNE) uninstall
 
 publish::
-	dune build @install
+	$(DUNE) build @install
 	opam publish https://github.com/alastairreid/asl-interpreter/archive/$(VERSION).tar.gz
 
 doc::
-	dune build @doc-private
+	$(DUNE) build @doc-private
 	@echo Documentation is in _build/default/_doc/_html/libASL*/LibASL/index.html
 
 clean::
 	$(RM) *~
-	dune clean
+	$(DUNE) clean
 
 ################################################################
 # End
