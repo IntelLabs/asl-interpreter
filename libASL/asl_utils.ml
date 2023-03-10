@@ -1076,6 +1076,13 @@ let mk_or (x : AST.expr) (y : AST.expr) : AST.expr =
   else if y = asl_false then x
   else mk_binop "or_bool" [] x y
 
+(** Construct "x --> y" *)
+let mk_implies (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = asl_false then asl_true
+  else if x = asl_true then y
+  else if y = asl_false then mk_not x
+  else mk_binop "implies_bool" [] x y
+
 (** Construct "eq_enum(x, y)" *)
 let mk_eq_enum (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "eq_enum" [] x y
 

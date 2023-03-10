@@ -363,6 +363,9 @@ val mk_and : AST.expr -> AST.expr -> AST.expr
 (** Construct "x || y" *)
 val mk_or : AST.expr -> AST.expr -> AST.expr
 
+(** Construct "x --> y" *)
+val mk_implies : AST.expr -> AST.expr -> AST.expr
+
 (** Construct "eq_enum(x, y)" *)
 val mk_eq_enum : AST.expr -> AST.expr -> AST.expr
 
