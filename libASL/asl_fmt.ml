@@ -296,7 +296,7 @@ let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
       parens fmt (fun _ -> expr fmt n)
   | Type_Constructor (tc, es) ->
       tycon fmt tc;
-      if not (Utils.is_null es) then parens fmt (fun _ -> exprs fmt es)
+      if not (Utils.is_empty es) then parens fmt (fun _ -> exprs fmt es)
   | Type_OfExpr e ->
       kw_typeof fmt;
       parens fmt (fun _ -> expr fmt e)
@@ -405,7 +405,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       brackets fmt (fun _ -> slices fmt ss)
   | Expr_RecordInit (tc, tes, fas) ->
       tycon fmt tc;
-      if not (Utils.is_null tes) then parens fmt (fun _ -> exprs fmt tes);
+      if not (Utils.is_empty tes) then parens fmt (fun _ -> exprs fmt tes);
       braces fmt (fun _ -> commasep fmt (field_assignment fmt) fas)
   | Expr_In (e, p) ->
       expr fmt e;
@@ -836,7 +836,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_record fmt;
           nbsp fmt;
           tycon fmt tc;
-          (if not (Utils.is_null ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
+          (if not (Utils.is_empty ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
@@ -856,7 +856,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           kw_type fmt;
           nbsp fmt;
           tycon fmt tc;
-          (if not (Utils.is_null ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
+          (if not (Utils.is_empty ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
           nbsp fmt;
           kw_of fmt;
           nbsp fmt;

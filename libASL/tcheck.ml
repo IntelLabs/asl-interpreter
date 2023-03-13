@@ -2121,7 +2121,7 @@ let tc_arguments (env : Env.t) (loc : AST.l)
     |> removeConsts (Env.globals env)
   in
   let ps =
-    if Utils.is_null ps then
+    if Utils.is_empty ps then
       (* If no parameter list was supplied, use freevars from arg/return type *)
       List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
     else

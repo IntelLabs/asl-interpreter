@@ -29,7 +29,7 @@ let to_file (filename : string) (pp : Format.formatter -> unit) : unit =
  * List related
  ****************************************************************)
 
-let is_null (xs : 'a list) : bool = match xs with [] -> true | _ -> false
+let is_empty (xs : 'a list) : bool = match xs with [] -> true | _ -> false
 
 let nub (xs : 'a list) : 'a list =
   let rec nub_aux seen xs =
