@@ -425,10 +425,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       (* TODO determine correct type width. For now use uint64. *)
       make_cast fmt (fun _ -> kw_uint64 fmt) (fun _ -> expr loc fmt x)
   | FIdent ("cvt_int_bits", _), [ x; n ] ->
-      make_binop fmt
-        (fun _ -> amp fmt)
-        (fun _ -> expr loc fmt x)
-        (fun _ -> mask_int loc fmt n)
+      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: [ x ])
   | FIdent ("eor_bits", _), _
   | FIdent ("eq_bits", _), _ ->
       let n = List.hd tes in

@@ -25,6 +25,14 @@ TEST_F(Bits64, And)
     EXPECT_EQ(zeros, ASL_and_bits_64(64, zeros,  ones));
 }
 
+TEST_F(Bits64, CvtIntBits)
+{
+    int width = 3;
+
+    EXPECT_EQ(6ULL, ASL_cvt_int_bits_64(width, 14LL));
+    EXPECT_EQ(6ULL, ASL_cvt_int_bits_64(width, -2LL));
+}
+
 TEST_F(Bits64, Eor)
 {
     EXPECT_EQ(zeros, ASL_eor_bits_64(64, zeros, zeros));

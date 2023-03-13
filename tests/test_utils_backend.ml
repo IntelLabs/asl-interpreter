@@ -102,6 +102,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' AND '0'; end" );
 
+    ( "built-in fun call (cvt_int_bits)",
+      [ Backend_C ], (* TODO fails for verilog: part-select on literal *)
+      "func F() => bits(1) return cvt_int_bits(1, 1); end" );
+
     ( "built-in fun call (eor_bits)",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' EOR '0'; end" );

@@ -1,5 +1,6 @@
 #define ASL_BITS_CHUNKS N >> 6
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
+#define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
 ASL_BITS_TYPE
 ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
@@ -7,6 +8,15 @@ ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
              x.v[i] &= y.v[i];
         return x;
+}
+
+ASL_BITS_TYPE
+ASL_cvt_int_bits(N, int width, ASL_INT_TYPE x)
+{
+        ASL_BITS_TYPE r;
+        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+             r.v[i] = x.v[i];
+        return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
 
 bool
@@ -57,3 +67,4 @@ ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 
 #undef ASL_BITS_CHUNKS
 #undef ASL_BITS_TYPE
+#undef ASL_INT_TYPE

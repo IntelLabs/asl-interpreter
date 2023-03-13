@@ -11,6 +11,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "asl/integer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,6 +44,11 @@ ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
            the subtraction borrows from higher bits making them 111..1 */
         return (x ^ mask) - mask;
 }
+
+#define ASL_cvt_int_bits(sizeof_x, n, x) \
+        ASL_CC(ASL_cvt_int_bits_, sizeof_x)(n, x)
+
+ASL_bits64_t ASL_cvt_int_bits_64(int width, ASL_int64_t x);
 
 #define ASL_eor_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_eor_bits_, sizeof_x)(n, x, y)
