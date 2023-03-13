@@ -103,6 +103,9 @@ let flatten_option (os : 'a option list) : 'a list =
 let filter_map2 (f : 'a -> 'b -> 'c option) (xs : 'a list) (ys : 'b list) : 'c list =
   List.map2 f xs ys |> flatten_option
 
+(* If any element of 'map f xs' is None, return None
+ * Otherwise, return 'map (Option.get . f) xs'
+ *)
 (* todo: give this a better name *)
 let flatten_map_option (f : 'a -> 'b option) (xs : 'a list) : 'b list option =
   let rec aux r xs =
