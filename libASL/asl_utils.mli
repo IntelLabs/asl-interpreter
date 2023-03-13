@@ -451,7 +451,7 @@ val tupleTypes : AST.ty -> AST.ty list
 (** Bitwidth of type (which is expected to be a bitvector) *)
 val width_of_type : AST.ty -> AST.expr option
 
-(** Find subprogram (function, procedure, getters and setters)
+(** Find declaration (type, function, procedure, getters and setters)
     definition by an identifier *)
 val find_decl : AST.ident -> AST.declaration list -> AST.declaration option
 
