@@ -225,7 +225,6 @@ let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AS
       else
         Env.addLocalVar loc env v i
   | (DeclItem_Tuple dis, VTuple is) ->
-      assert (List.length dis = List.length is);
       List.iter2 (add_decl_item_vars loc env is_const) dis is
   | (DeclItem_Tuple dis, _) ->
       raise
@@ -241,8 +240,7 @@ let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AS
 
 (** expand a type definition using type parameters *)
 let expand_type (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
-  assert (List.length ps = List.length es);
-  let bs = mk_bindings (zip_list ps es) in
+  let bs = mk_bindings (List.combine ps es) in
   subst_type bs ty
 
 (** Evaluate list of expressions *)
@@ -332,7 +330,6 @@ and eval_pattern (loc : l) (env : Env.t) (v : value) (x : AST.pattern) : bool =
   | Pat_Wildcard -> true
   | Pat_Tuple ps ->
       let vs = of_tuple loc v in
-      assert (List.length vs = List.length ps);
       List.for_all2 (eval_pattern loc env) vs ps
   | Pat_Set ps -> List.exists (eval_pattern loc env v) ps
   | Pat_Single e ->
@@ -500,7 +497,6 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
     ()
   | LExpr_Tuple ls ->
       let rs = of_tuple loc r in
-      assert (List.length ls = List.length rs);
       List.iter2 (eval_lexpr loc env) ls rs
   | LExpr_Array (l, i) ->
       let i' = eval_expr loc env i in
@@ -673,8 +669,6 @@ and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
           (fun _ ->
             raise (EvalError (loc, "Undeclared function " ^ pprint_ident f)))
       in
-      assert (List.length targs = List.length tvs);
-      assert (List.length args = List.length vs);
       Env.nestTop env (fun env' ->
           List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) targs tvs;
           List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) args vs;

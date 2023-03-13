@@ -61,7 +61,6 @@ class replaceTupleClass (tc : AST.ident option) =
         Visitor.ChangeTo (s :: ss)
 
       | Stmt_Assign (AST.LExpr_Tuple ls, AST.Expr_Tuple es, loc) ->
-        assert (List.length ls = List.length es);
         let ss = List.map2 (fun l e -> AST.Stmt_Assign (l, e, loc)) ls es in
         Visitor.ChangeTo ss
 

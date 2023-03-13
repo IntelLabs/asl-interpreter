@@ -44,7 +44,6 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                )
         )
       in
-      assert (List.length ps = List.length szs);
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
@@ -84,7 +83,6 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
         | Some (tvs, arg_names, _, _) -> (tvs, arg_names)
         | _ -> failwith "monomorphize_fun"
       in
-      assert (List.length tvs = List.length szs);
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2

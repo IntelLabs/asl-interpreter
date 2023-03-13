@@ -40,15 +40,6 @@ let nub (xs : 'a list) : 'a list =
   in
   nub_aux [] xs
 
-let zip_list (xs : 'a list) (ys : 'b list) : ('a * 'b) list =
-  List.map2 (fun x y -> (x, y)) xs ys
-
-let zipWithIndex (f : 'a -> int -> 'b) (xs : 'a list) : 'b list =
-  let rec aux i xs =
-    match xs with [] -> [] | y :: ys -> f y i :: aux (i + 1) ys
-  in
-  aux 0 xs
-
 (** init [x1; ... xn] = [x1; ... xn-1] *)
 let init (xs : 'a list) : 'a list =
   (* tail recursive helper function *)

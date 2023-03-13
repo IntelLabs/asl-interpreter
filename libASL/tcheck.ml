@@ -330,7 +330,7 @@ let expand_type (loc : AST.l) (ps : ident list) (ty : AST.ty) (es : expr list) :
   if List.length ps <> List.length es then begin
     raise (TypeError (loc, "wrong number of type parameters"))
   end;
-  let bs = mk_bindings (zip_list ps es) in
+  let bs = mk_bindings (List.combine ps es) in
   subst_type bs ty
 
 (** dereference typedef *)
@@ -1130,7 +1130,6 @@ let instantiate_fun (env : GlobalEnv.t) (u : unifier) (loc : AST.l)
   let fty' = mkfresh_funtype u fty in
 
   (* Add bindings for every explicit type argument *)
-  assert (List.length fty'.atys = List.length es);
   List.iter2
     (fun (v, _) e ->
       if List.mem_assoc v fty'.params then
@@ -1138,7 +1137,6 @@ let instantiate_fun (env : GlobalEnv.t) (u : unifier) (loc : AST.l)
     fty'.atys es;
 
   (* unify argument types *)
-  assert (List.length fty'.atys = List.length tys);
   List.iter2 (unify_type env loc u) (List.map snd fty'.atys) tys;
 
   fty'
@@ -1420,7 +1418,7 @@ and tc_expr (env : Env.t) (u : unifier) (loc : AST.l) (x : AST.expr) :
 
       (* add values of type parameters to environment *)
       let es' = List.map (check_expr env loc type_integer) es in
-      let s = mk_bindings (Utils.zip_list ps es') in
+      let s = mk_bindings (List.combine ps es') in
 
       (* typecheck each field of the record *)
       let fas' =
