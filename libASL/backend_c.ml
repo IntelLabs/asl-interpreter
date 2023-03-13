@@ -205,9 +205,6 @@ let c_int_width_64up_expr (loc : AST.l) (width : AST.expr) : AST.expr =
 let bits (fmt : PP.formatter) (width : int) : unit =
   asl_keyword fmt ("bits" ^ string_of_int (c_int_width_64up width) ^ "_t")
 
-let sint (fmt : PP.formatter) (width : int) : unit =
-  keyword fmt ("int" ^ string_of_int (c_int_width width) ^ "_t")
-
 (* Similar to width_of_type except that it also handles integers and new
    types *)
 let size_of_type (ty : AST.ty) : AST.expr option =
@@ -412,15 +409,8 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
              fun fmt -> FMTAST.funname fmt f ))
   (* Bitvector builtin functions *)
   | FIdent ("add_bits", _), _ -> binop loc fmt "+" args
-  | FIdent ("and_bits", _), _ ->
-      let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
-  | FIdent ("cvt_bits_sint", _), [ x ] -> (
-      let x_width = const_int_expr loc (List.hd tes) in
-      match x_width with
-      | 64 | 32 | 16 | 8 ->
-          make_cast fmt (fun _ -> sint fmt x_width) (fun _ -> expr loc fmt x)
-      | _ -> apply loc fmt (fun _ -> fn_extern fmt f) (args @ [ List.hd tes ]))
+  | FIdent ("and_bits", _), _
+  | FIdent ("cvt_bits_sint", _), _
   | FIdent ("cvt_bits_uint", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)

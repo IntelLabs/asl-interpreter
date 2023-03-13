@@ -36,14 +36,10 @@ ASL_bits_max_64()
 
 ASL_bits64_t ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
-static inline int64_t
-ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
-{
-        const uint64_t mask = 1ULL << (x_width - 1);
-        /* If the sign bit is 1 then, after XOR-ing,
-           the subtraction borrows from higher bits making them 111..1 */
-        return (x ^ mask) - mask;
-}
+#define ASL_cvt_bits_sint(sizeof_x, n, x) \
+        ASL_CC(ASL_cvt_bits_sint_, sizeof_x)(n, x)
+
+ASL_int64_t ASL_cvt_bits_sint_64(int width, ASL_bits64_t x);
 
 #define ASL_cvt_bits_uint(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_bits_uint_, sizeof_x)(n, x)

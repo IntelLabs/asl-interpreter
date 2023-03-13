@@ -11,6 +11,21 @@ ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_INT_TYPE
+ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
+{
+        bool sign_bit = ASL_lsr_bits(N, width, x, width - 1).v[0];
+        if (sign_bit) {
+                x = ASL_or_bits(N, N, x,
+                                ASL_not_bits(N, N, ASL_mk_mask(N, width)));
+        }
+
+        ASL_INT_TYPE r;
+        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+                r.v[i] = x.v[i];
+        return r;
+}
+
+ASL_INT_TYPE
 ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
 {
         ASL_INT_TYPE r;

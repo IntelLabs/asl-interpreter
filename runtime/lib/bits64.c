@@ -19,6 +19,15 @@ ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 }
 
 ASL_int64_t
+ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
+{
+        const uint64_t mask = 1ULL << (width - 1);
+        /* If the sign bit is 1 then, after XOR-ing,
+           the subtraction borrows from higher bits making them 111..1 */
+        return (x ^ mask) - mask;
+}
+
+ASL_int64_t
 ASL_cvt_bits_uint_64(int width, ASL_bits64_t x)
 {
         return x;

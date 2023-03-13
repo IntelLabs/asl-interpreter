@@ -6,7 +6,9 @@ class ASL_CC_INDIR(Bits, N) : public ::testing::Test {
  protected:
     ASL_BITS_TYPE zeros = ASL_zeros_bits(N, N);
     ASL_BITS_TYPE ones = ASL_bits_max(N);
+
     ASL_INT_TYPE minus_one = ASL_int_max(N);
+    ASL_INT_TYPE zero = ASL_int_zero(N);
 };
 
 TEST_F(ASL_CC_INDIR(Bits, N), And)
@@ -14,6 +16,15 @@ TEST_F(ASL_CC_INDIR(Bits, N), And)
     EXPECT_BITS_EQ(N, zeros, ASL_and_bits(N, N, zeros, zeros));
     EXPECT_BITS_EQ(N,  ones, ASL_and_bits(N, N,  ones,  ones));
     EXPECT_BITS_EQ(N, zeros, ASL_and_bits(N, N, zeros,  ones));
+}
+
+TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsSInt)
+{
+    int width = N - 1;
+    ASL_BITS_TYPE x = ASL_mk_mask(N, width);
+
+    EXPECT_BITS_EQ(N, minus_one, ASL_cvt_bits_sint(N, width, x));
+    EXPECT_BITS_EQ(N, zero, ASL_cvt_bits_sint(N, width, zeros));
 }
 
 TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsUInt)
