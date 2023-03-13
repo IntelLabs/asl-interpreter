@@ -18,6 +18,12 @@ ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
         return x & y;
 }
 
+ASL_int64_t
+ASL_cvt_bits_uint_64(int width, ASL_bits64_t x)
+{
+        return x;
+}
+
 ASL_bits64_t
 ASL_cvt_int_bits_64(int width, ASL_int64_t x)
 {

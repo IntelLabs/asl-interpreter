@@ -10,6 +10,15 @@ ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return x;
 }
 
+ASL_INT_TYPE
+ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
+{
+        ASL_INT_TYPE r;
+        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+             r.v[i] = x.v[i];
+        return r;
+}
+
 ASL_BITS_TYPE
 ASL_cvt_int_bits(N, int width, ASL_INT_TYPE x)
 {

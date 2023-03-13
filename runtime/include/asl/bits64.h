@@ -45,6 +45,11 @@ ASL_cvt_bits_sint(ASL_bits64_t x, int x_width)
         return (x ^ mask) - mask;
 }
 
+#define ASL_cvt_bits_uint(sizeof_x, n, x) \
+        ASL_CC(ASL_cvt_bits_uint_, sizeof_x)(n, x)
+
+ASL_int64_t ASL_cvt_bits_uint_64(int width, ASL_bits64_t x);
+
 #define ASL_cvt_int_bits(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_int_bits_, sizeof_x)(n, x)
 
