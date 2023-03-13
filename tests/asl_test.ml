@@ -132,61 +132,6 @@ let tests : unit Alcotest.test_case list =
       "type T of bits(32) { [ 31:16 ] hi, [15:0] lo };\n\
       \                      let t : T = 0x12345678[31:0];\n\
       \                     " "t.hi";
-    test_static_error globals "return type mismatch"
-      "func F(x : boolean) => integer begin return x; end"
-      (Some "DoesNotMatch(file \"\" line 1 char 37 - 46,type,integer,boolean)")
-      None;
-    test_static_error globals "#line directive"
-      "\n# 42 \"foobar.asl\"\nx == 0"
-      (Some "ParseError()") (Some "'foobar.asl' 42 0");
-    test_static_error globals "record initializer (missing field)"
-      "record R{ x : integer; y : integer; };
-      func T() => R begin return R{x=1, z=3}; end"
-      (Some "TypeError(file \"\" line 2 char 26 - 45,record initializer is missing fields y and/or has extra fields z)") None;
-    test_static_error globals "record initializer (parameterization error)"
-      "record R(M) { x : bits(M); };
-      func S4(r : R(4)) => bits(4) begin return r.x; end
-      func T() begin let t = S4(R{x='111'}); end"
-      (Some "TypeError(file \"\" line 3 char 21 - 44,wrong number of type parameters)") None;
-    test_static_error globals "function missing"
-      "func T() begin UndefinedFunction(); end"
-      (Some "UnknownObject(file \"\" line 1 char 15 - 35,procedure,UndefinedFunction)") None;
-    test_static_error globals "function type error (args)"
-      "func IntFunction(x : integer) begin end
-       func T() begin IntFunction(TRUE); end"
-      (Some "TypeError(file \"\" line 2 char 22 - 40,function arguments)") None;
-    test_static_error globals "var setter arg mismatch"
-      "setter A = value : integer;
-       func T() begin A = TRUE; end"
-      (Some "DoesNotMatch(file \"\" line 2 char 22 - 31,type,integer,boolean)")
-      None;
-    test_static_error globals "array setter arg mismatch"
-      "setter A[] = value : integer;
-       func T() begin A[] = TRUE; end"
-      (Some "DoesNotMatch(file \"\" line 2 char 22 - 33,type,integer,boolean)")
-      None;
-    test_static_error globals "type parameter - argument mismatch"
-     "func F{A}(A : integer, src : bits(A))
-      begin
-      end
-      func Test()
-      begin
-          let src = Zeros(10);
-          F(5, src);
-      end
-     "
-     (Some "DoesNotMatch(file \"\" line 7 char 10 - 20,type width parameter,10,5)")
-     None;
-    test_static_error globals "type constants"
-     "func F{A}(A : integer) => boolean
-      begin
-        var B : integer;
-        B = A;
-        return Zeros(A) == Zeros(B);
-      end
-     "
-     (Some "DoesNotMatch(file \"\" line 5 char 8 - 36,type width parameter,B,A)")
-     None;
     test_static_error globals "unsynthesizable parameters"
      (* parameters cannot be synthesized for this type *)
      "func F1(x : bits(8*N));

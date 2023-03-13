@@ -2,6 +2,7 @@
 # ASL Makefile
 #
 # Copyright Arm Limited (c) 2017-2019
+# Copyright Intel Inc (c) 2022-2023
 # SPDX-Licence-Identifier: BSD-3-Clause
 ################################################################
 
@@ -17,6 +18,7 @@ export DUNE_BUILD_DIR ?= $(CURDIR)/_build
 
 DUNE := dune
 OPAM := opam
+LIT := lit
 
 build::
 	$(DUNE) build
@@ -42,9 +44,18 @@ clean::
 	$(RM) *~
 	$(DUNE) clean
 
-test::
+test: dune_test
+test: runtime_test
+test: lit_test
+
+dune_test: build
 	$(DUNE) test
+
+runtime_test:
 	$(MAKE) -C runtime test BUILD_DIR=$(DUNE_BUILD_DIR)/runtime
+
+lit_test: build
+	env PATH="`pwd`/tests/scripts:${PATH}" ${LIT} tests/lit -v
 
 ################################################################
 # End

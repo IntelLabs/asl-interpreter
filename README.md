@@ -29,6 +29,8 @@ To build and run the ASL interpreter, you will need:
       * z3.4.7.1  - OCaml bindings for the Z3 SMT solver (exactly this version is required)
       * zarith    - OCaml multiprecision arithmetic library
 
+To develop the ASL interpreter, you will also need the LLVM lit and filecheck testing tools.
+
 ## License and contribution
 
 The software is provided under the [BSD-3-Clause licence](https://spdx.org/licenses/BSD-3-Clause.html).
@@ -114,6 +116,8 @@ Platform independent instructions:
     env CFLAGS="-I$HOME/homebrew/include/" LDFLAGS="-L$HOME/homebrew/lib/" opam install zarith
 
     eval `opam config env`
+
+    pip3 install lit filecheck # only needed for testing
 ```
 
 You also need to execute this command
