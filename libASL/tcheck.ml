@@ -151,6 +151,7 @@ let pp_varinfo (fmt : Format.formatter) (x : varinfo) : unit =
 (* Information about functions *)
 type funtype =
   { funname : AST.ident;
+    loc     : AST.l;
     isArray : bool;
     params  : (AST.ident * AST.ty option) list;
     atys    : (AST.ident * AST.ty) list;
@@ -159,18 +160,14 @@ type funtype =
   }
 
 let pp_funtype (fmt : formatter) (fty : funtype) : unit =
-  FMT.varname fmt fty.funname;
-  FMTUtils.nbsp fmt;
-  FMT.colon fmt;
-  FMTUtils.nbsp fmt;
-  FMTUtils.braces fmt (fun _ -> FMT.parameters fmt fty.params);
-  if fty.isArray then FMTUtils.brackets fmt (fun _ -> FMT.formals fmt fty.atys)
-  else FMTUtils.parens fmt (fun _ -> FMT.formals fmt fty.atys);
-  FMTUtils.nbsp fmt;
-  FMT.eq_gt fmt;
-  Format.pp_print_option (fun _ vty -> Format.fprintf fmt " = %a" FMT.ty vty) fmt fty.ovty;
-  FMTUtils.nbsp fmt;
-  FMT.ty fmt fty.rty
+  Format.fprintf fmt "%a%s : {%a}(%a)%a => %a @ %a"
+    FMT.varname fty.funname
+    (if fty.isArray then "[]" else "")
+    FMT.parameters fty.params
+    FMT.formals fty.atys
+    (Format.pp_print_option (fun fmt -> Format.fprintf fmt " = %a" FMT.ty)) fty.ovty
+    FMT.ty fty.rty
+    FMT.loc fty.loc
 
 module Operator1 = struct
   type t = AST.unop
@@ -1928,7 +1925,7 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        *)
       let tag = num_funs in
       let qid' = addTag qid tag in
-      let fty : funtype = { funname=qid'; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
+      let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
       GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
   | [ fty ] ->
@@ -1954,7 +1951,7 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        *)
       let tag = num_funs in
       let qid' = addTag qid tag in
-      let fty : funtype = { funname=qid'; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
+      let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
       GlobalEnv.addSetterFuns env qid (fty :: funs);
       fty
   | [ fty ] ->
