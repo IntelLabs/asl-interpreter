@@ -377,6 +377,8 @@ assignment_stmt:
     { Stmt_VarDecl(dis, i, Range($symbolstartpos, $endpos)) }
 | LET dis = decl_item EQ i = expr SEMICOLON
     { Stmt_ConstDecl(dis, i, Range($symbolstartpos, $endpos)) }
+| CONSTANT dis = decl_item EQ i = expr SEMICOLON
+    { Stmt_ConstDecl(dis, i, Range($symbolstartpos, $endpos)) }
 | l = lexpr EQ r = expr SEMICOLON
     { Stmt_Assign(l, r, Range($symbolstartpos, $endpos)) }
 

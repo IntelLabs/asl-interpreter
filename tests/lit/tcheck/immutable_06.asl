@@ -1,0 +1,9 @@
+// RUN: not %asli --nobanner %s | %decolor | FileCheck %s
+
+config CFG : integer = 1;
+
+func F(x : integer)
+begin
+    CFG = 2;
+// CHECK: Type error: assignment to immutable variable `CFG` declared at
+end
