@@ -75,7 +75,7 @@ let side_effect_tests : unit Alcotest.test_case list =
     ("increment function", `Quick, test_side_effects globals prelude
        "func T(x : integer) => integer begin return x + 1; end" "T" ([], [], ["add_int"], false));
     ("destructive increment function", `Quick, test_side_effects globals prelude
-       "func T(x : integer) => integer begin x = x + 1; return x; end" "T" ([], [], ["add_int"], false));
+       "func T(x : integer) => integer begin var y = x; y = y + 1; return y; end" "T" ([], [], ["add_int"], false));
     ("global read function", `Quick, test_side_effects globals prelude
        "var X : integer; func T() => integer begin return X; end" "T" (["X"], [], [], false));
     ("global write function", `Quick, test_side_effects globals prelude
@@ -122,7 +122,7 @@ let impure_function_tests : unit Alcotest.test_case list =
        func Id(x : integer) => integer begin return x; end
        func Len2(x : bits(N)) => integer begin return N; end
        func Inc(x : integer) => integer begin return x + 1; end
-       func Inc2(x : integer) => integer begin x = x + 1; return x; end
+       func Inc2(x : integer) => integer begin var y = x; y = y + 1; return y; end
        let K42 : integer = 42;
        var X : integer;
        func ReadConst() => integer begin return K42; end

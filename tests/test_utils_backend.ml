@@ -247,15 +247,15 @@ let test_cases_stmt : test_case list  =
 
     ( "assignment",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : integer, y : integer) begin x = y; end" );
+      "func F() begin var x : integer; x = 0; end" );
 
     ( "assignment to slice",
       [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(8)) begin x[4 +: 2] = '10'; end" );
+      "func F() begin var x : bits(8); x[4 +: 2] = '10'; end" );
 
     ( "assignment to field",
       [ Backend_C; Backend_Verilog ],
-      "record X { i : integer; }; func F(x : X) begin x.i = 0; end" );
+      "record X { i : integer; }; func F() begin var x : X; x.i = 0; end" );
 
     ( "assignment to wildcard",
       [ Backend_C ],
