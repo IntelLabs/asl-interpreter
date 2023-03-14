@@ -466,12 +466,12 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       raise
         (Unimplemented
            (loc, "string builtin function", fun fmt -> FMTAST.funname fmt f))
-  | FIdent ("print_bits", _), _
-  | FIdent ("print_char", _), [ _ ]
-  | FIdent ("print_str", _), _ ->
+  | FIdent ("print_bits", _), _ ->
       raise
         (Unimplemented
-           (loc, "print builtin function", fun fmt -> FMTAST.funname fmt f))
+           (loc, "print_bits builtin function", fun fmt -> FMTAST.funname fmt f))
+  | FIdent ("print_char", _), _
+  | FIdent ("print_str", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   (* RAM builtin functions *)
   | FIdent ("ram_init", _), [ a; n; ram; i ]
   | FIdent ("ram_read", _), [ a; n; ram; i ] ->
