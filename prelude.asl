@@ -73,7 +73,6 @@ __builtin func ne_bits{N}(x : bits(N), y : bits(N)) => boolean;
 __builtin func add_bits{N}(x : bits(N), y : bits(N)) => bits(N);
 __builtin func sub_bits{N}(x : bits(N), y : bits(N)) => bits(N);
 __builtin func mul_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func frem_bits_int{N}(x : bits(N), y : integer) => integer;
 __builtin func and_bits{N}(x : bits(N), y : bits(N)) => bits(N);
 __builtin func or_bits{N}(x : bits(N), y : bits(N)) => bits(N);
 __builtin func eor_bits{N}(x : bits(N), y : bits(N)) => bits(N);
