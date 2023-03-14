@@ -1929,8 +1929,16 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
       GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
   | [ fty ] ->
-      (* already defined *)
-      fty
+      if fty.loc <> loc then begin
+        (* already defined *)
+        let msg = Format.asprintf "function `%a` was previously defined at `%a`"
+                    FMT.funname qid
+                    FMT.loc fty.loc
+        in
+        raise (TypeError (loc, msg))
+      end else begin
+        fty
+      end
   | ftys ->
       (* internal error: multiple definitions *)
       failwith "addFunction"
