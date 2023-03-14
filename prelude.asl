@@ -117,9 +117,11 @@ begin
 end
 
 // Bit slice helper functions used in some backends
-func asl_bits_set(x : bits(N), lo : integer, v : bits(W))
+func asl_bits_set(x : bits(N), lo : integer, v : bits(W)) => bits(N)
 begin
-    x[lo +: W] = v;
+    var y = x;
+    y[lo +: W] = v;
+    return y;
 end
 
 __operator2 + = add_int, add_real, add_bits, add_bits_int;
@@ -407,9 +409,10 @@ end
 func Log2(a : integer) => integer
 begin
     assert IsPowerOfTwo(a);
+    var b = a;
     var r = 0;
-    while a > 1 do
-       a = a DIV 2;
+    while b > 1 do
+       b = b DIV 2;
        r = r + 1;
     end
     return r;
