@@ -715,6 +715,8 @@ end
 // This can be used to guarantee termination of subprograms on error conditions.
 func Unreachable()
 begin
+    println("Unreachable() function called.");
+    println("This should be impossible - report a bug in the specification");
     assert FALSE;
 end
 
