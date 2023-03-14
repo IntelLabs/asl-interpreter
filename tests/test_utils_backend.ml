@@ -102,6 +102,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) return '1' AND '0'; end" );
 
+    ( "built-in fun call (asr_bits)",
+      [ Backend_C ],
+      "func F() => bits(2) return asr_bits('10', 1); end" );
+
     ( "built-in fun call (cvt_bits_sint)",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer return cvt_bits_sint('1'); end" );

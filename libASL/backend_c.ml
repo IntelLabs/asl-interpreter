@@ -410,6 +410,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   (* Bitvector builtin functions *)
   | FIdent ("add_bits", _), _ -> binop loc fmt "+" args
   | FIdent ("and_bits", _), _
+  | FIdent ("asr_bits", _), _
   | FIdent ("cvt_bits_sint", _), _
   | FIdent ("cvt_bits_uint", _), _ ->
       let n = List.hd tes in
@@ -433,7 +434,6 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("lsr_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
-  | FIdent ("asr_bits", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("mul_bits", _), _ -> binop loc fmt "*" args
   | FIdent ("ne_bits", _), _
   | FIdent ("not_bits", _), _ ->

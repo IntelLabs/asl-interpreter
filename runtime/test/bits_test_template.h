@@ -18,6 +18,16 @@ TEST_F(ASL_CC_INDIR(Bits, N), And)
     EXPECT_BITS_EQ(N, zeros, ASL_and_bits(N, N, zeros,  ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Asr)
+{
+    int shift = 1;
+    int width = N - 1;
+    ASL_BITS_TYPE x = ASL_mk_mask(N, width);
+
+    EXPECT_BITS_EQ(N, zeros, ASL_asr_bits(N, width, zeros, shift));
+    EXPECT_BITS_EQ(N, x, ASL_asr_bits(N, width, x, shift));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsSInt)
 {
     int width = N - 1;

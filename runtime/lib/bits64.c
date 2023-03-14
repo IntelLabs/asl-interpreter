@@ -18,6 +18,20 @@ ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
         return x & y;
 }
 
+ASL_bits64_t
+ASL_asr_bits_64(int width, ASL_bits64_t x, int d)
+{
+        bool sign_bit = x >> (width - 1);
+        if (sign_bit) {
+                x = ASL_not_bits_64(width, x);
+                x = ASL_lsr_bits_64(width, x, d);
+                x = ASL_not_bits_64(width, x);
+        } else {
+                x = ASL_lsr_bits_64(width, x, d);
+        }
+        return x;
+}
+
 ASL_int64_t
 ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
 {

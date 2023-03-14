@@ -10,6 +10,20 @@ ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return x;
 }
 
+ASL_BITS_TYPE
+ASL_asr_bits(N, int width, ASL_BITS_TYPE x, int d)
+{
+        bool sign_bit = ASL_lsr_bits(N, width, x, width - 1).v[0];
+        if (sign_bit) {
+                x = ASL_not_bits(N, width, x);
+                x = ASL_lsr_bits(N, width, x, d);
+                x = ASL_not_bits(N, width, x);
+        } else {
+                x = ASL_lsr_bits(N, width, x, d);
+        }
+        return x;
+}
+
 ASL_INT_TYPE
 ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
 {

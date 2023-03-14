@@ -36,6 +36,11 @@ ASL_bits_max_64()
 
 ASL_bits64_t ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
+#define ASL_asr_bits(sizeof_x, n, x, d) \
+        ASL_CC(ASL_asr_bits_, sizeof_x)(n, x, d)
+
+ASL_bits64_t ASL_asr_bits_64(int width, ASL_bits64_t x, int d);
+
 #define ASL_cvt_bits_sint(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_bits_sint_, sizeof_x)(n, x)
 
@@ -70,16 +75,6 @@ ASL_bits64_t ASL_lsl_bits_64(int width, ASL_bits64_t x, int d);
         ASL_CC(ASL_lsr_bits_, sizeof_x)(n, x, d)
 
 ASL_bits64_t ASL_lsr_bits_64(int width, ASL_bits64_t x, int d);
-
-static inline ASL_bits64_t
-ASL_asr_bits(ASL_bits64_t x, int d)
-{
-        /* Note: it is implementation-defined whether this performs
-         * an arithmetic shift or a logical shift.
-         * On gcc, it performs an arithmetic shift.
-         */
-        return (ASL_bits64_t)(((int64_t) x) >> d);
-}
 
 static inline ASL_bits64_t
 ASL_replicate_bits(ASL_bits64_t x, int n, int x_width)
