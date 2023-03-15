@@ -331,12 +331,6 @@ let subst_consts_expr (env : GlobalEnv.t) (e : AST.expr) : AST.expr =
 let subst_consts_type (env : GlobalEnv.t) (ty : AST.ty) : AST.ty =
   subst_fun_type (GlobalEnv.getConstant env) ty
 
-let isConstant (env : GlobalEnv.t) (v : AST.ident) : bool =
-  GlobalEnv.getConstant env v <> None
-
-let removeConsts (env : GlobalEnv.t) (ids : IdentSet.t) : IdentSet.t =
-  IdentSet.filter (fun v -> not (isConstant env v)) ids
-
 (** expand a type definition using type parameters *)
 let expand_type (loc : AST.l) (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
   if List.length ps <> List.length es then begin
@@ -476,11 +470,22 @@ end = struct
     parent.modified <- IdentSet.union parent.modified child.modified;
     r
 
+  let rec search_var (env : GlobalEnv.t) (bss : varinfo Bindings.t list) (v : AST.ident) : varinfo option =
+    ( match bss with
+    | bs :: bss' -> orelse_option (Bindings.find_opt v bs) (fun _ -> search_var env bss' v)
+    | [] -> GlobalEnv.getGlobalVar env v
+    )
+
   let addLocalVar (env : t) (v : varinfo) : unit =
-    if GlobalEnv.getConstant env.globals v.varname <> None then
-      raise
-        (TypeError (v.loc, pprint_ident v.varname ^ " already declared as global constant"));
     (* Format.fprintf fmt "New local var %a : %a at %a\n" FMT.varname v.varname FMT.ty (ppp_type v.ty) FMT.loc v.loc; *)
+    Option.iter (fun (w : varinfo) ->
+        let msg = Format.asprintf "variable `%a` previously declared at `%a`"
+            FMT.varname v.varname
+            FMT.loc w.loc
+        in
+        raise (TypeError (v.loc, msg))
+      )
+      (search_var env.globals env.locals v.varname);
     (match env.locals with
     | bs :: bss -> env.locals <- Bindings.add v.varname v bs :: bss
     | [] -> raise (InternalError "addLocalVar")
@@ -489,13 +494,7 @@ end = struct
 
   let getVar (env : t) (v : AST.ident) : varinfo option =
     (* Format.fprintf fmt "Looking for variable %a\n" FMT.varname v; *)
-    let rec search (bss : varinfo Bindings.t list) : varinfo option =
-      ( match bss with
-      | bs :: bss' -> orelse_option (Bindings.find_opt v bs) (fun _ -> search bss')
-      | [] -> GlobalEnv.getGlobalVar env.globals v
-      )
-    in
-    search env.locals
+    search_var env.globals env.locals v
 
   let markModified (env : t) (v : AST.ident) : unit =
     env.modified <- IdentSet.add v env.modified
@@ -1868,42 +1867,74 @@ let tc_body = tc_stmts
 let tc_parameter (env : Env.t) (loc : AST.l)
     ((arg, oty) : AST.ident * AST.ty option) : AST.ident * AST.ty option =
   let ty' =
-    match oty with None -> type_integer | Some ty -> tc_type env loc ty
+    ( match oty with
+    | None -> type_integer
+    | Some ty -> tc_type env loc ty
+    )
   in
   Env.addLocalVar env {varname=arg; loc; ty=ty'; is_local=true; is_constant=true};
   (arg, Some ty')
 
 (** Typecheck function argument *)
-let tc_argument (env : Env.t) (loc : AST.l) ((arg, ty) : AST.ident * AST.ty) :
-    AST.ident * AST.ty =
+let tc_argument
+    (env : Env.t)
+    (loc : AST.l)
+    (ps : (AST.ident * AST.ty option) list)
+    ((arg, ty) : AST.ident * AST.ty)
+  : AST.ident * AST.ty
+  =
   let ty' = tc_type env loc ty in
-  Env.addLocalVar env {varname=arg; loc; ty=ty'; is_local=true; is_constant=true};
+  if not (List.mem_assoc arg ps) then begin
+    (* add to scope if it is not a parameter *)
+    Env.addLocalVar env {varname=arg; loc; ty=ty'; is_local=true; is_constant=true}
+  end;
   (arg, ty')
 
 (** Typecheck list of function arguments *)
-let tc_arguments (env : Env.t) (loc : AST.l)
-    (ps : (AST.ident * AST.ty option) list) (args : (AST.ident * AST.ty) list)
-    (rty : AST.ty) :
-    (AST.ident * AST.ty option) list * (AST.ident * AST.ty) list * AST.ty =
-  let fvs =
-    IdentSet.union (fv_args args) (fv_type rty)
-    |> removeConsts (Env.globals env)
+let tc_arguments
+    (env : Env.t)
+    (loc : AST.l)
+    (ps : (AST.ident * AST.ty option) list)
+    (args : (AST.ident * AST.ty) list)
+    (rty : AST.ty)
+    : (AST.ident * AST.ty option) list * (AST.ident * AST.ty) list * AST.ty
+  =
+  let globals = Env.globals env in
+  let is_not_global (x : AST.ident) = Option.is_none (GlobalEnv.getGlobalVar globals x) in
+
+  (* The implicit type parameters are based on the free variables of the function type. *)
+  let argty_fvs = fv_args args |> IdentSet.filter is_not_global in
+  let rty_fvs = fv_type rty |> IdentSet.filter is_not_global in
+
+  (* Type parameters in the return type cannot be synthesized directly
+   * and must either be an explicit parameter of the function or
+   * a free variable in one of the argument types.
+   *)
+  let unsynthesizable = (IdentSet.diff rty_fvs argty_fvs)
+                      |> IdentSet.filter (fun v -> not (List.mem_assoc v args))
   in
-  let ps =
-    if Utils.is_empty ps then
-      (* If no parameter list was supplied, use freevars from arg/return type *)
-      List.map (fun v -> (v, Some type_integer)) (Asl_utils.to_sorted_list fvs)
-    else
-      (* If parameter list was supplied, add any arguments if they are in
-         freevar list but not already in the parameter list *)
-      let extra = List.filter (fun (v, ty) -> IdentSet.mem v fvs) args in
-      let pnames = List.map (fun (v, oty) -> v) ps in
-      let extra = List.filter (fun (v, ty) -> not (List.mem v pnames)) extra in
-      let extra = List.map (fun (v, ty) -> (v, Some ty)) extra in
-      List.append extra ps
+  if not (IdentSet.is_empty unsynthesizable) then begin
+    let msg = Format.asprintf "the width parameter(s) `%a` of the return type cannot be determined from the function arguments"
+                FMT.varnames (IdentSet.elements unsynthesizable)
+    in
+    raise (TypeError (loc, msg))
+  end;
+
+  (* todo: check that all explicit params occur in arg type *)
+
+  (* implicit parameters are sorted alphabetically for the sake of having a consistent order. *)
+  let implicit_parameters =
+    (IdentSet.union argty_fvs rty_fvs)
+    |> IdentSet.filter (fun v -> not (List.mem_assoc v ps))
+    |> Asl_utils.to_sorted_list
   in
-  let ps' = List.map (tc_parameter env loc) ps in
-  let args' = List.map (tc_argument env loc) args in
+
+  (* The type of any implicit parameters should match explicit argument if it exists *)
+  let typed_implicit_parameters = List.map (fun v -> (v, List.assoc_opt v args)) implicit_parameters in
+
+  (* Having inferred all the implicit parameters, we can finally typecheck the function type *)
+  let ps' = List.map (tc_parameter env loc) (ps @ typed_implicit_parameters) in
+  let args' = List.map (tc_argument env loc ps') args in
   let rty' = tc_type env loc rty in
   Env.setReturnType env rty';
   (ps', args', rty')
