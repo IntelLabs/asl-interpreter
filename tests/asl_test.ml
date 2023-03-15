@@ -184,17 +184,17 @@ let tests : unit Alcotest.test_case list =
            var b : bits(8*N) = Zeros(8*N);
            var c : bits(8*N);
            var d = UNKNOWN : bits(8*N);
-           var _ = 1;
+           var - = 1;
            var (f, g) = (1, TRUE);
            var (h : integer, i : boolean) = (1, TRUE);
-           var (j : integer, _ : boolean) = (1, TRUE);
+           var (j : integer, - : boolean) = (1, TRUE);
            var arr1 : array [8] of integer;
            var arr2 : array [boolean] of integer;
 
            let m : bits(8*N) = UNKNOWN : bits(8*N);
            let n : bits(8*N) = Zeros(8*N);
            let o = UNKNOWN : bits(8*N);
-           let _ = 1;
+           let - = 1;
            let (p, q) = (1, TRUE);
            let (r : integer, s : boolean) = (1, TRUE);
            let (t : integer, _ : boolean) = (1, TRUE);

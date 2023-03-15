@@ -106,12 +106,12 @@ let constprop_tests : unit Alcotest.test_case list =
        let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("for loop 4", `Quick, test_cp_stmts "var d : integer;"
+    ("for loop 4", `Quick, test_cp_stmts "var n : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;
        var x4 = 1;
-       for i = 0 to d do
+       for i = 0 to n do
            x3 = x2;
            x2 = x1;
            x1 = 1;
@@ -125,7 +125,7 @@ let constprop_tests : unit Alcotest.test_case list =
        var x2 = 0;
        var x3 = 0;
        var x4 = 1;
-       for i = 0 to d do
+       for i = 0 to n do
            x3 = x2;
            x2 = x1;
            x1 = 1;
@@ -178,12 +178,12 @@ let constprop_tests : unit Alcotest.test_case list =
        let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("while loop 4", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+    ("while loop 4", `Quick, test_cp_stmts "var i : integer; var n : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;
        var x4 = 1;
-       while i != d do
+       while i != n do
            x3 = x2;
            x2 = x1;
            x1 = 1;
@@ -197,7 +197,7 @@ let constprop_tests : unit Alcotest.test_case list =
        var x2 = 0;
        var x3 = 0;
        var x4 = 1;
-       while i != d do
+       while i != n do
            x3 = x2;
            x2 = x1;
            x1 = 1;
@@ -250,7 +250,7 @@ let constprop_tests : unit Alcotest.test_case list =
        let a : bits(2) = c;");
 
     (* This will trigger more than 2 fixpoint iterations *)
-    ("repeat loop 4", `Quick, test_cp_stmts "var i : integer; var d : integer;"
+    ("repeat loop 4", `Quick, test_cp_stmts "var i : integer; var n : integer;"
       "var x1 = 0;
        var x2 = 0;
        var x3 = 0;
@@ -260,7 +260,7 @@ let constprop_tests : unit Alcotest.test_case list =
            x2 = x1;
            x1 = 1;
            x4 = 1;
-       until i != d;
+       until i != n;
        let a = x1;
        let b = x2;
        let c = x3;
@@ -274,7 +274,7 @@ let constprop_tests : unit Alcotest.test_case list =
            x2 = x1;
            x1 = 1;
            x4 = 1;
-       until i != d;
+       until i != n;
        let a = x1;
        let b = x2;
        let c = x3;
