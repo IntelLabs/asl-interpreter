@@ -68,12 +68,17 @@ let test_xform_expr
     (f : AST.expr xform)
     (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
     (decls : string) (l : string) (r : string) () : unit =
-  let (tcenv, _) = extend_tcenv globals decls in
-  let l' = LoadASL.read_expr tcenv AST.Unknown l in
-  let r' = LoadASL.read_expr tcenv AST.Unknown r in
-  let x = f l' in
-  let what = l ^ "\n==>\n" ^ r in
-  Alcotest.check expr what r' x
+  try
+    let (tcenv, _) = extend_tcenv globals decls in
+    let l' = LoadASL.read_expr tcenv AST.Unknown l in
+    let r' = LoadASL.read_expr tcenv AST.Unknown r in
+    let x = f l' in
+    let what = l ^ "\n==>\n" ^ r in
+    Alcotest.check expr what r' x
+  with e ->
+    Error.print_exception e;
+    Alcotest.fail "exception during test"
+
 
 
 (** Test statement transforms *)
@@ -81,12 +86,16 @@ let test_xform_stmts
     (f : (AST.stmt list) xform)
     (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
     (decls : string) (l : string) (r : string) () : unit =
-  let (tcenv, _) = extend_tcenv globals decls in
-  let l' = LoadASL.read_stmts tcenv l in
-  let r' = LoadASL.read_stmts tcenv r in
-  let x = f l' in
-  let what = l ^ "\n==>\n" ^ r in
-  Alcotest.check stmts what r' x
+  try
+    let (tcenv, _) = extend_tcenv globals decls in
+    let l' = LoadASL.read_stmts tcenv l in
+    let r' = LoadASL.read_stmts tcenv r in
+    let x = f l' in
+    let what = l ^ "\n==>\n" ^ r in
+    Alcotest.check stmts what r' x
+  with e ->
+    Error.print_exception e;
+    Alcotest.fail "exception during test"
 
 (****************************************************************
  * End

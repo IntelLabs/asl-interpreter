@@ -404,12 +404,16 @@ let make_tests (b : backend) (test_fun : string -> string -> unit)
 let check_declaration (tcenv : TC.GlobalEnv.t)
     (decls : AST.declaration list -> unit)
     (check_ext : string -> string -> unit) (name : string) (s : string) : unit =
-  let tcenv = TC.GlobalEnv.clone tcenv in
-  let ds = LoadASL.read_declarations tcenv s in
-  Alcotest.(check pass) name () (decls ds);
+  try
+    let tcenv = TC.GlobalEnv.clone tcenv in
+    let ds = LoadASL.read_declarations tcenv s in
+    Alcotest.(check pass) name () (decls ds);
 
-  let s = Format.flush_str_formatter () in
-  check_ext name s
+    let s = Format.flush_str_formatter () in
+    check_ext name s
+  with e ->
+    Error.print_exception e;
+    Alcotest.fail "exception during test"
 
 let check_compiler
     (language : string)
