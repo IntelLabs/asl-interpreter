@@ -29,12 +29,6 @@ ASL_bits_256(uint64_t v3, uint64_t v2, uint64_t v1, uint64_t v0)
 }
 
 static inline ASL_bits256_t
-ASL_bits_zero_256()
-{
-        return ASL_bits_256(0, 0, 0, 0);
-}
-
-static inline ASL_bits256_t
 ASL_bits_max_256()
 {
         return ASL_bits_256(UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
@@ -61,6 +55,7 @@ ASL_bits256_t ASL_lsr_bits_256(int width, ASL_bits256_t x, int d);
 ASL_bits256_t ASL_slice_lowd_256_256(ASL_bits256_t x, int lo, int width);
 ASL_bits128_t ASL_slice_lowd_256_128(ASL_bits256_t x, int lo, int width);
 ASL_bits64_t ASL_slice_lowd_256_64(ASL_bits256_t x, int lo, int width);
+ASL_bits256_t ASL_zeros_bits_256(int width);
 
 #ifdef __cplusplus
 }

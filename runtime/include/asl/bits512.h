@@ -31,12 +31,6 @@ ASL_bits_512(uint64_t v7, uint64_t v6, uint64_t v5, uint64_t v4, uint64_t v3,
 }
 
 static inline ASL_bits512_t
-ASL_bits_zero_512()
-{
-        return ASL_bits_512(0, 0, 0, 0, 0, 0, 0, 0);
-}
-
-static inline ASL_bits512_t
 ASL_bits_max_512()
 {
         return ASL_bits_512(UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
@@ -71,6 +65,7 @@ ASL_bits512_t ASL_slice_lowd_512_512(ASL_bits512_t x, int lo, int width);
 ASL_bits256_t ASL_slice_lowd_512_256(ASL_bits512_t x, int lo, int width);
 ASL_bits128_t ASL_slice_lowd_512_128(ASL_bits512_t x, int lo, int width);
 ASL_bits64_t ASL_slice_lowd_512_64(ASL_bits512_t x, int lo, int width);
+ASL_bits512_t ASL_zeros_bits_512(int width);
 
 #ifdef __cplusplus
 }

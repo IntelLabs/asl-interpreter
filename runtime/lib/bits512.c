@@ -94,6 +94,12 @@ ASL_slice_lowd_512_64(ASL_bits512_t x, int lo, int width)
         return ASL_cast_bits_512_64(ASL_slice_lowd_512_512(x, lo, width));
 }
 
+ASL_bits512_t
+ASL_zeros_bits_512(int width)
+{
+        return ASL_bits_512(0, 0, 0, 0, 0, 0, 0, 0);
+}
+
 ////////////////////////////////////////////////////////////////
 // End
 ////////////////////////////////////////////////////////////////

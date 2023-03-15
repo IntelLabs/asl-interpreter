@@ -97,13 +97,15 @@ TEST_F(Bits64, Or)
     EXPECT_EQ( ones, ASL_or_bits_64(64, zeros,  ones));
 }
 
+TEST_F(Bits64, Zeros)
+{
+    EXPECT_EQ(0ULL, ASL_zeros_bits_64(3));
+}
+
 #define EXPECT_BITS_EQ(size, expected, actual) \
     for (int i = 0; i < (size / 64); ++i) {    \
         EXPECT_EQ(expected.v[i], actual.v[i]); \
     }
-
-#define ASL_bits_zero(sizeof_x) \
-        ASL_CC(ASL_bits_zero_, sizeof_x)()
 
 #define N 128
 #include "bits_test_template.h"
@@ -322,4 +324,22 @@ TEST_F(Bits512, MkMask)
 {
     EXPECT_BITS512_EQ(ASL_bits_512(0, 0, 0, 1, UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX),
                       ASL_mk_mask_512(1 + 256));
+}
+
+TEST_F(Bits128, Zeros)
+{
+    EXPECT_BITS128_EQ(ASL_bits_128(0, 0),
+                      ASL_zeros_bits_128(1 + 64));
+}
+
+TEST_F(Bits256, Zeros)
+{
+    EXPECT_BITS256_EQ(ASL_bits_256(0, 0, 0, 0),
+                      ASL_zeros_bits_256(1 + 128));
+}
+
+TEST_F(Bits512, Zeros)
+{
+    EXPECT_BITS512_EQ(ASL_bits_512(0, 0, 0, 0, 0, 0, 0, 0),
+                      ASL_zeros_bits_512(1 + 256));
 }

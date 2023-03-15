@@ -58,6 +58,12 @@ ASL_slice_lowd_128_64(ASL_bits128_t x, int lo, int width)
         return ASL_cast_bits_128_64(ASL_slice_lowd_128_128(x, lo, width));
 }
 
+ASL_bits128_t
+ASL_zeros_bits_128(int width)
+{
+        return ASL_bits_128(0, 0);
+}
+
 ////////////////////////////////////////////////////////////////
 // End
 ////////////////////////////////////////////////////////////////

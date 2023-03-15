@@ -141,6 +141,11 @@ ASL_slice_hilo_w(ASL_bits64_t val, ASL_bits64_t x, int hi, int lo)
         return (x & ~(ASL_mk_mask_64(hi - lo + 1) << lo)) | (val << lo);
 }
 
+#define ASL_zeros_bits(sizeof_x, n) \
+        ASL_CC(ASL_zeros_bits_, sizeof_x)(n)
+
+ASL_bits64_t ASL_zeros_bits_64(int width);
+
 #ifdef __cplusplus
 }
 #endif

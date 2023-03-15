@@ -4,7 +4,7 @@
 
 class ASL_CC_INDIR(Bits, N) : public ::testing::Test {
  protected:
-    ASL_BITS_TYPE zeros = ASL_bits_zero(N);
+    ASL_BITS_TYPE zeros = ASL_zeros_bits(N, N);
     ASL_BITS_TYPE ones = ASL_bits_max(N);
     ASL_INT_TYPE minus_one = ASL_int_max(N);
 };
