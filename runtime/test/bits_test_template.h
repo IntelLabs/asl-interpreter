@@ -63,6 +63,14 @@ TEST_F(ASL_CC_INDIR(Bits, N), Not)
     EXPECT_BITS_EQ(N, mask, ASL_not_bits(N, width, zeros));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Ones)
+{
+    int width = N - 1;
+    ASL_BITS_TYPE mask = ASL_mk_mask(N, width);
+
+    EXPECT_BITS_EQ(N, mask, ASL_ones_bits(N, width));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Or)
 {
     EXPECT_BITS_EQ(N, zeros, ASL_or_bits(N, N, zeros, zeros));

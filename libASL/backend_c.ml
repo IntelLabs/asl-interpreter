@@ -449,9 +449,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("not_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
-  | FIdent ("ones_bits", _), [] ->
-      let x = List.hd tes in
-      bitsLit fmt (String.make (const_int_expr loc x) '1')
+  | FIdent ("ones_bits", _), _ ->
+      let n = List.hd tes in
+      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: args)
   | FIdent ("or_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)

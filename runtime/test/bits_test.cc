@@ -90,6 +90,11 @@ TEST_F(Bits64, Not)
     EXPECT_EQ(mask, ASL_not_bits_64(width, zeros));
 }
 
+TEST_F(Bits64, Ones)
+{
+    EXPECT_EQ(7ULL, ASL_ones_bits_64(3));
+}
+
 TEST_F(Bits64, Or)
 {
     EXPECT_EQ(zeros, ASL_or_bits_64(64, zeros, zeros));

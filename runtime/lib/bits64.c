@@ -73,6 +73,12 @@ ASL_not_bits_64(int width, ASL_bits64_t x)
 }
 
 ASL_bits64_t
+ASL_ones_bits_64(int width)
+{
+        return ASL_mk_mask_64(width);
+}
+
+ASL_bits64_t
 ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
         return x | y;

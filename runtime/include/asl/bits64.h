@@ -109,6 +109,11 @@ bool ASL_ne_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 ASL_bits64_t ASL_not_bits_64(int width, ASL_bits64_t x);
 
+#define ASL_ones_bits(sizeof_x, n) \
+        ASL_CC(ASL_ones_bits_, sizeof_x)(n)
+
+ASL_bits64_t ASL_ones_bits_64(int width);
+
 #define ASL_or_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_or_bits_, sizeof_x)(n, x, y)
 

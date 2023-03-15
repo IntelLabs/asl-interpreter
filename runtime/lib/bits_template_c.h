@@ -67,6 +67,12 @@ ASL_not_bits(N, int width, ASL_BITS_TYPE x)
 }
 
 ASL_BITS_TYPE
+ASL_ones_bits(N, int width)
+{
+        return ASL_mk_mask(N, width);
+}
+
+ASL_BITS_TYPE
 ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
         for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
