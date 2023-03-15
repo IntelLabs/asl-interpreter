@@ -1329,6 +1329,19 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       let (_, ty) = tc_expr env loc e in
       ty
   | Type_Register (wd, fs) ->
+      (* check for duplicated fieldnames *)
+      let fieldnames = ref IdentSet.empty in
+      List.iter (fun (_, f) ->
+          if IdentSet.mem f !fieldnames then begin
+            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
+                FMT.fieldname f
+            in
+            raise (TypeError (loc, msg))
+          end;
+          fieldnames := IdentSet.add f !fieldnames
+        )
+        fs;
+
       let fs' =
         List.map
           (fun (ss, f) ->
@@ -2017,6 +2030,20 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_Record (qid, ps, fs, loc) ->
       let env' = Env.mkEnv env in
       List.iter (fun p -> Env.addLocalVar env' {varname=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
+
+      (* check for duplicated fieldnames *)
+      let fieldnames = ref IdentSet.empty in
+      List.iter (fun (f, _) ->
+          if IdentSet.mem f !fieldnames then begin
+            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
+                FMT.fieldname f
+            in
+            raise (TypeError (loc, msg))
+          end;
+          fieldnames := IdentSet.add f !fieldnames
+        )
+        fs;
+
       let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
       GlobalEnv.addType env loc qid (Type_Record (ps, fs'));
       [ Decl_Record (qid, ps, fs', loc) ]
