@@ -652,6 +652,18 @@ begin
     return asr_bits(x, distance);
 end
 
+func RotateLeft(x : bits(N), distance : integer) => bits(N)
+begin
+    assert distance IN {0 .. N-1};
+    return [x,x][(N-distance) +: N];
+end
+
+func RotateRight(x : bits(N), distance : integer) => bits(N)
+begin
+    assert distance IN {0 .. N-1};
+    return [x,x][distance +: N];
+end
+
 func ParityEven(x : bits(N)) => boolean
 begin
     var r : bit = '0';
