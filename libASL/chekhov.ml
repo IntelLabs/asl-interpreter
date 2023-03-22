@@ -182,7 +182,7 @@ let chekhovTracer
       | Some ix ->
         let b = match v with
             | VBits b -> b
-            | _ -> failwith ("chekhov trace: bits expected. Got " ^ Value.pp_value v)
+            | _ -> failwith ("chekhov trace: bits expected. Got " ^ Value.string_of_value v)
         in
         Out.write_register agent name ix b
      | None ->

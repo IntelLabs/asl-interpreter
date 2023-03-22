@@ -9,7 +9,7 @@ module AST = Asl_ast
 
 module Env : sig
   type t
-  val pp : t -> unit
+  val pp : Format.formatter -> t -> unit
 end
 
 val unroll_loops : bool ref

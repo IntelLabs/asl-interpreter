@@ -206,7 +206,7 @@ let const_int_expr (loc : AST.l) (x : AST.expr) : int =
       raise
         (Unimplemented
            ( loc,
-             "const_int_expr: integer expected '" ^ V.pp_value v ^ "'",
+             "const_int_expr: integer expected '" ^ V.string_of_value v ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
 
 let c_int_width (width : int) : int =

@@ -28,9 +28,10 @@ let add_bindings (bs : 'a Bindings.t) (xs : (ident * 'a) list) : 'a Bindings.t =
 let mk_bindings (xs : (ident * 'a) list) : 'a Bindings.t =
   add_bindings Bindings.empty xs
 
-(** print bindings *)
-let pp_bindings (pp : 'a -> string) (bs : 'a Bindings.t) : unit =
-  Bindings.iter (fun k v -> Printf.printf "%s: %s\n" (pprint_ident k) (pp v)) bs
+(** format bindings *)
+let pp_bindings (f : Format.formatter -> 'a -> unit) (fmt : Format.formatter) (bs : 'a Bindings.t) : unit =
+  Bindings.iter (fun k v -> Format.fprintf fmt "%a: %a\n" Asl_fmt.varname k f v) bs
+
 
 (****************************************************************)
 (** {2 Scopes}                                                  *)
@@ -40,10 +41,10 @@ let pp_bindings (pp : 'a -> string) (bs : 'a Bindings.t) : unit =
 module Scope = struct
   type 'a t = { mutable bs : 'a Bindings.t }
 
-  let pp (pp_value : 'a -> string) (s : 'a t) : unit =
-    Printf.printf "{\n";
-    pp_bindings pp_value s.bs;
-    Printf.printf "}\n"
+  let pp (f : Format.formatter -> 'a -> unit) (fmt : Format.formatter) (s : 'a t) : unit =
+    Format.fprintf fmt "{\n";
+    Format_utils.vbox fmt (fun _ -> pp_bindings f fmt s.bs);
+    Format.fprintf fmt "}\n"
 
   let empty () : 'a t =
     let bs = Bindings.empty in
@@ -83,8 +84,8 @@ end
 module ScopeStack = struct
   type 'a t = 'a Scope.t list
 
-  let pp (pp_value : 'a -> string) (ss : 'a t) : unit =
-    List.iter (Scope.pp pp_value) ss
+  let pp (pp_value : Format.formatter -> 'a -> unit) (fmt : Format.formatter) (ss : 'a t) : unit =
+    List.iter (Scope.pp pp_value fmt) ss
 
   let empty () : 'a t =
     let base : 'a Scope.t = Scope.empty () in

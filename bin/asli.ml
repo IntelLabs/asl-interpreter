@@ -134,7 +134,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
         let loc = mkLoc fname input in
         let e = LoadASL.read_expr tcenv loc input in
         let v = Eval.eval_expr loc cpu.env e in
-        print_endline (Value.pp_value v)
+        print_endline (Value.string_of_value v)
 
 and load_project (tcenv : TC.Env.t) (cpu : Cpu.cpu) (prj : string) : unit =
   let inchan = open_in prj in

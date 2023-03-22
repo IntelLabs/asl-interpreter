@@ -56,7 +56,7 @@ module GlobalEnv = struct
     mutable impdefs : value ImpDefs.t;
   }
 
-  let pp (env : t) : unit = Scope.pp pp_value env.constants
+  let pp (fmt : Format.formatter) (env : t) : unit = Scope.pp pp_value fmt env.constants
 
   let empty =
     {
@@ -203,18 +203,7 @@ module Env = struct
         Tracer.trace_var ~is_local:false ~is_read:false x v
     end
 
-  let pp (fmt : Format.formatter) (env : t) : unit =
-    List.iter
-      (fun bs ->
-        List.iter
-          (fun (k, v) ->
-            let fmt = Format.std_formatter in
-            Asl_fmt.varname fmt k;
-            Format.pp_print_string fmt " -> ";
-            Format.pp_print_string fmt (pp_value v);
-            Format.pp_print_string fmt ", ")
-          bs)
-      (ScopeStack.bindings env.locals)
+  let pp (fmt : Format.formatter) (env : t) : unit = ScopeStack.pp pp_value fmt env.locals
 end
 
 let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
@@ -230,7 +219,7 @@ let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AS
       raise
         (EvalError
            ( loc,
-             "add_decl_item_vars should be a tuple " ^ pp_value i))
+             "add_decl_item_vars should be a tuple " ^ string_of_value i))
   | (DeclItem_Wildcard _, _) ->
       ()
 

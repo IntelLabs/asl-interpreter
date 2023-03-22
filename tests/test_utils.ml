@@ -21,7 +21,7 @@ let load_test_libraries () : AST.declaration list =
  * Alcotest testable functions
  ****************************************************************)
 
-let format_value f v = Format.fprintf f "%s" (Value.pp_value v)
+let format_value f v = Format.fprintf f "%s" (Value.string_of_value v)
 
 let value = Alcotest.testable format_value ( = )
 

@@ -17,13 +17,13 @@ module type Lattice = sig
   val equal : t -> t -> bool
   val singleton : elt -> t
   val to_concrete : t -> elt option
-  val pp_concrete : elt -> string
-  val pp_abstract : t -> string
+  val pp_concrete : Format.formatter -> elt -> unit
+  val pp_abstract : Format.formatter -> t -> unit
 end
 
 module Const (Concrete : sig
   type t
-  val pp : t -> string
+  val pp : Format.formatter -> t -> unit
   val equal : t -> t -> bool
 end) =
 struct
@@ -70,16 +70,16 @@ struct
 
   let pp_concrete = Concrete.pp
 
-  let pp_abstract (x : t) : string =
+  let pp_abstract (fmt : Format.formatter) (x : t) : unit =
     match x with
-    | Bottom -> "bottom"
-    | Top -> "top"
-    | Singleton x -> pp_concrete x
+    | Bottom -> Format.pp_print_string fmt "bottom"
+    | Top -> Format.pp_print_string fmt "top"
+    | Singleton x -> pp_concrete fmt x
 end
 
 module Interval (Concrete : sig
   type t
-  val pp : t -> string
+  val pp : Format.formatter -> t -> unit
   val compare : t -> t -> int
 end) =
 struct
@@ -142,11 +142,13 @@ struct
 
   let pp_concrete = Concrete.pp
 
-  let pp_abstract (x : t) : string =
+  let pp_abstract (fmt : Format.formatter) (x : t) : unit =
     match x with
-    | All -> "all"
-    | Empty -> "empty"
-    | Range { lo; hi } -> pp_concrete lo ^ ".." ^ pp_concrete hi
+    | All -> Format.pp_print_string fmt "all"
+    | Empty -> Format.pp_print_string fmt "empty"
+    | Range { lo; hi } -> Format.fprintf fmt "%a..%a"
+                            pp_concrete lo
+                            pp_concrete hi
 end
 
 (*****************************************

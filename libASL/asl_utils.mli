@@ -26,7 +26,7 @@ val add_bindings : 'a Bindings.t -> (AST.ident * 'a) list -> 'a Bindings.t
 val mk_bindings : (AST.ident * 'a) list -> 'a Bindings.t
 
 (** print bindings *)
-val pp_bindings : ('a -> string) -> 'a Bindings.t -> unit
+val pp_bindings : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a Bindings.t -> unit
 
 (****************************************************************)
 (** {2 Scopes}                                                  *)
@@ -49,7 +49,7 @@ module Scope : sig
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
   val bindings : 'a t -> (AST.ident * 'a) list
-  val pp : ('a -> string) -> 'a t -> unit
+  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 end
 
 (* A collection of nested mutable scopes *)
@@ -71,7 +71,7 @@ module ScopeStack : sig
   val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
   val nest : 'a t -> ('a t -> 'b) -> 'b
   val bindings : 'a t -> (AST.ident * 'a) list list
-  val pp : ('a -> string) -> 'a t -> unit
+  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
   val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 end
 

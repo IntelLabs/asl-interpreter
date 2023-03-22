@@ -22,7 +22,7 @@ module GlobalEnv : sig
     (AST.ident list * AST.ident list * AST.l * AST.stmt list) option
 
   val set_impl_def : t -> string -> Value.value -> unit
-  val pp : t -> unit
+  val pp : Format.formatter -> t -> unit
 end
 
 (* global + local symbol table *)

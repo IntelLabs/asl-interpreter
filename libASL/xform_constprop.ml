@@ -26,11 +26,11 @@ module Env = struct
     mutable locals : Values.t ScopeStack.t;
   }
 
-  let pp (env : t) : unit =
-    Printf.printf "globals\n";
-    Eval.GlobalEnv.pp env.globalConsts;
-    Printf.printf "locals\n";
-    ScopeStack.pp Values.pp_abstract env.locals
+  let pp (fmt : Format.formatter) (env : t) : unit =
+    Format.fprintf fmt "globals\n";
+    Eval.GlobalEnv.pp fmt env.globalConsts;
+    Format.fprintf fmt "locals\n";
+    ScopeStack.pp Values.pp_abstract fmt env.locals
 
   let globals (env : t) : Eval.GlobalEnv.t = env.globalConsts
 

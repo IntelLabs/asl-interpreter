@@ -27,7 +27,8 @@ exception Return of value option
 exception EvalError of (AST.l * string)
 exception Throw of (AST.l * Primops.exc)
 
-val pp_value : value -> string
+val pp_value : Format.formatter -> value -> unit
+val string_of_value : value -> string
 val eq_value : value -> value -> bool
 
 val eval_prim : string -> value list -> value list -> value option
