@@ -275,7 +275,7 @@ mapfield =
 
 type
 catcher =
-   Catcher_Guarded of expr * stmt list * l
+   Catcher_Guarded of ident * ident * stmt list * l
 
 and stmt =
    Stmt_Block of stmt list * l
@@ -285,7 +285,7 @@ and stmt =
  | Stmt_FunReturn of expr * l (* function return *)
  | Stmt_ProcReturn of l (* procedure return *)
  | Stmt_Assert of expr * l (* assertion *)
- | Stmt_Throw of ident * l
+ | Stmt_Throw of expr * l
  | Stmt_TCall of ident * expr list * expr list * l (* procedure call with explicit type parameters *)
  | Stmt_VarDeclsNoInit of ident list * ty * l
  | Stmt_If of expr * stmt list * s_elsif list * (stmt list * l) * l
@@ -293,7 +293,7 @@ and stmt =
  | Stmt_For of ident * expr * direction * expr * stmt list * l
  | Stmt_While of expr * stmt list * l
  | Stmt_Repeat of stmt list * expr * pos * l
- | Stmt_Try of stmt list * ident * pos * catcher list * (stmt list * l) option * l
+ | Stmt_Try of stmt list * pos * catcher list * (stmt list * l) option * l
 
 and s_elsif =
    S_Elsif_Cond of expr * stmt list * l
@@ -306,6 +306,7 @@ declaration =
    Decl_BuiltinType of ident * l
  | Decl_Forward of ident * l
  | Decl_Record of ident * ident list * (ident * ty) list * l
+ | Decl_Exception of ident * (ident * ty) list * l
  | Decl_Typedef of ident * ident list * ty * l
  | Decl_Enum of ident * ident list * l
  | Decl_Var of ident * ty * l

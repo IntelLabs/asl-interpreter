@@ -411,9 +411,9 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt list =
     | Stmt_Assert (e, loc) ->
         let e' = visit_expr vis e in
         if e == e' then x else Stmt_Assert (e', loc)
-    | Stmt_Throw (v, loc) ->
-        let v' = visit_var vis Read v in
-        if v == v' then x else Stmt_Throw (v', loc)
+    | Stmt_Throw (e, loc) ->
+        let e' = visit_expr vis e in
+        if e == e' then x else Stmt_Throw (e', loc)
     | Stmt_Block (b, loc) ->
         let b' = visit_stmts vis b in
         if b == b' then x else Stmt_Block (b', loc)
@@ -445,17 +445,12 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt list =
         let b' = visit_stmts vis b in
         let c' = visit_expr vis c in
         if b == b' && c == c' then x else Stmt_Repeat (b', c', pos, loc)
-    | Stmt_Try (b, v, pos, cs, ob, loc) ->
+    | Stmt_Try (b, pos, cs, ob, loc) ->
         let b' = visit_stmts vis b in
-        let v' = visit_lvar vis v in
-        let cs' = mapNoCopy (with_locals vis [v] (visit_catcher vis)) cs in
-        let ob' =
-          mapOptionNoCopy
-            (fun (b, bl) -> (with_locals vis [v] (visit_stmts vis) b, bl))
-            ob
-        in
-        if b == b' && v == v' && cs == cs' && ob == ob' then x
-        else Stmt_Try (b', v', pos, cs', ob', loc)
+        let cs' = mapNoCopy (visit_catcher vis) cs in
+        let ob' = mapOptionNoCopy (fun (b, bl) -> (visit_stmts vis) b, bl) ob in
+        if b == b' && cs == cs' && ob == ob' then x
+        else Stmt_Try (b', pos, cs', ob', loc)
   in
   doVisitList vis (vis#vstmt x) aux x
 
@@ -484,10 +479,11 @@ and visit_alt (vis : aslVisitor) (x : alt) : alt =
 and visit_catcher (vis : aslVisitor) (x : catcher) : catcher =
   let aux (vis : aslVisitor) (x : catcher) : catcher =
     match x with
-    | Catcher_Guarded (c, b, loc) ->
-        let c' = visit_expr vis c in
-        let b' = visit_stmts vis b in
-        if c == c' && b == b' then x else Catcher_Guarded (c', b', loc)
+    | Catcher_Guarded (v, tc, b, loc) ->
+        let v' = visit_var vis Read v in
+        let tc' = visit_var vis Type tc in
+        let b' = with_locals vis [v] (visit_stmts vis) b in
+        if v == v' && tc == tc' && b == b' then x else Catcher_Guarded (v', tc', b', loc)
   in
   doVisit vis (vis#vcatcher x) aux x
 
@@ -537,6 +533,10 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
         let ps' = mapNoCopy (visit_var vis Definition) ps in
         let fs' = visit_args vis fs in
         if v == v' && ps == ps' && fs == fs' then x else Decl_Record (v', ps', fs', loc)
+    | Decl_Exception (v, fs, loc) ->
+        let v' = visit_var vis Definition v in
+        let fs' = visit_args vis fs in
+        if v == v' && fs == fs' then x else Decl_Exception (v', fs', loc)
     | Decl_Typedef (v, ps, ty, loc) ->
         let v' = visit_var vis Definition v in
         let ps' = mapNoCopy (visit_var vis Definition) ps in

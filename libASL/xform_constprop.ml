@@ -72,6 +72,9 @@ module Env = struct
   let proc_return (env : t) : unit =
     ScopeStack.map_inplace (Fun.const Values.top) env.locals
 
+  let throw (env : t) : unit =
+    ScopeStack.map_inplace (Fun.const Values.top) env.locals
+
   let addLocalVar (env : t) (x : ident) (v : Values.t) : unit =
     ScopeStack.add env.locals x v
 
@@ -89,6 +92,9 @@ module Env = struct
 
   let setVar (env : t) (x : ident) (v : Values.t) : unit =
     ignore (ScopeStack.set env.locals x v)
+
+  let mapLocals (env : t) (f : Values.t -> Values.t) : unit =
+    ScopeStack.map_inplace f env.locals
 end
 
 let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Value.value) list) : Env.t =
@@ -370,30 +376,10 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       (* todo: add 'e' to the environment *)
       (* todo: if e is false, dead code eliminate *)
       [ Stmt_Assert (e', loc) ]
-  (*
-    | Stmt_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_ConstrainedUnpred(loc) ->
-            raise (Throw (loc, Exc_ConstrainedUnpredictable))
-    | Stmt_ImpDef(v, loc) ->
-            raise (Throw (loc, Exc_ImpDefined (pprint_ident v)))
-    | Stmt_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_ExceptionTaken(loc) ->
-            raise (Throw (loc, Exc_ExceptionTaken))
-    | Stmt_Dep_Unpred(loc) ->
-            raise (Throw (loc, Exc_Unpredictable))
-    | Stmt_Dep_ImpDef(s, loc) ->
-            raise (Throw (loc, Exc_ImpDefined s))
-    | Stmt_Dep_Undefined(loc) ->
-            raise (Throw (loc, Exc_Undefined))
-    | Stmt_See(e, loc) ->
-            let s = to_string (xform_expr env e) in
-            raise (Throw (loc, Exc_SEE s))
-    | Stmt_Throw(v, loc) ->
-            let ex = to_exc (Env.getVar env v) in
-            raise (Throw ex)
-    *)
+  | Stmt_Throw(e, loc) ->
+      let e' = xform_expr env e in
+      Env.throw env;
+      [ Stmt_Throw (e', loc) ]
   | Stmt_Block (ss, loc) -> [ Stmt_Block (xform_stmts env ss, loc) ]
   | Stmt_If (c, t, els, (e, el), loc) -> (
       let rec xform env css =
@@ -481,34 +467,33 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
               (c', b'))
           in
           [ Stmt_Repeat(b', c', pos, loc) ]
-  (*
-    | Stmt_Try(tb, ev, pos, catchers, odefault, loc) ->
-            (try
-                xform_stmts env tb
-            with
-            | Return v -> raise (Return v)
-            | Throw (l, ex) ->
-                Env.nest (fun env' ->
-                    let rec eval cs =
-                        (match cs with
-                        | [] ->
-                            (match odefault with
-                            | None   -> raise (Throw (l, ex))
-                            | Some (s, _) -> xform_stmts env' s
-                            )
-                        | (Catcher_Guarded(c, b, loc) :: cs') ->
-                            if to_bool (xform_expr env' c) then
-                                xform_stmts env' b
-                            else
-                                eval cs'
-                        )
-                    in
-                    Env.addLocalVar env' ev (VExc (l, ex));
-                    eval catchers
-                ) env
+    | Stmt_Try(tb, pos, catchers, odefault, loc) ->
+          let tb' = Env.nest env (fun env' -> xform_stmts env' tb) in
+
+          (* If an exception was thrown, we don't know what variables have
+           * been assigned to before the exception. So we forget everything. *)
+          Env.mapLocals env (fun _ -> Values.bottom);
+          let catchers' = List.map (function Catcher_Guarded (v, tc, b, loc) ->
+              Env.nest env (fun env' ->
+                Env.addLocalVar env' v Values.bottom;
+                let b' = xform_stmts env' b in
+                Catcher_Guarded (v, tc, b', loc)
+                )
             )
-    *)
-  | _ -> failwith ("xform_stmt: " ^ pp_stmt x)
+            catchers
+          in
+          let odefault' = Option.map (fun (s, loc) ->
+              Env.nest env (fun env' ->
+                let s' = xform_stmts env s in
+                (s', loc)
+                )
+            )
+            odefault
+          in
+          (* We don't know whether an exception was thrown or which
+           * catcher executed so we discard all variable values. *)
+          Env.mapLocals env (fun _ -> Values.bottom);
+          [ Stmt_Try(tb', pos, catchers', odefault', loc) ]
 
 let add_parameters_to_env (env : Env.t) (loc : AST.l) (f : AST.ident) : unit =
   let genv = Env.globals env in

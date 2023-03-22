@@ -8,7 +8,6 @@
 __builtin type real;
 __builtin type string;
 __builtin type __mask; // todo: should have a type parameter
-__builtin type __Exception;
 __builtin type __RAM; // todo: should have a type parameter
 
 type bit of bits(1);
@@ -133,13 +132,6 @@ __builtin func replicate_bits{M}(x : bits(M), N : integer) => bits(M*N);
 __builtin func append_bits{M, N}(x : bits(M), y : bits(N)) => bits(M+N);
 __builtin func zero_extend_bits{M}(x : bits(M), N : integer) => bits(N);
 
-__builtin func is_cunpred_exc(ex : __Exception) => boolean;
-__builtin func is_exctaken_exc(ex : __Exception) => boolean;
-__builtin func is_impdef_exc(ex : __Exception) => boolean;
-__builtin func is_see_exc(ex : __Exception) => boolean;
-__builtin func is_undefined_exc(ex : __Exception) => boolean;
-__builtin func is_unpred_exc(ex : __Exception) => boolean;
-
 __builtin func cvt_int_hexstr(x : integer) => string;
 __builtin func cvt_int_decstr(x : integer) => string;
 __builtin func cvt_bool_str(x : boolean) => string;
@@ -207,18 +199,9 @@ __builtin func __TraceError(kind : string, event : string) => ();
 // Emit an informational memory to trace
 __builtin func __TraceEvent(kind : string, event : string) => ();
 
-__builtin func sleep_request() => ();
-__builtin func wakeup_request() => ();
-__builtin func program_end() => ();
-
 func putchar(c : integer)
 begin
     print_char(c);
-end
-
-func __abort()
-begin
-    program_end();
 end
 
 __operator1 !       = not_bool;
@@ -349,26 +332,6 @@ __operator2 ++ = append_str_bool, append_bool_str;
 __operator2 ++ = append_str_real, append_real_str;
 __operator2 ++ = append_str_bits, append_bits_str;
 __operator2 ++ = append_str_int,  append_int_str;
-
-func IsUNDEFINED(x : __Exception) => boolean
-begin
-    return is_undefined_exc(x);
-end
-
-func IsUNPREDICTABLE(x : __Exception) => boolean
-begin
-    return is_unpred_exc(x);
-end
-
-func IsSEE(x : __Exception) => boolean
-begin
-    return is_see_exc(x);
-end
-
-func IsExceptionTaken(x : __Exception) => boolean
-begin
-    return is_exctaken_exc(x);
-end
 
 ////////////////////////////////////////////////////////////////
 // 9.1 Standard integer functions and procedures

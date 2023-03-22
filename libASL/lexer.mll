@@ -47,6 +47,7 @@ let keywords : (string * Asl_parser.token) list = [
     ("elsif",                  ELSIF);
     ("enumeration",            ENUMERATION);
     ("end",                    END);
+    ("exception",              EXCEPTION);
     ("for",                    FOR);
     ("func",                   FUNC);
     ("getter",                 GETTER);

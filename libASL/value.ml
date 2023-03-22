@@ -26,7 +26,7 @@ type value =
   | VBits of bitvector
   | VMask of mask
   | VString of string
-  | VExc of (AST.l * exc)
+  | VExc of (AST.l * AST.ident * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Bindings.t
   | VArray of (value ImmutableArray.t * value)
@@ -40,7 +40,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (AST.l * string)
-exception Throw of (AST.l * exc)
+exception Throw of (AST.l * AST.ident * value Asl_utils.Bindings.t)
 
 (****************************************************************)
 (** {2 Printer for values}                                      *)
@@ -55,17 +55,11 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   | VBits b -> Format.pp_print_string fmt (prim_cvt_bits_hexstr (Z.of_int b.n) b)
   | VMask m -> Format.pp_print_string fmt "todo: mask"
   | VString s -> Format.fprintf fmt "\"%s\"" s
-  | VExc (loc, exc) ->
-      let msg =
-        match exc with
-        | Exc_ConstrainedUnpredictable -> "ConstrainedUnpredictable"
-        | Exc_ExceptionTaken -> "ExceptionTaken"
-        | Exc_ImpDefined s -> "ImpDefined" ^ s
-        | Exc_SEE s -> "SEE" ^ s
-        | Exc_Undefined -> "Undefined"
-        | Exc_Unpredictable -> "Unpredictable"
-      in
-      Format.pp_print_string fmt ("Exception " ^ msg ^ " at " ^ Asl_ast.pp_loc loc)
+  | VExc (loc, exc, fs) ->
+      Format.fprintf fmt "%a{%a}@%a"
+        Asl_fmt.tycon exc
+        (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Bindings.bindings fs)
+        Asl_fmt.loc loc
   | VTuple vs ->
     Format.fprintf fmt "(%a)"
       (Fun.flip Format_utils.commasep (pp_value fmt)) vs
@@ -143,9 +137,9 @@ let to_string (loc : AST.l) (x : value) : string =
   | VString s -> s
   | _ -> raise (EvalError (loc, "string expected. Got " ^ string_of_value x))
 
-let to_exc (loc : AST.l) (x : value) : AST.l * exc =
+let to_exc (loc : AST.l) (x : value) : AST.l * AST.ident * value Asl_utils.Bindings.t =
   match x with
-  | VExc e -> e
+  | VExc (loc, exc, fs) -> (loc, exc, fs)
   | _ -> raise (EvalError (loc, "exception expected. Got " ^ string_of_value x))
 
 let to_tuple (xs : value list) : value = VTuple xs
@@ -531,17 +525,6 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
   | "cvt_bits_str", [ _ ], [ VInt n; VBits x ] ->
       Some (VString (prim_cvt_bits_str n x))
   | "cvt_real_str", [], [ VReal x ] -> Some (VString (prim_cvt_real_str x))
-  | "is_cunpred_exc", [], [ VExc (_, ex) ] ->
-      Some (VBool (prim_is_cunpred_exc ex))
-  | "is_exctaken_exc", [], [ VExc (_, ex) ] ->
-      Some (VBool (prim_is_exctaken_exc ex))
-  | "is_impdef_exc", [], [ VExc (_, ex) ] ->
-      Some (VBool (prim_is_impdef_exc ex))
-  | "is_see_exc", [], [ VExc (_, ex) ] -> Some (VBool (prim_is_see_exc ex))
-  | "is_undefined_exc", [], [ VExc (_, ex) ] ->
-      Some (VBool (prim_is_undefined_exc ex))
-  | "is_unpred_exc", [], [ VExc (_, ex) ] ->
-      Some (VBool (prim_is_unpred_exc ex))
   (* The remaining primops all have side effects *)
   | "ram_init", _, [ VInt a; VInt n; VRAM ram; VBits i ] ->
       Some
@@ -592,7 +575,6 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
       Some
         (prim_print_bits n b;
          VTuple [])
-  | "program_end", _, [] -> Some (raise (Throw (Unknown, Exc_ExceptionTaken)))
   (* No function matches *)
   | _ -> None
 
@@ -618,7 +600,6 @@ let impure_prims =
     "print_str";
     "print_char";
     "print_bits";
-    "program_end";
   ]
 
 (****************************************************************)

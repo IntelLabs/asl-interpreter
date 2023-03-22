@@ -13,7 +13,7 @@ if exists("b:current_syntax")
 endif
 
 syn keyword aslType        array bit bits boolean enumeration integer real record signal string
-syn keyword aslType        __mask __Exception __RAM
+syn keyword aslType        __mask __RAM
 syn keyword aslExpr        AND DIV EOR IN MOD NOT OR QUOT REM UNKNOWN as typeof
 syn keyword aslStmt        assert begin case catch do downto else elsif end for if of otherwise repeat return then throw to try until when where while break
 syn keyword aslDecl        config constant func getter let setter type var

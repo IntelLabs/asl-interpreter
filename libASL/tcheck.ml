@@ -89,6 +89,7 @@ type typedef =
   | Type_Builtin of ident
   | Type_Forward
   | Type_Record of (ident list * (ident * ty) list)
+  | Type_Exception of (ident * ty) list
   | Type_Enumeration of ident list
   | Type_Abbreviation of (ident list * ty)
 
@@ -115,6 +116,16 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
                   FMT.ty fmt ty;
                   FMT.semicolon fmt)
                 fs))
+  | Type_Exception fs ->
+      Format.fprintf fmt "exception {";
+      FMTUtils.vbox fmt (fun _ ->
+        FMTUtils.cutsep fmt
+          (fun (f, ty) ->
+             Format.fprintf fmt "%a : %a;"
+               FMT.fieldname f
+               FMT.ty ty)
+          fs);
+      Format.fprintf fmt "}"
   | Type_Enumeration es ->
       FMT.kw_enumeration fmt;
       FMTUtils.nbsp fmt;
@@ -378,7 +389,9 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
       | Some (Type_Record (ps, fs)) ->
         let fs' = List.map (fun (f, ty) -> (f, expand_type loc ps ty es)) fs in
         FT_Record fs'
-      | _ -> raise (IsNotA (loc, "record", pprint_ident tc)))
+      | Some (Type_Exception fs) ->
+        FT_Record fs
+      | _ -> raise (IsNotA (loc, "record or exception", pprint_ident tc)))
   | Type_Register (wd, fs) -> FT_Register fs
   | Type_OfExpr e ->
       raise
@@ -991,6 +1004,21 @@ let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
 let get_var (env : Env.t) (loc : AST.l) (v : AST.ident) : var_info =
   from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", pprint_ident v)))
 
+(** check that we have exactly the fields required *)
+let check_field_assignments (loc : AST.l) (fs : (ident * ty) list) (fas : (ident * expr) list) : unit =
+  let expected = IdentSet.of_list (List.map fst fs) in
+  let assigned = IdentSet.of_list (List.map fst fas) in
+  if not (IdentSet.equal assigned expected) then begin
+    let missing = IdentSet.elements (IdentSet.diff expected assigned) in
+    let extra = IdentSet.elements (IdentSet.diff assigned expected) in
+    let msg = "record initializer is missing fields "
+      ^ String.concat ", " (List.map pprint_ident missing)
+      ^ " and/or has extra fields "
+      ^ String.concat ", " (List.map pprint_ident extra)
+    in
+    raise (TypeError (loc, msg))
+  end
+
 (** Typecheck list of expressions *)
 let rec tc_exprs (env : Env.t) (loc : AST.l) (xs : AST.expr list)
     : (AST.expr * AST.ty) list =
@@ -1191,24 +1219,12 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       let (ps, fs) =
         match GlobalEnv.getType (Env.globals env) tc with
         | Some (Type_Record (ps, fs)) -> (ps, fs)
-        | _ -> raise (IsNotA (loc, "record type", pprint_ident tc))
+        | Some (Type_Exception fs) -> ([], fs)
+        | _ -> raise (IsNotA (loc, "record or exception type", pprint_ident tc))
       in
       if List.length es <> List.length ps then
         raise (TypeError (loc, "wrong number of type parameters"));
-
-      (* check that we have exactly the fields required *)
-      let assigned = IdentSet.of_list (List.map fst fas) in
-      let expected = IdentSet.of_list (List.map fst fs) in
-      if not (IdentSet.equal assigned expected) then begin
-        let missing = IdentSet.elements (IdentSet.diff expected assigned) in
-        let extra = IdentSet.elements (IdentSet.diff assigned expected) in
-        let msg = "record initializer is missing fields "
-          ^ String.concat ", " (List.map pprint_ident missing)
-          ^ " and/or has extra fields "
-          ^ String.concat ", " (List.map pprint_ident extra)
-        in
-        raise (TypeError (loc, msg))
-      end;
+      check_field_assignments loc fs fas;
 
       (* add values of type parameters to environment *)
       let es' = List.map (check_expr env loc type_integer) es in
@@ -1233,10 +1249,23 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
         Format.fprintf fmt "    - Typechecking %a IN ... : %a\n" FMT.expr e' FMT.ty ety';
       let p' = tc_pattern env loc ety' p in
       (Expr_In (e', p'), type_bool)
-  | Expr_Var v -> (
-      match Env.getVar env v with
+  | Expr_Var v ->
+      ( match Env.getVar env v with
       | Some i -> (Expr_Var i.name, i.ty)
-      | None -> (
+      | None ->
+        ( match GlobalEnv.getType (Env.globals env) v with
+        | Some (Type_Exception fs)
+        | Some (Type_Record ([], fs)) ->
+          if not (Utils.is_empty fs) then begin
+            let msg = Format.asprintf "record/exception `%a` requires field values but none are supplied"
+                FMT.varname v
+            in
+            raise (TypeError (loc, msg))
+          end;
+          (Expr_RecordInit (v, [], []), Type_Constructor (v, []))
+        | Some _ ->
+          raise (IsNotA (loc, "record or exception type", pprint_ident v));
+        | None ->
           let getters =
             GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
           in
@@ -1250,7 +1279,9 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
           | None ->
               raise
                 (UnknownObject
-                   (loc, "variable or getter functions", pprint_ident v))))
+                   (loc, "variable or getter functions", pprint_ident v))
+        )
+      )
   | Expr_Parens e ->
       let e', ty = tc_expr env loc e in
       (Expr_Parens e', ty)
@@ -1759,10 +1790,17 @@ and tc_alt (env : Env.t) (ty : AST.ty) (x : AST.alt) : AST.alt =
 (** Typecheck exception catcher 'when expr stmt' *)
 and tc_catcher (env : Env.t) (loc : AST.l) (x : AST.catcher) : AST.catcher =
   match x with
-  | Catcher_Guarded (c, b, loc) ->
-      let c' = check_expr env loc type_bool c in
-      let b' = tc_stmts env loc b in
-      Catcher_Guarded (c', b', loc)
+  | Catcher_Guarded (v, tc, b, loc) ->
+      if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
+        raise (IsNotA (loc, "exception type", pprint_ident tc))
+      end;
+      let b' = Env.nest
+        (fun env' ->
+          Env.addLocalVar env' {name=v; loc; ty=Type_Constructor (tc, []); is_local=true; is_constant=true};
+          tc_stmts env' loc b)
+        env
+      in
+      Catcher_Guarded (v, tc, b', loc)
 
 (** typecheck statement *)
 and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
@@ -1818,10 +1856,10 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
   | Stmt_Assert (e, loc) ->
       let e' = check_expr env loc type_bool e in
       Stmt_Assert (e', loc)
-  | Stmt_Throw (v, loc) ->
-      let i = get_var env loc v in
-      check_subtype_satisfies env loc i.ty type_exn;
-      Stmt_Throw (v, loc)
+  | Stmt_Throw (e, loc) ->
+      let (e', ty') = tc_expr env loc e in
+      (* todo: check that ty' is an exception type *)
+      Stmt_Throw (e', loc)
   | Stmt_Block (ss, loc) ->
       let ss' = tc_stmts env loc ss in
       Stmt_Block (ss', loc)
@@ -1857,17 +1895,11 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let b' = tc_stmts env loc b in
       let c' = check_expr env loc type_bool c in
       Stmt_Repeat (b', c', pos, loc)
-  | Stmt_Try (tb, ev, pos, catchers, odefault, loc) ->
+  | Stmt_Try (tb, pos, catchers, odefault, loc) ->
       let tb' = tc_stmts env loc tb in
-      Env.nest
-        (fun env' ->
-          Env.addLocalVar env' {name=ev; loc; ty=type_exn; is_local=true; is_constant=true};
-          let catchers' = List.map (tc_catcher env' loc) catchers in
-          let odefault' =
-            Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
-          in
-          Stmt_Try (tb', ev, pos, catchers', odefault', loc))
-        env
+      let catchers' = List.map (tc_catcher env loc) catchers in
+      let odefault' = Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault in
+      Stmt_Try (tb', pos, catchers', odefault', loc)
 
 (****************************************************************)
 (** {2 Typecheck function definition}                           *)
@@ -2047,6 +2079,25 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
       GlobalEnv.addType env loc qid (Type_Record (ps, fs'));
       [ Decl_Record (qid, ps, fs', loc) ]
+  | Decl_Exception (qid, fs, loc) ->
+      let env' = Env.mkEnv env in
+
+      (* check for duplicated fieldnames *)
+      let fieldnames = ref IdentSet.empty in
+      List.iter (fun (f, _) ->
+          if IdentSet.mem f !fieldnames then begin
+            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
+                FMT.fieldname f
+            in
+            raise (TypeError (loc, msg))
+          end;
+          fieldnames := IdentSet.add f !fieldnames
+        )
+        fs;
+
+      let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
+      GlobalEnv.addType env loc qid (Type_Exception fs');
+      [ Decl_Exception (qid, fs', loc) ]
   | Decl_Typedef (qid, ps, ty, loc) ->
       (* todo: check for cyclic dependency *)
       let env' = Env.mkEnv env in

@@ -115,7 +115,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string)
             cpu.step ();
           done
       with
-      | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
+      | Value.Throw (_, _, _) ->
         Printf.printf "Exception taken\n";
         error ()
       | Value.EvalError (loc, msg) ->

@@ -36,7 +36,7 @@ let print_exception (e : exn) : unit =
     Printf.printf "  %s: Type error: %s\n" (pp_loc loc) what
   | Value.EvalError (loc, msg) ->
     Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg
-  | Value.Throw (_, Primops.Exc_ExceptionTaken) ->
+  | Value.Throw (loc, exc, fs) ->
     Printf.printf "Exception taken\n";
   | Backend_c.Unimplemented (loc, what, pp)
   | Backend_verilog.Unimplemented (loc, what, pp) ->

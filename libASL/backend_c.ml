@@ -15,6 +15,27 @@ open Format_utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
+(* list of all exception tycons - used to decide whether to insert a tag in
+ * Expr_RecordInit
+ *)
+let exception_tcs : AST.ident list ref = ref []
+
+(** supply of goto labels for exception implementation *)
+let catch_labels = new Asl_utils.nameSupply "catch"
+
+let catch_stack : AST.ident list ref = ref []
+
+let with_catch_label (f : AST.ident -> 'a) : 'a =
+  let prev = !catch_stack in
+  let catch_label = catch_labels#fresh in
+  catch_stack := catch_label :: prev;
+  let r = f catch_label in
+  catch_stack := prev;
+  r
+
+let current_catcher (_ : unit) : AST.ident = List.hd !catch_stack
+
+
 let mangle (s : string) : string =
   (* TODO this should detect whether s is a reserved name in C and rename to
      avoid conflict *)
@@ -605,19 +626,19 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_LitString l -> strLit fmt l
   | Expr_Parens e -> expr loc fmt e
   | Expr_RecordInit (tc, [], fas) ->
-      parens fmt (fun _ -> tycon fmt tc);
-      braces fmt (fun _ ->
-          nbsp fmt;
-          commasep fmt
-            (fun (f, e) ->
-              dot fmt;
-              varname fmt f;
-              nbsp fmt;
-              eq fmt;
-              nbsp fmt;
-              expr loc fmt e)
-            fas;
-          nbsp fmt)
+      if List.mem tc !exception_tcs then begin
+        Format.fprintf fmt "(ASL_exception_t){ ._%a={ .ASL_tag = tag_%a, " tycon tc tycon tc;
+        commasep fmt
+          (fun (f, e) -> Format.fprintf fmt ".%a = %a" varname f (expr loc) e)
+          fas;
+        Format.fprintf fmt " }}"
+      end else begin
+        Format.fprintf fmt "(%a){ " tycon tc;
+        commasep fmt
+          (fun (f, e) -> Format.fprintf fmt ".%a = %a" varname f (expr loc) e)
+          fas;
+        Format.fprintf fmt " }"
+      end
   | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
   | Expr_TApply (f, tes, es) -> funcall loc fmt f tes es loc
   | Expr_Var v -> (
@@ -918,10 +939,37 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
+  | Stmt_Throw (e, loc) ->
+      Format.fprintf fmt "ASL_exception = %a;@," (expr loc) e;
+      Format.fprintf fmt "goto %a;" varname (current_catcher ())
+  | Stmt_Try (tb, pos, catchers, odefault, loc) ->
+      with_catch_label (fun catch_label ->
+        brace_enclosed_block fmt tb;
+        Format.fprintf fmt "@,%a:@," varname catch_label;
+        );
+      Format.fprintf fmt "if (0) {@,";
+      List.iter (function AST.Catcher_Guarded (v, tc, b, loc) ->
+          Format.fprintf fmt "} else if (ASL_exception._exc.ASL_tag == tag_%a) {" tycon tc;
+          indented fmt (fun _ ->
+            Format.fprintf fmt "%a %a = ASL_exception._%a;@,"
+              tycon tc
+              varname v
+              tycon tc;
+            brace_enclosed_block fmt tb
+            );
+          cut fmt
+        )
+        catchers;
+      Format.fprintf fmt "} else {";
+      indented fmt (fun _ ->
+        ( match odefault with
+        | None -> Format.fprintf fmt "goto %a;@," varname (current_catcher ())
+        | Some (s, _) -> brace_enclosed_block fmt s
+        ));
+      Format.fprintf fmt "@,}"
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
-  | Stmt_Throw _
-  | Stmt_Try _ ->
+    ->
       raise
         (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
 
@@ -950,9 +998,33 @@ let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f :
     (fun _ t -> varty loc fmt f t) fmt ot;
   parens fmt args
 
-let function_body (fmt : PP.formatter) (b : AST.stmt list) : unit =
-  brace_enclosed_block fmt b;
-  cut fmt
+let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option) : unit =
+  with_catch_label (fun catch_label ->
+    braces fmt
+      (fun _ ->
+         indented_block fmt b;
+         cut fmt;
+         Format.fprintf fmt "%a:" varname catch_label;
+         (* When throwing an exception, we need to return a value with
+          * the correct type. This value will never be used so the easy way
+          * to create it is to declare a variable, not initialize it and
+          * return the variables. This will make the C compiler emit a warning.
+          * *)
+         indented fmt (fun _ ->
+           ( match orty  with
+           | None -> Format.fprintf fmt "return;"
+           | Some rty ->
+             braces fmt (fun _ ->
+               indented fmt (fun _ ->
+                 let v = AST.Ident "ASL_fake_return_value" in
+                 varty AST.Unknown fmt v rty;
+                 Format.fprintf fmt ";@,return %a;" varname v
+               )
+             )
+           ));
+         cut fmt
+      )
+    )
 
 let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
   kw_typedef fmt;
@@ -1001,7 +1073,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           nbsp fmt;
-          function_body fmt b;
+          function_body fmt b (Some t);
           cut fmt
       | Decl_FunType (f, ps, args, t, loc) ->
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
@@ -1011,7 +1083,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_ProcDefn (f, ps, args, b, loc) ->
           function_header loc fmt None f (fun _ -> formals loc fmt args);
           nbsp fmt;
-          function_body fmt b;
+          function_body fmt b None;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
           function_header loc fmt None f (fun _ -> formals loc fmt args);
@@ -1049,6 +1121,44 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
 
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
+
+let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
+  vbox fmt (fun _ ->
+    let excs = List.filter_map
+        ( function
+        | AST.Decl_Exception (tc, fs, loc) -> Some (tc, fs, loc)
+        | _ -> None
+        )
+        xs
+    in
+    exception_tcs := List.map (fun (tc, _, _) -> tc) excs;
+    Format.fprintf fmt "enum ASL_exception_tag { ASL_no_exception, %a };@,@,"
+      (Fun.flip commasep (fun (tc, fs, _) -> Format.fprintf fmt "tag_%a" tycon tc)) excs;
+    List.iter (fun (tc, fs, loc) ->
+      typedef fmt (fun _ ->
+          kw_struct fmt;
+          nbsp fmt;
+          braces fmt (fun _ ->
+              indented fmt (fun _ ->
+                  Format.fprintf fmt "enum ASL_exception_tag ASL_tag;@,";
+                  cutsep fmt
+                    (fun (f, t) ->
+                      varty loc fmt f t;
+                      semicolon fmt)
+                    fs);
+              cut fmt);
+          nbsp fmt;
+          tycon fmt tc);
+      cut fmt)
+      excs;
+    Format.fprintf fmt "@,typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
+      "struct { enum ASL_exception_tag ASL_tag; } _exc;"
+      (Format.pp_print_list (fun fmt (tc, _, _) -> Format.fprintf fmt "    %a _%a;"
+                                tycon tc
+                                tycon tc))
+      excs;
+    Format.fprintf fmt "ASL_exception_t ASL_exception = (ASL_exception_t){ ._exc={.ASL_tag = ASL_no_exception} };@,"
+    )
 
 (****************************************************************
  * End

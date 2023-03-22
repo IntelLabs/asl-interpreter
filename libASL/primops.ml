@@ -262,35 +262,6 @@ let prim_in_mask (x : bitvector) (m : mask) : bool =
 
 let prim_notin_mask (x : bitvector) (m : mask) : bool = not (prim_in_mask x m)
 
-(****************************************************************)
-(** {2 Exception primops}                                       *)
-(****************************************************************)
-
-type exc =
-  | Exc_ConstrainedUnpredictable
-  | Exc_ExceptionTaken
-  | Exc_ImpDefined of string
-  | Exc_SEE of string
-  | Exc_Undefined
-  | Exc_Unpredictable
-
-let prim_is_cunpred_exc (x : exc) : bool =
-  match x with Exc_ConstrainedUnpredictable -> true | _ -> false
-
-let prim_is_exctaken_exc (x : exc) : bool =
-  match x with Exc_ExceptionTaken -> true | _ -> false
-
-let prim_is_impdef_exc (x : exc) : bool =
-  match x with Exc_ImpDefined _ -> true | _ -> false
-
-let prim_is_see_exc (x : exc) : bool =
-  match x with Exc_SEE _ -> true | _ -> false
-
-let prim_is_undefined_exc (x : exc) : bool =
-  match x with Exc_Undefined -> true | _ -> false
-
-let prim_is_unpred_exc (x : exc) : bool =
-  match x with Exc_Unpredictable -> true | _ -> false
 
 (****************************************************************)
 (** {2 String primops}                                          *)

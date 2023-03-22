@@ -37,6 +37,7 @@ let rec type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
     | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
 
+    | Decl_Exception _
     | Decl_Var _
     | Decl_BuiltinType _
     | Decl_Forward _
@@ -70,6 +71,7 @@ let rec var_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Const _
     | Decl_Enum _
     | Decl_Record _
+    | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
     | Decl_ProcType _
@@ -109,6 +111,7 @@ let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Const _
     | Decl_Enum _
     | Decl_Record _
+    | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
     | Decl_ProcType _
@@ -306,6 +309,7 @@ let main () =
     match !opt_backend with
     | Backend_C ->
         type_decls ds |> Asl_utils.topological_sort |> List.rev |> emit_c_code (!output_file ^ "_types.h");
+        Utils.to_file (!output_file ^ "_exceptions.h") (fun fmt -> Backend_c.exceptions fmt ds);
         var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
         fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
     | Backend_Verilog ->

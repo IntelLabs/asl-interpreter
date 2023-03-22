@@ -48,6 +48,7 @@ let string_of_token (t : Asl_parser.token) : string =
   | ELSE -> "else"
   | ELSIF -> "elsif"
   | ENUMERATION -> "enum"
+  | EXCEPTION -> "exception"
   | EOF -> "eof"
   | EOR -> "eor"
   | EQ -> "eq"

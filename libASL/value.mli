@@ -16,7 +16,7 @@ type value =
   | VBits of Primops.bitvector
   | VMask of Primops.mask
   | VString of string
-  | VExc of (AST.l * Primops.exc)
+  | VExc of (AST.l * AST.ident * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Asl_utils.Bindings.t
   | VArray of (value Primops.ImmutableArray.t * value)
@@ -25,7 +25,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (AST.l * string)
-exception Throw of (AST.l * Primops.exc)
+exception Throw of (AST.l * AST.ident * value Asl_utils.Bindings.t)
 
 val pp_value : Format.formatter -> value -> unit
 val string_of_value : value -> string
@@ -44,7 +44,7 @@ val to_int : AST.l -> value -> int
 val to_bits : AST.l -> value -> Primops.bitvector
 val to_mask : AST.l -> value -> Primops.mask
 val to_string : AST.l -> value -> string
-val to_exc : AST.l -> value -> AST.l * Primops.exc
+val to_exc : AST.l -> value -> (AST.l * AST.ident * value Asl_utils.Bindings.t)
 val to_tuple : value list -> value
 val of_tuple : AST.l -> value -> value list
 val mkrecord : (AST.ident * value) list -> value

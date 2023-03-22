@@ -635,11 +635,12 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       expr fmt e;
       semicolon fmt;
       comment_start fmt loc
-  | Stmt_Throw (v, loc) ->
+  | Stmt_Throw (e, loc) ->
       comments_before fmt loc;
       kw_throw fmt;
       nbsp fmt;
-      varname fmt v;
+      expr fmt e;
+      semicolon fmt;
       comment_start fmt loc
   | Stmt_Block (ss, loc) ->
       comments_before fmt loc;
@@ -753,22 +754,20 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       expr fmt c;
       semicolon fmt;
       comment_here fmt pos
-  | Stmt_Try (b, v, pos, cs, ob, loc) ->
+  | Stmt_Try (b, pos, cs, ob, loc) ->
       comments_before fmt loc;
       kw_try fmt;
       comment_start fmt loc;
       indented_block fmt b;
       cut fmt;
       kw_catch fmt;
-      nbsp fmt;
-      varname fmt v;
       comment_here fmt pos;
       indented fmt (fun _ ->
           cutsep fmt
-            (fun (AST.Catcher_Guarded (e, b, loc)) ->
-              kw_when fmt;
-              nbsp fmt;
-              expr fmt e;
+            (fun (AST.Catcher_Guarded (v, tc, b, loc)) ->
+              Format.fprintf fmt "when %a : %a =>"
+                varname v
+                tycon tc;
               comment_start fmt loc;
               indented_block fmt b)
             cs;
@@ -836,6 +835,25 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           tycon fmt tc;
           (if not (Utils.is_empty ps) then parens fmt (fun _ -> commasep fmt (varname fmt) ps));
+          nbsp fmt;
+          braces fmt (fun _ ->
+              indented fmt (fun _ ->
+                  cutsep fmt
+                    (fun (f, t) ->
+                      fieldname fmt f;
+                      nbsp fmt;
+                      colon fmt;
+                      nbsp fmt;
+                      ty fmt t;
+                      semicolon fmt)
+                    fs);
+              cut fmt);
+          semicolon fmt
+      | Decl_Exception (tc, fs, loc) ->
+          comments_before fmt loc;
+          kw_record fmt;
+          nbsp fmt;
+          tycon fmt tc;
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->

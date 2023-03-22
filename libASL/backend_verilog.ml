@@ -749,7 +749,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_For (_, _, _, _, _, loc)
   | Stmt_While (_, _, loc)
   | Stmt_Repeat (_, _, _, loc)
-  | Stmt_Try (_, _, _, _, _, loc) ->
+  | Stmt_Try (_, _, _, _, loc) ->
       raise
         (Unimplemented (loc, "statement", fun fmt -> FMTAST.stmt fmt x))
 

@@ -56,7 +56,7 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
       | TC.InternalError(msg) -> Printf.sprintf "InternalError(%s)" msg
       | Value.Return(_) -> Printf.sprintf "Return(_)"
       | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (AST.pp_loc loc) err
-      | Value.Throw(loc, _) -> Printf.sprintf "Throw(%s,_)" (AST.pp_loc loc)
+      | Value.Throw(loc, _, _) -> Printf.sprintf "Throw(%s,_,_)" (AST.pp_loc loc)
     in
     ( match oexpect with
     | Some expect -> Alcotest.(check string) name expect msg;

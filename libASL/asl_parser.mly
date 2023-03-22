@@ -73,6 +73,7 @@ let type_unknown = Type_Constructor (Ident "<type_unknown>", [])
 %token ARRAY  (* array *)
 %token BITS  (* bits *)
 %token ENUMERATION  (* enumeration *)
+%token EXCEPTION  (* exception *)
 %token INTEGER  (* integer *)
 %token OF  (* of *)
 %token RECORD  (* record *)
@@ -191,16 +192,23 @@ type_declaration:
     { Decl_BuiltinType(v, Range($symbolstartpos, $endpos)) }
 | TYPE v = ident SEMICOLON
     { Decl_Forward(v, Range($symbolstartpos, $endpos)) }
-| RECORD v = ident ps = ty_params_opt LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+| RECORD v = ident LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+    { Decl_Record(v, [], fs, Range($symbolstartpos, $endpos)) }
+| RECORD v = ident ps = ty_params LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
     { Decl_Record(v, ps, fs, Range($symbolstartpos, $endpos)) }
-| TYPE v = ident ps = ty_params_opt OF ty = ty SEMICOLON
+| TYPE v = ident OF EXCEPTION SEMICOLON
+    { Decl_Exception(v, [], Range($symbolstartpos, $endpos)) }
+| TYPE v = ident OF EXCEPTION LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+    { Decl_Exception(v, fs, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident OF ty = ty SEMICOLON
+    { Decl_Typedef(v, [], ty, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident ps = ty_params OF ty = ty SEMICOLON
     { Decl_Typedef(v, ps, ty, Range($symbolstartpos, $endpos)) }
 | ENUMERATION v = ident LBRACE es = separated_list(COMMA, ident) RBRACE SEMICOLON
     { Decl_Enum(v, es, Range($symbolstartpos, $endpos)) }
 
-ty_params_opt:
+ty_params:
 | LPAREN ps = separated_nonempty_list(COMMA, ident) RPAREN { ps }
-| { [] }
 
 (* To provide a period of backwards compatibility, we support
  * both : and :: (deprecated) in type annotations.
@@ -419,8 +427,8 @@ simple_stmt:
     { Stmt_ProcReturn(Range($symbolstartpos, $endpos)) }
 | ASSERT e = expr SEMICOLON
     { Stmt_Assert(e, Range($symbolstartpos, $endpos)) }
-| THROW v = ident SEMICOLON
-    { Stmt_Throw(v, Range($symbolstartpos, $endpos)) }
+| THROW e = expr SEMICOLON
+    { Stmt_Throw(e, Range($symbolstartpos, $endpos)) }
 
 conditional_stmt:
 | IF c = expr THEN t = block els = list(s_elsif) f = optional_else END
@@ -442,6 +450,7 @@ alt:
 
 opt_otherwise:
 | OTHERWISE COLON b = block { Some(b, Range($symbolstartpos, $endpos)) }
+| OTHERWISE EQ_GT b = block { Some(b, Range($symbolstartpos, $endpos)) }
 | { None }
 
 opt_altcond:
@@ -475,12 +484,12 @@ direction:
 | DOWNTO { Direction_Down }
 
 catch_stmt:
-| TRY b = block CATCH v = ident pos = pos cs = list(catcher) ob = opt_otherwise END
-    { Stmt_Try(b, v, pos, cs, ob, Range($symbolstartpos, $endpos)) }
+| TRY b = block CATCH pos = pos cs = list(catcher) ob = opt_otherwise END
+    { Stmt_Try(b, pos, cs, ob, Range($symbolstartpos, $endpos)) }
 
 catcher:
-| WHEN c = expr COLON b = block
-    { Catcher_Guarded(c, b, Range($symbolstartpos, $endpos)) }
+| WHEN v = ident COLON tc=ident EQ_GT b = block
+    { Catcher_Guarded(v, tc, b, Range($symbolstartpos, $endpos)) }
 
 expr:
 | ce = conditional_expression { ce }

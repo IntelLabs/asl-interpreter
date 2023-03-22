@@ -557,8 +557,8 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
   | Stmt_Assert (e, loc) ->
       if not (to_bool loc (eval_expr loc env e)) then
         raise (EvalError (loc, "assertion failure"))
-  | Stmt_Throw (v, loc) ->
-      let ex = to_exc loc (Env.getVar loc env v) in
+  | Stmt_Throw (e, loc) ->
+      let ex = to_exc loc (eval_expr loc env e) in
       raise (Throw ex)
   | Stmt_Block (b, loc) -> eval_stmts env b
   | Stmt_If (c, t, els, (e, el), loc) ->
@@ -623,23 +623,29 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
         if not (to_bool loc (eval_expr loc env c)) then eval ()
       in
       eval ()
-  | Stmt_Try (tb, ev, pos, catchers, odefault, loc) -> (
-      try eval_stmts env tb with
+  | Stmt_Try (tb, pos, catchers, odefault, loc) ->
+      ( try eval_stmts env tb with
       | Return v -> raise (Return v)
-      | Throw (l, ex) ->
-          Env.nest env (fun env' ->
-              let rec eval cs =
-                match cs with
-                | [] -> (
-                    match odefault with
-                    | None -> raise (Throw (l, ex))
-                    | Some (s, _) -> eval_stmts env' s)
-                | Catcher_Guarded (c, b, loc) :: cs' ->
-                    if to_bool loc (eval_expr loc env' c) then eval_stmts env' b
-                    else eval cs'
-              in
-              Env.addLocalVar loc env' ev (VExc (l, ex));
-              eval catchers))
+      | Throw (l, exc, fs) ->
+          let rec eval cs =
+            ( match cs with
+            | [] ->
+                ( match odefault with
+                | None -> raise (Throw (l, exc, fs))
+                | Some (s, _) -> eval_stmts env s
+                )
+            | Catcher_Guarded (v, tc, b, loc) :: cs' ->
+                if exc = tc then
+                  Env.nest env (fun env' ->
+                    Env.addLocalVar loc env' v (VExc (l, exc, fs));
+                    eval_stmts env' b
+                    )
+                else
+                  eval cs'
+            )
+          in
+          eval catchers
+      )
 
 (** Evaluate call to function or procedure *)
 and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
@@ -674,7 +680,7 @@ and eval_funcall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
       let module Tracer = (val (!tracer) : Tracer) in
       Tracer.trace_function ~is_prim:false ~is_return:true f [] [v];
       v
-  | Throw (l, ex) -> raise (Throw (l, ex))
+  | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
     Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
     raise ex
@@ -685,7 +691,7 @@ and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
   ( try eval_call loc env f tvs vs with
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
-  | Throw (l, ex) -> raise (Throw (l, ex))
+  | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
     Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
     raise ex
@@ -713,6 +719,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
     (fun d ->
       match d with
       | Decl_Record (v, ps, fs, loc) -> GlobalEnv.addRecord genv v ps fs
+      | Decl_Exception (v, fs, loc) -> GlobalEnv.addRecord genv v [] fs (* todo: mark as exception *)
       | Decl_Enum (qid, es, loc) ->
           let evs =
             if qid = Ident "boolean" then

@@ -350,6 +350,9 @@ class freevarClass =
       | Expr_TApply (f, tes, es) ->
           free_funs <- IdentSet.add f free_funs;
           DoChildren
+      | Expr_RecordInit (tc, _, _) ->
+          free_tcs <- IdentSet.add tc free_tcs;
+          DoChildren
       | _ -> DoChildren
 
     method! vlexpr =
@@ -372,6 +375,10 @@ class freevarClass =
           free_funs <- IdentSet.add f free_funs;
           DoChildren
       | _ -> DoChildren
+
+    method! vcatcher (Catcher_Guarded (_, tc, _, _)) =
+      free_tcs <- IdentSet.add tc free_tcs;
+      DoChildren
 
     method! leave_scope (vs : ident list) =
       (* remove reads/writes to local variables *)
@@ -595,6 +602,7 @@ let decl_name (x : declaration) : ident option =
   | Decl_BuiltinType (v, loc) -> Some v
   | Decl_Forward (v, loc) -> Some v
   | Decl_Record (v, ps, fs, loc) -> Some v
+  | Decl_Exception (v, fs, loc) -> Some v
   | Decl_Typedef (v, ps, ty, loc) -> Some v
   | Decl_Enum (v, es, loc) -> Some v
   | Decl_Var (v, ty, loc) -> Some v
