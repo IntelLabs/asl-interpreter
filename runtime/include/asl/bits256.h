@@ -18,8 +18,9 @@
 extern "C" {
 #endif
 
-typedef struct {
-        uint64_t v[4];
+typedef union {
+        uint64_t u64[4];
+        uint32_t u32[8];
 } ASL_bits256_t;
 
 static inline ASL_bits256_t
@@ -41,13 +42,13 @@ ASL_bits_max_256()
 static inline ASL_bits64_t
 ASL_cast_bits_256_64(ASL_bits256_t x)
 {
-        return x.v[0];
+        return x.u64[0];
 }
 
 static inline ASL_bits128_t
 ASL_cast_bits_256_128(ASL_bits256_t x)
 {
-        return ASL_bits_128(x.v[1], x.v[0]);
+        return ASL_bits_128(x.u64[1], x.u64[0]);
 }
 
 ASL_bits256_t ASL_lsl_bits_256(int width, ASL_bits256_t x, int d);

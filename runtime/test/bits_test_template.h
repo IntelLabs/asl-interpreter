@@ -69,7 +69,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsUInt)
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
     ASL_INT_TYPE r;
     for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
-         r.v[i] = x.v[i];
+         r.u64[i] = x.u64[i];
 
     EXPECT_EQ(r, ASL_cvt_bits_uint(N, width, x));
 }

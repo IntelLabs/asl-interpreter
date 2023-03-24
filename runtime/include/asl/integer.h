@@ -17,15 +17,15 @@ extern "C" {
 typedef int64_t ASL_int64_t;
 
 typedef struct {
-        uint64_t v[2];
+        uint64_t u64[2];
 } ASL_int128_t;
 
 typedef struct {
-        uint64_t v[4];
+        uint64_t u64[4];
 } ASL_int256_t;
 
 typedef struct {
-        uint64_t v[8];
+        uint64_t u64[8];
 } ASL_int512_t;
 
 #define ASL_int_zero(sizeof_x) \

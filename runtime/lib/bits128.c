@@ -19,11 +19,11 @@ ASL_lsl_bits_128(int width, ASL_bits128_t x, int d)
         if (d == 0)
                 return x;
         if (d < 64) {
-                x.v[1] = (x.v[0] >> (64 - d)) | (x.v[1] << d);
-                x.v[0] = x.v[0] << d;
+                x.u64[1] = (x.u64[0] >> (64 - d)) | (x.u64[1] << d);
+                x.u64[0] = x.u64[0] << d;
         } else {
-                x.v[1] = x.v[0];
-                x.v[0] = 0;
+                x.u64[1] = x.u64[0];
+                x.u64[0] = 0;
                 x = ASL_lsl_bits_128(width, x, d - 64);
         }
         return ASL_and_bits_128(width, x, ASL_mk_mask_128(width));
@@ -35,11 +35,11 @@ ASL_lsr_bits_128(int width, ASL_bits128_t x, int d)
         if (d == 0)
                 return x;
         if (d < 64) {
-                x.v[0] = (x.v[1] << (64 - d)) | (x.v[0] >> d);
-                x.v[1] = x.v[1] >> d;
+                x.u64[0] = (x.u64[1] << (64 - d)) | (x.u64[0] >> d);
+                x.u64[1] = x.u64[1] >> d;
         } else {
-                x.v[0] = x.v[1];
-                x.v[1] = 0;
+                x.u64[0] = x.u64[1];
+                x.u64[1] = 0;
                 x = ASL_lsr_bits_128(width, x, d - 64);
         }
         return x;

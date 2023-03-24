@@ -144,16 +144,16 @@ TEST_F(Bits64, Zeros)
 
 template <class T>
 static bool Equal(const T &x, const T &y) {
-    for (unsigned i = 0; i < sizeof(x.v) / sizeof(x.v[0]); ++i)
-        if (x.v[i] != y.v[i]) return false;
+    for (unsigned i = 0; i < sizeof(x.u64) / sizeof(x.u64[0]); ++i)
+        if (x.u64[i] != y.u64[i]) return false;
     return true;
 }
 
 template <class T>
 static void Print(const T &x, std::ostream *os) {
     *os << std::hex << "(hex)" << std::setfill('0');
-    for (int i = sizeof(x.v) / sizeof(x.v[0]) - 1; i >= 0; --i)
-        *os << " " << std::setw(16) << x.v[i];
+    for (int i = sizeof(x.u64) / sizeof(x.u64[0]) - 1; i >= 0; --i)
+        *os << " " << std::setw(16) << x.u64[i];
 }
 
 #define N 128
