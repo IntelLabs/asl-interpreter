@@ -144,6 +144,14 @@ TEST_F(ASL_CC_INDIR(Bits, N), Replicate)
               ASL_replicate_bits(N, N, 32, ASL_mk_mask(N, 32), (N >> 5) - 1));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), SliceLoWd)
+{
+    int width = N - 1;
+
+    EXPECT_EQ(ASL_mk_mask(N, width - 1),
+              ASL_slice_lowd(N, N, ASL_mk_mask(N, width), 1, width));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Sub)
 {
     int width = N - 1;

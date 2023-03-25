@@ -143,6 +143,11 @@ TEST_F(Bits64, Replicate)
     EXPECT_EQ(10ULL, ASL_replicate_bits_64_64(2, 2ULL, 2));
 }
 
+TEST_F(Bits64, SliceLoWd)
+{
+    EXPECT_EQ(2ULL, ASL_slice_lowd_64_64(11ULL, 2, 2));
+}
+
 TEST_F(Bits64, Sub)
 {
     int width = 3;
