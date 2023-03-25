@@ -1,4 +1,4 @@
-#define ASL_BITS_CHUNKS N >> 6
+#define ASL_BITS_LIMBS_64 (N >> 6)
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
 #define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
@@ -68,7 +68,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsUInt)
     int width = N - 1;
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
     ASL_INT_TYPE r;
-    for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+    for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
          r.v[i] = x.v[i];
 
     EXPECT_EQ(r, ASL_cvt_bits_uint(N, width, x));
@@ -137,6 +137,6 @@ TEST_F(ASL_CC_INDIR(Bits, N), Sub)
     EXPECT_EQ(one, ASL_sub_bits(N, width, zeros, minus_one));
 }
 
-#undef ASL_BITS_CHUNKS
+#undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_TYPE
 #undef ASL_INT_TYPE

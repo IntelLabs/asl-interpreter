@@ -1,4 +1,4 @@
-#define ASL_BITS_CHUNKS N >> 6
+#define ASL_BITS_LIMBS_64 (N >> 6)
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
 #define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
@@ -7,7 +7,7 @@ ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
         ASL_BITS_TYPE r;
         uint64_t carry = 0;
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i) {
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i) {
                  r.v[i] = x.v[i] + y.v[i] + carry;
                  carry = (carry & (r.v[i] == x.v[i])) | (r.v[i] < x.v[i]);
         }
@@ -17,7 +17,7 @@ ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 ASL_BITS_TYPE
 ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              x.v[i] &= y.v[i];
         return x;
 }
@@ -46,7 +46,7 @@ ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
         }
 
         ASL_INT_TYPE r;
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
                 r.v[i] = x.v[i];
         return r;
 }
@@ -55,7 +55,7 @@ ASL_INT_TYPE
 ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
 {
         ASL_INT_TYPE r;
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              r.v[i] = x.v[i];
         return r;
 }
@@ -64,7 +64,7 @@ ASL_BITS_TYPE
 ASL_cvt_int_bits(N, int width, ASL_INT_TYPE x)
 {
         ASL_BITS_TYPE r;
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              r.v[i] = x.v[i];
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
@@ -72,7 +72,7 @@ ASL_cvt_int_bits(N, int width, ASL_INT_TYPE x)
 bool
 ASL_eq_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i) {
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i) {
                 if (x.v[i] != y.v[i])
                         return false;
         }
@@ -82,7 +82,7 @@ ASL_eq_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 ASL_BITS_TYPE
 ASL_eor_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              x.v[i] ^= y.v[i];
         return x;
 }
@@ -102,7 +102,7 @@ ASL_ne_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 ASL_BITS_TYPE
 ASL_not_bits(N, int width, ASL_BITS_TYPE x)
 {
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              x.v[i] = ~x.v[i];
         return ASL_and_bits(N, width, x, ASL_mk_mask(N, width));
 }
@@ -116,7 +116,7 @@ ASL_ones_bits(N, int width)
 ASL_BITS_TYPE
 ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i)
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
              x.v[i] |= y.v[i];
         return x;
 }
@@ -126,13 +126,13 @@ ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
         ASL_BITS_TYPE r;
         uint64_t carry = 0;
-        for (int i = 0; i < ASL_BITS_CHUNKS; ++i) {
+        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i) {
                  r.v[i] = x.v[i] - y.v[i] - carry;
                  carry = (carry & (r.v[i] == x.v[i])) | (r.v[i] > x.v[i]);
         }
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
 
-#undef ASL_BITS_CHUNKS
+#undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_TYPE
 #undef ASL_INT_TYPE
