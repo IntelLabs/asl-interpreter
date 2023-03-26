@@ -53,13 +53,6 @@ ASL_lsr_bits_256(int width, ASL_bits256_t x, int d)
         return x;
 }
 
-ASL_bits256_t
-ASL_slice_lowd_256_256(ASL_bits256_t x, int lo, int width)
-{
-        x = ASL_lsr_bits_256(256, x, lo);
-        return ASL_and_bits_256(256, x, ASL_mk_mask_256(width));
-}
-
 ASL_bits128_t
 ASL_slice_lowd_256_128(ASL_bits256_t x, int lo, int width)
 {

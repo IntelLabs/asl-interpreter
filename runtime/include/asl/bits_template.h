@@ -15,6 +15,7 @@ ASL_BITS_TYPE ASL_mul_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_not_bits(N, int width, ASL_BITS_TYPE x);
 ASL_BITS_TYPE ASL_ones_bits(N, int width);
 ASL_BITS_TYPE ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
+ASL_BITS_TYPE ASL_slice_lowd(N, N, ASL_BITS_TYPE x, int lo, int width);
 ASL_BITS_TYPE ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 
 #undef ASL_BITS_TYPE

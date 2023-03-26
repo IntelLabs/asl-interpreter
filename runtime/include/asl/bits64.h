@@ -20,6 +20,7 @@ extern "C" {
 typedef uint64_t ASL_bits64_t;
 
 #define ASL_CC(x, y) x##y
+#define ASL_CC4(a, b, c, d) a##b##c##d
 #define ASL_CC_INDIR(x, y) ASL_CC(x, y)
 
 #define ASL_bits_max(sizeof_x) \
@@ -121,7 +122,7 @@ ASL_bits64_t ASL_ones_bits_64(int width);
 ASL_bits64_t ASL_or_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 #define ASL_slice_lowd(sizeof_x, sizeof_res, x, lo, width) \
-        ASL_slice_lowd_##sizeof_x##_##sizeof_res((x), (lo), (width))
+        ASL_CC4(ASL_slice_lowd_, sizeof_x, _, sizeof_res)(x, lo, width)
 
 static inline ASL_bits64_t
 ASL_slice_lowd_64_64(ASL_bits64_t x, int lo, int width)

@@ -140,6 +140,13 @@ ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
+ASL_slice_lowd(N, N, ASL_BITS_TYPE x, int lo, int width)
+{
+        x = ASL_lsr_bits(N, N, x, lo);
+        return ASL_and_bits(N, N, x, ASL_mk_mask(N, width));
+}
+
+ASL_BITS_TYPE
 ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 {
         ASL_BITS_TYPE r;

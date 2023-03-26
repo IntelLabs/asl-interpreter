@@ -53,7 +53,6 @@ ASL_cast_bits_256_128(ASL_bits256_t x)
 
 ASL_bits256_t ASL_lsl_bits_256(int width, ASL_bits256_t x, int d);
 ASL_bits256_t ASL_lsr_bits_256(int width, ASL_bits256_t x, int d);
-ASL_bits256_t ASL_slice_lowd_256_256(ASL_bits256_t x, int lo, int width);
 ASL_bits128_t ASL_slice_lowd_256_128(ASL_bits256_t x, int lo, int width);
 ASL_bits64_t ASL_slice_lowd_256_64(ASL_bits256_t x, int lo, int width);
 ASL_bits256_t ASL_zeros_bits_256(int width);
