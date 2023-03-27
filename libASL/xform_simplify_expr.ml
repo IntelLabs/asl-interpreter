@@ -191,13 +191,13 @@ let rec to_poly (x : AST.expr) : polynomial =
   | Expr_LitInt k -> mk_poly (Z.of_string k) []
   | Expr_Var v -> mk_poly Z.one [v]
   | Expr_Parens e -> to_poly e
-  | Expr_TApply (FIdent("add_int", _), [], [x; y]) ->
+  | Expr_TApply (FIdent("add_int", _), [], [x; y], _) ->
     add_poly (to_poly x) (to_poly y)
-  | Expr_TApply (FIdent("sub_int", _), [], [x; y]) ->
+  | Expr_TApply (FIdent("sub_int", _), [], [x; y], _) ->
     sub_poly (to_poly x) (to_poly y)
-  | Expr_TApply (FIdent("neg_int", _), [], [x]) ->
+  | Expr_TApply (FIdent("neg_int", _), [], [x], _) ->
     neg_poly (to_poly x)
-  | Expr_TApply (FIdent("mul_int", _), [], [x; y]) ->
+  | Expr_TApply (FIdent("mul_int", _), [], [x; y], _) ->
     mul_poly (to_poly x) (to_poly y)
   | _ -> mk_poly_from_expr x
   )

@@ -210,7 +210,7 @@ and expr =
  | Expr_ImpDef of string option * ty
  | Expr_AsConstraint of expr * constraint_range list
  | Expr_AsType of expr * ty
- | Expr_TApply of ident * expr list * expr list (* function call with explicit type parameters *)
+ | Expr_TApply of ident * expr list * expr list * bool (* function call with explicit type parameters *)
  | Expr_Concat of expr list * expr list (* bitvector concatenation *)
  | Expr_Array of expr * expr (* array accesses *)
  | Expr_LitInt of intLit (* literal decimal integer *)
@@ -255,8 +255,8 @@ lexpr =
  | LExpr_BitTuple of expr list * lexpr list
  | LExpr_Tuple of lexpr list
  | LExpr_Array of lexpr * expr (* array assignment *)
- | LExpr_Write of ident * expr list * expr list (* setter procedure call *)
- | LExpr_ReadWrite of ident * ident * expr list * expr list (* read-modify-write function+procedure call *)
+ | LExpr_Write of ident * expr list * expr list * bool (* setter procedure call *)
+ | LExpr_ReadWrite of ident * ident * expr list * expr list * bool (* read-modify-write function+procedure call *)
 
 type
 decl_item =
@@ -286,7 +286,7 @@ and stmt =
  | Stmt_ProcReturn of l (* procedure return *)
  | Stmt_Assert of expr * l (* assertion *)
  | Stmt_Throw of expr * l
- | Stmt_TCall of ident * expr list * expr list * l (* procedure call with explicit type parameters *)
+ | Stmt_TCall of ident * expr list * expr list * bool * l (* procedure call with explicit type parameters *)
  | Stmt_VarDeclsNoInit of ident list * ty * l
  | Stmt_If of expr * stmt list * s_elsif list * (stmt list * l) * l
  | Stmt_Case of expr * alt list * (stmt list * l) option * l

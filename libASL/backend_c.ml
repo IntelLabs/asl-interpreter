@@ -253,6 +253,17 @@ let size_of_type (ty : AST.ty) : AST.expr option =
   | Type_Integer _ -> Some (Asl_utils.mk_litint 64)
   | _ -> Asl_utils.width_of_type ty
 
+let rethrow_stmt (fmt : PP.formatter) : unit =
+  Format.fprintf fmt "if (ASL_exception._exc.ASL_tag != ASL_no_exception) goto %a;"
+    varname (current_catcher ())
+
+let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
+  Format.fprintf fmt "({ __auto_type __r = ";
+  f ();
+  Format.fprintf fmt "; ";
+  rethrow_stmt fmt;
+  Format.fprintf fmt " __r; })"
+
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
   ( match x with
   | Type_Bits n
@@ -640,7 +651,11 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
         Format.fprintf fmt " }"
       end
   | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
-  | Expr_TApply (f, tes, es) -> funcall loc fmt f tes es loc
+  | Expr_TApply (f, tes, es, throws) ->
+      if throws then
+        rethrow_expr fmt (fun _ -> funcall loc fmt f tes es loc)
+      else
+        funcall loc fmt f tes es loc
   | Expr_Var v -> (
       match v with
       | Ident "TRUE" -> kw_true fmt
@@ -919,9 +934,10 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_ProcReturn loc ->
       kw_return fmt;
       semicolon fmt
-  | Stmt_TCall (f, tes, args, loc) ->
+  | Stmt_TCall (f, tes, args, throws, loc) ->
       funcall loc fmt f tes args loc;
-      semicolon fmt
+      semicolon fmt;
+      if (throws) then rethrow_stmt fmt
   | Stmt_VarDeclsNoInit (vs, Type_Constructor (Ident "__RAM", [_]), loc) ->
       cutsep fmt
         (fun v ->

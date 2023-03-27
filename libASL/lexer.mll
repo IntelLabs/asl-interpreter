@@ -167,6 +167,7 @@ rule token = parse
     | '>'            { GT         }
     | '>' '='        { GT_EQ      }
     | '>' '>'        { GT_GT      }
+    | '?'            { QUERY      }
     | '['            { LBRACK     }
     | ']'            { RBRACK     }
     | '^'            { CARET      }

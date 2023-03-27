@@ -347,7 +347,7 @@ class freevarClass =
 
     method! vexpr e =
       match e with
-      | Expr_TApply (f, tes, es) ->
+      | Expr_TApply (f, _, _, _) ->
           free_funs <- IdentSet.add f free_funs;
           DoChildren
       | Expr_RecordInit (tc, _, _) ->
@@ -360,10 +360,10 @@ class freevarClass =
       | LExpr_Var v ->
           free_vars <- IdentSet.add v free_vars;
           SkipChildren
-      | LExpr_Write (f, tes, es) ->
+      | LExpr_Write (f, _, _, _) ->
           free_funs <- IdentSet.add f free_funs;
           DoChildren
-      | LExpr_ReadWrite (f, g, tes, es) ->
+      | LExpr_ReadWrite (f, g, _, _, _) ->
           free_funs <- IdentSet.add f free_funs;
           free_funs <- IdentSet.add g free_funs;
           DoChildren
@@ -371,7 +371,7 @@ class freevarClass =
 
     method! vstmt s =
       match s with
-      | Stmt_TCall (f, tes, args, loc) ->
+      | Stmt_TCall (f, _, _, _, _) ->
           free_funs <- IdentSet.add f free_funs;
           DoChildren
       | _ -> DoChildren
@@ -555,24 +555,24 @@ class callsClass =
 
     method! vexpr =
       function
-      | Expr_TApply (f, _, _) ->
+      | Expr_TApply (f, _, _, _) ->
           calls <- IdentSet.add f calls;
           DoChildren
       | _ -> DoChildren
 
     method! vstmt =
       function
-      | Stmt_TCall (id, _, _, _) ->
+      | Stmt_TCall (id, _, _, _, _) ->
           calls <- IdentSet.add id calls;
           DoChildren
       | _ -> DoChildren
 
     method! vlexpr =
       function
-      | LExpr_Write (id, _, _) ->
+      | LExpr_Write (id, _, _, _) ->
           calls <- IdentSet.add id calls;
           DoChildren
-      | LExpr_ReadWrite (id1, id2, _, _) ->
+      | LExpr_ReadWrite (id1, id2, _, _, _) ->
           calls <- IdentSet.add id1 calls |> IdentSet.add id2;
           DoChildren
       | _ -> DoChildren
@@ -765,14 +765,14 @@ class sideEffectClass =
 
     method! vexpr e =
       match e with
-      | Expr_TApply (f, tes, es) ->
+      | Expr_TApply (f, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
           DoChildren
       | _ -> DoChildren
 
     method! vstmt s =
       match s with
-      | Stmt_TCall (f, tes, args, loc) ->
+      | Stmt_TCall (f, _, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
           DoChildren
       | Stmt_Throw _ ->
@@ -930,12 +930,12 @@ class resugarClass (ops : AST.binop Bindings.t) =
 
     method! vexpr x =
       match x with
-      | Expr_TApply (f, tys, args) -> (
+      | Expr_TApply (f, tys, args, throws) -> (
           let args' = List.map (visit_expr (self :> aslVisitor)) args in
           match (Bindings.find_opt f ops, args') with
           | Some op, [ a; b ] -> ChangeTo (Expr_Binop (a, op, b))
           (* | (Some op, [a]) -> ChangeTo (Expr_Unop(op, a)) *)
-          | _ -> ChangeTo (Expr_TApply (f, [], args')))
+          | _ -> ChangeTo (Expr_TApply (f, [], args', throws)))
       | _ -> DoChildren
   end
 
@@ -984,10 +984,10 @@ let one = Expr_LitInt "1"
 let two = Expr_LitInt "2"
 
 let mk_unop (op : string) (tys : AST.expr list) (x : AST.expr) : AST.expr =
-  Expr_TApply (FIdent (op, 0), tys, [x])
+  Expr_TApply (FIdent (op, 0), tys, [x], false)
 
 let mk_binop (op : string) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (FIdent (op, 0), tys, [x; y])
+  Expr_TApply (FIdent (op, 0), tys, [x; y], false)
 
 (** Construct "!x" *)
 let mk_not (x : AST.expr) : AST.expr =
@@ -1052,16 +1052,16 @@ let mk_in_mask (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
 (** Construct "and_bits{N}(x, y)" *)
 let mk_and_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   ( match (x, y) with
-  | (Expr_TApply (FIdent ("ones_bits", _), _, _), _) -> y
-  | (_, Expr_TApply (FIdent ("ones_bits", _), _, _)) -> x
+  | (Expr_TApply (FIdent ("ones_bits", _), _, _, _), _) -> y
+  | (_, Expr_TApply (FIdent ("ones_bits", _), _, _, _)) -> x
   | _ -> mk_binop "and_bits" [n] x y
   )
 
 (** Construct "or_bits{N}(x, y)" *)
 let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   ( match (x, y) with
-  | (Expr_TApply (FIdent ("zeros_bits", _), _, _), _) -> y
-  | (_, Expr_TApply (FIdent ("zeros_bits", _), _, _)) -> x
+  | (Expr_TApply (FIdent ("zeros_bits", _), _, _, _), _) -> y
+  | (_, Expr_TApply (FIdent ("zeros_bits", _), _, _, _)) -> x
   | _ -> mk_binop "or_bits" [n] x y
   )
 
@@ -1089,18 +1089,18 @@ let mk_ones_bits (n : AST.expr) : AST.expr =
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("asl_extract_bits", 0), [ w; n ], [ x; lo; w ])
+  Expr_TApply (FIdent ("asl_extract_bits", 0), [ w; n ], [ x; lo; w ], false)
 
 (** Construct "asl_extract_int{w}(x, lo, w)" *)
 let mk_int_select (w : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ])
+  Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ], false)
 
 (** Construct "zero_extend_bits{w, n}(x, n)" *)
 let mk_zero_extend_bits (w : AST.expr) (n : AST.expr) (x : AST.expr) : AST.expr =
   if w = n then
     x
   else
-    Expr_TApply (FIdent ("zero_extend_bits", 0), [ w; n ], [ x; n ])
+    Expr_TApply (FIdent ("zero_extend_bits", 0), [ w; n ], [ x; n ], false)
 
 (** Construct "mk_mask{n}(w, n)" which is equivalent to
  *  'ZeroExtend{n}(Ones(w), n)'
@@ -1109,10 +1109,10 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   if w = n then
     mk_ones_bits n
   else
-    Expr_TApply (FIdent ("mk_mask", 0), [n], [w; n])
+    Expr_TApply (FIdent ("mk_mask", 0), [n], [w; n], false)
 
 let mk_not_mask(m : AST.expr) (n : AST.expr) =
-  Expr_TApply (FIdent ("not_bits", 0), [n], [m])
+  Expr_TApply (FIdent ("not_bits", 0), [n], [m], false)
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =

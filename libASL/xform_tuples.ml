@@ -33,7 +33,7 @@ class replaceTupleClass (tc : AST.ident option) =
         let r = AST.Expr_RecordInit (tc, [], fas) in
         Visitor.ChangeTo [AST.Stmt_FunReturn (r, loc)]
 
-      | Stmt_VarDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
+      | Stmt_VarDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
@@ -42,7 +42,7 @@ class replaceTupleClass (tc : AST.ident option) =
           ) dis in
         Visitor.ChangeTo (s :: ss)
 
-      | Stmt_ConstDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _) as i), loc) ->
+      | Stmt_ConstDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in
@@ -51,7 +51,7 @@ class replaceTupleClass (tc : AST.ident option) =
           ) dis in
         Visitor.ChangeTo (s :: ss)
 
-      | Stmt_Assign (AST.LExpr_Tuple es, (AST.Expr_TApply (f, _, _) as i), loc) ->
+      | Stmt_Assign (AST.LExpr_Tuple es, (AST.Expr_TApply (f, _, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
         let s = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), i, loc) in

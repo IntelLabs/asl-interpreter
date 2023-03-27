@@ -67,6 +67,7 @@ let minus_minus_gt (fmt : PP.formatter) : unit = delimiter fmt "-->"
 let plus (fmt : PP.formatter) : unit = delimiter fmt "+"
 let plus_colon (fmt : PP.formatter) : unit = delimiter fmt "+:"
 let plus_plus (fmt : PP.formatter) : unit = delimiter fmt "++"
+let query (fmt : PP.formatter) : unit = delimiter fmt "?"
 let rbrace_rbrace (fmt : PP.formatter) : unit = delimiter fmt "}}"
 let semicolon (fmt : PP.formatter) : unit = delimiter fmt ";"
 let slash (fmt : PP.formatter) : unit = delimiter fmt "/"
@@ -414,10 +415,11 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       pattern fmt p
   | Expr_Var v -> varname fmt v
   | Expr_Parens e -> parens fmt (fun _ -> expr fmt e)
-  | Expr_TApply (f, tes, es) ->
+  | Expr_TApply (f, tes, es, throws) ->
       funname fmt f;
       if show_tyargs then braces fmt (fun _ -> exprs fmt tes);
-      parens fmt (fun _ -> exprs fmt es)
+      parens fmt (fun _ -> exprs fmt es);
+      if throws then query fmt
   | Expr_Tuple es -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat (ws, es) ->
       if show_tyargs then braces fmt (fun _ -> exprs fmt ws);
@@ -519,7 +521,7 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       nbsp fmt;
       lexpr fmt a;
       brackets fmt (fun _ -> expr fmt e)
-  | LExpr_Write (f, tes, es) ->
+  | LExpr_Write (f, tes, es, throws) ->
       kw_underscore_write fmt;
       nbsp fmt;
       funname fmt f;
@@ -527,8 +529,9 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
-      parens fmt (fun _ -> exprs fmt es)
-  | LExpr_ReadWrite (f, g, tes, es) ->
+      parens fmt (fun _ -> exprs fmt es);
+      if throws then query fmt
+  | LExpr_ReadWrite (f, g, tes, es, throws) ->
       kw_underscore_readwrite fmt;
       nbsp fmt;
       funname fmt f;
@@ -538,7 +541,8 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
-      parens fmt (fun _ -> exprs fmt es)
+      parens fmt (fun _ -> exprs fmt es);
+      if throws then query fmt
 
 and lexprs (fmt : PP.formatter) (ps : AST.lexpr list) : unit =
   commasep fmt (lexpr fmt) ps
@@ -606,7 +610,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       expr fmt r;
       semicolon fmt;
       comment_start fmt loc
-  | Stmt_TCall (f, tes, args, loc) ->
+  | Stmt_TCall (f, tes, args, throws, loc) ->
       comments_before fmt loc;
       funname fmt f;
       if show_tyargs then (
@@ -614,6 +618,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
         exprs fmt tes;
         rbrace_rbrace fmt);
       parens fmt (fun _ -> exprs fmt args);
+      if throws then query fmt;
       semicolon fmt;
       comment_start fmt loc
   | Stmt_FunReturn (e, loc) ->

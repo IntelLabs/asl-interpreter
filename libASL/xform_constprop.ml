@@ -154,15 +154,15 @@ let algebraic_simplifications (x : expr) : expr =
       in
       if xs' = [] then Expr_LitBits "" else Expr_Concat (ws', xs')
   (* '' : x == x == x : '' *)
-  | Expr_TApply (FIdent ("append_bits", _), [ Expr_LitInt "0"; _ ], [ _; y ]) ->
+  | Expr_TApply (FIdent ("append_bits", _), [ Expr_LitInt "0"; _ ], [ _; y ], _) ->
       y
-  | Expr_TApply (FIdent ("append_bits", _), [ _; Expr_LitInt "0" ], [ x; _ ]) ->
+  | Expr_TApply (FIdent ("append_bits", _), [ _; Expr_LitInt "0" ], [ x; _ ], _) ->
       x
   (* x + 0 == x == 0 + x *)
-  | Expr_TApply (FIdent ("add_int", _), [], [ x; Expr_LitInt "0" ]) -> x
-  | Expr_TApply (FIdent ("add_int", _), [], [ Expr_LitInt "0"; x ]) -> x
+  | Expr_TApply (FIdent ("add_int", _), [], [ x; Expr_LitInt "0" ], _) -> x
+  | Expr_TApply (FIdent ("add_int", _), [], [ Expr_LitInt "0"; x ], _) -> x
   (* x - 0 == x *)
-  | Expr_TApply (FIdent ("sub_int", _), [], [ x; Expr_LitInt "0" ]) -> x
+  | Expr_TApply (FIdent ("sub_int", _), [], [ x; Expr_LitInt "0" ], _) -> x
   | _ -> x
 
 (* impure functions: set during initialization *)
@@ -170,7 +170,7 @@ let impure_funs : IdentSet.t ref = ref IdentSet.empty
 
 let isPure (x : expr) : bool =
   match x with
-  | Expr_TApply (f, _, _) -> not (IdentSet.mem f !impure_funs)
+  | Expr_TApply (f, _, _, throws) -> not (throws || IdentSet.mem f !impure_funs)
   | _ -> true
 
 class constEvalClass (env : Env.t) =
@@ -284,14 +284,14 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
       let i' = xform_expr env i in
       let l' = xform_lexpr env l Values.bottom in
       LExpr_Array (l', i')
-  | LExpr_Write (setter, tes, es) ->
+  | LExpr_Write (setter, tes, es, throws) ->
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
-      LExpr_Write (setter, tes', es')
-  | LExpr_ReadWrite (getter, setter, tes, es) ->
+      LExpr_Write (setter, tes', es', throws)
+  | LExpr_ReadWrite (getter, setter, tes, es, throws) ->
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
-      LExpr_ReadWrite (getter, setter, tes', es')
+      LExpr_ReadWrite (getter, setter, tes', es', throws)
   | _ -> failwith ("xform_lexpr: " ^ pp_lexpr x)
 
 (** Evaluate pattern match *)
@@ -360,10 +360,10 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       let l' = xform_lexpr env l (expr_value env r') in
       (* todo: delete assignment if possible *)
       [ Stmt_Assign (l', r', loc) ]
-  | Stmt_TCall (f, tes, es, loc) ->
+  | Stmt_TCall (f, tes, es, throws, loc) ->
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
-      [ Stmt_TCall (f, tes', es', loc) ]
+      [ Stmt_TCall (f, tes', es', throws, loc) ]
   | Stmt_FunReturn (e, loc) ->
       let e' = xform_expr env e in
       Env.fun_return env (expr_value env e');

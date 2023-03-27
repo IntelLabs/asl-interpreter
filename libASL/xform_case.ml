@@ -117,7 +117,7 @@ class simplifyCaseClass =
           | None ->
             let msg = AST.pp_loc loc in
             let f = AST.FIdent ("ASL_error_unmatched_case", 0) in
-            let s = AST.Stmt_TCall (f, [], [Expr_LitString msg], loc) in
+            let s = AST.Stmt_TCall (f, [], [Expr_LitString msg], false, loc) in
             ([s], loc)
         in
         let ss = mk_if branches default loc in

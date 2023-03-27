@@ -181,12 +181,12 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
     | Expr_Parens e ->
         let e' = visit_expr vis e in
         if e == e' then x else Expr_Parens e'
-    | Expr_TApply (f, tes, es) ->
+    | Expr_TApply (f, tes, es, throws) ->
         let f' = visit_var vis Call f in
         let tes' = visit_exprs vis tes in
         let es' = visit_exprs vis es in
         if f == f' && tes == tes' && es == es' then x
-        else Expr_TApply (f', tes', es')
+        else Expr_TApply (f', tes', es', throws)
     | Expr_Tuple es ->
         let es' = visit_exprs vis es in
         if es == es' then x else Expr_Tuple es'
@@ -324,19 +324,19 @@ and visit_lexpr (vis : aslVisitor) (x : lexpr) : lexpr =
         let a' = visit_lexpr vis a in
         let e' = visit_expr vis e in
         if a == a' && e == e' then x else LExpr_Array (a', e')
-    | LExpr_Write (f, tes, es) ->
+    | LExpr_Write (f, tes, es, throws) ->
         let f' = visit_var vis Call f in
         let tes' = visit_exprs vis tes in
         let es' = visit_exprs vis es in
         if f == f' && tes == tes' && es == es' then x
-        else LExpr_Write (f, tes', es')
-    | LExpr_ReadWrite (f, g, tes, es) ->
+        else LExpr_Write (f, tes', es', throws)
+    | LExpr_ReadWrite (f, g, tes, es, throws) ->
         let f' = visit_var vis Call f in
         let g' = visit_var vis Call g in
         let tes' = visit_exprs vis tes in
         let es' = visit_exprs vis es in
         if f == f' && g == g' && tes == tes' && es == es' then x
-        else LExpr_ReadWrite (f, g, tes', es')
+        else LExpr_ReadWrite (f, g, tes', es', throws)
   in
   doVisit vis (vis#vlexpr x) aux x
 
@@ -398,12 +398,12 @@ and visit_stmt (vis : aslVisitor) (x : stmt) : stmt list =
         let l' = visit_lexpr vis l in
         let r' = visit_expr vis r in
         if l == l' && r == r' then x else Stmt_Assign (l', r', loc)
-    | Stmt_TCall (f, tes, args, loc) ->
+    | Stmt_TCall (f, tes, args, throws, loc) ->
         let f' = visit_var vis Call f in
         let tes' = visit_exprs vis tes in
         let args' = visit_exprs vis args in
         if f == f' && tes == tes' && args == args' then x
-        else Stmt_TCall (f', tes', args', loc)
+        else Stmt_TCall (f', tes', args', throws, loc)
     | Stmt_FunReturn (e, loc) ->
         let e' = visit_expr vis e in
         if e == e' then x else Stmt_FunReturn (e', loc)

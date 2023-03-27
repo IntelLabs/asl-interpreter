@@ -183,7 +183,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
 
     method! vexpr x =
       match x with
-      | Expr_TApply (f, tys, args) -> (
+      | Expr_TApply (f, tys, args, throws) -> (
           match Utils.flatten_map_option const_int_expr tys with
           | Some [] -> DoChildren
           | Some sizes ->
@@ -193,14 +193,14 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                        (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
-                              (AST.Expr_TApply (f', [], args'), Fun.id)))))
+                              (AST.Expr_TApply (f', [], args', throws), Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren
 
     method! vlexpr e =
       match e with
-      | LExpr_Write (f, tes, es) -> (
+      | LExpr_Write (f, tes, es, throws) -> (
           match Utils.flatten_map_option const_int_expr tes with
           | Some [] -> DoChildren
           | Some sizes ->
@@ -210,14 +210,14 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                        (fun (f', es') ->
                          Some
                            (ChangeDoChildrenPost
-                              (AST.LExpr_Write (f', [], es'), Fun.id)))))
+                              (AST.LExpr_Write (f', [], es', throws), Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren
 
     method! vstmt s =
       match s with
-      | Stmt_TCall (f, tys, args, loc) -> (
+      | Stmt_TCall (f, tys, args, loc, throws) -> (
           match Utils.flatten_map_option const_int_expr tys with
           | Some [] -> DoChildren
           | Some sizes ->
@@ -227,7 +227,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                        (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
-                              ([AST.Stmt_TCall (f', [], args', loc)], Fun.id)))))
+                              ([AST.Stmt_TCall (f', [], args', loc, throws)], Fun.id)))))
                 ~default:DoChildren
           | None -> DoChildren)
       | _ -> DoChildren

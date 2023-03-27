@@ -504,7 +504,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
       | Ident "FALSE" -> constant fmt kw_false
       | _ -> varname fmt v)
   | Expr_Parens e -> expr loc fmt e
-  | Expr_TApply (f, tes, es) -> funcall fmt f tes es loc
+  | Expr_TApply (f, tes, es, false) -> funcall fmt f tes es loc
   | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs loc fmt es)
   | Expr_Unknown t -> unknown loc fmt t
   | Expr_LitInt l -> intLit fmt l
@@ -529,6 +529,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   (* unimplemented *)
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
   | Expr_RecordInit _ | Expr_ImpDef (_, _)
+  | Expr_TApply _
   | Expr_Tuple _ | Expr_Fields _ | Expr_AsConstraint _ | Expr_AsType _ ->
       raise
         (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
@@ -597,8 +598,8 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   (* unimplemented *)
   | LExpr_Wildcard | LExpr_Fields _ | LExpr_Slices _
   | LExpr_Tuple _
-  | LExpr_Write (_, _, _)
-  | LExpr_ReadWrite (_, _, _, _) ->
+  | LExpr_Write _
+  | LExpr_ReadWrite _ ->
       raise
         (Unimplemented
            (loc, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
@@ -656,7 +657,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
       assign loc fmt (fun _ -> varname fmt v) i
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
-  | Stmt_TCall (f, tes, args, loc) ->
+  | Stmt_TCall (f, tes, args, false, loc) ->
       funcall fmt f tes args loc;
       semicolon fmt
   | Stmt_FunReturn (e, loc) ->
@@ -749,6 +750,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_For (_, _, _, _, _, loc)
   | Stmt_While (_, _, loc)
   | Stmt_Repeat (_, _, _, loc)
+  | Stmt_TCall (_, _, _, _, loc)
   | Stmt_Try (_, _, _, _, loc) ->
       raise
         (Unimplemented (loc, "statement", fun fmt -> FMTAST.stmt fmt x))

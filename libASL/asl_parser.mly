@@ -134,6 +134,7 @@ let type_unknown = Type_Constructor (Ident "<type_unknown>", [])
 %token OR  (* OR *)
 %token PLUS  (* + *)
 %token PLUS_PLUS  (* ++ *)
+%token QUERY (* ? *)
 %token QUOT  (* QUOT *)
 %token REM  (* REM *)
 %token SLASH  (* / *)
@@ -419,8 +420,8 @@ lexpr:
 simple_stmt:
 | assignment_stmt = assignment_stmt
     { assignment_stmt }
-| f = ident LPAREN args = separated_list(COMMA, expr) RPAREN SEMICOLON
-    { Stmt_TCall(f, [], args, Range($symbolstartpos, $endpos)) }
+| f = ident LPAREN args = separated_list(COMMA, expr) RPAREN throws=throws SEMICOLON
+    { Stmt_TCall(f, [], args, throws, Range($symbolstartpos, $endpos)) }
 | RETURN e = expr SEMICOLON
     { Stmt_FunReturn(e, Range($symbolstartpos, $endpos)) }
 | RETURN SEMICOLON
@@ -557,8 +558,8 @@ aexpr:
     { literal_expression }
 | v = ident
     { Expr_Var(v) }
-| f = ident LPAREN es = separated_list(COMMA, expr) RPAREN
-    { Expr_TApply(f, [], es) }
+| f = ident LPAREN es = separated_list(COMMA, expr) RPAREN throws=throws
+    { Expr_TApply(f, [], es, throws) }
 | tc = ident 
     LPAREN es = separated_list(COMMA, expr) RPAREN
     LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
@@ -586,6 +587,10 @@ field_assignment:
 opt_stringLit:
 | stringLit = STRINGLIT { Some(stringLit) }
 | { None }
+
+throws: 
+| QUERY { true }
+|       { false }
 
 unop:
 | MINUS { Unop_Negate }

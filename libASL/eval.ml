@@ -385,7 +385,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
   | Expr_Parens e ->
       let v = eval_expr loc env e in
       v
-  | Expr_TApply (f, tes, es) ->
+  | Expr_TApply (f, tes, es, _) ->
       (* First deal with &&, || and IMPLIES all of which only evaluate
        * their second argument if they need to
        *)
@@ -490,7 +490,7 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
   | LExpr_Array (l, i) ->
       let i' = eval_expr loc env i in
       eval_lexpr_modify loc env l (fun prev -> set_array loc prev i' r)
-  | LExpr_Write (setter, tes, es) ->
+  | LExpr_Write (setter, tes, es, _) ->
       let tvs = eval_exprs loc env tes in
       let vs = eval_exprs loc env es in
       eval_proccall loc env setter tvs (List.append vs [ r ])
@@ -519,7 +519,7 @@ and eval_lexpr_modify (loc : l) (env : Env.t) (x : AST.lexpr)
         set_array loc prev i' (modify old)
       in
       eval_lexpr_modify loc env l modify'
-  | LExpr_ReadWrite (getter, setter, tes, es) ->
+  | LExpr_ReadWrite (getter, setter, tes, es, _) ->
       let tvs = eval_exprs loc env tes in
       let vs = eval_exprs loc env es in
       let old = eval_funcall loc env getter tvs vs in
@@ -546,7 +546,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
   | Stmt_Assign (l, r, loc) ->
       let r' = eval_expr loc env r in
       eval_lexpr loc env l r'
-  | Stmt_TCall (f, tes, es, loc) ->
+  | Stmt_TCall (f, tes, es, _, loc) ->
       let tvs = eval_exprs loc env tes in
       let vs = eval_exprs loc env es in
       eval_proccall loc env f tvs vs

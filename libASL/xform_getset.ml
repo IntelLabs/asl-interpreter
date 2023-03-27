@@ -13,8 +13,8 @@ class replaceSetterClass =
 
     method! vstmt s =
       match s with
-      | Stmt_Assign (AST.LExpr_Write (f, tes, es), r, loc) ->
-          let s = AST.Stmt_TCall (f, tes, es @ [ r ], loc) in
+      | Stmt_Assign (AST.LExpr_Write (f, tes, es, throws), r, loc) ->
+          let s = AST.Stmt_TCall (f, tes, es @ [ r ], throws, loc) in
           Visitor.ChangeTo [ s ]
       | _ -> DoChildren
   end

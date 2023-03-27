@@ -544,14 +544,14 @@ let rec simplify_expr (x : AST.expr) : AST.expr =
   let to_expr (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x) in
 
   match x with
-  | Expr_TApply (f, tes, es) -> (
+  | Expr_TApply (f, tes, es, throws) -> (
       let es' = List.map simplify_expr es in
       match (f, flatten_map_option eval es') with
       | FIdent ("neg_int", _), Some [ a ]    -> to_expr (Z.neg a)
       | FIdent ("add_int", _), Some [ a; b ] -> to_expr (Z.add a b)
       | FIdent ("sub_int", _), Some [ a; b ] -> to_expr (Z.sub a b)
       | FIdent ("mul_int", _), Some [ a; b ] -> to_expr (Z.mul a b)
-      | _ -> Expr_TApply (f, tes, es'))
+      | _ -> Expr_TApply (f, tes, es', throws))
   | _ -> x
 
 
@@ -588,43 +588,51 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
   | Expr_TApply
       ( FIdent ("mul_int", _),
         [],
-        [ Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ]); c ] )
+        [ Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ], _); c ],
+        _
+      )
     when b = c ->
       z3_of_expr ctx ufs a
   | Expr_TApply
       ( FIdent ("mul_int", _),
         [],
-        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ]) ] )
+        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ], _) ],
+        _
+      )
     when a = c ->
       z3_of_expr ctx ufs b
   | Expr_TApply
       ( FIdent ("add_int", _),
         [],
         [
-          Expr_TApply (FIdent ("fdiv_int", _), [], [ a1; b1 ]);
-          Expr_TApply (FIdent ("fdiv_int", _), [], [ a2; b2 ]);
-        ] )
+          Expr_TApply (FIdent ("fdiv_int", _), [], [ a1; b1 ], _);
+          Expr_TApply (FIdent ("fdiv_int", _), [], [ a2; b2 ], _);
+        ],
+        _
+      )
     when a1 = a2 && b1 = b2 && b1 = two ->
       z3_of_expr ctx ufs a1
   | Expr_TApply
       ( FIdent ("eq_int", _),
         [],
-        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ]) ] ) ->
+        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ], _) ],
+        _
+      ) ->
       Z3.Boolean.mk_eq ctx
         (Z3.Arithmetic.mk_mul ctx
            [ z3_of_expr ctx ufs c; z3_of_expr ctx ufs a ])
         (z3_of_expr ctx ufs b)
-  | Expr_TApply (FIdent ("neg_int", _), [], [x]) ->
+  | Expr_TApply (FIdent ("neg_int", _), [], [x], _) ->
       Z3.Arithmetic.mk_unary_minus ctx (z3_of_expr ctx ufs x)
-  | Expr_TApply (FIdent ("add_int", _), [], xs) ->
+  | Expr_TApply (FIdent ("add_int", _), [], xs, _) ->
       Z3.Arithmetic.mk_add ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("sub_int", _), [], xs) ->
+  | Expr_TApply (FIdent ("sub_int", _), [], xs, _) ->
       Z3.Arithmetic.mk_sub ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("mul_int", _), [], xs) ->
+  | Expr_TApply (FIdent ("mul_int", _), [], xs, _) ->
       Z3.Arithmetic.mk_mul ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ]) ->
+  | Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ], _) ->
       Z3.Arithmetic.mk_div ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
-  | Expr_TApply (FIdent ("eq_int", _), [], [ a; b ]) ->
+  | Expr_TApply (FIdent ("eq_int", _), [], [ a; b ], _) ->
       Z3.Boolean.mk_eq ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
   | _ -> (
       if verbose then
@@ -1157,7 +1165,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       let x', xty = tc_expr env loc x in
       let y', yty = tc_expr env loc y in
       let fty = tc_binop env loc op x' y' xty yty in
-      (Expr_TApply (fty.name, fty.parameters, [ x'; y' ]), fty.rty)
+      (Expr_TApply (fty.name, fty.parameters, [ x'; y' ], false), fty.rty)
   | Expr_Field (e, f) ->
       let e', ty = tc_expr env loc e in
       ( match typeFields (Env.globals env) loc ty with
@@ -1210,7 +1218,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
-              (Expr_TApply (fty'.name, fty'.parameters, es), fty'.rty)
+              (Expr_TApply (fty'.name, fty'.parameters, es, false), fty'.rty)
           | _ -> tc_slice_expr env loc e ss')
       | _ -> tc_slice_expr env loc e ss')
   | Expr_RecordInit (tc, es, fas) ->
@@ -1275,7 +1283,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
           with
           | Some fty ->
               let fty' = instantiate_fun env loc fty [] [] in
-              (Expr_TApply (fty'.name, fty'.parameters, []), fty'.rty)
+              (Expr_TApply (fty'.name, fty'.parameters, [], false), fty'.rty)
           | None ->
               raise
                 (UnknownObject
@@ -1285,10 +1293,10 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
   | Expr_Parens e ->
       let e', ty = tc_expr env loc e in
       (Expr_Parens e', ty)
-  | Expr_TApply (f, tes, es) ->
+  | Expr_TApply (f, tes, es, throws) ->
       let es', tys = List.split (tc_exprs env loc es) in
       let fty = tc_apply env loc "function" f es' tys in
-      (Expr_TApply (fty.name, fty.parameters, es'), fty.rty)
+      (Expr_TApply (fty.name, fty.parameters, es', throws), fty.rty)
   | Expr_Tuple es ->
       let es', tys = List.split (List.map (tc_expr env loc) es) in
       (Expr_Tuple es', Type_Tuple tys)
@@ -1301,7 +1309,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       let e', ety = tc_expr env loc e in
       (* Format.fprintf fmt "%a: unop %a : %a\n" FMT.loc loc FMT.expr e FMT.ty ety; *)
       let fty = tc_unop env loc op e ety in
-      (Expr_TApply (fty.name, fty.parameters, [ e' ]), fty.rty)
+      (Expr_TApply (fty.name, fty.parameters, [ e' ], false), fty.rty)
   | Expr_Unknown t ->
       let ty' = tc_type env loc t in
       (Expr_Unknown ty', ty')
@@ -1485,7 +1493,8 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
                       (UnknownObject (loc, "var setter function", pprint_ident v))
               in
               let fty' = instantiate_fun env loc fty [] [] in
-              (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, []), fty'.rty)
+              let throws = false in (* todo: need to allow ? on var *)
+              (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, [], throws), fty'.rty)
           | None -> raise (UnknownObject (loc, "variable", pprint_ident v))))
   | LExpr_Field (l, f) -> (
       let l', ty = tc_lexpr2 env loc l in
@@ -1542,7 +1551,8 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
-              (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, es), fty'.rty)
+              let throws = false in (* todo : need to add throws to Var *)
+              (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, es, throws), fty'.rty)
           | None, Some _ ->
               raise (UnknownObject (loc, "getter function", pprint_ident a))
           | Some _, None ->
@@ -1606,7 +1616,8 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
               let gty' = instantiate_fun env loc gty [] [] in
               let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Var")) in
               check_subtype_satisfies env loc ty vty;
-              LExpr_Write (gty'.name, gty'.parameters, [])
+              let throws = false in
+              LExpr_Write (gty'.name, gty'.parameters, [], throws)
           | None ->
               raise (UnknownObject (loc, "variable", pprint_ident v))
           )
@@ -1672,7 +1683,8 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                 let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Slices")) in
                 Format.fprintf fmt "unifying %a with %a\n" FMT.ty vty FMT.ty ty;
                 check_subtype_satisfies env loc ty vty;
-                (LExpr_Write (gty'.name, gty'.parameters, es), ty)
+                let throws = false in
+                (LExpr_Write (gty'.name, gty'.parameters, es, throws), ty)
             | _ -> (
                 let getters =
                   GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
@@ -1691,7 +1703,8 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                 match (ogetter, osetter) with
                 | Some fty, Some fty' ->
                     (* todo: calculate type correctly *)
-                    let wr = LExpr_ReadWrite (fty.funname, fty'.funname, [], []) in
+                    let throws = false in
+                    let wr = LExpr_ReadWrite (fty.funname, fty'.funname, [], [], throws) in
                     (* todo: check slices are integer *)
                     (* todo: check rty is bits(_) *)
                     let ss'' = List.map fst ss' in
@@ -1834,11 +1847,11 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
         Format.fprintf fmt "    - Typechecking %a <- %a : %a\n"
           FMT.lexpr l' FMT.expr r' FMT.ty rty;
       Stmt_Assign (l', r', loc)
-  | Stmt_TCall (f, tes, es, loc) ->
+  | Stmt_TCall (f, tes, es, throws, loc) ->
       let es', tys = List.split (tc_exprs env loc es) in
       let fty = tc_apply env loc "procedure" f es' tys in
       check_subtype_satisfies env loc type_unit fty.rty;
-      Stmt_TCall (fty.name, fty.parameters, es', loc)
+      Stmt_TCall (fty.name, fty.parameters, es', throws, loc)
   | Stmt_FunReturn (e, loc) ->
       let rty =
         match Env.getReturnType env with
