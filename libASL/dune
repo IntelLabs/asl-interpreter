@@ -24,6 +24,7 @@
    eval
    flags
    format_utils
+   global_checks
    lattice
    lexer
    lexersupport

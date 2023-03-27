@@ -963,7 +963,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
         brace_enclosed_block fmt tb;
         Format.fprintf fmt "@,%a:@," varname catch_label;
         );
-      Format.fprintf fmt "if (0) {@,";
+      Format.fprintf fmt "if (ASL_exception._exc.ASL_tag == ASL_no_exception) {@,";
       List.iter (function AST.Catcher_Guarded (v, tc, b, loc) ->
           Format.fprintf fmt "} else if (ASL_exception._exc.ASL_tag == tag_%a) {" tycon tc;
           indented fmt (fun _ ->

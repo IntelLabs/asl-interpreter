@@ -199,13 +199,17 @@ let main () =
     try (
       let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
       let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
+      let ds = t @ ts in
+      if !opt_verbose then Printf.printf "Performing global checks\n%!";
+      let ds = Global_checks.check_decls ds in
+      if !opt_verbose then Printf.printf "Performed global checks\n%!";
       if !opt_print_spec then (
         FMT.comment_list := Lexer.get_comments ();
-        FMT.declarations Format.std_formatter t;
+        FMT.declarations Format.std_formatter ds;
         Format.pp_print_flush Format.std_formatter ());
 
       if !opt_verbose then Printf.printf "Building evaluation environment\n";
-      let env = Eval.build_evaluation_environment (t @ ts) in
+      let env = Eval.build_evaluation_environment ds in
       if !opt_verbose then Printf.printf "Built evaluation environment\n";
 
       let tcenv = TC.Env.mkEnv TC.env0 in

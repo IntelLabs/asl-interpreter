@@ -800,6 +800,11 @@ let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
 (** {2 Side effect detection}                                   *)
 (****************************************************************)
 
+(* All RAM accesses are considered to modify a single RAM variable
+ * Note that the name is the same as the __RAM type in the Prelude.
+ *)
+let dummy_ram_variable = Ident "__RAM"
+
 class sideEffectClass =
   object
     inherit nopAslVisitor
@@ -823,6 +828,9 @@ class sideEffectClass =
       match e with
       | Expr_TApply (f, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
+          if Ident.matches "ram_read" f then begin
+            reads <- IdentSet.add dummy_ram_variable reads
+          end;
           DoChildren
       | _ -> DoChildren
 
@@ -830,6 +838,9 @@ class sideEffectClass =
       match s with
       | Stmt_TCall (f, _, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
+          if Ident.matches "ram_init" f || Ident.matches "ram_write" f then begin
+            writes <- IdentSet.add dummy_ram_variable writes
+          end;
           DoChildren
       | Stmt_Throw _ ->
           throws_exceptions <- true;

@@ -288,6 +288,7 @@ let main () =
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
     let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
     let ds = t @ ts in
+    let ds = Global_checks.check_decls ds in
 
     let ds = transform "init0" Fun.id ds in
     let ds = transform "keep_exports" (xform_reachable exports) ds in
