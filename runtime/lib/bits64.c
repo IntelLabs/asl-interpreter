@@ -25,6 +25,12 @@ ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 }
 
 ASL_bits64_t
+ASL_append_bits_64(int x_width, int y_width, ASL_bits64_t x, ASL_bits64_t y)
+{
+        return (x << y_width) | y;
+}
+
+ASL_bits64_t
 ASL_asr_bits_64(int width, ASL_bits64_t x, int d)
 {
         bool sign_bit = x >> (width - 1);

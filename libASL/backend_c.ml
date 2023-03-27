@@ -415,6 +415,22 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("cvt_bits_uint", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+  | FIdent ("append_bits", _), [ x; y ] ->
+      let m, n =
+        match tes with
+        | [ m; n ] -> (m, n)
+        | _ -> failwith "wrong number of type parameters"
+      in
+      let nm = Asl_utils.mk_litint (const_int_expr loc n + const_int_expr loc m) in
+      apply loc fmt
+        (fun _ -> fn_extern fmt f)
+        [
+          c_int_width_64up_expr loc nm;
+          m;
+          n;
+          Asl_utils.mk_zero_extend_bits nm m x;
+          Asl_utils.mk_zero_extend_bits nm n y;
+        ]
   | FIdent ("cvt_int_bits", _), [ x; n ] ->
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: [ x ])
   | FIdent ("eor_bits", _), _

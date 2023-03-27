@@ -42,6 +42,11 @@ ASL_bits64_t ASL_add_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
 ASL_bits64_t ASL_and_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y);
 
+#define ASL_append_bits(sizeof_res, m, n, x, y) \
+        ASL_CC(ASL_append_bits_, sizeof_res)(m, n, x, y)
+
+ASL_bits64_t ASL_append_bits_64(int x_width, int y_width, ASL_bits64_t x, ASL_bits64_t y);
+
 #define ASL_asr_bits(sizeof_x, n, x, d) \
         ASL_CC(ASL_asr_bits_, sizeof_x)(n, x, d)
 

@@ -42,6 +42,13 @@ TEST_F(ASL_CC_INDIR(Bits, N), And)
     EXPECT_EQ(zeros, ASL_and_bits(N, N, zeros,  ones));
 }
 
+TEST_F(ASL_CC_INDIR(Bits, N), Append)
+{
+    EXPECT_EQ(ones,
+              ASL_append_bits(N, N - 1, 1,
+                              ASL_mk_mask(N, N - 1), ASL_mk_mask(N, 1)));
+}
+
 TEST_F(ASL_CC_INDIR(Bits, N), Asr)
 {
     int shift = 1;

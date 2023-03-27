@@ -34,6 +34,11 @@ TEST_F(Bits64, And)
     EXPECT_EQ(zeros, ASL_and_bits_64(64, zeros,  ones));
 }
 
+TEST_F(Bits64, Append)
+{
+    EXPECT_EQ(5ULL, ASL_append_bits_64(2, 1, 2ULL, 1ULL));
+}
+
 TEST_F(Bits64, Asr)
 {
     int shift = 1;

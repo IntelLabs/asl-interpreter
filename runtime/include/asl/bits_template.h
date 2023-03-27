@@ -3,6 +3,7 @@
 
 ASL_BITS_TYPE ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
+ASL_BITS_TYPE ASL_append_bits(N, int x_width, int y_width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_asr_bits(N, int width, ASL_BITS_TYPE x, int d);
 ASL_INT_TYPE ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x);
 ASL_INT_TYPE ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x);

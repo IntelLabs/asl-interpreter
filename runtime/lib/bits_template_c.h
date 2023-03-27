@@ -24,6 +24,12 @@ ASL_and_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
+ASL_append_bits(N, int x_width, int y_width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
+{
+        return ASL_or_bits(N, N, ASL_lsl_bits(N, N, x, y_width), y);
+}
+
+ASL_BITS_TYPE
 ASL_asr_bits(N, int width, ASL_BITS_TYPE x, int d)
 {
         bool sign_bit = ASL_lsr_bits(N, width, x, width - 1).u64[0];

@@ -103,6 +103,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) begin return '1' AND '0'; end" );
 
+    ( "built-in fun call (append_bits)",
+      [ Backend_C ],
+      "func F() => bits(3) begin return append_bits('1', '11'); end" );
+
     ( "built-in fun call (asr_bits)",
       [ Backend_C ],
       "func F() => bits(2) begin return asr_bits('10', 1); end" );
