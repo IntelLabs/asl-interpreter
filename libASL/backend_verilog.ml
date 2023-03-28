@@ -817,14 +817,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           typedef fmt (fun _ -> varty loc fmt tc t);
           cut fmt
       | Decl_Enum (tc, es, loc) ->
-          if tc = Ident "boolean" then (
-            typedef fmt (fun _ ->
-                kw_bit fmt;
-                nbsp fmt;
-                tycon fmt tc
-              );
-            cut fmt
-          ) else (
+          if tc = Ident "boolean" then ()
+          else (
             typedef fmt (fun _ ->
                 kw_enum fmt;
                 nbsp fmt;

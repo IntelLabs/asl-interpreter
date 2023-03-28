@@ -56,8 +56,7 @@ let test_cases_expr : test_case list =
 
     ( "pattern match (literal mask)",
       [ Backend_C ],
-      "enumeration boolean { FALSE, TRUE };
-       func F(x : bits(4)) => boolean begin return x IN '11xx'; end" );
+      "func F(x : bits(4)) => boolean begin return x IN '11xx'; end" );
 
     ( "literal integer",
       [ Backend_C; Backend_Verilog ],
@@ -85,8 +84,7 @@ let test_cases_expr : test_case list =
 
     ( "variable boolean",
       [ Backend_C; Backend_Verilog ],
-      "enumeration boolean { FALSE, TRUE };
-       func F() => boolean begin return FALSE; end" );
+      "func F() => boolean begin return FALSE; end" );
 
     ( "function call",
       [ Backend_C; Backend_Verilog ],
@@ -94,8 +92,7 @@ let test_cases_expr : test_case list =
 
     ( "built-in fun call (eq_enum)",
       [ Backend_C; Backend_Verilog ],
-      "enumeration boolean { FALSE, TRUE };
-       enumeration T { A, B, C };
+      "enumeration T { A, B, C };
        func F() => boolean begin return A == B; end" );
 
     ( "built-in fun call (add_bits)",
@@ -128,8 +125,7 @@ let test_cases_expr : test_case list =
 
     ( "built-in fun call (eq_bits)",
       [ Backend_C; Backend_Verilog ],
-      "enumeration boolean { FALSE, TRUE };
-       func F() => boolean begin return '1' == '0'; end" );
+      "func F() => boolean begin return '1' == '0'; end" );
 
     ( "built-in fun call (lsl_bits)",
       [ Backend_C ],
@@ -149,8 +145,7 @@ let test_cases_expr : test_case list =
 
     ( "built-in fun call (ne_bits)",
       [ Backend_C; Backend_Verilog ],
-      "enumeration boolean { FALSE, TRUE };
-       func F() => boolean begin return '1' != '0'; end" );
+      "func F() => boolean begin return '1' != '0'; end" );
 
     ( "built-in fun call (not_bits)",
       [ Backend_C; Backend_Verilog ],

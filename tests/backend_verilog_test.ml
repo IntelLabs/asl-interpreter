@@ -15,6 +15,7 @@ let check_syntax (name : string) (code : string) : unit =
   let lints = [
     "/* verilator lint_off WIDTH */";
     "/* verilator lint_off UNPACKED */";
+    "typedef bit boolean;";
     ]
   in
   let header = String.concat "\n" lints in
