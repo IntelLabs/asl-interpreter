@@ -594,6 +594,62 @@ let calls_of_decl decl =
   cc#result
 
 (****************************************************************)
+(** {2 Extract location info from AST nodes}                    *)
+(****************************************************************)
+
+let decl_loc (x : AST.declaration) : AST.l =
+  ( match x with
+  | Decl_BuiltinType (v, loc) -> loc
+  | Decl_Forward (v, loc) -> loc
+  | Decl_Record (v, ps, fs, loc) -> loc
+  | Decl_Exception (v, fs, loc) -> loc
+  | Decl_Typedef (v, ps, ty, loc) -> loc
+  | Decl_Enum (v, es, loc) -> loc
+  | Decl_Var (v, ty, loc) -> loc
+  | Decl_Const (v, ty, e, loc) -> loc
+  | Decl_BuiltinFunction (f, ps, args, ty, loc) -> loc
+  | Decl_FunType (f, ps, args, ty, loc) -> loc
+  | Decl_FunDefn (f, ps, args, ty, b, loc) -> loc
+  | Decl_ProcType (f, ps, args, loc) -> loc
+  | Decl_ProcDefn (f, ps, args, b, loc) -> loc
+  | Decl_VarGetterType (f, ps, ty, loc) -> loc
+  | Decl_VarGetterDefn (f, ps, ty, b, loc) -> loc
+  | Decl_ArrayGetterType (f, ps, args, ty, loc) -> loc
+  | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> loc
+  | Decl_VarSetterType (f, ps, v, ty, loc) -> loc
+  | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> loc
+  | Decl_ArraySetterType (f, ps, args, v, ty, loc) -> loc
+  | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> loc
+  | Decl_Operator1 (op, vs, loc) -> loc
+  | Decl_Operator2 (op, vs, loc) -> loc
+  | Decl_NewEventDefn (v, ps, args, loc) -> loc
+  | Decl_EventClause (v, b, loc) -> loc
+  | Decl_NewMapDefn (v, ps, args, ty, b, loc) -> loc
+  | Decl_MapClause (v, fs, oc, b, loc) -> loc
+  | Decl_Config (v, ty, e, loc) -> loc
+  )
+
+let stmt_loc (x : AST.stmt) : AST.l =
+  ( match x with
+  | Stmt_VarDeclsNoInit (vs, ty, loc) -> loc
+  | Stmt_VarDecl (di, i, loc) -> loc
+  | Stmt_ConstDecl (di, i, loc) -> loc
+  | Stmt_Assign (l, r, loc) -> loc
+  | Stmt_TCall (f, tes, args, throws, loc) -> loc
+  | Stmt_FunReturn (e, loc) -> loc
+  | Stmt_ProcReturn loc -> loc
+  | Stmt_Assert (e, loc) -> loc
+  | Stmt_Throw (v, loc) -> loc
+  | Stmt_Block (b, loc) -> loc
+  | Stmt_If (c, t, els, (e, el), loc) -> loc
+  | Stmt_Case (e, alts, ob, loc) -> loc
+  | Stmt_For (v, f, dir, t, b, loc) -> loc
+  | Stmt_While (c, b, loc) -> loc
+  | Stmt_Repeat (b, c, pos, loc) -> loc
+  | Stmt_Try (b, pos, cs, ob, loc) -> loc
+  )
+
+(****************************************************************)
 (** {2 Keep definitions reachable from roots}                   *)
 (****************************************************************)
 
