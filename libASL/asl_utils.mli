@@ -85,6 +85,8 @@ val unionSets : IdentSet.t list -> IdentSet.t
 (** add v to set of identifiers mapped to k *)
 val addToBindingSet : AST.ident -> AST.ident -> IdentSet.t Bindings.t -> IdentSet.t Bindings.t
 
+val pp_identset : Format.formatter -> IdentSet.t -> unit
+
 (** convert identifier set to sorted list of identifiers
 
     The implementation is trivial and exists mostly to emphasize that the

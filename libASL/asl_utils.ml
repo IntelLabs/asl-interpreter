@@ -158,6 +158,9 @@ let addToBindingSet (k : ident) (v : ident) (bs : IdentSet.t Bindings.t) :
       | Some vs -> Some (IdentSet.add v vs))
     bs
 
+let pp_identset (fmt : Format.formatter) (xs : IdentSet.t) : unit =
+    Format.pp_print_list ~pp_sep:(fun fmt _ -> Format.pp_print_string fmt ", ") FMT.varname fmt (IdentSet.elements xs)
+
 (** convert identifier set to sorted list of identifiers
 
     The implementation is trivial and exists mostly to emphasize that the
