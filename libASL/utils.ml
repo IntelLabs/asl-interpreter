@@ -75,6 +75,14 @@ let rec iter3 (f : 'a -> 'b -> 'c -> unit) (xs : 'a list) (ys : 'b list) (zs : '
   | _ -> failwith "iter3 with mismatched lengths"
   )
 
+(** iter_pairs f [x1;x2;x3;x4;...] = f x1 x2; f x1 x3; f x1 x4; ...; f x2 x3; f x2 x4 *)
+let iter_pairs (f : 'a -> 'a -> unit) (xs : 'a list) : unit =
+  ( match xs with
+  | (x :: xs) -> List.iter (f x) xs
+  | [] -> ()
+  )
+
+
 (****************************************************************
  * Option related
  ****************************************************************)
