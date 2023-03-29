@@ -9,12 +9,14 @@
  * Checks performed:
  *
  * - Does the meaning of an expression depend on evaluation order?
+ * - Are calls to functions that can throw exceptions marked as rethrowing?
  *
  * Copyright Intel Inc (c) 2023
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
 module AST = Asl_ast
+module FMT = Asl_fmt
 open Asl_utils
 
 (** Add one entry to a set *)
@@ -230,6 +232,55 @@ let rec check_expression_order (loc : AST.l) (effects : effects_class) (e : AST.
     (IdentSet.union frds rds, IdentSet.union fwrs wrs, fthrows || throws)
   )
 
+(** Perform rethrow checks on the specification *)
+class rethrow_checks_class (effects : effects_class) (loc : AST.l) =
+  object
+    inherit Asl_visitor.nopAslVisitor
+
+    method! vexpr x =
+      ( match x with
+      | Expr_TApply (f, _, _, throws) ->
+        let (_, _, fthrows) = effects#fun_effects f in
+        if throws && not fthrows then begin
+            let msg = Format.asprintf
+                "call to function `%a` is incorrectly marked with `?` but it cannot throw an exception"
+                FMT.varname f
+            in
+            raise (Tcheck.TypeError (loc, msg))
+        end else
+        if not throws && fthrows then begin
+            let msg = Format.asprintf
+                "call to function `%a` should be marked with `?` because it can throw an exception"
+                FMT.varname f
+            in
+            raise (Tcheck.TypeError (loc, msg))
+        end
+      | _ -> ()
+      );
+      DoChildren
+
+    method! vstmt x =
+      ( match x with
+      | Stmt_TCall (f, _, _, throws, loc) ->
+        let (_, _, fthrows) = effects#fun_effects f in
+        if throws && not fthrows then begin
+            let msg = Format.asprintf
+                "call to procedure `%a` is incorrectly marked with `?` but it cannot throw an exception"
+                FMT.varname f
+            in
+            raise (Tcheck.TypeError (loc, msg))
+        end else if not throws && fthrows then begin
+            let msg = Format.asprintf
+                "call to procedure `%a` should be marked with `?` because it can throw an exception"
+                FMT.varname f
+            in
+            raise (Tcheck.TypeError (loc, msg))
+        end
+      | _ -> ()
+      );
+      SkipChildren
+  end
+
 (** Perform global checks on the specification *)
 class global_checks_class (effects : effects_class) (loc : AST.l) =
   object
@@ -237,15 +288,21 @@ class global_checks_class (effects : effects_class) (loc : AST.l) =
 
     method! vexpr x =
       ignore (check_expression_order loc effects x);
+      ignore (Asl_visitor.visit_expr (new rethrow_checks_class effects loc) x);
       SkipChildren
+
+    method! vstmt x =
+      ignore (Asl_visitor.visit_stmt (new rethrow_checks_class effects (stmt_loc x)) x);
+      DoChildren
   end
 
+(** Wrapper around global_checks_class that adds location information *)
 class global_checks_class_wrapper (effects : effects_class) =
   object
     inherit Asl_visitor.nopAslVisitor
 
     method! vstmt x =
-      ignore (Asl_visitor.visit_stmt (new global_checks_class effects (stmt_loc x) :> Asl_visitor.aslVisitor) x);
+      ignore (Asl_visitor.visit_stmt (new global_checks_class effects (stmt_loc x)) x);
       SkipChildren
   end
 
