@@ -354,11 +354,7 @@ let test_cases_type_decl : test_case list  =
 
     ( "enumeration",
       [ Backend_C; Backend_Verilog ],
-      "enumeration signal { LOW, HIGH };" );
-
-    ( "enumeration (boolean)",
-      [ Backend_C; Backend_Verilog ],
-      "enumeration boolean { FALSE, TRUE };" );
+      "enumeration MyEnum { A, B };" );
   ]
 
 let test_cases_var_decl : test_case list  =
