@@ -384,6 +384,12 @@ val mk_neg_int : AST.expr -> AST.expr
 (** Construct "mul_int(x, y)" *)
 val mk_mul_int : AST.expr -> AST.expr -> AST.expr
 
+(** Construct "Max(x, y)" *)
+val mk_max_int : AST.expr -> AST.expr -> AST.expr
+
+(** Construct "Min(x, y)" *)
+val mk_min_int : AST.expr -> AST.expr -> AST.expr
+
 (** Construct "eq_bits{w}(x, y)" *)
 val mk_eq_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 

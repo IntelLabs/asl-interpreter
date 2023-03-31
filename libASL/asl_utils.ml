@@ -1108,6 +1108,16 @@ let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
   else if y = minus_one then mk_neg_int x
   else mk_binop "mul_int" [] x y
 
+(** Construct "Max(x, y)" *)
+let mk_max_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = y then x
+  else mk_binop "Max" [] x y
+
+(** Construct "Min(x, y)" *)
+let mk_min_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = y then x
+  else mk_binop "Min" [] x y
+
 (** Construct "eq_bits{w}(x, y)" *)
 let mk_eq_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   mk_binop "eq_bits" [w] x y
