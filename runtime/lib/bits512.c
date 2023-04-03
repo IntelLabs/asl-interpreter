@@ -69,24 +69,6 @@ ASL_lsr_bits_512(int width, ASL_bits512_t x, int d)
         return x;
 }
 
-ASL_bits512_t
-ASL_replicate_bits_256_512(int width, ASL_bits256_t x, int n)
-{
-        return ASL_replicate_bits_512_512(width, ASL_cast_bits_256_512(x), n);
-}
-
-ASL_bits512_t
-ASL_replicate_bits_128_512(int width, ASL_bits128_t x, int n)
-{
-        return ASL_replicate_bits_512_512(width, ASL_cast_bits_128_512(x), n);
-}
-
-ASL_bits512_t
-ASL_replicate_bits_64_512(int width, ASL_bits64_t x, int n)
-{
-        return ASL_replicate_bits_512_512(width, ASL_cast_bits_64_512(x), n);
-}
-
 ASL_bits256_t
 ASL_slice_lowd_512_256(ASL_bits512_t x, int lo, int width)
 {

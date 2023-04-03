@@ -140,7 +140,7 @@ ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
-ASL_replicate_bits(N, N, int width, ASL_BITS_TYPE x, int n)
+ASL_replicate_bits(N, int width, ASL_BITS_TYPE x, int n)
 {
         ASL_BITS_TYPE r = ASL_zeros_bits(N, N);
         while (n-- > 0)

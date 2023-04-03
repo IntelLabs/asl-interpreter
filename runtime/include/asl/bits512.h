@@ -42,24 +42,6 @@ ASL_bits_max_512()
 #include "asl/bits_template.h"
 #undef N
 
-static inline ASL_bits512_t
-ASL_cast_bits_64_512(ASL_bits64_t x)
-{
-        return ASL_bits_512(0, 0, 0, 0, 0, 0, 0, x);
-}
-
-static inline ASL_bits512_t
-ASL_cast_bits_128_512(ASL_bits128_t x)
-{
-        return ASL_bits_512(0, 0, 0, 0, 0, 0, x.u64[1], x.u64[0]);
-}
-
-static inline ASL_bits512_t
-ASL_cast_bits_256_512(ASL_bits256_t x)
-{
-        return ASL_bits_512(0, 0, 0, 0, x.u64[3], x.u64[2], x.u64[1], x.u64[0]);
-}
-
 static inline ASL_bits64_t
 ASL_cast_bits_512_64(ASL_bits512_t x)
 {
@@ -80,9 +62,6 @@ ASL_cast_bits_512_256(ASL_bits512_t x)
 
 ASL_bits512_t ASL_lsl_bits_512(int width, ASL_bits512_t x, int d);
 ASL_bits512_t ASL_lsr_bits_512(int width, ASL_bits512_t x, int d);
-ASL_bits512_t ASL_replicate_bits_256_512(int width, ASL_bits256_t x, int n);
-ASL_bits512_t ASL_replicate_bits_128_512(int width, ASL_bits128_t x, int n);
-ASL_bits512_t ASL_replicate_bits_64_512(int width, ASL_bits64_t x, int n);
 ASL_bits256_t ASL_slice_lowd_512_256(ASL_bits512_t x, int lo, int width);
 ASL_bits128_t ASL_slice_lowd_512_128(ASL_bits512_t x, int lo, int width);
 ASL_bits64_t ASL_slice_lowd_512_64(ASL_bits512_t x, int lo, int width);

@@ -140,7 +140,7 @@ TEST_F(Bits64, Or)
 
 TEST_F(Bits64, Replicate)
 {
-    EXPECT_EQ(10ULL, ASL_replicate_bits_64_64(2, 2ULL, 2));
+    EXPECT_EQ(10ULL, ASL_replicate_bits_64(2, 2ULL, 2));
 }
 
 TEST_F(Bits64, SliceLoWd)

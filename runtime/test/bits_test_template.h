@@ -141,7 +141,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), Or)
 TEST_F(ASL_CC_INDIR(Bits, N), Replicate)
 {
     EXPECT_EQ(ASL_mk_mask(N, 32 * ((N >> 5) - 1)),
-              ASL_replicate_bits(N, N, 32, ASL_mk_mask(N, 32), (N >> 5) - 1));
+              ASL_replicate_bits(N, 32, ASL_mk_mask(N, 32), (N >> 5) - 1));
 }
 
 TEST_F(ASL_CC_INDIR(Bits, N), SliceLoWd)
