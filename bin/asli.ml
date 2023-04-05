@@ -363,6 +363,8 @@ let options =
       ("--project", Arg.String add_project,     "       Execute project file");
       ("--format", Arg.Symbol (formats, set_format), "       Control print format");
       ("--max-errors", Arg.Set_int Tcheck.max_errors, "       Maximum number of typechecker errors");
+      ("--check-constraints", Arg.Set Tcheck.enable_constraint_checks,     "       Check type constraints");
+      ("--nocheck-constraints", Arg.Clear Tcheck.enable_constraint_checks, "       Do not check type constraints");
     ]
 
 let version = "ASLi 0.2.0 alpha"

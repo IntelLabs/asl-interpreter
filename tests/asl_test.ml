@@ -74,6 +74,10 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
     )
   )
 
+(* Conditionally execute a test based on condition 'c' *)
+let enable_test (c : bool) (test : unit Alcotest.test_case) : (unit Alcotest.test_case) =
+  if c then test else ("skipped test", `Quick, (fun _ -> ()))
+
 let eval tcenv env (input : string) : Value.value =
   let loc = AST.Unknown in
   let e = LoadASL.read_expr tcenv loc input in
@@ -114,6 +118,9 @@ let test_xform (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
   Alcotest.check value "transformed code" r1 r2
 
 let tests : unit Alcotest.test_case list =
+  (* Control whether constraint checks are performed (and tested) *)
+  Tcheck.enable_constraint_checks := true;
+
   let prelude = load_test_libraries () in
   let globals = TC.env0 in
   [
@@ -172,6 +179,53 @@ let tests : unit Alcotest.test_case list =
            return 0;
        end
       " "0";
+    test_static globals false "integer subtyping (function return)"
+      "func F(x : integer {10..90}) => integer {0..100}
+       begin
+           return x;
+       end
+      " "0";
+    enable_test !Tcheck.enable_constraint_checks
+      (test_static_error globals "integer subtyping (function return)"
+      "func F(x : integer {0..100}) => integer {10..90}
+       begin
+           return x;
+       end
+      "
+      (Some "TypeError(file \"\" line 3 char 11 - 20,`{0..100}` is not a subrange of `{10..90}`)")
+      None);
+    test_static globals false "integer subtyping (function call)"
+      "func F(x : integer {0..100});
+       func G(x : integer {10..90})
+       begin
+           F(x);
+       end
+      " "0";
+    enable_test !Tcheck.enable_constraint_checks
+      (test_static_error globals "integer subtyping (function call)"
+      "func F(x : integer {10..90});
+       func G(x : integer {0..100})
+       begin
+           F(x);
+       end
+      "
+      (Some "TypeError(file \"\" line 4 char 11 - 16,`{0..100}` is not a subrange of `{10..90}`)")
+      None);
+    test_static globals false "integer subtyping (assignment)"
+      "func F(x : integer {10..90})
+       begin
+           let y : integer {0..100} = x;
+       end
+      " "0";
+    enable_test !Tcheck.enable_constraint_checks
+      (test_static_error globals "integer subtyping (assignment)"
+      "func F(x : integer {0..100})
+       begin
+           let y : integer {10..90} = x;
+       end
+      "
+      (Some "TypeError(file \"\" line 3 char 11 - 40,`{0..100}` is not a subrange of `{10..90}`)")
+      None);
     test_static globals false "var decls"
       "func F(x : bits(8*N))
        begin

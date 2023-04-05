@@ -513,10 +513,17 @@ let rec simplify_expr (x : AST.expr) : AST.expr =
   | Expr_TApply (f, tes, es, throws) -> (
       let es' = List.map simplify_expr es in
       match (f, flatten_map_option eval es') with
-      | i, Some [ a ]    when Ident.equal i neg_int -> to_expr (Z.neg a)
-      | i, Some [ a; b ] when Ident.equal i add_int -> to_expr (Z.add a b)
-      | i, Some [ a; b ] when Ident.equal i sub_int -> to_expr (Z.sub a b)
-      | i, Some [ a; b ] when Ident.equal i mul_int -> to_expr (Z.mul a b)
+      | i, Some [ a ]    when Ident.equal i neg_int -> to_expr (Primops.prim_neg_int a)
+      | i, Some [ a; b ] when Ident.equal i add_int -> to_expr (Primops.prim_add_int a b)
+      | i, Some [ a; b ] when Ident.equal i sub_int -> to_expr (Primops.prim_sub_int a b)
+      | i, Some [ a; b ] when Ident.equal i mul_int -> to_expr (Primops.prim_mul_int a b)
+      | i, Some [ a; b ] when Ident.equal i exact_div_int -> to_expr (Primops.prim_exact_div_int a b)
+      | i, Some [ a; b ] when Ident.equal i shl_int -> to_expr (Primops.prim_shl_int a b)
+      | i, Some [ a; b ] when Ident.equal i shr_int -> to_expr (Primops.prim_shr_int a b)
+      | i, Some [ a; b ] when Ident.equal i min -> to_expr (Z.min a b)
+      | i, Some [ a; b ] when Ident.equal i max -> to_expr (Z.max a b)
+      | i, Some [ a ] when Ident.equal i pow2_int -> to_expr (Primops.prim_pow2_int a)
+      | i, Some [ a; b ] when Ident.equal i pow_int_int -> to_expr (Primops.prim_pow_int_int a b)
       | _ -> Expr_TApply (f, tes, es', throws))
   | _ -> x
 
@@ -596,10 +603,44 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
       Z3.Arithmetic.mk_sub ctx (List.map (z3_of_expr ctx ufs) xs)
   | Expr_TApply (i, [], xs, _) when Ident.equal i mul_int ->
       Z3.Arithmetic.mk_mul ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i fdiv_int ->
+  | Expr_TApply (i, [], [a; b], _) when Ident.equal i shl_int ->
+      let b' = Z3.Arithmetic.mk_power ctx (Z3.Arithmetic.Integer.mk_numeral_i ctx 2) (z3_of_expr ctx ufs b) in
+      Z3.Arithmetic.mk_mul ctx [z3_of_expr ctx ufs a; b']
+  | Expr_TApply (i, [], [a; b], _) when Ident.equal i shr_int ->
+      let b' = Z3.Arithmetic.mk_power ctx (Z3.Arithmetic.Integer.mk_numeral_i ctx 2) (z3_of_expr ctx ufs b) in
+      Z3.Arithmetic.mk_div ctx (z3_of_expr ctx ufs a) b'
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i exact_div_int ->
       Z3.Arithmetic.mk_div ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b], _) when Ident.equal i min ->
+      let a' = z3_of_expr ctx ufs a in
+      let b' = z3_of_expr ctx ufs b in
+      let c = Z3.Arithmetic.mk_le ctx a' b' in
+      Z3.Boolean.mk_ite ctx c a' b'
+  | Expr_TApply (i, [], [ a; b], _) when Ident.equal i max ->
+      let a' = z3_of_expr ctx ufs a in
+      let b' = z3_of_expr ctx ufs b in
+      let c = Z3.Arithmetic.mk_le ctx a' b' in
+      Z3.Boolean.mk_ite ctx c b' a'
+  | Expr_TApply (i, [], [x], _) when Ident.equal i pow2_int ->
+      Z3.Arithmetic.mk_power ctx (Z3.Arithmetic.Integer.mk_numeral_i ctx 2) (z3_of_expr ctx ufs x)
+  | Expr_TApply (i, [], [a; b], _) when Ident.equal i pow_int_int ->
+      Z3.Arithmetic.mk_power ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
   | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i eq_int ->
       Z3.Boolean.mk_eq ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i le_int ->
+      Z3.Arithmetic.mk_le ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i lt_int ->
+      Z3.Arithmetic.mk_lt ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i ge_int ->
+      Z3.Arithmetic.mk_ge ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i gt_int ->
+      Z3.Arithmetic.mk_gt ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i and_bool ->
+    Z3.Boolean.mk_and ctx [z3_of_expr ctx ufs a; z3_of_expr ctx ufs b]
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i or_bool ->
+    Z3.Boolean.mk_or ctx [z3_of_expr ctx ufs a; z3_of_expr ctx ufs b]
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i implies_bool ->
+      Z3.Boolean.mk_implies ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
   | _ -> (
       if verbose then
         Format.fprintf fmt
@@ -650,6 +691,17 @@ let check_constraints (bs : expr list) (cs : expr list) : bool =
 (** {3 Checking subtyping}                                      *)
 (****************************************************************)
 
+let simplify_constraints (cs : constraint_range list) : constraint_range list =
+  (* todo: remove constants, duplicates, etc. *)
+  cs
+
+let constraint_union (ocrs1 : constraint_range list option) (ocrs2 : constraint_range list option) : constraint_range list option =
+  ( match (ocrs1, ocrs2) with
+  | (None, _) -> ocrs2
+  | (_, None) -> ocrs1
+  | (Some crs1, Some crs2) -> Some (simplify_constraints (crs1 @ crs2))
+  )
+
 let check_equality
   (env : Env.t) (loc : AST.l)
   (x : AST.expr) (y : AST.expr)
@@ -666,6 +718,56 @@ let check_equality
     end
   end
 
+(* a constraint range a..b is only legal if a <= b *)
+let is_legal_constraint_range (cr : AST.constraint_range) : AST.expr option =
+  ( match cr with
+  | Constraint_Single _ -> None
+  | Constraint_Range (lo, hi) -> Some (mk_le_int lo hi)
+  )
+
+let are_legal_constraint_ranges (crs : AST.constraint_range list) : AST.expr =
+  mk_ands (List.filter_map is_legal_constraint_range crs)
+
+let constraint_range_to_expr (v : AST.expr) (cr : AST.constraint_range) : AST.expr =
+  ( match cr with
+  | Constraint_Single e -> mk_eq_int v e
+  | Constraint_Range (lo, hi) -> mk_and (mk_le_int lo v) (mk_le_int v hi)
+  )
+
+let constraint_ranges_to_expr (v : AST.expr) (crs : AST.constraint_range list) : AST.expr =
+  mk_ors (List.map (constraint_range_to_expr v) crs)
+
+let is_subrange (env : Env.t) (crs1 : constraint_range list) (crs2 : constraint_range list) : bool =
+  let v = Expr_Var wildcard_ident in
+  let chk = mk_implies
+              (mk_and (are_legal_constraint_ranges crs1) (constraint_ranges_to_expr v crs1))
+              (constraint_ranges_to_expr v crs2)  in
+  let assumptions = Env.getConstraints env in
+  let r = check_constraints assumptions [chk] in
+  if verbose && not r then begin
+    Format.printf "Failed subrange check %a => %a\n"
+      FMT.exprs assumptions
+      FMT.expr chk
+  end;
+  r
+
+let check_subrange_satisfies (env : Env.t) (loc : AST.l) (ocrs1 : constraint_range list option) (ocrs2 : constraint_range list option) : unit =
+  ( match (ocrs1, ocrs2) with
+  | (_, None) -> ()
+  | (None, Some crs2) ->
+    let msg = Format.asprintf "`integer` is not a subrange of `%a`"
+        FMT.constraints crs2
+    in
+    raise (TypeError (loc, msg))
+  | (Some crs1, Some crs2) ->
+    if not (is_subrange env crs1 crs2) then begin
+      let msg = Format.asprintf "`%a` is not a subrange of `%a`"
+          FMT.constraints crs1
+          FMT.constraints crs2
+      in
+      raise (TypeError (loc, msg))
+    end
+  )
 
 (** Check that ty1 subtype-satisfies ty2
     On failure, report an error.
@@ -680,7 +782,8 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
   let ty1' = Asl_visitor.visit_type subst_consts ty1 in
   let ty2' = Asl_visitor.visit_type subst_consts ty2 in
   ( match (derefType genv loc ty1', derefType genv loc ty2') with
-  | Type_Integer _, Type_Integer _ -> ()
+  | Type_Integer ocrs1, Type_Integer ocrs2 ->
+      if !enable_constraint_checks then check_subrange_satisfies env loc ocrs1 ocrs2
   | Type_Bits e1, Type_Bits e2 -> check_equality env loc e1 e2
   | Type_Bits e1, Type_Register (e2, _)
   | Type_Register (e1, _), Type_Bits e2
@@ -697,7 +800,8 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
       ( match (ixty1, ixty2) with
       | Index_Enum tc1, Index_Enum tc2 -> ()
       | Index_Int sz1, Index_Int sz2 -> check_equality env loc sz1 sz2
-      | _ -> ()
+      | _ ->
+        raise (DoesNotMatch (loc, "array index type", pp_ixtype ixty1, pp_ixtype ixty2))
       );
       check_subtype_satisfies env loc elty1 elty2
   | Type_Tuple tys1, Type_Tuple tys2 ->
@@ -705,6 +809,54 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
         raise (DoesNotMatch (loc, "tuple length", pp_type ty2, pp_type ty1))
       end;
       List.iter2 (check_subtype_satisfies env loc) tys1 tys2
+  | _ -> raise (DoesNotMatch (loc, "type", pp_type ty2, pp_type ty1))
+  )
+
+
+(** Calculate the least supertype of `ty1` and `ty2`
+ *
+ *  e.g. the least supertype of "integer \{0..3\}" and "integer \{8, 16\}"
+ *  is "integer \{0..3, 8, 16\}"
+ *
+ *  If no supertype exists, report an error.
+ *)
+let rec least_supertype (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : AST.ty =
+  let genv = Env.globals env in
+  (* Substitute global constants in types *)
+  let subst_consts = new substFunClass (GlobalEnv.getConstant genv) in
+  let ty1' = Asl_visitor.visit_type subst_consts ty1 in
+  let ty2' = Asl_visitor.visit_type subst_consts ty2 in
+  ( match (derefType genv loc ty1', derefType genv loc ty2') with
+  | (Type_Integer ocrs1, Type_Integer ocrs2) -> Type_Integer (constraint_union ocrs1 ocrs2)
+  | (Type_Bits e1, Type_Bits e2) ->
+      check_equality env loc e1 e2;
+      ty1
+  | (Type_Constructor (tc1, es1), Type_Constructor (tc2, es2)) when tc1 = tc2 ->
+      assert (List.length es1 = List.length es2);
+      List.iter2 (check_equality env loc) es1 es2;
+      ty1
+  | (Type_OfExpr e1, Type_OfExpr e2) ->
+      raise (InternalError (loc, "least_supertype: typeof", (fun fmt -> FMT.ty fmt ty1), __LOC__))
+  | (Type_Bits e1, Type_Register (e2, _))
+  | (Type_Register (e1, _), Type_Bits e2)
+  | (Type_Register (e1, _), Type_Register (e2, _)) ->
+      check_equality env loc e1 e2;
+      ty1
+  | (Type_Array (ixty1, elty1), Type_Array (ixty2, elty2)) ->
+      ( match (ixty1, ixty2) with
+      | (Index_Enum tc1, Index_Enum tc2) when tc1 == tc2 -> ()
+      | (Index_Int sz1, Index_Int sz2) -> check_equality env loc sz1 sz2
+      | _ ->
+        raise (DoesNotMatch (loc, "array index type", pp_ixtype ixty1, pp_ixtype ixty2))
+      );
+      let elty' = least_supertype env loc elty1 elty2 in
+      Type_Array (ixty1, elty')
+  | Type_Tuple tys1, Type_Tuple tys2 ->
+      if List.length tys1 <> List.length tys2 then begin
+        raise (DoesNotMatch (loc, "tuple length", pp_type ty2, pp_type ty1))
+      end;
+      let tys' = List.map2 (least_supertype env loc) tys1 tys2 in
+      Type_Tuple tys'
   | _ -> raise (DoesNotMatch (loc, "type", pp_type ty2, pp_type ty1))
   )
 
@@ -817,6 +969,149 @@ let synthesize_parameters (env : Env.t) (loc : AST.l)
     |> mk_bindings
 
 (****************************************************************)
+(** {3 Constraints}                                             *)
+(****************************************************************)
+
+(** apply a unary constraint transformer to an optional constraint set *)
+let lift1_constraints
+    (f : constraint_range -> constraint_range)
+    (oxs : constraint_range list option)
+  : constraint_range list option
+  =
+  Option.map (fun xs -> simplify_constraints (List.map f xs)) oxs
+
+(** apply a binary constraint transformer to two optional constraint sets *)
+let lift2_constraints
+    (f : constraint_range -> constraint_range -> constraint_range)
+    (oxs : constraint_range list option)
+    (oys : constraint_range list option)
+  : constraint_range list option
+  =
+  ( match (oxs, oys) with
+  | (Some xs, Some ys) -> Some (simplify_constraints (cross_combine f xs ys))
+  | _ -> None
+  )
+
+let add_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_add_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) -> Constraint_Range (mk_add_int x yl, mk_add_int x yh)
+  | (Constraint_Range (xl,xh), Constraint_Single y) -> Constraint_Range (mk_add_int xl y, mk_add_int xh y)
+  | (Constraint_Range (xl,xh), Constraint_Range (yl,yh)) -> Constraint_Range (mk_add_int xl yl, mk_add_int xh yh)
+  )
+
+let sub_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_sub_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) -> Constraint_Range (mk_sub_int x yl, mk_sub_int x yh)
+  | (Constraint_Range (xl,xh), Constraint_Single y) -> Constraint_Range (mk_sub_int xl y, mk_sub_int xh y)
+  | (Constraint_Range (xl,xh), Constraint_Range (yl,yh)) -> Constraint_Range (mk_sub_int xl yh, mk_sub_int xh yl)
+  )
+
+let neg_constraints (x : constraint_range) : constraint_range =
+  ( match x with
+  | Constraint_Single x -> Constraint_Single (mk_neg_int x)
+  | Constraint_Range (xl,xh) -> Constraint_Range (mk_neg_int xh, mk_neg_int xl)
+  )
+
+let mul_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_mul_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) ->
+    let l = mk_min_int (mk_mul_int x yl) (mk_mul_int x yh) in
+    let h = mk_max_int (mk_mul_int x yl) (mk_mul_int x yh) in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Single y) ->
+    let l = mk_min_int (mk_mul_int y xl) (mk_mul_int y xh) in
+    let h = mk_max_int (mk_mul_int y xl) (mk_mul_int y xh) in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Range (yl, yh)) ->
+    let l = mk_min_int (mk_min_int (mk_mul_int yl xl) (mk_mul_int yl xh))
+                       (mk_min_int (mk_mul_int yh xl) (mk_mul_int yh xh))
+    in
+    let h = mk_max_int (mk_max_int (mk_mul_int yl xl) (mk_mul_int yl xh))
+                       (mk_max_int (mk_mul_int yh xl) (mk_mul_int yh xh))
+    in
+    Constraint_Range (l, h)
+  )
+
+let pow_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_pow_int_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) ->
+    let l = mk_pow_int_int x yl in
+    let h = mk_pow_int_int x yh in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Single y) ->
+    let l = mk_pow_int_int xl y in
+    let h = mk_pow_int_int xh y in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Range (yl, yh)) ->
+    let l = mk_pow_int_int xl yl in
+    let h = mk_pow_int_int xh yh in
+    Constraint_Range (l, h)
+  )
+
+let exact_div_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_exact_div_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) ->
+    let l = mk_exact_div_int x yh in
+    let h = mk_exact_div_int x yl in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Single y) ->
+    let l = mk_exact_div_int xl y in
+    let h = mk_exact_div_int xh y in
+    Constraint_Range (l, h)
+  | (Constraint_Range (xl, xh), Constraint_Range (yl, yh)) ->
+    let l = mk_exact_div_int xl yh in
+    let h = mk_exact_div_int xh yl in
+    Constraint_Range (l, h)
+  )
+
+let max_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_max_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) -> Constraint_Range (mk_max_int x yl, mk_max_int x yh)
+  | (Constraint_Range (xl,xh), Constraint_Single y) -> Constraint_Range (mk_max_int xl y, mk_max_int xh y)
+  | (Constraint_Range (xl,xh), Constraint_Range (yl,yh)) -> Constraint_Range (mk_max_int xl yl, mk_max_int xh yh)
+  )
+
+let min_constraints (x : constraint_range) (y : constraint_range) : constraint_range =
+  ( match (x, y) with
+  | (Constraint_Single x, Constraint_Single y) -> Constraint_Single (mk_min_int x y)
+  | (Constraint_Single x, Constraint_Range (yl,yh)) -> Constraint_Range (mk_min_int x yl, mk_min_int x yh)
+  | (Constraint_Range (xl,xh), Constraint_Single y) -> Constraint_Range (mk_min_int xl y, mk_min_int xh y)
+  | (Constraint_Range (xl,xh), Constraint_Range (yl,yh)) -> Constraint_Range (mk_min_int xl yl, mk_min_int xh yh)
+  )
+
+let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
+  Expr_TApply (op, tys, [x], false)
+
+(** Construct "pow2_int(x)" *)
+let mk_pow2_int (x : AST.expr) : AST.expr =
+  ( match x with
+  | Expr_LitInt i -> Asl_utils.mk_litbigint (Primops.prim_pow2_int (Z.of_string i))
+  | _ -> mk_unop pow2_int [] x
+  )
+
+(* Refine the result type of a calculation for known functions *)
+let refine_type (fty : funtype) (tys : AST.ty list) : AST.ty option =
+  ( match (fty.funname, tys) with
+  | (i, [Type_Bits n]) when Ident.equal i cvt_bits_uint -> Some (Type_Integer (Some [Constraint_Range (zero, mk_sub_int (mk_pow2_int n) one)]))
+  | (i, [Type_Bits n]) when Ident.equal i cvt_bits_sint -> Some (Type_Integer (Some [Constraint_Range (mk_neg_int (mk_pow2_int (mk_sub_int n one)), mk_sub_int (mk_pow2_int (mk_sub_int n one)) one)]))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i add_int -> Some (Type_Integer (lift2_constraints add_constraints c1 c2))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i sub_int -> Some (Type_Integer (lift2_constraints sub_constraints c1 c2))
+  | (i, [Type_Integer c]) when Ident.equal i neg_int -> Some (Type_Integer (lift1_constraints neg_constraints c))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i mul_int -> Some (Type_Integer (lift2_constraints mul_constraints c1 c2))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i pow_int_int -> Some (Type_Integer (lift2_constraints pow_constraints c1 c2))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i exact_div_int -> Some (Type_Integer (lift2_constraints exact_div_constraints c1 c2))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i max -> Some (Type_Integer (lift2_constraints max_constraints c1 c2))
+  | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i min -> Some (Type_Integer (lift2_constraints min_constraints c1 c2))
+  | _ -> None
+  )
+
+(****************************************************************)
 (** {3 Instantiating/typechecking application of functions/operators} *)
 (****************************************************************)
 
@@ -846,7 +1141,10 @@ let instantiate_fun (env : Env.t) (loc : AST.l)
   (* Construct result *)
   let parameters = List.map (fun (p, _) -> Bindings.find p bs) fty.params in
   let ovty = Option.map (subst_type bs) fty.ovty in
-  let rty = subst_type bs fty.rty in
+  let rty1 = subst_type bs fty.rty in
+  (* Possible refined type based on constraints *)
+  let rty2 = refine_type fty tys in
+  let rty = Option.value rty2 ~default:rty1 in
   { name = fty.funname; parameters; ovty; rty }
 
 
@@ -1103,12 +1401,13 @@ and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
       (* todo: this is a workaround for bad IN sugar *)
       tc_pattern env loc ty (Pat_LitMask m)
   | Pat_Single e ->
-      let e' = check_expr env loc ty e in
+      let (e', ety) = tc_expr env loc e in
+      ignore (least_supertype env loc ty ety);
       Pat_Single e'
   | Pat_Range (lo, hi) ->
-      let lo' = check_expr env loc ty lo in
-      let hi' = check_expr env loc ty hi in
       (* Must be integer because no other type supports <= operator *)
+      let lo' = check_expr env loc type_integer lo in
+      let hi' = check_expr env loc type_integer hi in
       check_subtype_satisfies env loc ty type_integer;
       Pat_Range (lo', hi')
 
@@ -1144,9 +1443,9 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       let t', tty = tc_expr env loc t in
       let els', eltys = List.split (List.map (tc_e_elsif env loc) els) in
       let e', ety = tc_expr env loc e in
-      List.iter (fun elty -> check_subtype_satisfies env loc elty tty) eltys;
-      check_subtype_satisfies env loc ety tty;
-      (Expr_If (c', t', els', e'), tty)
+      let ty = List.fold_left (least_supertype env loc) tty eltys in
+      let ty' = least_supertype env loc ty ety in
+      (Expr_If (c', t', els', e'), ty')
   | Expr_Let (v, t, e, b) ->
       Env.nest (fun env' ->
           let t' = tc_type env' loc t in
@@ -1258,16 +1557,17 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       raise (InternalError (loc, "expr ArrayInit is empty", (fun fmt -> FMT.expr fmt x), __LOC__))
   | Expr_ArrayInit (e::es) ->
       let (e', ty) = tc_expr env loc e in
+      let rty = ref ty in
       let es' = List.map
           (fun i ->
             let (i', ity) = tc_expr env loc i in
-            check_subtype_satisfies env loc ity ty;
+            rty := least_supertype env loc !rty ity;
             i')
           es
       in
       let n = List.length (e::es) in
       let ixty = Index_Int (Expr_LitInt (string_of_int n)) in
-      (Expr_ArrayInit (e'::es'), Type_Array (ixty, ty))
+      (Expr_ArrayInit (e'::es'), Type_Array (ixty, !rty))
   | Expr_In (e, p) ->
       let (e', ety') = tc_expr env loc e in
       if verbose then
@@ -1340,8 +1640,8 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
           let e' = check_expr env loc (ixtype_basetype ixty) e in
           (Expr_Array (a', e'), elty)
       | _ -> raise (TypeError (loc, "subscript of non-array")))
-  | Expr_LitInt i -> (Expr_LitInt i, type_integer)
-  | Expr_LitHex i -> (Expr_LitHex i, type_integer)
+  | Expr_LitInt i -> (Expr_LitInt i, Type_Integer (Some([Constraint_Single x])))
+  | Expr_LitHex i -> (Expr_LitHex i, Type_Integer (Some([Constraint_Single x])))
   | Expr_LitReal r -> (Expr_LitReal r, type_real)
   | Expr_LitBits b -> (Expr_LitBits b, type_bits (masklength_expr b))
   | Expr_LitMask b ->
@@ -1352,15 +1652,13 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
         (loc, "tc_expr: litmask", (fun fmt -> FMT.expr fmt x), __LOC__))
   | Expr_LitString s -> (Expr_LitString s, type_string)
   | Expr_AsConstraint (e, c) ->
-      let e', ty = tc_expr env loc e in
+      let e' = check_expr env loc type_integer e in
       let c' = tc_constraints env loc c in
-      (* todo: check ty against c *)
-      (* todo: refine ty using c *)
-      (Expr_AsConstraint (e', c'), ty)
+      (Expr_AsConstraint (e', c'), Type_Integer (Some c'))
   | Expr_AsType (e, t) ->
       let e', ty = tc_expr env loc e in
       let t' = tc_type env loc t in
-      (* todo: check ty against t' *)
+      (* todo: check that ty is structurally consistent with t' *)
       (Expr_AsType (e', t'), t')
 
 (** Typecheck list of types *)
@@ -1409,9 +1707,10 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       let tys' = tc_types env loc tys in
       Type_Tuple tys'
 
+(* check ty and check that ty1 is a subtype of ty. *)
 and check_type (env : Env.t) (loc : l) (ty1 : ty) (ty : ty) : ty =
   let ty' = tc_type env loc ty in
-  check_subtype_satisfies env loc ty' ty1;
+  check_subtype_satisfies env loc ty1 ty';
   ty'
 
 and tc_constraint (env : Env.t) (loc : AST.l) (c : AST.constraint_range) :
@@ -1807,7 +2106,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
       let ws = List.map (width_of_type (Env.globals env) loc) tys in
       let w = Xform_simplify_expr.mk_add_ints ws in
       let ty' = type_bits w in
-      check_subtype_satisfies env loc ity ty';
+      check_subtype_satisfies env loc ty' ity;
       DeclItem_BitTuple dbs'
   | (_, DeclItem_BitTuple _) ->
       raise (IsNotA (loc, "bitvector", pp_type ity))
@@ -1876,8 +2175,10 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       (* add integer constants to type environment *)
       (match di' with
       | DeclItem_Var (v, Some ty) ->
-          if ty = type_integer then
-            Env.addConstraint env loc (mk_eq_int (Expr_Var v) i')
+          ( match ty with
+          | Type_Integer _ -> Env.addConstraint env loc (mk_eq_int (Expr_Var v) i')
+          | _ -> ()
+          )
       | _ -> ());
 
       Stmt_ConstDecl (di', i', loc)
@@ -1935,10 +2236,16 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
   | Stmt_For (v, start, dir, stop, b, loc) ->
       let start' = check_expr env loc type_integer start in
       let stop' = check_expr env loc type_integer stop in
+      (* todo: we can calculate the range only if start and stop are immutable *)
+      let ty = ( match dir with
+               | Direction_Up -> Type_Integer (Some [Constraint_Range (start', stop')])
+               | Direction_Down -> Type_Integer (Some [Constraint_Range (stop', start')])
+               )
+      in
       let b' =
         Env.nest
           (fun env' ->
-            Env.addLocalVar env' {name=v; loc; ty=type_integer; is_local=true; is_constant=true};
+            Env.addLocalVar env' {name=v; loc; ty; is_local=true; is_constant=true};
             tc_stmts env' loc b)
           env
       in
@@ -1969,11 +2276,17 @@ let tc_parameter (env : Env.t) (loc : AST.l)
     ((arg, oty) : Ident.t * AST.ty option) : Ident.t * AST.ty option =
   let ty' =
     ( match oty with
-    | None -> type_integer
+    | None -> Type_Integer (Some [Constraint_Single (Expr_Var arg)])
     | Some ty -> tc_type env loc ty
     )
   in
   Env.addLocalVar env {name=arg; loc; ty=ty'; is_local=true; is_constant=true};
+  (* function parameters are implicitly non-negative because bitvectors can't have negative length *)
+  Env.addConstraint env loc (mk_le_int zero (Expr_Var arg));
+  ( match ty' with
+  | Type_Integer (Some cs) -> Env.addConstraint env loc (constraint_ranges_to_expr (Expr_Var arg) cs)
+  | _ -> ()
+  );
   (arg, Some ty')
 
 (** Typecheck function argument *)
@@ -2030,11 +2343,23 @@ let tc_arguments
     |> Asl_utils.to_sorted_list
   in
 
-  (* The type of any implicit parameters should match explicit argument if it exists *)
+  (* calculate parameter type from any explicitly provided type and
+   * any constraints on any matching argument type
+   *)
+  let merge_tys (v : Ident.t) (explicit_type : ty option) (arg_ty : ty option) : ty option =
+    ( match (explicit_type, arg_ty) with
+    | (Some ty, _) -> Some ty (* an explicit type on the parameter wins *)
+    | (_, Some (Type_Integer (Some cs))) -> arg_ty (* explicit constraints on the arg are used if provided *)
+    | _ -> None
+      )
+  in
+
+  (* The type of any implicit or explicit parameters should match explicit argument if it exists *)
+  let typed_explicit_parameters = List.map (fun (v, oty) -> (v, merge_tys v oty (List.assoc_opt v args))) ps in
   let typed_implicit_parameters = List.map (fun v -> (v, List.assoc_opt v args)) implicit_parameters in
 
   (* Having inferred all the implicit parameters, we can finally typecheck the function type *)
-  let ps' = List.map (tc_parameter env loc) (ps @ typed_implicit_parameters) in
+  let ps' = List.map (tc_parameter env loc) (typed_explicit_parameters @ typed_implicit_parameters) in
   let args' = List.map (tc_argument env loc ps') args in
   let rty' = tc_type env loc rty in
   Env.setReturnType env rty';
