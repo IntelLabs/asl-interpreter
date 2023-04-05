@@ -282,10 +282,10 @@ let tests : unit Alcotest.test_case list =
        end"
        "F()" "00000111");
     ("statements (while)",     `Quick, test_int globals prelude
-      "func TestWhile(x : integer) => integer begin var i = 0; while i < x do i = i + 1; end return i; end"
+      "func TestWhile(x : integer) => integer begin var i : integer = 0; while i < x do i = i + 1; end return i; end"
       "TestWhile(3)" 3);
     ("statements (repeat)",    `Quick, test_int globals prelude
-      "func TestRepeat(x : integer) => integer begin var i = 0; repeat i = i + 1; until i >= x; return i; end"
+      "func TestRepeat(x : integer) => integer begin var i : integer = 0; repeat i = i + 1; until i >= x; return i; end"
       "TestRepeat(3)" 3);
     ("tuple transform",        `Quick, test_xform globals prelude Xform_tuples.xform_decls
       "func F() => (integer, integer) begin return (1,2); end

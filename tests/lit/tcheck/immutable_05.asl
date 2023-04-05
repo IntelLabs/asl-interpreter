@@ -2,6 +2,6 @@
 
 func F()
 begin
-    var y = 1;
+    var y : integer = 1;
     y = 2;
 end

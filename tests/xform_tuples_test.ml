@@ -27,7 +27,7 @@ let tuple_tests : unit Alcotest.test_case list =
 
     ("let-if", `Quick, stmts
        "var p : boolean;"
-       "let (x, y) = if p then (1, 2) else (2, 1);"
+       "let (x : integer, y : integer) = if p then (1, 2) else (2, 1);"
        "var __t0 : integer; var __t1 : integer;
         if p then __t0 = 1; __t1 = 2; else __t0 = 2; __t1 = 1; end
         let x : integer = __t0; let y : integer = __t1;

@@ -44,7 +44,7 @@ let constprop_tests : unit Alcotest.test_case list =
        "enumeration T { E1, E2 };" "if TRUE then E1 else E2" "E1");
 
     ("let", `Quick, test_cp_stmts ""
-       "let x = 1 + 1;" "let x : integer = 2;");
+       "let x : integer = 1 + 1;" "let x : integer = 2;");
     ("assignment", `Quick, test_cp_stmts ""
       "let c : bits(2) = '11';
        let a : bits(2) = c;"
@@ -127,10 +127,10 @@ let constprop_tests : unit Alcotest.test_case list =
 
     (* This will trigger more than 2 fixpoint iterations *)
     ("for loop 4", `Quick, test_cp_stmts "var n : integer;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        for i = 0 to n do
            x3 = x2;
            x2 = x1;
@@ -141,10 +141,10 @@ let constprop_tests : unit Alcotest.test_case list =
        let b = x2;
        let c = x3;
        let d = x4;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        for i = 0 to n do
            x3 = x2;
            x2 = x1;
@@ -154,7 +154,7 @@ let constprop_tests : unit Alcotest.test_case list =
        let a = x1;
        let b = x2;
        let c = x3;
-       let d = 1;");
+       let d : integer = 1;");
 
     (* Make sure c = '11' gets propagated to after loop *)
     ("while loop 1", `Quick, test_cp_stmts "var i : integer; var d : integer;"
@@ -199,10 +199,10 @@ let constprop_tests : unit Alcotest.test_case list =
 
     (* This will trigger more than 2 fixpoint iterations *)
     ("while loop 4", `Quick, test_cp_stmts "var i : integer; var n : integer;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        while i != n do
            x3 = x2;
            x2 = x1;
@@ -213,10 +213,10 @@ let constprop_tests : unit Alcotest.test_case list =
        let b = x2;
        let c = x3;
        let d = x4;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        while i != n do
            x3 = x2;
            x2 = x1;
@@ -226,7 +226,7 @@ let constprop_tests : unit Alcotest.test_case list =
        let a = x1;
        let b = x2;
        let c = x3;
-       let d = 1;");
+       let d : integer = 1;");
 
     (* Make sure c = '11' gets propagated to after loop *)
     ("repeat loop 1", `Quick, test_cp_stmts "var i : integer; var d : integer;"
@@ -271,10 +271,10 @@ let constprop_tests : unit Alcotest.test_case list =
 
     (* This will trigger more than 2 fixpoint iterations *)
     ("repeat loop 4", `Quick, test_cp_stmts "var i : integer; var n : integer;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        repeat
            x3 = x2;
            x2 = x1;
@@ -285,10 +285,10 @@ let constprop_tests : unit Alcotest.test_case list =
        let b = x2;
        let c = x3;
        let d = x4;"
-      "var x1 = 0;
-       var x2 = 0;
-       var x3 = 0;
-       var x4 = 1;
+      "var x1 : integer = 0;
+       var x2 : integer = 0;
+       var x3 : integer = 0;
+       var x4 : integer = 1;
        repeat
            x3 = x2;
            x2 = x1;
@@ -298,7 +298,7 @@ let constprop_tests : unit Alcotest.test_case list =
        let a = x1;
        let b = x2;
        let c = x3;
-       let d = 1;");
+       let d : integer = 1;");
   ]
 
 (****************************************************************
