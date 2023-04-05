@@ -328,6 +328,7 @@ val resugar_type : AST.binop Bindings.t -> AST.ty -> AST.ty
 val pp_unop : AST.unop -> string
 val pp_binop : AST.binop -> string
 val pp_type : AST.ty -> string
+val pp_ixtype : AST.ixtype -> string
 val pp_expr : AST.expr -> string
 val pp_lexpr : AST.lexpr -> string
 val pp_stmt : AST.stmt -> string

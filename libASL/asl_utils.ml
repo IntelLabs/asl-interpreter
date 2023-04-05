@@ -1021,6 +1021,7 @@ let resugar_type (ops : AST.binop Bindings.t) (x : AST.ty) : AST.ty =
 let pp_unop (x : unop) : string = Utils.to_string2 (Fun.flip FMT.unop x)
 let pp_binop (x : binop) : string = Utils.to_string2 (Fun.flip FMT.binop x)
 let pp_type (x : ty) : string = Utils.to_string2 (Fun.flip FMT.ty x)
+let pp_ixtype (x : ixtype) : string = Utils.to_string2 (Fun.flip FMT.ixtype x)
 let pp_expr (x : expr) : string = Utils.to_string2 (Fun.flip FMT.expr x)
 let pp_lexpr (x : lexpr) : string = Utils.to_string2 (Fun.flip FMT.lexpr x)
 let pp_stmt (x : stmt) : string = Utils.to_string2 (Fun.flip FMT.stmt x)

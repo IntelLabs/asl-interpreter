@@ -20,6 +20,9 @@ val varnames : formatter -> AST.ident list -> unit
 val unop : formatter -> AST.unop -> unit
 val binop : formatter -> AST.binop -> unit
 val ty : formatter -> AST.ty -> unit
+val constraint_range : formatter -> AST.constraint_range -> unit
+val constraints : formatter -> AST.constraint_range list -> unit
+val ixtype : formatter -> AST.ixtype -> unit
 val expr : formatter -> AST.expr -> unit
 val exprs : formatter -> AST.expr list -> unit
 val pattern : formatter -> AST.pattern -> unit
