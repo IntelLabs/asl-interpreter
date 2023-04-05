@@ -1108,6 +1108,10 @@ let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
   else if y = minus_one then mk_neg_int x
   else mk_binop "mul_int" [] x y
 
+(** Construct "fdiv_int(x, y)" *)
+let mk_fdiv_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "fdiv_int" [] x y
+
 (** Construct "Max(x, y)" *)
 let mk_max_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = y then x
