@@ -293,6 +293,7 @@ let main () =
     let ds = transform "init0" Fun.id ds in
     let ds = transform "keep_exports" (xform_reachable exports) ds in
     let ds = transform "bittuples" Xform_bittuples.xform_decls ds in
+    let ds = transform "lower" Xform_lower.xform_decls ds in
     let ds = transform "case" Xform_case.xform_decls ds in
 
     let genv = Eval.build_constant_environment ds in
@@ -305,7 +306,7 @@ let main () =
     let ds = transform "tuples" Xform_tuples.xform_decls ds in
     let ds = transform "getset" Xform_getset.xform_decls ds in
     let ds = transform "rmw" Xform_rmw.xform_decls ds in
-    let ds = transform "delete_imports" (delete_functions imports) ds in 
+    let ds = transform "delete_imports" (delete_functions imports) ds in
 
     match !opt_backend with
     | Backend_C ->

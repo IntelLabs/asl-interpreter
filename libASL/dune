@@ -41,6 +41,7 @@
    xform_casesplit
    xform_constprop
    xform_getset
+   xform_lower
    xform_mono
    xform_rmw
    xform_simplify_expr
