@@ -26,23 +26,20 @@ open Asl_utils
  *)
 let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.expr =
   ( match x with
-  | Expr_Slices (t, e, [Slice_HiLo (hi, lo)]) ->
+  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_HiLo (hi, lo)]) ->
     (* generate "((zero_extend_bits(e, n) AND mk_mask(hi + 1, n)) >> lo) << i" *)
-    let we = Option.get (Asl_utils.width_of_type t) in
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_and_bits n e1 (mk_mask (Xform_simplify_expr.mk_add_int hi one) n) in
     let e3 = mk_lsr_bits n e2 lo in
     mk_lsl_bits n e3 i
-  | Expr_Slices (t, e, [Slice_LoWd (lo, wd)]) ->
+  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_LoWd (lo, wd)]) ->
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
-    let we = Option.get (Asl_utils.width_of_type t) in
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 lo in
     let e3 = mk_and_bits n e2 (mk_mask wd n) in
     mk_lsl_bits n e3 i
-  | Expr_Slices (t, e, [Slice_Single ix]) ->
+  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_Single ix]) ->
     (* generate "((zero_extend_bits(e, n) >> ix) AND mk_mask(1, n)) << i" *)
-    let we = Option.get (Asl_utils.width_of_type t) in
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 ix in
     let e3 = mk_and_bits n e2 (mk_mask one n) in

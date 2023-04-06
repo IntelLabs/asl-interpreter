@@ -70,6 +70,13 @@ let bitslice_tests : unit Alcotest.test_case list =
        "var x : bits(64); var i : integer;"
        "x[1 +: i] = Zeros(i);"
        "x = and_bits(x, not_bits(lsl_bits(mk_mask(i, 64), 1)));");
+    ("transform integer bitslice", `Quick, stmts
+       "var result : bits(32); var x : bits(8);"
+       "let r = CountLeadingZeroBits(x);
+        result[0 +: 8] = r[0 +: 8];"
+       "let r = CountLeadingZeroBits(x);
+        result = or_bits(and_bits(result, not_bits(mk_mask(8, 32))),
+            zero_extend_bits(r[0 +: 8], 32));");
   ]
 
 (****************************************************************
