@@ -510,6 +510,8 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
   | "asr_bits", [], [ VBits x; VInt d ] -> Some (VBits (prim_asr x d))
   | "replicate_bits", [ _; _ ], [ VBits x; VInt y ] ->
       Some (VBits (prim_replicate_bits x y))
+  | "zero_extend_bits", [ _; _ ], [ VBits x; VInt y ] ->
+      Some (VBits (prim_zero_extend_bits x y))
   | "append_bits", [ VInt m; VInt n ], [ VBits x; VBits y ] ->
       Some (VBits (prim_append_bits x y))
   | "mk_mask", [ _ ], [ VInt w; VInt n ] -> Some (VBits (prim_mk_mask w n))

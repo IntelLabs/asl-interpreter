@@ -12,7 +12,7 @@ module AST = Asl_ast
 open Asl_utils
 
 (** Transform expression 'x' of width 'w' to an expression of width 'n'
- * that is equivalent to 'ZeroExtend(x, n) << i'.
+ * that is equivalent to 'zero_extend_bits(x, n) << i'.
  *
  * This transformation consists of a number of special cases with the
  * aim of avoiding creating intermediate values of width 'm'.
@@ -27,23 +27,23 @@ open Asl_utils
 let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.expr =
   ( match x with
   | Expr_Slices (t, e, [Slice_HiLo (hi, lo)]) ->
-    (* generate "((ZeroExtend(e, n) AND mk_mask(hi + 1, n)) >> lo) << i" *)
+    (* generate "((zero_extend_bits(e, n) AND mk_mask(hi + 1, n)) >> lo) << i" *)
     let we = Option.get (Asl_utils.width_of_type t) in
-    let e1 = mk_zero_extend we n e in
+    let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_and_bits n e1 (mk_mask (Xform_simplify_expr.mk_add_int hi one) n) in
     let e3 = mk_lsr_bits n e2 lo in
     mk_lsl_bits n e3 i
   | Expr_Slices (t, e, [Slice_LoWd (lo, wd)]) ->
-    (* generate "((ZeroExtend(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
+    (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let we = Option.get (Asl_utils.width_of_type t) in
-    let e1 = mk_zero_extend we n e in
+    let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 lo in
     let e3 = mk_and_bits n e2 (mk_mask wd n) in
     mk_lsl_bits n e3 i
   | Expr_Slices (t, e, [Slice_Single ix]) ->
-    (* generate "((ZeroExtend(e, n) >> ix) AND mk_mask(1, n)) << i" *)
+    (* generate "((zero_extend_bits(e, n) >> ix) AND mk_mask(1, n)) << i" *)
     let we = Option.get (Asl_utils.width_of_type t) in
-    let e1 = mk_zero_extend we n e in
+    let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 ix in
     let e3 = mk_and_bits n e2 (mk_mask one n) in
     mk_lsl_bits n e3 i
@@ -51,7 +51,7 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
     mk_lsl_bits n (mk_mask w n) i
   | Expr_TApply (FIdent ("Zeros", _), [_], [_]) ->
     mk_zero_bits n
-  | _ -> mk_lsl_bits n (mk_zero_extend w n x) i
+  | _ -> mk_lsl_bits n (mk_zero_extend_bits w n x) i
   )
 
 let transform_assignment (lident : AST.ident)
@@ -85,7 +85,7 @@ class bitsliceClass =
         (* Transform "{w1, .. wn}[ e1, .. en ]" to "e1' OR .. en'"
          *   where, for each index i in [1, .. n]
          *     wi' = sum of [wi .. wn]
-         *     ei' == ZeroExtend(ei, total_width) << wi'
+         *     ei' == zero_extend_bits(ei, total_width) << wi'
          *)
         let (_, x') = List.fold_right2 (fun w e (i, e0) ->
             let e' = transform total_width w i e in

@@ -466,6 +466,8 @@ and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
      | (FIdent ("eq_str", _), _) -> ...
      | (FIdent ("ne_str", _), _) -> ...
   *)
+  | FIdent ("zero_extend_bits", _), [ x; n ] ->
+      zero_extend_bits loc fmt (const_int_expr loc n) x
   | FIdent ("print_str", _), _ -> apply loc fmt (fun _ -> fn_write fmt) args
   | FIdent ("print_bits", _), _ -> apply loc fmt (fun _ -> fn_write fmt) args
   | FIdent ("print_char", _), [ c ] ->

@@ -135,6 +135,12 @@ ASL_sub_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 }
 
 ASL_bits64_t
+ASL_zero_extend_bits_64_64(int width, ASL_bits64_t x, int n)
+{
+        return x;
+}
+
+ASL_bits64_t
 ASL_zeros_bits_64(int width)
 {
         return 0;

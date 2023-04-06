@@ -204,6 +204,11 @@ let prim_replicate_bits (x : bitvector) (y : bigint) : bitvector =
   assert (Z.sign y >= 0);
   power x (Z.to_int y) empty_bits
 
+let prim_zero_extend_bits (x : bitvector) (y : bigint) : bitvector =
+  let y' = Z.to_int y in
+  assert (y' >= x.n);
+  mkBits y' x.v
+
 let prim_extract (x : bitvector) (i : bigint) (w : bigint) : bitvector =
   let i' = Z.to_int i in
   let w' = Z.to_int w in

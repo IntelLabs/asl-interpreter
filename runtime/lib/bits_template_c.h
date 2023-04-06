@@ -167,6 +167,12 @@ ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
 
+ASL_BITS_TYPE
+ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, int n)
+{
+        return x;
+}
+
 #undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_LIMBS_32
 #undef ASL_BITS_TYPE

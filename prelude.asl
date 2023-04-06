@@ -131,6 +131,7 @@ __operator2 / = divide_real;
 
 __builtin func replicate_bits{M}(x : bits(M), N : integer) => bits(M*N);
 __builtin func append_bits{M, N}(x : bits(M), y : bits(N)) => bits(M+N);
+__builtin func zero_extend_bits{M}(x : bits(M), N : integer) => bits(N);
 
 __builtin func is_cunpred_exc(ex : __Exception) => boolean;
 __builtin func is_exctaken_exc(ex : __Exception) => boolean;
@@ -518,7 +519,7 @@ end
 func ZeroExtend{M}(x : bits(M), N : integer) => bits(N)
 begin
     assert N >= M;
-    return [Zeros(N-M), x];
+    return zero_extend_bits(x, N);
 end
 
 // Sign-extend a bitvector (treated as 2s complement) to the same or a wider width.

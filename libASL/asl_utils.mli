@@ -405,13 +405,13 @@ val mk_bits_select : AST.expr -> AST.expr -> AST.expr -> AST.expr -> AST.expr
 (** Construct "asl_extract_int{w}(x, lo, w)" *)
 val mk_int_select : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "asl_zero_extend{w, n}(x)" which is equivalent to "ZeroExtend{w,n}(x, w)" *)
-val mk_zero_extend : AST.expr -> AST.expr -> AST.expr -> AST.expr
+(** Construct "zero_extend_bits{w, n}(x, w)" *)
+val mk_zero_extend_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
 (** Construct "not_bits{n}(m)" *)
 val mk_not_mask : AST.expr -> AST.expr -> AST.expr
 
-(** Construct "mk_mask{n}()" which is equivalent to "ZeroExtend{w,n}(Ones(w), n)" *)
+(** Construct "mk_mask{n}()" which is equivalent to "zero_extend_bits{w, n}(Ones(w), n)" *)
 val mk_mask : AST.expr -> AST.expr -> AST.expr
 
 (** Construct "(0 + x1) + ... + xn" *)
