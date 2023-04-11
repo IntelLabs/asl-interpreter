@@ -1,4 +1,4 @@
-// RUN: not %asli --nobanner %s | %decolor | FileCheck %s
+// RUN: not %asli --nobanner %s | %decolor | filecheck %s
 
 record R {
     x : integer;
