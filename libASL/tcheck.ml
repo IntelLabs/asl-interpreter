@@ -988,7 +988,7 @@ let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
 (****************************************************************)
 
 (** Lookup a variable in environment *)
-let check_var (env : Env.t) (loc : AST.l) (v : AST.ident) : var_info =
+let get_var (env : Env.t) (loc : AST.l) (v : AST.ident) : var_info =
   from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", pprint_ident v)))
 
 (** Typecheck list of expressions *)
@@ -1047,7 +1047,7 @@ and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
       check_subtype_satisfies env loc ty (type_bits (masklength_expr l));
       Pat_LitMask l
   | Pat_Const c ->
-      let i = check_var env loc c in
+      let i = get_var env loc c in
       if i.is_local || not i.is_constant then begin
         let msg = Format.asprintf "pattern match of `%a` should be a constant. (Variable was declared at `%a`.)"
                     FMT.varname i.name
@@ -1819,7 +1819,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let e' = check_expr env loc type_bool e in
       Stmt_Assert (e', loc)
   | Stmt_Throw (v, loc) ->
-      let i = check_var env loc v in
+      let i = get_var env loc v in
       check_subtype_satisfies env loc i.ty type_exn;
       Stmt_Throw (v, loc)
   | Stmt_Block (ss, loc) ->
