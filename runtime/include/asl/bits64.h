@@ -23,6 +23,15 @@ typedef uint64_t ASL_bits64_t;
 #define ASL_CC4(a, b, c, d) a##b##c##d
 #define ASL_CC_INDIR(x, y) ASL_CC(x, y)
 
+#define ASL_bits(sizeof_x, ...) \
+        ASL_CC(ASL_bits_, sizeof_x)(__VA_ARGS__)
+
+static inline ASL_bits64_t
+ASL_bits_64(uint64_t x)
+{
+        return x;
+}
+
 #define ASL_bits_max(sizeof_x) \
         ASL_CC(ASL_bits_max_, sizeof_x)()
 

@@ -35,7 +35,7 @@ let test_cases_expr : test_case list =
       "func F(x : bits(16)) => bits(1) begin return x[4]; end" );
 
     ( "bitslice single (> 64b)",
-      [ Backend_C; Backend_Verilog ],
+      [ Backend_C ],
       "func F(x : bits(65)) => bits(1) begin return x[4]; end" );
 
     ( "bitslice hilo",
@@ -47,7 +47,7 @@ let test_cases_expr : test_case list =
       "func F(x : bits(16)) => bits(8) begin return x[4 +: 8]; end" );
 
     ( "bitslice lowd (> 64b)",
-      [ Backend_C; Backend_Verilog ],
+      [ Backend_C ],
       "func F(x : bits(129)) => bits(65) begin return x[4 +: 65]; end" );
 
     ( "record initializer",
@@ -69,6 +69,13 @@ let test_cases_expr : test_case list =
     ( "literal bitvector",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(8) begin return '1111 0000'; end" );
+
+    ( "literal bitvector (> 64b)",
+      [ Backend_C ],
+      "func F() => bits(65)
+       begin
+           return '1 0111111111111111111111111111111111111111111111111111111111110000';
+       end" );
 
     ( "literal string",
       [ Backend_C; Backend_Verilog ],

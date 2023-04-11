@@ -152,13 +152,33 @@ let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
   asl_keyword fmt (AST.name_of_FIdent x)
 
+let round_up_to_pow2 (x : int) : int =
+  let x = Z.log2up (Z.of_int x) in
+  Z.to_int (Z.shift_left Z.one x)
+
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
-  let bit_string = Value.drop_chars x ' ' in
-  let integer = Z.of_string_base 2 bit_string in
-  constant fmt ("0x" ^ Z.format "%x" integer)
+  let (x : string) = Value.drop_chars x ' ' in
+  let len = String.length x in
+  let bit_to_hex (s : string) : string =
+    Z.format "%#x" (Z.of_string_base 2 s) ^ "ULL"
+  in
+
+  if len <= 64 then constant fmt (bit_to_hex x)
+  else
+    let len_ext = round_up_to_pow2 len in
+    let x_ext = String.make (len_ext - len) '0' ^ x in
+    let num_limbs = len_ext / 64 in
+    let limbs =
+      List.init num_limbs (fun i ->
+          let pos = i * 64 in
+          bit_to_hex (String.sub x_ext pos 64))
+    in
+    asl_keyword fmt "bits";
+    parens fmt (fun _ ->
+        commasep fmt (constant fmt) (string_of_int len_ext :: limbs))
 
 let strLit (fmt : PP.formatter) (x : string) : unit =
   constant fmt ("\"" ^ String.escaped x ^ "\"")
@@ -188,10 +208,6 @@ let const_int_expr (loc : AST.l) (x : AST.expr) : int =
            ( loc,
              "const_int_expr: integer expected '" ^ V.pp_value v ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
-
-let round_up_to_pow2 (x : int) : int =
-  let x = Z.log2up (Z.of_int x) in
-  Z.to_int (Z.shift_left Z.one x)
 
 let c_int_width (width : int) : int =
   if width > 8 then round_up_to_pow2 width else 8
