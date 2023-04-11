@@ -133,7 +133,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
 
 (* Information about variables *)
 type var_info =
-  { varname     : AST.ident;
+  { name        : AST.ident;
     loc         : AST.l;
     ty          : AST.ty;
     is_local    : bool;
@@ -142,7 +142,7 @@ type var_info =
 
 let pp_var_info (fmt : Format.formatter) (x : var_info) : unit =
   Format.fprintf fmt "Var{%a, %a, %a, %s, %s}"
-    FMT.varname x.varname
+    FMT.varname x.name
     FMT.loc x.loc
     FMT.ty x.ty
     (if x.is_local then "local" else "global")
@@ -245,7 +245,7 @@ end = struct
     }
 
   let addType (env : t) (loc : AST.l) (qid : AST.ident) (t : typedef) : unit =
-    (* Format.fprintf fmt "New type %a at %a\n" FMT.varname FMT.loc loc; *)
+    (* Format.fprintf fmt "New type %a at %a\n" FMT.varname qid FMT.loc loc; *)
     let t' =
       match (Bindings.find_opt qid env.types, t) with
       | None, _ -> t
@@ -311,7 +311,7 @@ end = struct
 
   let addGlobalVar (env : t) (v : var_info) : unit =
     (* Format.fprintf fmt "New global %a\n" pp_var_info v; *)
-    env.globals <- Bindings.add v.varname v env.globals
+    env.globals <- Bindings.add v.name v env.globals
 
   let getGlobalVar (env : t) (v : AST.ident) : var_info option =
     (* Format.fprintf fmt "Looking for global variable %a\n" FMT.varname v; *)
@@ -477,20 +477,20 @@ end = struct
     )
 
   let addLocalVar (env : t) (v : var_info) : unit =
-    (* Format.fprintf fmt "New local var %a : %a at %a\n" FMT.varname v.varname FMT.ty (ppp_type v.ty) FMT.loc v.loc; *)
+    (* Format.fprintf fmt "New local var %a : %a at %a\n" FMT.varname v.name FMT.ty (ppp_type v.ty) FMT.loc v.loc; *)
     Option.iter (fun (w : var_info) ->
         let msg = Format.asprintf "variable `%a` previously declared at `%a`"
-            FMT.varname v.varname
+            FMT.varname v.name
             FMT.loc w.loc
         in
         raise (TypeError (v.loc, msg))
       )
-      (search_var env.globals env.locals v.varname);
+      (search_var env.globals env.locals v.name);
     (match env.locals with
-    | bs :: bss -> env.locals <- Bindings.add v.varname v bs :: bss
+    | bs :: bss -> env.locals <- Bindings.add v.name v bs :: bss
     | [] -> raise (InternalError "addLocalVar")
     );
-    if not v.is_constant then env.modified <- IdentSet.add v.varname env.modified
+    if not v.is_constant then env.modified <- IdentSet.add v.name env.modified
 
   let getVar (env : t) (v : AST.ident) : var_info option =
     (* Format.fprintf fmt "Looking for variable %a\n" FMT.varname v; *)
@@ -1050,7 +1050,7 @@ and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
       let i = check_var env loc c in
       if i.is_local || not i.is_constant then begin
         let msg = Format.asprintf "pattern match of `%a` should be a constant. (Variable was declared at `%a`.)"
-                    FMT.varname i.varname
+                    FMT.varname i.name
                     FMT.loc i.loc
         in
         raise (TypeError (loc, msg))
@@ -1235,7 +1235,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       (Expr_In (e', p'), type_bool)
   | Expr_Var v -> (
       match Env.getVar env v with
-      | Some i -> (Expr_Var i.varname, i.ty)
+      | Some i -> (Expr_Var i.name, i.ty)
       | None -> (
           let getters =
             GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
@@ -1423,13 +1423,13 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
       | Some i ->
           if i.is_constant then begin
             let msg = Format.asprintf "assignment to immutable variable `%a` declared at `%a`"
-                        FMT.varname i.varname
+                        FMT.varname i.name
                         FMT.loc i.loc
             in
             raise (TypeError (loc, msg))
           end;
           Env.markModified env v;
-          (LExpr_Var i.varname, i.ty)
+          (LExpr_Var i.name, i.ty)
       | None -> (
           let getters =
             GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
@@ -1554,7 +1554,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
       | Some i ->
           if i.is_constant then begin
             let msg = Format.asprintf "assignment to immutable variable `%a` declared at `%a`"
-                        FMT.varname i.varname
+                        FMT.varname i.name
                         FMT.loc i.loc
             in
             raise (TypeError (loc, msg))
@@ -1703,7 +1703,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
 let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x : AST.decl_item) : unit =
   match x with
   | DeclItem_Var (v, Some ty) ->
-      Env.addLocalVar env {varname=v; loc; ty; is_local=true; is_constant}
+      Env.addLocalVar env {name=v; loc; ty; is_local=true; is_constant}
   | DeclItem_Tuple dis ->
       List.iter (add_decl_item_vars env loc is_constant) dis
   | DeclItem_Wildcard oty ->
@@ -1769,7 +1769,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
   match x with
   | Stmt_VarDeclsNoInit (vs, ty, loc) ->
       let ty' = tc_type env loc ty in
-      List.iter (fun v -> Env.addLocalVar env {varname=v; loc; ty=ty'; is_local=true; is_constant=false}) vs;
+      List.iter (fun v -> Env.addLocalVar env {name=v; loc; ty=ty'; is_local=true; is_constant=false}) vs;
       Stmt_VarDeclsNoInit (vs, ty', loc)
   | Stmt_VarDecl (di, i, loc) ->
       let (i', ity) = tc_expr env loc i in
@@ -1844,7 +1844,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let b' =
         Env.nest
           (fun env' ->
-            Env.addLocalVar env' {varname=v; loc; ty=type_integer; is_local=true; is_constant=true};
+            Env.addLocalVar env' {name=v; loc; ty=type_integer; is_local=true; is_constant=true};
             tc_stmts env' loc b)
           env
       in
@@ -1861,7 +1861,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let tb' = tc_stmts env loc tb in
       Env.nest
         (fun env' ->
-          Env.addLocalVar env' {varname=ev; loc; ty=type_exn; is_local=true; is_constant=true};
+          Env.addLocalVar env' {name=ev; loc; ty=type_exn; is_local=true; is_constant=true};
           let catchers' = List.map (tc_catcher env' loc) catchers in
           let odefault' =
             Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
@@ -1885,7 +1885,7 @@ let tc_parameter (env : Env.t) (loc : AST.l)
     | Some ty -> tc_type env loc ty
     )
   in
-  Env.addLocalVar env {varname=arg; loc; ty=ty'; is_local=true; is_constant=true};
+  Env.addLocalVar env {name=arg; loc; ty=ty'; is_local=true; is_constant=true};
   (arg, Some ty')
 
 (** Typecheck function argument *)
@@ -1899,7 +1899,7 @@ let tc_argument
   let ty' = tc_type env loc ty in
   if not (List.mem_assoc arg ps) then begin
     (* add to scope if it is not a parameter *)
-    Env.addLocalVar env {varname=arg; loc; ty=ty'; is_local=true; is_constant=true}
+    Env.addLocalVar env {name=arg; loc; ty=ty'; is_local=true; is_constant=true}
   end;
   (arg, ty')
 
@@ -2029,7 +2029,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       [ d ]
   | Decl_Record (qid, ps, fs, loc) ->
       let env' = Env.mkEnv env in
-      List.iter (fun p -> Env.addLocalVar env' {varname=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
+      List.iter (fun p -> Env.addLocalVar env' {name=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
 
       (* check for duplicated fieldnames *)
       let fieldnames = ref IdentSet.empty in
@@ -2050,7 +2050,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_Typedef (qid, ps, ty, loc) ->
       (* todo: check for cyclic dependency *)
       let env' = Env.mkEnv env in
-      List.iter (fun p -> Env.addLocalVar env' {varname=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
+      List.iter (fun p -> Env.addLocalVar env' {name=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
       let ty' = tc_type env' loc ty in
       GlobalEnv.addType env loc qid (Type_Abbreviation (ps, ty'));
       [ Decl_Typedef (qid, ps, ty', loc) ]
@@ -2059,7 +2059,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let ty = Type_Constructor (qid, []) in
       List.iter
         (fun e ->
-           let v = { varname=e; loc; ty; is_local=false; is_constant=true } in
+           let v = { name=e; loc; ty; is_local=false; is_constant=true } in
            GlobalEnv.addGlobalVar env v)
         es;
       let cmp_args = [ (Ident "x", ty); (Ident "y", ty) ] in
@@ -2076,13 +2076,13 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       [ d; deq; dne ]
   | Decl_Var (qid, ty, loc) ->
       let ty' = tc_type (Env.mkEnv env) loc ty in
-      let v = { varname=qid; loc; ty; is_local=false; is_constant=false } in
+      let v = { name=qid; loc; ty; is_local=false; is_constant=false } in
       GlobalEnv.addGlobalVar env v;
       [ Decl_Var (qid, ty', loc) ]
   | Decl_Const (qid, ty, i, loc) ->
       let ty' = tc_type (Env.mkEnv env) loc ty in
       let i' = check_expr (Env.mkEnv env) loc ty' i in
-      let v = { varname=qid; loc; ty; is_local=false; is_constant=true } in
+      let v = { name=qid; loc; ty; is_local=false; is_constant=true } in
       GlobalEnv.addGlobalVar env v;
       GlobalEnv.addConstant env qid (simplify_expr i');
       [ Decl_Const (qid, ty', i', loc) ]
@@ -2253,7 +2253,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let locals = Env.mkEnv env in
       let ty' = tc_type locals loc ty in
       let i' = check_expr locals loc ty' i in
-      let v = { varname=qid; loc; ty; is_local=false; is_constant=true } in
+      let v = { name=qid; loc; ty; is_local=false; is_constant=true } in
       GlobalEnv.addGlobalVar env v;
       [ Decl_Config (qid, ty', i', loc) ]
 
