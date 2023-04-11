@@ -132,7 +132,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
 
 
 (* Information about variables *)
-type varinfo =
+type var_info =
   { varname     : AST.ident;
     loc         : AST.l;
     ty          : AST.ty;
@@ -140,7 +140,7 @@ type varinfo =
     is_constant : bool;
   }
 
-let pp_varinfo (fmt : Format.formatter) (x : varinfo) : unit =
+let pp_var_info (fmt : Format.formatter) (x : var_info) : unit =
   Format.fprintf fmt "Var{%a, %a, %a, %s, %s}"
     FMT.varname x.varname
     FMT.loc x.loc
@@ -207,8 +207,8 @@ module GlobalEnv : sig
   val getOperators1 : t -> AST.l -> AST.unop -> funtype list
   val addOperators2 : t -> AST.l -> AST.binop -> funtype list -> unit
   val getOperators2 : t -> AST.l -> AST.binop -> funtype list
-  val addGlobalVar : t -> varinfo -> unit
-  val getGlobalVar : t -> AST.ident -> varinfo option
+  val addGlobalVar : t -> var_info -> unit
+  val getGlobalVar : t -> AST.ident -> var_info option
   val addConstant : t -> AST.ident -> AST.expr -> unit
   val getConstant : t -> AST.ident -> AST.expr option
 end = struct
@@ -218,7 +218,7 @@ end = struct
     mutable setters : funtype list Bindings.t;
     mutable operators1 : funtype list Operators1.t;
     mutable operators2 : funtype list Operators2.t;
-    mutable globals : varinfo Bindings.t;
+    mutable globals : var_info Bindings.t;
     mutable constants : AST.expr Bindings.t;
   }
 
@@ -309,11 +309,11 @@ end = struct
   let getOperators2 (env : t) (loc : AST.l) (op : AST.binop) : funtype list =
     Option.value (Operators2.find_opt op env.operators2) ~default:[]
 
-  let addGlobalVar (env : t) (v : varinfo) : unit =
-    (* Format.fprintf fmt "New global %a\n" pp_varinfo v; *)
+  let addGlobalVar (env : t) (v : var_info) : unit =
+    (* Format.fprintf fmt "New global %a\n" pp_var_info v; *)
     env.globals <- Bindings.add v.varname v env.globals
 
-  let getGlobalVar (env : t) (v : AST.ident) : varinfo option =
+  let getGlobalVar (env : t) (v : AST.ident) : var_info option =
     (* Format.fprintf fmt "Looking for global variable %a\n" FMT.varname v; *)
     Bindings.find_opt v env.globals
 
@@ -423,8 +423,8 @@ module Env : sig
   val mkEnv : GlobalEnv.t -> t
   val globals : t -> GlobalEnv.t
   val nest : (t -> 'a) -> t -> 'a
-  val addLocalVar : t -> varinfo -> unit
-  val getVar : t -> AST.ident -> varinfo option
+  val addLocalVar : t -> var_info -> unit
+  val getVar : t -> AST.ident -> var_info option
   val markModified : t -> AST.ident -> unit
   val addConstraint : t -> AST.l -> AST.expr -> unit
   val getConstraints : t -> AST.expr list
@@ -436,7 +436,7 @@ end = struct
     mutable rty : AST.ty option;
     (* a stack of nested scopes representing the local type environment *)
     (* Invariant: the stack is never empty *)
-    mutable locals : varinfo Bindings.t list;
+    mutable locals : var_info Bindings.t list;
     mutable modified : IdentSet.t;
     (* constraints collected while typechecking current expression/assignment *)
     mutable constraints : AST.expr list;
@@ -470,15 +470,15 @@ end = struct
     parent.modified <- IdentSet.union parent.modified child.modified;
     r
 
-  let rec search_var (env : GlobalEnv.t) (bss : varinfo Bindings.t list) (v : AST.ident) : varinfo option =
+  let rec search_var (env : GlobalEnv.t) (bss : var_info Bindings.t list) (v : AST.ident) : var_info option =
     ( match bss with
     | bs :: bss' -> orelse_option (Bindings.find_opt v bs) (fun _ -> search_var env bss' v)
     | [] -> GlobalEnv.getGlobalVar env v
     )
 
-  let addLocalVar (env : t) (v : varinfo) : unit =
+  let addLocalVar (env : t) (v : var_info) : unit =
     (* Format.fprintf fmt "New local var %a : %a at %a\n" FMT.varname v.varname FMT.ty (ppp_type v.ty) FMT.loc v.loc; *)
-    Option.iter (fun (w : varinfo) ->
+    Option.iter (fun (w : var_info) ->
         let msg = Format.asprintf "variable `%a` previously declared at `%a`"
             FMT.varname v.varname
             FMT.loc w.loc
@@ -492,7 +492,7 @@ end = struct
     );
     if not v.is_constant then env.modified <- IdentSet.add v.varname env.modified
 
-  let getVar (env : t) (v : AST.ident) : varinfo option =
+  let getVar (env : t) (v : AST.ident) : var_info option =
     (* Format.fprintf fmt "Looking for variable %a\n" FMT.varname v; *)
     search_var env.globals env.locals v
 
@@ -988,7 +988,7 @@ let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
 (****************************************************************)
 
 (** Lookup a variable in environment *)
-let check_var (env : Env.t) (loc : AST.l) (v : AST.ident) : varinfo =
+let check_var (env : Env.t) (loc : AST.l) (v : AST.ident) : var_info =
   from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", pprint_ident v)))
 
 (** Typecheck list of expressions *)
