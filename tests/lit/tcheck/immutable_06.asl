@@ -2,7 +2,7 @@
 
 config CFG : integer = 1;
 
-func F(x : integer)
+func F()
 begin
     CFG = 2;
 // CHECK: Type error: assignment to immutable variable `CFG` declared at

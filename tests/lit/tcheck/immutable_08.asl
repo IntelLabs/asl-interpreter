@@ -2,7 +2,7 @@
 
 constant C : integer = 1;
 
-func F(x : integer)
+func F()
 begin
     C = 2;
 // CHECK: Type error: assignment to immutable variable `C` declared at
