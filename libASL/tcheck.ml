@@ -28,7 +28,6 @@ exception DoesNotMatch of (l * string * string * string)
 exception IsNotA of (l * string * string)
 exception Ambiguous of (l * string * string)
 exception TypeError of (l * string)
-exception InternalError of string (* internal invariants have been broken *)
 
 (****************************************************************)
 (** {3 AST construction utilities}                              *)

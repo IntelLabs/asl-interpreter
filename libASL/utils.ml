@@ -5,6 +5,8 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
+exception InternalError of string (* internal invariants have been broken *)
+
 (** Generic utility functions *)
 
 (****************************************************************

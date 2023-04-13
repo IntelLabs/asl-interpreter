@@ -12,6 +12,7 @@ module FMTAST = Asl_fmt
 module PP = Format
 module V = Value
 open Format_utils
+open Utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
@@ -224,18 +225,14 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
 and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
   match x with
   | Slice_Single e -> expr loc fmt e
-  | Slice_HiLo (hi, lo) ->
-      expr loc fmt hi;
-      nbsp fmt;
-      colon fmt;
-      nbsp fmt;
-      expr loc fmt lo
   | Slice_LoWd (lo, wd) ->
       expr loc fmt lo;
       nbsp fmt;
       plus_colon fmt;
       nbsp fmt;
       expr loc fmt wd
+  | Slice_HiLo _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
 and ixtype (loc : AST.l) (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with

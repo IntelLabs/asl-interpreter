@@ -237,8 +237,9 @@ let xform_ty (env : Env.t) (x : AST.ty) : AST.ty =
 let xform_slice (env : Env.t) (x : AST.slice) : AST.slice =
   match x with
   | Slice_Single e -> Slice_Single (xform_expr env e)
-  | Slice_HiLo (hi, lo) -> Slice_HiLo (xform_expr env hi, xform_expr env lo)
   | Slice_LoWd (lo, wd) -> Slice_LoWd (xform_expr env lo, xform_expr env wd)
+  | Slice_HiLo _ ->
+    raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
 (* todo: this combines abstract interpretation with transformation
  * would it be cleaner to just use a visitior to perform the transformation

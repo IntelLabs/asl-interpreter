@@ -38,10 +38,6 @@ let test_cases_expr : test_case list =
       [ Backend_C ],
       "func F(x : bits(65)) => bits(1) begin return x[4]; end" );
 
-    ( "bitslice hilo",
-      [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(16)) => bits(8) begin return x[11:4]; end" );
-
     ( "bitslice lowd",
       [ Backend_C; Backend_Verilog ],
       "func F(x : bits(16)) => bits(8) begin return x[4 +: 8]; end" );

@@ -12,6 +12,7 @@ module FMTAST = Asl_fmt
 module PP = Format
 module V = Value
 open Format_utils
+open Utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
@@ -164,9 +165,7 @@ let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
 (* C functions defined elsewhere *)
 let fn_slice_lowd (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd"
-let fn_slice_hilo (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo"
 let fn_slice_lowd_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd_w"
-let fn_slice_hilo_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_hilo_w"
 let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error_unmatched_case"
 let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
@@ -580,14 +579,14 @@ and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
     (s : AST.slice) : unit =
   let ew = c_int_width_64up_expr loc (Option.get (size_of_type t)) in
   match s with
-  | Slice_HiLo (hi, lo) ->
-      apply loc fmt (fun _ -> fn_slice_hilo fmt) [ e; hi; lo ]
   | Slice_LoWd (lo, wd) ->
       let wdw = c_int_width_64up_expr loc wd in
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; wd ]
   | Slice_Single lo ->
       let wdw = c_int_width_64up_expr loc Asl_utils.one in
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; Asl_utils.one ]
+  | Slice_HiLo _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
 and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
     (s : AST.slice) : unit =
@@ -597,12 +596,12 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
   eq fmt;
   nbsp fmt;
   match s with
-  | Slice_HiLo (hi, lo) ->
-      apply loc fmt (fun _ -> fn_slice_hilo_w fmt) [ v; e; hi; lo ]
   | Slice_LoWd (lo, wd) ->
       apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
   | Slice_Single lo ->
       apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; Asl_utils.one ]
+  | Slice_HiLo _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with

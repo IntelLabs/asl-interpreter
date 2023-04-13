@@ -10,6 +10,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Utils
 
 (** Transform expression 'x' of width 'w' to an expression of width 'n'
  * that is equivalent to 'zero_extend_bits(x, n) << i'.
@@ -26,12 +27,8 @@ open Asl_utils
  *)
 let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.expr =
   ( match x with
-  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_HiLo (hi, lo)]) ->
-    (* generate "((zero_extend_bits(e, n) AND mk_mask(hi + 1, n)) >> lo) << i" *)
-    let e1 = mk_zero_extend_bits we n e in
-    let e2 = mk_and_bits n e1 (mk_mask (Xform_simplify_expr.mk_add_int hi one) n) in
-    let e3 = mk_lsr_bits n e2 lo in
-    mk_lsl_bits n e3 i
+  | Expr_Slices (_, _, [Slice_HiLo _]) ->
+    raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
   | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_LoWd (lo, wd)]) ->
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let e1 = mk_zero_extend_bits we n e in
@@ -100,13 +97,12 @@ class bitsliceClass =
       match s with
       | Stmt_Assign (
           LExpr_Slices (
-            Type_Bits (Expr_LitInt _ as w),
-            LExpr_Var lident,
-            [Slice_HiLo (hi, lo)]),
-          rhs,
-          l) ->
-        let sw = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) (AST.Expr_LitInt "1") in
-        transform_assignment lident w sw lo rhs l
+            _,
+            _,
+            [Slice_HiLo _]),
+          _,
+          _) ->
+        raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
       | Stmt_Assign (
           LExpr_Slices (
             Type_Bits (Expr_LitInt _ as w),
