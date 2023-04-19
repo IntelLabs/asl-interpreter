@@ -1763,7 +1763,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
   | (ity, DeclItem_Var (v, Some ty)) ->
       let ty' = tc_type env loc ty in
       check_subtype_satisfies env loc ity ty';
-      DeclItem_Var (v, Some ity)
+      DeclItem_Var (v, Some ty')
   | (Type_Tuple itys, DeclItem_Tuple dis) when List.length dis = List.length itys ->
       let dis' = List.map2 (tc_decl_item env loc) itys dis in
       DeclItem_Tuple dis'
@@ -1774,7 +1774,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
   | (ity, DeclItem_Wildcard (Some ty)) ->
       let ty' = tc_type env loc ty in
       check_subtype_satisfies env loc ity ty';
-      DeclItem_Wildcard (Some ity)
+      DeclItem_Wildcard (Some ty')
 
 (** Typecheck list of statements *)
 let rec tc_stmts (env : Env.t) (loc : AST.l) (xs : AST.stmt list) :
