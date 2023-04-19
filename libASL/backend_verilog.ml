@@ -545,7 +545,6 @@ and pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_LitMask l -> maskLit fmt l
   | Pat_Const v -> varname fmt v
   | Pat_Wildcard -> delimiter fmt ".*"
-  | Pat_Set ps -> braces fmt (fun _ -> patterns loc fmt ps)
   | Pat_Single e -> expr loc fmt e
   | Pat_Range (lo, hi) ->
       expr loc fmt lo;
@@ -554,17 +553,10 @@ and pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
       nbsp fmt;
       expr loc fmt hi
   (* unimplemented *)
+  | Pat_Set _
   | Pat_Tuple _ ->
       raise
-        (Unimplemented (loc, "patterns", fun fmt -> FMTAST.pattern fmt x))
-
-and patterns (loc : AST.l) (fmt : PP.formatter) (ps : AST.pattern list) : unit =
-  match ps with
-  | [ p ] -> pattern loc fmt p
-  | _ ->
-      raise
-        (Unimplemented
-           (loc, "patterns", fun fmt -> FMTAST.patterns fmt ps))
+        (Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
 
 let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
   l ();
@@ -720,9 +712,9 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           indented fmt (fun _ ->
               cutsep fmt
                 (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
-                  patterns loc fmt ps;
                   if Option.is_some oc then
                     raise (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
+                  commasep fmt (pattern loc fmt) ps;
                   colon fmt;
                   nbsp fmt;
                   kw_begin fmt;

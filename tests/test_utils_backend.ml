@@ -315,6 +315,10 @@ let test_cases_stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func F() begin case 0 of when 0: return; when 1: return; end end" );
 
+    ( "case with pattern list",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin case 0 of when 0, 1, 2: return; when 3: return; end end" );
+
     ( "for loop (direction to)",
       [ Backend_C ],
       "func F() begin for x = 0 to 1 do return; end end" );

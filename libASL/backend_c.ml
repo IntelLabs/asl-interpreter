@@ -718,14 +718,6 @@ let pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
       raise
         (Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
 
-let patterns (loc : AST.l) (fmt : PP.formatter) (ps : AST.pattern list) : unit =
-  match ps with
-  | [ p ] -> pattern loc fmt p
-  | _ ->
-      raise
-        (Unimplemented
-           (loc, "patterns", fun fmt -> FMTAST.patterns fmt ps))
-
 let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
   l ();
   nbsp fmt;
@@ -817,14 +809,10 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
               indented fmt (fun _ ->
                   cutsep fmt
                     (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
-                      kw_case fmt;
-                      nbsp fmt;
-                      patterns loc fmt ps;
                       if Option.is_some oc then
                         raise
                           (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
-                      colon fmt;
-                      nbsp fmt;
+                      List.iter (Format.fprintf fmt "case %a:@," (pattern loc)) ps;
                       braces fmt (fun _ ->
                           indented_block fmt ss;
                           indented fmt (fun _ ->
