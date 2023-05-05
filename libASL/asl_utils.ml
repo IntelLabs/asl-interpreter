@@ -1083,12 +1083,12 @@ let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) 
 let mk_int_select (w : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
   Expr_TApply (FIdent ("asl_extract_int", 0), [ w ], [ x; lo; w ])
 
-(** Construct "zero_extend_bits{w, n}(x, w)" *)
+(** Construct "zero_extend_bits{w, n}(x, n)" *)
 let mk_zero_extend_bits (w : AST.expr) (n : AST.expr) (x : AST.expr) : AST.expr =
   if w = n then
     x
   else
-    Expr_TApply (FIdent ("zero_extend_bits", 0), [ w; n ], [ x; w ])
+    Expr_TApply (FIdent ("zero_extend_bits", 0), [ w; n ], [ x; n ])
 
 (** Construct "mk_mask{n}(w, n)" which is equivalent to
  *  'ZeroExtend{n}(Ones(w), n)'
