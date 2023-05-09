@@ -4,6 +4,7 @@
  * Transforms
  * - Slice_HiLo to Slice_LoWd
  * - Slice_Single to Slice_LoWd
+ * - Integer expression slices to asl_extract_int
  *
  * Copyright Intel Inc (c) 2023
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -25,6 +26,16 @@ class lower_class =
 
     method! vexpr x =
       match x with
+      | Expr_Slices ((Type_Integer _ as ty), (Expr_Var _ as expr), [Slice_HiLo (hi, lo)]) ->
+          let lo_wd = transform_hi_lo hi lo in
+          Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))
+      | Expr_Slices (Type_Integer _, expr, [Slice_Single i]) ->
+          Visitor.ChangeTo (mk_int_select one expr i)
+      | Expr_Slices (Type_Integer _, expr, [Slice_HiLo (hi, lo)]) ->
+          let w = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) one in
+          Visitor.ChangeTo (mk_int_select w expr lo)
+      | Expr_Slices (Type_Integer _, expr, [Slice_LoWd (lo, wd)]) ->
+          Visitor.ChangeTo (mk_int_select wd expr lo)
       | Expr_Slices (ty, expr, [Slice_HiLo (hi, lo)]) ->
           let lo_wd = transform_hi_lo hi lo in
           Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))

@@ -46,6 +46,22 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
        "var x : bits(8); var y : bits(8); var i : integer;"
        "x[i] = y[i];"
        "x[i +: 1] = y[i +: 1];");
+    ("lower x[i] where x is an integer", `Quick, expr
+       "var x : integer; var i : integer;"
+       "x[i]"
+       "asl_extract_int(x, i, 1)");
+    ("lower x[7:0] where x is integer", `Quick, expr
+       "var x : integer; var i : integer;"
+       "x[7:0]"
+       "x[0 +: 8]");
+    ("lower (x+1)[7:0] where (x+1) is an integer expression", `Quick, expr
+       "var x : integer; var i : integer;"
+       "(x+1)[7:0]"
+       "asl_extract_int((add_int(x, 1)), 0, 8)");
+    ("lower (x+1)[0 +: 8] where (x+1) is an integer expression", `Quick, expr
+       "var x : integer; var i : integer;"
+       "(x+1)[0 +: 8]"
+       "asl_extract_int((add_int(x, 1)), 0, 8)");
   ]
 
 (****************************************************************

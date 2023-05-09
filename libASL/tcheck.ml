@@ -33,21 +33,6 @@ exception TypeError of (l * string)
 (** {3 AST construction utilities}                              *)
 (****************************************************************)
 
-(* Lower int slice expression *)
-let mk_expr_intslices (x : AST.expr) (ss : AST.slice list) : AST.expr =
-  match (x, ss) with
-  (* don't lower the easy case *)
-  | Expr_Var v, ss -> Expr_Slices (type_integer, x, ss)
-  (* lower all cases where x is not a variable *)
-  | _, [ Slice_Single i ] -> mk_int_select one x i
-  | _, [ Slice_HiLo (hi, lo) ] ->
-      let w = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) one in
-      mk_int_select w x lo
-  | _, [ Slice_LoWd (lo, wd) ] -> mk_int_select wd x lo
-  (* todo: currently don't have a good story for lowering the multi-slice
-     case *)
-  | _ -> Expr_Slices (type_integer, x, ss)
-
 let slice_width (x : AST.slice) : AST.expr =
   match x with
   | Slice_Single e -> one
@@ -1134,12 +1119,10 @@ and tc_slice_expr (env : Env.t) (loc : AST.l) (x : expr)
           check_subtype_satisfies env loc ity (ixtype_basetype ixty);
           (Expr_Array (x', i), elty)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
-  | Type_Bits n
-  | Type_Register (n, _) ->
-      (Expr_Slices (ty', x', ss'), ty)
+  | Type_Bits _
+  | Type_Register _
   | Type_Integer _ ->
-      (* todo: desugar into a call to slice_int? *)
-      (mk_expr_intslices x' ss', ty)
+      (Expr_Slices (ty', x', ss'), ty)
   | _ -> raise (TypeError (loc, "slice of expr"))
 
 (** Typecheck expression *)
