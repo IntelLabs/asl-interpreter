@@ -582,9 +582,8 @@ and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
   | Slice_LoWd (lo, wd) ->
       let wdw = c_int_width_64up_expr loc wd in
       apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; wd ]
-  | Slice_Single lo ->
-      let wdw = c_int_width_64up_expr loc Asl_utils.one in
-      apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; Asl_utils.one ]
+  | Slice_Single _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
@@ -598,8 +597,8 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
   match s with
   | Slice_LoWd (lo, wd) ->
       apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
-  | Slice_Single lo ->
-      apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; Asl_utils.one ]
+  | Slice_Single _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 

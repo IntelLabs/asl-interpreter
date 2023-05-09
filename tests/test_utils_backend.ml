@@ -30,14 +30,6 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "record X { i : integer; }; func F(x : X) => integer begin return x.i; end" );
 
-    ( "bitslice single",
-      [ Backend_C; Backend_Verilog ],
-      "func F(x : bits(16)) => bits(1) begin return x[4]; end" );
-
-    ( "bitslice single (> 64b)",
-      [ Backend_C ],
-      "func F(x : bits(65)) => bits(1) begin return x[4]; end" );
-
     ( "bitslice lowd",
       [ Backend_C; Backend_Verilog ],
       "func F(x : bits(16)) => bits(8) begin return x[4 +: 8]; end" );

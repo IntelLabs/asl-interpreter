@@ -29,17 +29,13 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
   ( match x with
   | Expr_Slices (_, _, [Slice_HiLo _]) ->
     raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+  | Expr_Slices (_, _, [Slice_Single _]) ->
+    raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_LoWd (lo, wd)]) ->
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 lo in
     let e3 = mk_and_bits n e2 (mk_mask wd n) in
-    mk_lsl_bits n e3 i
-  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_Single ix]) ->
-    (* generate "((zero_extend_bits(e, n) >> ix) AND mk_mask(1, n)) << i" *)
-    let e1 = mk_zero_extend_bits we n e in
-    let e2 = mk_lsr_bits n e1 ix in
-    let e3 = mk_and_bits n e2 (mk_mask one n) in
     mk_lsl_bits n e3 i
   | Expr_TApply (FIdent ("Ones", _), [_], [_], _) ->
     mk_lsl_bits n (mk_mask w n) i

@@ -236,8 +236,9 @@ let xform_ty (env : Env.t) (x : AST.ty) : AST.ty =
 
 let xform_slice (env : Env.t) (x : AST.slice) : AST.slice =
   match x with
-  | Slice_Single e -> Slice_Single (xform_expr env e)
   | Slice_LoWd (lo, wd) -> Slice_LoWd (xform_expr env lo, xform_expr env wd)
+  | Slice_Single _ ->
+    raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
     raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 

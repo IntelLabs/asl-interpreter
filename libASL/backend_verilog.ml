@@ -224,13 +224,14 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
 (* todo: indices need to be reduced to ceil(log2(width(operand))) *)
 and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
   match x with
-  | Slice_Single e -> expr loc fmt e
   | Slice_LoWd (lo, wd) ->
       expr loc fmt lo;
       nbsp fmt;
       plus_colon fmt;
       nbsp fmt;
       expr loc fmt wd
+  | Slice_Single _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
 
