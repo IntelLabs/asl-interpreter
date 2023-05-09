@@ -1,7 +1,9 @@
 (****************************************************************
  * ASL lowering transform
  *
- * Transforms Slice_HiLo to Slice_LoWd
+ * Transforms
+ * - Slice_HiLo to Slice_LoWd
+ * - Slice_Single to Slice_LoWd
  *
  * Copyright Intel Inc (c) 2023
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -14,6 +16,9 @@ let transform_hi_lo hi lo =
   let wd = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) one in
   AST.Slice_LoWd (lo, wd)
 
+let transform_single s =
+  AST.Slice_LoWd (s, one)
+
 class lower_class =
   object
     inherit Asl_visitor.nopAslVisitor
@@ -23,12 +28,18 @@ class lower_class =
       | Expr_Slices (ty, expr, [Slice_HiLo (hi, lo)]) ->
           let lo_wd = transform_hi_lo hi lo in
           Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))
+      | Expr_Slices (ty, expr, [Slice_Single s]) ->
+          let lo_wd = transform_single s in
+          Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))
       | _ -> DoChildren
 
     method! vlexpr l =
       match l with
       | LExpr_Slices (ty, lexpr, [Slice_HiLo (hi, lo)]) ->
           let lo_wd = transform_hi_lo hi lo in
+          Visitor.ChangeTo (LExpr_Slices (ty, lexpr, [lo_wd]))
+      | LExpr_Slices (ty, lexpr, [Slice_Single s]) ->
+          let lo_wd = transform_single s in
           Visitor.ChangeTo (LExpr_Slices (ty, lexpr, [lo_wd]))
       | _ -> DoChildren
 

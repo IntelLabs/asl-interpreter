@@ -38,6 +38,14 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
        "var x : bits(8); var y : bits(8); var hi : integer; var lo : integer;"
        "x[hi:lo] = y[hi:lo];"
        "x[lo +: add_int(add_int(hi, neg_int(lo)), 1)] = y[lo +: add_int(add_int(hi, neg_int(lo)), 1)];");
+    ("lower x[0] = y[0] where x and y are bitvectors", `Quick, stmts
+       "var x : bits(8); var y : bits(8);"
+       "x[0] = y[0];"
+       "x[0 +: 1] = y[0 +: 1];");
+    ("lower x[i] = y[i] where x and y are bitvectors", `Quick, stmts
+       "var x : bits(8); var y : bits(8); var i : integer;"
+       "x[i] = y[i];"
+       "x[i +: 1] = y[i +: 1];");
   ]
 
 (****************************************************************

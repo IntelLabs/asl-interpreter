@@ -1,7 +1,9 @@
 (****************************************************************
  * ASL lowering transform
  *
- * Transforms Slice_HiLo to Slice_LoWd
+ * Transforms
+ * - Slice_HiLo to Slice_LoWd
+ * - Slice_Single to Slice_LoWd
  *
  * Copyright Intel Inc (c) 2023
  * SPDX-Licence-Identifier: BSD-3-Clause
