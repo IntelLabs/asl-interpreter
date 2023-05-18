@@ -22,6 +22,7 @@ let keywords : (string * Asl_parser.token) list = [
     ("QUOT",                   QUOT);
     ("REM",                    REM);
     ("UNKNOWN",                UNKNOWN);
+    ("XOR",                    EOR);
     ("__array",                UNDERSCORE_UNDERSCORE_ARRAY);
     ("__builtin",              UNDERSCORE_UNDERSCORE_BUILTIN);
     ("__event",                UNDERSCORE_UNDERSCORE_EVENT);
