@@ -245,7 +245,7 @@ begin
         return pow2_int(y); // optimized case
     else
         assert y >= 0;
-        var result = 1;
+        var result : integer = 1;
         for i = 1 to y do
             result = result * x;
         end
@@ -366,7 +366,7 @@ func Log2(a : integer) => integer
 begin
     assert IsPowerOfTwo(a);
     var b = a;
-    var r = 0;
+    var r : integer = 0;
     while b > 1 do
        b = b DIV 2;
        r = r + 1;
@@ -537,10 +537,10 @@ end
 // Count the number of 1 bits in a bitvector.
 func BitCount(x : bits(N)) => integer {0 .. N}
 begin
-    var result : integer = 0;
+    var result : integer {0 .. N} = 0;
     for i = 0 to N-1 do
         if x[i] == '1' then
-            result = result + 1;
+            result = (result + 1) as {0 .. N};
         end
     end
     return result;
