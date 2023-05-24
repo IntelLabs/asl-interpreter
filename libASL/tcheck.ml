@@ -938,6 +938,20 @@ let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
       reportChoices loc what nm tys fs;
       raise (Ambiguous (loc, what, nm))
 
+let check_duplicate_field_names (fx : 'a -> ident) (fs : 'a list) (loc : AST.l) =
+  let fieldnames = ref IdentSet.empty in
+  List.iter (fun f ->
+      let f' = fx f in
+      if IdentSet.mem f' !fieldnames then begin
+        let msg = Format.asprintf "fieldname `%a` is declared multiple times"
+            FMT.fieldname f'
+        in
+        raise (TypeError (loc, msg))
+      end;
+      fieldnames := IdentSet.add f' !fieldnames
+    )
+    fs
+
 (** Disambiguate and typecheck application of a function to a list of arguments *)
 let tc_apply (env : Env.t) (loc : AST.l) (what : string)
     (f : AST.ident) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
@@ -1350,18 +1364,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       let (_, ty) = tc_expr env loc e in
       ty
   | Type_Register (wd, fs) ->
-      (* check for duplicated fieldnames *)
-      let fieldnames = ref IdentSet.empty in
-      List.iter (fun (_, f) ->
-          if IdentSet.mem f !fieldnames then begin
-            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
-                FMT.fieldname f
-            in
-            raise (TypeError (loc, msg))
-          end;
-          fieldnames := IdentSet.add f !fieldnames
-        )
-        fs;
+      check_duplicate_field_names (fun (_, f) -> f) fs loc;
 
       let fs' =
         List.map
@@ -2058,18 +2061,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let env' = Env.mkEnv env in
       List.iter (fun p -> Env.addLocalVar env' {name=p; loc; ty=type_integer; is_local=true; is_constant=true}) ps;
 
-      (* check for duplicated fieldnames *)
-      let fieldnames = ref IdentSet.empty in
-      List.iter (fun (f, _) ->
-          if IdentSet.mem f !fieldnames then begin
-            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
-                FMT.fieldname f
-            in
-            raise (TypeError (loc, msg))
-          end;
-          fieldnames := IdentSet.add f !fieldnames
-        )
-        fs;
+      check_duplicate_field_names (fun (f, _) -> f) fs loc;
 
       let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
       GlobalEnv.addType env loc qid (Type_Record (ps, fs'));
@@ -2077,18 +2069,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
   | Decl_Exception (qid, fs, loc) ->
       let env' = Env.mkEnv env in
 
-      (* check for duplicated fieldnames *)
-      let fieldnames = ref IdentSet.empty in
-      List.iter (fun (f, _) ->
-          if IdentSet.mem f !fieldnames then begin
-            let msg = Format.asprintf "fieldname `%a` is declared multiple times"
-                FMT.fieldname f
-            in
-            raise (TypeError (loc, msg))
-          end;
-          fieldnames := IdentSet.add f !fieldnames
-        )
-        fs;
+      check_duplicate_field_names (fun (f, _) -> f) fs loc;
 
       let fs' = List.map (fun (f, ty) -> (f, tc_type env' loc ty)) fs in
       GlobalEnv.addType env loc qid (Type_Exception fs');
