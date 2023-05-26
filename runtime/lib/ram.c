@@ -12,46 +12,48 @@
 
 #include "asl/error.h"
 
-static const int page_entry_sz = 1;
-static const int table_entry_sz = sizeof(uint8_t *);
+enum {
+        PAGE_ENRTY_SZ = 1,
+        TABLE_ENTRY_SZ = sizeof(uint8_t *),
 
-static const int entries_log2 = 16;  // both tables and pages have 64k entries
-static const int entries = 1 << entries_log2;
+        ENTRIES_LOG2 = 16,  // both tables and pages have 64k entries
+        ENTRIES = 1 << ENTRIES_LOG2,
 
-static const int page_sz = page_entry_sz * entries;
-static const int level_of_page = 4;
+        PAGE_SZ = PAGE_ENRTY_SZ * ENTRIES,
+        LEVEL_OF_PAGE = 4,
+};
 
 static inline uint64_t
 entry_num(uint64_t address)
 {
-        return address & (entries - 1);
+        return address & (ENTRIES - 1);
 }
 
 static inline uint64_t
 page_offset(uint64_t address)
 {
-        return page_entry_sz * entry_num(address);
+        return PAGE_ENRTY_SZ * entry_num(address);
 }
 
 static inline uint64_t
 table_offset(uint64_t address)
 {
-        return table_entry_sz * entry_num(address);
+        return TABLE_ENTRY_SZ * entry_num(address);
 }
 
 static uint8_t *
 page_alloc(uint8_t init_val)
 {
-        void *p = malloc(page_sz);
+        void *p = malloc(PAGE_SZ);
         runtime_error_if(!p, "cannot allocate a page");
-        memset(p, init_val, page_sz);
+        memset(p, init_val, PAGE_SZ);
         return p;
 }
 
 static uint8_t *
 table_alloc()
 {
-        void *p = calloc(entries, table_entry_sz);
+        void *p = calloc(ENTRIES, TABLE_ENTRY_SZ);
         runtime_error_if(!p, "cannot allocate a table");
         return p;
 }
@@ -62,10 +64,10 @@ table_free(uint8_t *p, int level)
         if (!p)
                 return;
 
-        if (level < level_of_page) {
-                for (int i = 0; i < entries; ++i) {
+        if (level < LEVEL_OF_PAGE) {
+                for (int i = 0; i < ENTRIES; ++i) {
                         uint8_t *e;
-                        memcpy(&e, p + table_entry_sz * i, sizeof(uint8_t *));
+                        memcpy(&e, p + TABLE_ENTRY_SZ * i, sizeof(uint8_t *));
                         table_free(e, level + 1);
                 }
         }
@@ -81,13 +83,13 @@ page_lookup(ASL_ram_t *ram, uint64_t address)
         uint8_t *p = ram->p;
         uint8_t **p_addr = &ram->p;
 
-        for (int level = 1; level < level_of_page; ++level) {
+        for (int level = 1; level < LEVEL_OF_PAGE; ++level) {
                 if (!p) {  // no table
                         p = table_alloc();
                         *p_addr = p;
                 }
 
-                address >>= entries_log2;
+                address >>= ENTRIES_LOG2;
                 p_addr = (uint8_t **)(p + table_offset(address));
                 p = *p_addr;
         }
