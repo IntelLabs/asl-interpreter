@@ -103,7 +103,7 @@ Platform specific instructions:
 Platform independent instructions:
 
 ```
-    opam install ocaml.4.11.0
+    opam install ocaml.4.14.0
     opam install dune
     opam install menhir
     opam install linenoise
