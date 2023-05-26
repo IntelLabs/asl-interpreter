@@ -116,6 +116,8 @@ Platform independent instructions:
     opam install odoc
     opam install ocamlformat
 
+    opam install alcotest # only needed for testing
+
     # On OSX, you may need to use this command to install zarith
     env CFLAGS="-I$HOME/homebrew/include/" LDFLAGS="-L$HOME/homebrew/lib/" opam install zarith
 
