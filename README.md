@@ -50,6 +50,12 @@ This software includes code from one other open source projects
 
 ## Building and development
 
+### Cloning the repository
+
+Since the repository contains submodules, be sure to recursively clone it:
+
+git clone --recursive https://github.com/intel-innersource/libraries.isa.asl.asl-interpreter
+
 ### Directory structure
 
 This interpreter consists of a single directory organized as follows
