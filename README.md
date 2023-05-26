@@ -69,7 +69,6 @@ This interpreter consists of a single directory organized as follows
           * `libASL/lexer.mll`       - ASL lexer (ocamllex file)
           * `libASL/lexersupport.ml` - indentation-based parsing support
       * Grammar and Parser
-          * `libASL/asl.ott`         - used to generate the ASL parser and abstract syntax tree (OTT file)
           * `libASL/asl_visitor.ml`  - code to traverse abstract syntax tree
           * `libASL/asl_utils.ml`    - code to transform abstract syntax tree
       * Typechecker
@@ -107,7 +106,6 @@ Platform independent instructions:
     opam install ocaml.4.11.0
     opam install dune
     opam install menhir
-    opam install ott
     opam install linenoise
     opam install ocolor
     opam install yojson
