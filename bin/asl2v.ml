@@ -287,26 +287,23 @@ let main () =
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
     let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
-    let ds = t @ ts in
-    let ds = Global_checks.check_decls ds in
-
-    let ds = transform "init0" Fun.id ds in
-    let ds = transform "keep_exports" (xform_reachable exports) ds in
-    let ds = transform "bittuples" Xform_bittuples.xform_decls ds in
-    let ds = transform "lower" Xform_lower.xform_decls ds in
-    let ds = transform "case" Xform_case.xform_decls ds in
+    let ds = Global_checks.check_decls t @ ts
+    |> transform "init0" Fun.id
+    |> transform "keep_exports" (xform_reachable exports)
+    |> transform "bittuples" Xform_bittuples.xform_decls
+    |> transform "lower" Xform_lower.xform_decls
+    |> transform "case" Xform_case.xform_decls in
 
     let genv = Eval.build_constant_environment ds in
-    let ds = transform "constprop" (CP.xform_decls genv) ds in
-
-    let ds = transform "mono" Xform_mono.monomorphize ds in
-    let ds = transform "keep_mono" (xform_reachable exports) ds in
-    let ds = transform "mono2" Xform_mono.monomorphize ds in
-    let ds = transform "bitslices" Xform_bitslices.xform_decls ds in
-    let ds = transform "tuples" Xform_tuples.xform_decls ds in
-    let ds = transform "getset" Xform_getset.xform_decls ds in
-    let ds = transform "rmw" Xform_rmw.xform_decls ds in
-    let ds = transform "delete_imports" (delete_functions imports) ds in
+    let ds = transform "constprop" (CP.xform_decls genv) ds
+    |> transform "mono" Xform_mono.monomorphize
+    |> transform "keep_mono" (xform_reachable exports)
+    |> transform "mono2" Xform_mono.monomorphize
+    |> transform "bitslices" Xform_bitslices.xform_decls
+    |> transform "tuples" Xform_tuples.xform_decls
+    |> transform "getset" Xform_getset.xform_decls
+    |> transform "rmw" Xform_rmw.xform_decls
+    |> transform "delete_imports" (delete_functions imports) in
 
     match !opt_backend with
     | Backend_C ->
