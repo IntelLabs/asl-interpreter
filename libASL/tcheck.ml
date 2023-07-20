@@ -631,14 +631,15 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
           uf
       | Some uf -> uf)
 
+let z3_ctx = Z3.mk_context []
+let solver = Z3.Solver.mk_simple_solver z3_ctx
+
 (** check that bs => cs where bs and cs are lists of boolean expressions *)
 let check_constraints (bs : expr list) (cs : expr list) : bool =
   (* note that we rebuild the Z3 context each time.
    * It is possible to share them across all invocations to save
    * about 10% of execution time.
    *)
-  let z3_ctx = Z3.mk_context [] in
-  let solver = Z3.Solver.mk_simple_solver z3_ctx in
   let ufs = ref [] in
   (* uninterpreted function list *)
   let bs' = List.map (z3_of_expr z3_ctx ufs) bs in
@@ -650,8 +651,10 @@ let check_constraints (bs : expr list) (cs : expr list) : bool =
   in
   if verbose then
     Format.fprintf fmt "      - Checking %s\n" (Z3.Expr.to_string p);
+  Z3.Solver.push solver;
   Z3.Solver.add solver [ Z3.Boolean.mk_not z3_ctx p ];
   let q = Z3.Solver.check solver [] in
+  Z3.Solver.pop solver 1;
   if verbose && q = SATISFIABLE then
     Format.fprintf fmt "Failed property %s\n" (Z3.Expr.to_string p);
   q = UNSATISFIABLE
