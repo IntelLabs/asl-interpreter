@@ -177,6 +177,8 @@ class constEvalClass (env : Env.t) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
 
+    method eval_expr (x : expr) : expr = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) x
+
     method! vexpr x =
       match x with
       | Expr_Var v -> (
@@ -187,6 +189,27 @@ class constEvalClass (env : Env.t) =
       | Expr_Array (a, i) ->
           let i' = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) i in
           ChangeTo (Expr_Array (a, i'))
+      | Expr_If (c, t, els, e) ->
+          let rec xform_if xs =
+            ( match xs with
+            | [] -> ([], self#eval_expr e)
+            | AST.E_Elsif_Cond (cond, b) :: xs' ->
+                let cond' = self#eval_expr cond in
+                if cond' = asl_false then
+                  xform_if xs'
+                else if cond' = asl_true then
+                  ([], self#eval_expr b)
+                else
+                  let b' = self#eval_expr b in
+                  let (els', e') = xform_if xs' in
+                  (E_Elsif_Cond(cond', b') :: els', e')
+            )
+          in
+          ChangeTo
+            ( match xform_if (E_Elsif_Cond (c, t) :: els) with
+            | ([], e') -> e'
+            | (E_Elsif_Cond(c', t') :: els', e') -> Expr_If(c', t', els', e')
+            )
       | _ -> (
           try
             let eval (x : expr) : expr =
@@ -389,14 +412,20 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
         | [] -> ([], xform_stmts env e)
         | S_Elsif_Cond (c, s, loc) :: css' ->
             (* todo: each branch should assert c or not c *)
-            (* todo: add dead code elimination *)
             let c' = xform_expr env c in
-            let s', (css'', e') =
-              Env.fork_join env
-                (fun env' -> xform_stmts env' s)
-                (fun env' -> xform env' css')
-            in
-            (S_Elsif_Cond (c', s', loc) :: css'', e')
+            if c' = asl_false then begin
+              xform env css'
+            end else if c' = asl_true then begin
+              let s' = xform_stmts env s in
+              ([], s')
+            end else begin
+              let (s', (css'', e')) =
+                Env.fork_join env
+                  (fun env' -> xform_stmts env' s)
+                  (fun env' -> xform env' css')
+              in
+              (S_Elsif_Cond (c', s', loc) :: css'', e')
+            end
       in
       match xform env (S_Elsif_Cond (c, t, loc) :: els) with
       | [], e' -> e'
