@@ -268,9 +268,10 @@ let transform
     (f : AST.declaration list xform)
     (ds : AST.declaration list)
   : AST.declaration list =
-  let ds' = f ds in
   transform_count := !transform_count + 1;
   let filename = Printf.sprintf "tmp.%02d.%s.asl" !transform_count name in
+  if !opt_verbose then Printf.printf "Applying transformation %02d.%s\n%!" !transform_count name;
+  let ds' = f ds in
   if !opt_verbose then Utils.to_file filename (fun fmt -> ASL_FMT.declarations fmt ds');
   ds'
 

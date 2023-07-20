@@ -119,10 +119,22 @@ let read_files (paths : string list) (filenames : string list) (verbose : bool)
     else
       failwith ("Unrecognized file suffix on " ^ fname)
   in
-  List.map parse filenames
-    |> List.concat
-    |> TC.tc_declarations TC.env0 false
 
+  let ds = List.map parse filenames |> List.concat in
+  if verbose then (
+    Printf.printf "- Got %d declarations\n%!" (List.length ds);
+    Printf.printf "- Typechecking\n%!"
+  );
+
+  let ds' = TC.tc_declarations TC.env0 false ds in
+
+  if verbose then (
+    Printf.printf "  - Got %d typechecked declarations\n" (List.length ds');
+    Printf.printf "Finished typechecking specification\n"
+  );
+  flush stdout;
+
+  ds'
 
 (****************************************************************
  * End
