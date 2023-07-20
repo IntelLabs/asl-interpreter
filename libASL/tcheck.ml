@@ -1666,7 +1666,6 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                 in
                 let gty' = instantiate_fun env loc gty es tys in
                 let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Slices")) in
-                Format.fprintf fmt "unifying %a with %a\n" FMT.ty vty FMT.ty ty;
                 check_subtype_satisfies env loc ty vty;
                 let throws = false in
                 (LExpr_Write (gty'.name, gty'.parameters, es, throws), ty)
