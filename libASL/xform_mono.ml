@@ -183,6 +183,17 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
 
     method! vexpr x =
       match x with
+      | Expr_RecordInit (tc, tys, fs) -> (
+          match Utils.flatten_map_option const_int_expr tys with
+          | Some [] -> DoChildren
+          | Some sizes ->
+              Option.value (
+                Option.bind (find_decl tc ds) (fun d ->
+                Option.bind (self#monomorphize_type genv tc d sizes) (fun tc' ->
+                Some (ChangeDoChildrenPost (AST.Expr_RecordInit (tc', [], fs), Fun.id))
+                )))
+                ~default:DoChildren
+          | None -> DoChildren)
       | Expr_TApply (f, tys, args, throws) -> (
           match Utils.flatten_map_option const_int_expr tys with
           | Some [] -> DoChildren
