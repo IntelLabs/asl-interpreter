@@ -8,7 +8,6 @@
 open Test_utils
 open LibASL
 open Asl_utils
-module AST = Asl_ast
 module TC = Tcheck
 
 (****************************************************************
@@ -22,7 +21,7 @@ let bitslice_tests : unit Alcotest.test_case list =
   let expr = test_xform_expr Xform_bitslices.xform_expr globals prelude in
   let stmts = test_xform_stmts Xform_bitslices.xform_stmts globals prelude in
   [
-    ("combine (lo:wd)", `Quick, expr
+    ("combine (lo+:wd)", `Quick, expr
        "var x : bits(64); var y : bits(64); var i : integer;"
        "[x[i +: 64-i], y[0 +: i]]"
        "lsl_bits(lsr_bits(x, i) AND mk_mask(64-i, 64), i) OR and_bits(y, mk_mask(i, 64))");
@@ -53,6 +52,14 @@ let bitslice_tests : unit Alcotest.test_case list =
        "let r = CountLeadingZeroBits(x);
         result = or_bits(and_bits(result, not_bits(mk_mask(8, 32))),
             zero_extend_bits(r[0 +: 8], 32));");
+    ("transform ZeroExtend(Ones(i), n)", `Quick, expr
+       "var i : integer;"
+       "ZeroExtend(Ones(i), 64)"
+       "mk_mask(i, 64)");
+    ("transform [Ones(i), Zeros(n-i)]", `Quick, expr
+       "var i : integer;"
+       "[Ones(i), Zeros(64-i)]"
+       "lsl_bits(mk_mask(i, 64), add_int(64, -i))");
   ]
 
 (****************************************************************

@@ -37,9 +37,9 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
     let e2 = mk_lsr_bits n e1 lo in
     let e3 = mk_and_bits n e2 (mk_mask wd n) in
     mk_lsl_bits n e3 i
-  | Expr_TApply (FIdent ("Ones", _), [_], [_], _) ->
+  | Expr_TApply (FIdent ("Ones", _), _, _, _) ->
     mk_lsl_bits n (mk_mask w n) i
-  | Expr_TApply (FIdent ("Zeros", _), [_], [_], _) ->
+  | Expr_TApply (FIdent ("Zeros", _), _, _, _) ->
     mk_zero_bits n
   | _ -> mk_lsl_bits n (mk_zero_extend_bits w n x) i
   )
@@ -86,6 +86,8 @@ class bitsliceClass =
           ws es (zero, mk_zero_bits total_width)
         in
         ChangeTo x'
+      | Expr_TApply (FIdent ("ZeroExtend", _), [w; n], [e; _], _) ->
+        ChangeTo (transform n w zero e)
       | _ -> DoChildren
       )
 
