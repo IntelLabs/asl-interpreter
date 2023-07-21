@@ -390,6 +390,15 @@ val mk_eq_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 (** Construct "in_mask{w}(x, y)" *)
 val mk_in_mask : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
+(** Construct "add_bits{N}(x, y)" *)
+val mk_add_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "sub_bits{N}(x, y)" *)
+val mk_sub_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
+(** Construct "mul_bits{N}(x, y)" *)
+val mk_mul_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
+
 (** Construct "and_bits{N}(x, y)" *)
 val mk_and_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 

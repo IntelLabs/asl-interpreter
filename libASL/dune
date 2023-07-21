@@ -40,6 +40,7 @@
    xform_case
    xform_casesplit
    xform_constprop
+   xform_desugar
    xform_getset
    xform_lower
    xform_mono

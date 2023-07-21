@@ -291,6 +291,7 @@ let main () =
     let ds = Global_checks.check_decls t @ ts
     |> transform "init0" Fun.id
     |> transform "keep_exports" (xform_reachable exports)
+    |> transform "desugar" Xform_case.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
     |> transform "lower" Xform_lower.xform_decls
     |> transform "case" Xform_case.xform_decls in

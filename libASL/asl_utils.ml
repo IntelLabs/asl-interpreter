@@ -1112,6 +1112,18 @@ let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
 let mk_eq_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   mk_binop "eq_bits" [w] x y
 
+(** Construct "add_bits{w}(x, y)" *)
+let mk_add_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "add_bits" [w] x y
+
+(** Construct "sub_bits{w}(x, y)" *)
+let mk_sub_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "sub_bits" [w] x y
+
+(** Construct "mul_bits{w}(x, y)" *)
+let mk_mul_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
+  mk_binop "mul_bits" [w] x y
+
 (** Construct "in_mask{w}(x, y)" *)
 let mk_in_mask (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   mk_binop "in_mask" [w] x y
