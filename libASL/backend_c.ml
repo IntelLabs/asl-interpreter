@@ -36,11 +36,48 @@ let with_catch_label (f : AST.ident -> 'a) : 'a =
 
 let current_catcher (_ : unit) : AST.ident = List.hd !catch_stack
 
+(** List of all the reserved words in C *)
+let reserved = [
+  "auto";
+  "break";
+  "case";
+  "char";
+  "const";
+  "continue";
+  "default";
+  "do";
+  "double";
+  "else";
+  "enum";
+  "extern";
+  "float";
+  "for";
+  "goto";
+  "if";
+  "int";
+  "long";
+  "register";
+  "return";
+  "short";
+  "signed";
+  "sizeof";
+  "static";
+  "struct";
+  "switch";
+  "typedef";
+  "union";
+  "unsigned";
+  "void";
+  "volatile";
+  "while"
+]
 
+(** Rename any identifiers that match C reserved words *)
 let mangle (s : string) : string =
-  (* TODO this should detect whether s is a reserved name in C and rename to
-     avoid conflict *)
-  s
+  if List.mem s reserved then
+    "xx"^s
+  else
+    s
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =
   PP.pp_print_string fmt s
