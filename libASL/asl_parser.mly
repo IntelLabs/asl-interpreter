@@ -396,8 +396,14 @@ decl_item:
     { DeclItem_Var(v, oty) }
 | LPAREN dis = separated_nonempty_list(COMMA, decl_item) RPAREN
     { DeclItem_Tuple(dis) }
+| LBRACK dis = separated_nonempty_list(COMMA, decl_bit) RBRACK
+    { DeclItem_BitTuple(dis) }
 | MINUS oty = ty_opt
     { DeclItem_Wildcard(oty) }
+
+decl_bit:
+| v = ident oty = ty_opt { (Some v, Option.value oty ~default:(Type_Bits Asl_utils.one)) }
+| MINUS     oty = ty_opt { (None,   Option.value oty ~default:(Type_Bits Asl_utils.one)) }
 
 lexpr:
 | MINUS

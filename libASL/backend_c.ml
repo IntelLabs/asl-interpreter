@@ -854,6 +854,9 @@ let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
   | DeclItem_Tuple dis ->
       cutsep fmt (declitem loc fmt) dis;
       cut fmt
+  | DeclItem_BitTuple dbs ->
+      let pp fmt = FMTAST.decl_item fmt x in
+      raise (Unimplemented (loc, "declitem: bittuple", pp))
   | DeclItem_Var (v, None) ->
       raise
         (Unimplemented

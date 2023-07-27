@@ -206,23 +206,6 @@ module Env = struct
   let pp (fmt : Format.formatter) (env : t) : unit = ScopeStack.pp pp_value fmt env.locals
 end
 
-let rec add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
-  match (x, i) with
-  | (DeclItem_Var (v, _), i) ->
-      if is_const then
-        Env.addLocalConst loc env v i
-      else
-        Env.addLocalVar loc env v i
-  | (DeclItem_Tuple dis, VTuple is) ->
-      List.iter2 (add_decl_item_vars loc env is_const) dis is
-  | (DeclItem_Tuple dis, _) ->
-      raise
-        (EvalError
-           ( loc,
-             "add_decl_item_vars should be a tuple " ^ string_of_value i))
-  | (DeclItem_Wildcard _, _) ->
-      ()
-
 (****************************************************************)
 (** {2 Evaluation functions}                                    *)
 (****************************************************************)
@@ -525,6 +508,35 @@ and eval_lexpr_modify (loc : l) (env : Env.t) (x : AST.lexpr)
       let old = eval_funcall loc env getter tvs vs in
       eval_proccall loc env setter tvs (vs @ [ modify old ])
   | _ -> failwith "eval_lexpr_modify"
+
+and add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
+  match (x, i) with
+  | (DeclItem_Var (v, _), i) ->
+      if is_const then
+        Env.addLocalConst loc env v i
+      else
+        Env.addLocalVar loc env v i
+  | (DeclItem_Tuple dis, VTuple is) ->
+      List.iter2 (add_decl_item_vars loc env is_const) dis is
+  | (DeclItem_Tuple dis, _) ->
+      raise
+        (EvalError
+           ( loc,
+             "add_decl_item_vars should be a tuple " ^ string_of_value i))
+  | (DeclItem_BitTuple dbs, r) ->
+      let _ = List.fold_right (fun ((ov, ty) : AST.ident option * AST.ty) (idx : int) ->
+        let width_expr = Option.get (Asl_utils.width_of_type ty) in
+        let width = eval_expr loc env width_expr |> to_int loc in
+        Option.iter (fun v ->
+            let r' = extract_bits' loc r idx width in
+            Env.setVar loc env v r'
+          )
+          ov;
+        idx + width
+      ) dbs 0 in
+      ()
+  | (DeclItem_Wildcard _, _) ->
+      ()
 
 (** Evaluate list of statements *)
 and eval_stmts (env : Env.t) (xs : AST.stmt list) : unit =

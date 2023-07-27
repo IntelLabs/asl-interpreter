@@ -560,10 +560,15 @@ let varoty (fmt : PP.formatter) (v : AST.ident) (ot : AST.ty option) : unit =
 let direction (fmt : PP.formatter) (x : AST.direction) : unit =
   match x with Direction_Up -> kw_to fmt | Direction_Down -> kw_downto fmt
 
+let decl_bit (fmt : PP.formatter) (x : (AST.ident option * AST.ty)) : unit =
+  let (ov, ty) = x in
+  varty fmt (Option.value ov ~default:(Ident "-")) ty
+
 let rec decl_item (fmt : PP.formatter) (x : AST.decl_item) : unit =
   match x with
   | DeclItem_Var (v, ot) -> varoty fmt v ot
   | DeclItem_Tuple dis -> parens fmt (fun _ -> commasep fmt (decl_item fmt) dis)
+  | DeclItem_BitTuple dbs -> parens fmt (fun _ -> commasep fmt (decl_bit fmt) dbs)
   | DeclItem_Wildcard ot -> varoty fmt (Ident "-") ot
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =

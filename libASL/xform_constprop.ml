@@ -357,6 +357,9 @@ let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
   | DeclItem_Tuple dis, _ ->
       let dis' = List.map (fun di -> xform_declitem env isConst di None) dis in
       DeclItem_Tuple dis'
+  | DeclItem_BitTuple dbs, _ ->
+      let dbs' = List.map (fun (ov, ty) -> (ov, xform_ty env ty)) dbs in
+      DeclItem_BitTuple dbs'
   | DeclItem_Wildcard oty, _ ->
       let oty' = Option.map (xform_ty env) oty in
       DeclItem_Wildcard oty'

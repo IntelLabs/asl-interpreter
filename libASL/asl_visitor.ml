@@ -350,6 +350,7 @@ let rec locals_of_declitem (x : decl_item) : ident list =
   match x with
   | DeclItem_Var (v, _) -> [ v ]
   | DeclItem_Tuple dis -> List.concat_map locals_of_declitem dis
+  | DeclItem_BitTuple dbs -> List.filter_map (fun (ov, ty) -> ov) dbs
   | DeclItem_Wildcard _ -> []
 
 let locals_of_stmt (x : stmt) : ident list =
@@ -358,6 +359,14 @@ let locals_of_stmt (x : stmt) : ident list =
   | Stmt_VarDecl (dis, i, loc)
   | Stmt_ConstDecl (dis, i, loc) -> locals_of_declitem dis
   | _ -> []
+
+let visit_decl_bit (vis : aslVisitor) (x : (ident option * ty)) : (ident option * ty) =
+  ( match x with
+  | (ov, ty) ->
+      let ov' = mapOptionNoCopy (visit_lvar vis) ov in 
+      let ty' = visit_type vis ty in
+      if ov == ov' && ty == ty' then x else (ov', ty')
+  )
 
 let rec visit_decl_item (vis : aslVisitor) (x : decl_item) : decl_item =
   match x with
@@ -368,6 +377,9 @@ let rec visit_decl_item (vis : aslVisitor) (x : decl_item) : decl_item =
   | DeclItem_Tuple dis ->
       let dis' = mapNoCopy (visit_decl_item vis) dis in
       if dis == dis' then x else DeclItem_Tuple dis'
+  | DeclItem_BitTuple dbs ->
+      let dbs' = mapNoCopy (visit_decl_bit vis) dbs in
+      if dbs == dbs' then x else DeclItem_BitTuple dbs'
   | DeclItem_Wildcard oty ->
       let oty' = mapOptionNoCopy (visit_type vis) oty in
       if oty == oty' then x else DeclItem_Wildcard oty'

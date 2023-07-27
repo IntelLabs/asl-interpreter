@@ -43,6 +43,15 @@
  *        tmp = e;
  *        ... = [tmp[0 +: 8], tmp[8 +: 8]];
  *
+ * 4) 'bittuple' variable initializers such as
+ *
+ *        let [hi : bits(32), lo : bits(32)] = e;
+ *    ==>
+ *        let tmp = e;
+ *        let hi = tmp[32 +: 32];
+ *        let lo = tmp[0  +: 32];
+ *
+ *
  * Copyright Intel Inc (c) 2022-2023
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
@@ -73,6 +82,39 @@ let xform
     let tmp_const_decl = Stmt_ConstDecl (tmp_var, r, loc) in
     tmp_const_decl :: ss
 
+(* Transform 'let/var [v1, ... vn] = r;' *)
+let xform_dbi
+    (loc : AST.l)
+    (is_const : bool)
+    (dbs : (AST.ident option * AST.ty) list)
+    (r : AST.expr)
+    : AST.stmt list =
+    let tmp_ident = assign_var#fresh in
+    let widths = List.map (fun (_, ty) -> Option.get (Asl_utils.width_of_type ty)) dbs in
+    let total_width = Xform_simplify_expr.mk_add_ints widths in
+    let tmp_ty = Asl_utils.type_bits total_width in
+    let tmp_var = DeclItem_Var (tmp_ident, Some tmp_ty) in
+    let tmp_const_decl = Stmt_ConstDecl (tmp_var, r, loc) in
+
+    let (ss, _) = List.fold_right (fun (ov, ty) (ss, idx) ->
+      let w = Option.get (Asl_utils.width_of_type ty) in
+      let idx' = Xform_simplify_expr.mk_add_int idx w in
+      ( match ov with
+      | Some v ->
+          let slice = Slice_LoWd (idx, w) in
+          let r' = Expr_Slices (tmp_ty, Expr_Var tmp_ident, [slice]) in
+          let di = DeclItem_Var (v, Some ty) in
+          let s = if is_const then Stmt_ConstDecl (di, r', loc)
+                              else Stmt_VarDecl   (di, r', loc)
+          in
+          (s :: ss, idx')
+      | None ->
+          (ss, idx')
+      )
+    ) dbs ([], Asl_utils.zero) in
+
+    tmp_const_decl :: ss
+
 let slice_width (x : AST.slice) : AST.expr =
   ( match x with
   | Slice_Single e -> Asl_utils.one
@@ -95,6 +137,10 @@ class replace_bittuples (ds : AST.declaration list option) =
 
     method! vstmt s =
       match s with
+      | Stmt_VarDecl (DeclItem_BitTuple dbs, r, loc) ->
+          Visitor.ChangeTo (xform_dbi loc false dbs r)
+      | Stmt_ConstDecl (DeclItem_BitTuple dbs, r, loc) ->
+          Visitor.ChangeTo (xform_dbi loc true dbs r)
       | Stmt_Assign (LExpr_BitTuple (ws, ls), r, loc) ->
           Visitor.ChangeTo (xform loc ws ls r)
       | Stmt_Assign (LExpr_Slices (ty, l, ss), r, loc) when List.length ss > 1 ->

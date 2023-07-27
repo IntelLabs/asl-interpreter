@@ -1737,10 +1737,25 @@ let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x :
       Env.addLocalVar env {name=v; loc; ty; is_local=true; is_constant}
   | DeclItem_Tuple dis ->
       List.iter (add_decl_item_vars env loc is_constant) dis
+  | DeclItem_BitTuple dis ->
+      List.iter (fun (ov, ty) ->
+        ( match ov with
+        | Some v -> Env.addLocalVar env {name=v; loc; ty; is_local=true; is_constant}
+        | _ -> ()
+        ))
+        dis
   | DeclItem_Wildcard oty ->
       ()
   | DeclItem_Var (v, None) ->
       raise (InternalError "visit_declitem")
+
+let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (AST.ident option * AST.ty)) : (AST.ident option * AST.ty) =
+  let (ov, ty) = x in
+  let ty' = tc_type env loc ty in
+  ( match ty' with
+  | Type_Bits _ -> (ov, ty')
+  | _ -> raise (TypeError (loc, "bits type expected"))
+  )
 
 (* typecheck a decl_item using the type `ity` of the initializer *)
 let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_item) : AST.decl_item =
@@ -1755,7 +1770,19 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
       let dis' = List.map2 (tc_decl_item env loc) itys dis in
       DeclItem_Tuple dis'
   | (_, DeclItem_Tuple dis) ->
-      raise (IsNotA (loc, "tuple of length ?", pp_type ity))
+      let len = List.length dis in
+      raise (IsNotA (loc, Format.asprintf "tuple of length %d" len, pp_type ity))
+  | (Type_Bits n, DeclItem_BitTuple dbs)
+  | (Type_Register (n, _), DeclItem_BitTuple dbs) ->
+      let dbs' = List.map (tc_decl_bit env loc) dbs in
+      let (vs', tys) = List.split dbs' in
+      let ws = List.map (width_of_type (Env.globals env) loc) tys in
+      let w = Xform_simplify_expr.mk_add_ints ws in
+      let ty' = type_bits w in
+      check_subtype_satisfies env loc ity ty';
+      DeclItem_BitTuple dbs'
+  | (_, DeclItem_BitTuple _) ->
+      raise (IsNotA (loc, "bitvector", pp_type ity))
   | (ity, DeclItem_Wildcard None) ->
       DeclItem_Wildcard (Some ity)
   | (ity, DeclItem_Wildcard (Some ty)) ->

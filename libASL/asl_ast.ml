@@ -262,6 +262,7 @@ type
 decl_item =
    DeclItem_Var of ident * ty option
  | DeclItem_Tuple of decl_item list
+ | DeclItem_BitTuple of (ident option * ty) list
  | DeclItem_Wildcard of ty option
 
 type

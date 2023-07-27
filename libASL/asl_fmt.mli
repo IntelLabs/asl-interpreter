@@ -28,6 +28,7 @@ val exprs : formatter -> AST.expr list -> unit
 val pattern : formatter -> AST.pattern -> unit
 val patterns : formatter -> AST.pattern list -> unit
 val lexpr : formatter -> AST.lexpr -> unit
+val decl_item : formatter -> AST.decl_item -> unit
 val stmt : formatter -> AST.stmt -> unit
 val indented_block : formatter -> AST.stmt list -> unit
 val parameters : formatter -> (AST.ident * AST.ty option) list -> unit
