@@ -448,6 +448,8 @@ optional_else:
 alt:
 | WHEN ps = separated_nonempty_list(COMMA, pattern) oalt = opt_altcond COLON b = block
     { Alt_Alt(ps, oalt, b, Range($symbolstartpos, $endpos)) }
+| WHEN ps = separated_nonempty_list(COMMA, pattern) oalt = opt_altcond EQ_GT b = block
+    { Alt_Alt(ps, oalt, b, Range($symbolstartpos, $endpos)) }
 
 opt_otherwise:
 | OTHERWISE COLON b = block { Some(b, Range($symbolstartpos, $endpos)) }
@@ -490,6 +492,8 @@ catch_stmt:
 
 catcher:
 | WHEN v = ident COLON tc=ident EQ_GT b = block
+    { Catcher_Guarded(v, tc, b, Range($symbolstartpos, $endpos)) }
+| WHEN v = ident EQ_GT tc=ident EQ_GT b = block
     { Catcher_Guarded(v, tc, b, Range($symbolstartpos, $endpos)) }
 
 expr:
