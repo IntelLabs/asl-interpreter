@@ -221,13 +221,6 @@ __operator2 >= = ge_int, ge_real;
 __operator2 <  = lt_int, lt_real;
 __operator2 >  = gt_int, gt_real;
 
-func eq_bits_int(x : bits(N), y : integer) => boolean
-begin
-    return x == y[0 +: N];
-end
-
-__operator2 == = eq_bits_int; // workaround
-
 func shift_left_int(x : integer, y : integer) => integer
 begin
     return if y >= 0 then shl_int(x, y) else shr_int(x, -y);
