@@ -64,6 +64,26 @@ let constprop_tests : unit Alcotest.test_case list =
            c = '11';
        end
        let a : bits(2) = '11';");
+    ("if-else dead statement elimination 1", `Quick, test_cp_stmts "let b : boolean = TRUE;"
+      "if b then
+           let c = 1;
+       else
+           let c = 0;
+       end"
+      "let c = 1;");
+    ("if-else dead statement elimination 2", `Quick, test_cp_stmts "let b : boolean = FALSE;"
+      "if b then
+           let c = 1;
+       else
+           let c = 0;
+       end"
+      "let c = 0;");
+    ("if-else dead expression elimination 1", `Quick, test_cp_stmts "let b : boolean = TRUE; var x : integer; var y : integer;"
+      "let c = if b then x else y;"
+      "let c = x;");
+    ("if-else dead expression elimination 2", `Quick, test_cp_stmts "let b : boolean = FALSE; var x : integer; var y : integer;"
+      "let c = if b then x else y;"
+      "let c = y;");
     (* Make sure c = '11' gets propagated to after loop *)
     ("for loop 1", `Quick, test_cp_stmts "var d : integer;"
       "let c = '11';
