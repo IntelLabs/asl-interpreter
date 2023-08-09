@@ -5,7 +5,8 @@ LIB := $(BUILD_DIR)/libASL.a
 
 default: $(LIB)
 
-CC = gcc
+AR ?= ar
+CC ?= gcc
 CPPFLAGS = -Iinclude
 CFLAGS = -g -Wall -Werror -std=c99
 OBJEXT ?= o
