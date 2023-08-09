@@ -8,6 +8,7 @@ default: $(LIB)
 CC = gcc
 CPPFLAGS = -Iinclude
 CFLAGS = -g -Wall -Werror -std=c99
+OBJEXT ?= o
 
 C_FILES = bits128.c \
           bits256.c \
@@ -17,12 +18,12 @@ C_FILES = bits128.c \
           ram.c \
           trace.c
 
-OBJ_FILES = $(C_FILES:%.c=$(BUILD_DIR)/%.o)
-DEP_FILES = $(OBJ_FILES:%.o=%.d)
+OBJ_FILES = $(C_FILES:%.c=$(BUILD_DIR)/%.$(OBJEXT))
+DEP_FILES = $(OBJ_FILES:%.$(OBJEXT)=%.d)
 
 -include $(DEP_FILES)
 
-$(BUILD_DIR)/%.o: lib/%.c | build_dir
+$(BUILD_DIR)/%.$(OBJEXT): lib/%.c | build_dir
 	$(info CC      $(@F))
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -c $< -o $@
 
