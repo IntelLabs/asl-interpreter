@@ -1036,7 +1036,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
               tycon tc
               varname v
               tycon tc;
-            brace_enclosed_block fmt tb
+            Format.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
+            brace_enclosed_block fmt b
             );
           cut fmt
         )
@@ -1045,7 +1046,9 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       indented fmt (fun _ ->
         ( match odefault with
         | None -> Format.fprintf fmt "goto %a;@," varname (current_catcher ())
-        | Some (s, _) -> brace_enclosed_block fmt s
+        | Some (s, _) ->
+            Format.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
+            brace_enclosed_block fmt s
         ));
       Format.fprintf fmt "@,}"
   | Stmt_VarDecl _
