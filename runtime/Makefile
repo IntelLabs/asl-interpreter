@@ -16,8 +16,7 @@ C_FILES = bits128.c \
           bits512.c \
           bits64.c \
           error.c \
-          ram.c \
-          trace.c
+          ram.c
 
 OBJ_FILES = $(C_FILES:%.c=$(BUILD_DIR)/%.$(OBJEXT))
 DEP_FILES = $(OBJ_FILES:%.$(OBJEXT)=%.d)
