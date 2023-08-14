@@ -25,10 +25,10 @@
  *        [x[0 +: 8], x[8 +: 8], x[16 +: 8], x[24 +: 8]] = e; // byte-reverse
  *    ==>
  *        let tmp = e;
- *        x[0 +: 8] = e[24 +: 8];
- *        x[8 +: 8] = e[16 +: 8];
- *        x[16 +: 8] = e[8 +: 8];
- *        x[24 +: 8] = e[0 +: 8];
+ *        x[0 +: 8] = tmp[24 +: 8];
+ *        x[8 +: 8] = tmp[16 +: 8];
+ *        x[16 +: 8] = tmp[8 +: 8];
+ *        x[24 +: 8] = tmp[0 +: 8];
  *
  * Copyright Intel Inc (c) 2022-2023
  * SPDX-Licence-Identifier: BSD-3-Clause

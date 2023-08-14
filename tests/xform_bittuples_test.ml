@@ -71,7 +71,15 @@ let tuple_tests : unit Alcotest.test_case list =
       "let __a3 : bits(5) = if c then '100 01' else '111 11';
        x = __a3[2 +: 3];
        y = __a3[0 +: 2];
-      ")
+      ");
+
+    ("multiple-slice-lexpr transform", `Quick, test_bittuple_stmts globals prelude
+      "var x : bits(5);"
+      "x[0 +: 3, 3 +: 2] = '10 001';"
+      "let __a4 : bits(5) = '10 001';
+       x[0 +: 3] = __a4[2 +: 3];
+       x[3 +: 2] = __a4[0 +: 2];
+      ");
   ]
 
 (****************************************************************
