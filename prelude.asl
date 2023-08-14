@@ -386,6 +386,18 @@ begin
     return align_int(x + 2^y - 1, y);
 end
 
+// test whether x is even
+func IsEven(x : integer) => boolean
+begin
+    return x[0] == '0';
+end
+
+// test whether x is odd
+func IsOdd(x : integer) => boolean
+begin
+    return x[0] == '1';
+end
+
 ////////////////////////////////////////////////////////////////
 // 9.2 Standard real functions and procedures
 ////////////////////////////////////////////////////////////////
@@ -623,13 +635,22 @@ begin
     return [x,x][distance +: N];
 end
 
-func ParityEven(x : bits(N)) => boolean
+func IsParityEven(x : bits(N)) => boolean
 begin
     var r : bit = '0';
     for i = 0 to N - 1 do
         r = r EOR x[i];
     end
     return r == '0';
+end
+
+func IsParityOdd(x : bits(N)) => boolean
+begin
+    var r : bit = '0';
+    for i = 0 to N - 1 do
+        r = r EOR x[i];
+    end
+    return r == '1';
 end
 
 ////////////////////////////////////////////////////////////////
