@@ -19,6 +19,8 @@ exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
 let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
+let include_line_info : bool ref = ref false
+
 (* list of all exception tycons - used to decide whether to insert a tag in
  * Expr_RecordInit
  *)
@@ -858,6 +860,14 @@ let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
   match x with Direction_Up -> up () | Direction_Down -> down ()
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
+  (if !include_line_info then
+     match Asl_utils.stmt_loc x with
+     | Range (p, _) ->
+         let fname = p.Lexing.pos_fname in
+         let line = p.Lexing.pos_lnum in
+         Format.fprintf fmt "#line %d \"%s\"@," line fname
+     | _ -> ()
+  );
   match x with
   | Stmt_Assert (e, loc) ->
       let expr_string = AST.Expr_LitString (Utils.to_string2 (Fun.flip FMTAST.expr e)) in
