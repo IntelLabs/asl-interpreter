@@ -80,6 +80,12 @@ let tuple_tests : unit Alcotest.test_case list =
        x[0 +: 3] = __a4[2 +: 3];
        x[3 +: 2] = __a4[0 +: 2];
       ");
+
+    ("multiple-slice-rexpr transform", `Quick, test_bittuple_stmts globals prelude
+      "var x : bits(5); var y : bits(5);"
+      "y = x[0 +: 3, 3 +: 2];"
+      "y = [x[0 +: 3], x[3 +: 2]];
+      ");
   ]
 
 (****************************************************************
