@@ -84,6 +84,14 @@ let iter_pairs (f : 'a -> 'a -> unit) (xs : 'a list) : unit =
   | [] -> ()
   )
 
+(** apply 'f' to all combinations of x from xs and y from ys *)
+let cross_combine (f : 'a -> 'b -> 'c) (xs : 'a list) (ys : 'b list) : 'c list =
+  List.fold_left (fun r x ->
+      List.fold_left (fun r y ->
+          f x y :: r
+      ) r ys
+  ) [] xs
+  |> List.rev
 
 (****************************************************************
  * Option related
