@@ -305,7 +305,9 @@ let main () =
     |> transform "tuples" Xform_tuples.xform_decls
     |> transform "getset" Xform_getset.xform_decls
     |> transform "rmw" Xform_rmw.xform_decls
-    |> transform "delete_imports" (delete_functions imports) in
+    |> transform "delete_imports" (delete_functions imports)
+    |> transform "keep_exports2" (xform_reachable exports)
+    in
 
     match !opt_backend with
     | Backend_C ->
