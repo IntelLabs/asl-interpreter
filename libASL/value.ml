@@ -526,6 +526,10 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
       Some (VString (prim_cvt_bits_str n x))
   | "cvt_real_str", [], [ VReal x ] -> Some (VString (prim_cvt_real_str x))
   (* The remaining primops all have side effects *)
+  | "print_int_hex",  [],  [ VInt x ]          -> prim_print_int_hex x;    Some (VTuple [])
+  | "print_int_dec",  [],  [ VInt x ]          -> prim_print_int_dec x;    Some (VTuple [])
+  | "print_bits_hex", [_], [ VInt n; VBits x ] -> prim_print_bits_hex n x; Some (VTuple [])
+
   | "ram_init", _, [ VInt a; VInt n; VRAM ram; VBits i ] ->
       Some
         (prim_init_ram a n ram i;
@@ -573,7 +577,7 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
          VTuple [])
   | "print_bits", [ VInt n ], [ VBits b ] ->
       Some
-        (prim_print_bits n b;
+        (prim_print_bits_hex n b;
          VTuple [])
   (* No function matches *)
   | _ -> None
@@ -585,6 +589,10 @@ let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
  *)
 let impure_prims =
   [
+    "print_int_hex";
+    "print_int_dec";
+    "print_bits_hex";
+    "print_bits_dec";
     "ram_init";
     "ram_read";
     "ram_write";

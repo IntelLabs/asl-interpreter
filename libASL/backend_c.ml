@@ -212,6 +212,7 @@ let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
   asl_keyword fmt (AST.name_of_FIdent x)
 
+(* Round up to the next power of 2 *)
 let round_up_to_pow2 (x : int) : int =
   let x = Z.log2up (Z.of_int x) in
   Z.to_int (Z.shift_left Z.one x)
@@ -595,12 +596,14 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       raise
         (Unimplemented
            (loc, "string builtin function", fun fmt -> FMTAST.funname fmt f))
-  | FIdent ("print_bits", _), _ ->
-      raise
-        (Unimplemented
-           (loc, "print_bits builtin function", fun fmt -> FMTAST.funname fmt f))
+  | FIdent ("print_int_hex", _), _
+  | FIdent ("print_int_dec", _), _
   | FIdent ("print_char", _), _
-  | FIdent ("print_str", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
+  | FIdent ("print_str", _), _ ->
+      apply loc fmt (fun _ -> fn_extern fmt f) args
+  | FIdent ("print_bits_hex", _), _ ->
+      let n = List.hd tes in
+      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
   (* RAM builtin functions *)
   | FIdent ("ram_init", _), [ a; n; ram; i ]
   | FIdent ("ram_read", _), [ a; n; ram; i ] ->

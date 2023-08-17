@@ -285,21 +285,24 @@ let prim_cvt_int_hexstr (x : bigint) : string = "0x" ^ Z.format "%x" x
 let prim_cvt_int_decstr (x : bigint) : string = Z.to_string x
 let prim_cvt_bool_str (x : bool) : string = if x then "TRUE" else "FALSE"
 
-let prim_cvt_bits_str (n : bigint) (x : bitvector) : string =
-  if !trace_bitvectors_binary then begin
-    if Z.equal n Z.zero then "''"
-    else
-      let s = Z.format "%0b" x.v in
-      let pad = String.make (Z.to_int n - String.length s) '0' in
-      "'" ^ pad ^ s ^ "'"
-  end else begin
-    Z.format "%x" x.v
-  end
+let prim_cvt_bits_binstr (n : bigint) (x : bitvector) : string =
+  if Z.equal n Z.zero then
+    "''"
+  else
+    let s = Z.format "%0b" x.v in
+    let pad = String.make (Z.to_int n - String.length s) '0' in
+    "'" ^ pad ^ s ^ "'"
 
 let prim_cvt_bits_hexstr (n : bigint) (x : bitvector) : string =
   let prefix = Printf.sprintf "%d'x" (Z.to_int n) in
   let value = Z.format "%x" x.v in
   prefix ^ value
+
+let prim_cvt_bits_str (n : bigint) (x : bitvector) : string =
+  if !trace_bitvectors_binary then
+    prim_cvt_bits_binstr n x
+  else
+    prim_cvt_bits_hexstr n x
 
 let prim_cvt_real_str (x : real) : string =
   let r = Q.to_string x in
@@ -423,8 +426,14 @@ let prim_print_str (data : string) : unit = Printf.printf "%s" data
 let prim_print_char (data : bigint) : unit =
   Printf.printf "%c" (char_of_int (Z.to_int data))
 
-let prim_print_bits (n : bigint) (data : bitvector) : unit =
-  Printf.printf "%s" (prim_cvt_bits_str n data)
+let prim_print_bits_hex (n : bigint) (data : bitvector) : unit =
+  Printf.printf "%s" (prim_cvt_bits_hexstr n data)
+
+let prim_print_int_dec (data : bigint) : unit =
+  Printf.printf "%s" (prim_cvt_int_decstr data)
+
+let prim_print_int_hex (data : bigint) : unit =
+  Printf.printf "%s" (prim_cvt_int_hexstr data)
 
 
 (****************************************************************

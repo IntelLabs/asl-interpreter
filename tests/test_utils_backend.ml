@@ -283,9 +283,21 @@ let test_cases_stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func B(x : integer) begin end func F() begin B(0); end" );
 
+    ( "built-in procedure call (print_bits_hex)",
+      [ Backend_C ],
+      "func F() begin print_bits_hex('0'); end" );
+
     ( "built-in procedure call (print_char)",
       [ Backend_C; Backend_Verilog ],
       "func F() begin print_char(0); end" );
+
+    ( "built-in procedure call (print_int_hex)",
+      [ Backend_C ],
+      "func F() begin print_int_hex(0); end" );
+
+    ( "built-in procedure call (print_int_dec)",
+      [ Backend_C ],
+      "func F() begin print_int_dec(0); end" );
 
     ( "built-in procedure call (print_str)",
       [ Backend_C; Backend_Verilog ],

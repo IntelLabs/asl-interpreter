@@ -142,7 +142,9 @@ __builtin func eq_str(x : string, y : string) => boolean;
 __builtin func ne_str(x : string, y : string) => boolean;
 __builtin func print_str(x : string) => ();
 __builtin func print_char(x : integer) => ();
-__builtin func print_bits(x : bits(N)) => ();
+__builtin func print_int_hex(x : integer) => ();
+__builtin func print_int_dec(x : integer) => ();
+__builtin func print_bits_hex(x : bits(N)) => ();
 
 __builtin func asl_pragma(x : string) => ();
 
@@ -661,7 +663,7 @@ end
 // This function is provided for diagnostics and does not form part of an architectural specification.
 func print{N}(x : bits(N))
 begin
-    print_bits(x);
+    print_bits_hex(x);
 end
 
 func print(x : string)
