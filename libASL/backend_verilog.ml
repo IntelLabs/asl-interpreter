@@ -545,6 +545,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
   | Expr_RecordInit _ | Expr_ImpDef (_, _)
   | Expr_TApply _
+  | Expr_Let _
   | Expr_Tuple _ | Expr_Fields _ ->
       raise
         (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))

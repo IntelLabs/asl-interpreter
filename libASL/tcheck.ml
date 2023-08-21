@@ -1155,6 +1155,15 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       List.iter (fun elty -> check_subtype_satisfies env loc elty tty) eltys;
       check_subtype_satisfies env loc ety tty;
       (Expr_If (c', t', els', e'), tty)
+  | Expr_Let (v, t, e, b) ->
+      Env.nest (fun env' ->
+          let t' = tc_type env' loc t in
+          let e' = check_expr env' loc t' e in
+          Env.addLocalVar env' {name=v; loc; ty=t'; is_local=true; is_constant=true};
+          let (b', bty') = tc_expr env' loc b in
+          (Expr_Let (v, t', e', b'), bty')
+        )
+        env
   | Expr_Binop (x, Binop_Eq, Expr_LitMask y) ->
       (* syntactic sugar *)
       tc_expr env loc (Expr_In (x, Pat_LitMask y))

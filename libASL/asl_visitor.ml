@@ -150,6 +150,13 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
         let e' = visit_expr vis e in
         if c == c' && t == t' && els == els' && e == e' then x
         else Expr_If (c', t', els', e')
+    | Expr_Let (v, t, e, b) ->
+        let v' = visit_var vis Definition v in
+        let t' = visit_type vis t in
+        let e' = visit_expr vis e in
+        let b' = visit_expr vis b in
+        if v == v' && t == t' && e == e' && b == b' then x
+        else Expr_Let (v', t', e', b')
     | Expr_Binop (a, op, b) ->
         let a' = visit_expr vis a in
         let b' = visit_expr vis b in

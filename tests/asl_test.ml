@@ -124,6 +124,7 @@ let tests : unit Alcotest.test_case list =
     test_static globals true "literals (string)" "" "\"ab\\tc\"";
     test_static globals true "literals (string)" "" "\"ab\\\\c\"";
     test_static globals true "literals (string)" "" "\"ab\\\"c\"";
+    test_static globals true "let-expressions" "" "__let x : integer = 1 __in x";
     test_static globals true "expressions (records)"
       "record Pair{x : integer; y : integer; };" "Pair{x = 1, y = 2}";
     test_static globals true "expressions (UNKNOWN)" "" "UNKNOWN : bits(4)";
@@ -212,6 +213,7 @@ let tests : unit Alcotest.test_case list =
     ("operators (iff)",        `Quick, test_bool globals prelude "" "FALSE <-> TRUE" false);
     ("operators (iff)",        `Quick, test_bool globals prelude "" "TRUE <-> FALSE" false);
     ("operators (iff)",        `Quick, test_bool globals prelude "" "TRUE <-> TRUE" true);
+    ("let-expressions",        `Quick, test_int globals prelude "" "__let x : integer = 2 __in x+x" 4);
     ("prelude (cvt_bits_str)", `Quick, test_string globals prelude "" "cvt_bits_str(1, '0')" "1'x0");
     ("prelude (HexStr (int))", `Quick, test_string globals prelude "" "HexStr(15)" "0xf");
     ("prelude (+ (int))",      `Quick, test_int globals prelude "" "1+1" 2);

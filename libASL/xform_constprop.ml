@@ -190,6 +190,7 @@ class constEvalClass (env : Env.t) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
 
+    method eval_type (x : ty) : ty = Asl_visitor.visit_type (self :> Asl_visitor.aslVisitor) x
     method eval_expr (x : expr) : expr = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) x
 
     method! vexpr x =
@@ -200,7 +201,7 @@ class constEvalClass (env : Env.t) =
           | Some r -> ChangeTo r
           | None -> SkipChildren)
       | Expr_Array (a, i) ->
-          let i' = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) i in
+          let i' = self#eval_expr i in
           ChangeTo (Expr_Array (a, i'))
       | Expr_If (c, t, els, e) ->
           let rec xform_if xs =
@@ -222,6 +223,23 @@ class constEvalClass (env : Env.t) =
             ( match xform_if (E_Elsif_Cond (c, t) :: els) with
             | ([], e') -> e'
             | (E_Elsif_Cond(c', t') :: els', e') -> Expr_If(c', t', els', e')
+            )
+      | Expr_Let (v, t, e, b) ->
+          let t' = self#eval_type t in
+          let e' = self#eval_expr e in
+          Env.nest env (fun env' ->
+            Env.addLocalConst env' v (expr_value env' e');
+            let ce = new constEvalClass env' in
+            let b' = Asl_visitor.visit_expr (ce :> Asl_visitor.aslVisitor) b in
+            if isConstant env' e' && isConstant env' b' then
+              (* Special case: e' can be dropped because it is not used in b'
+               * (Testing for both b' and e' being constant is a quick, easy, conservative
+               * approximation for e' not having any side-effects and for
+               * v not being used in b'.)
+               *)
+              Visitor.ChangeTo b'
+            else
+              Visitor.ChangeTo (Expr_Let (v, t', e', b'))
             )
       | _ -> (
           try
@@ -359,13 +377,11 @@ let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
   | DeclItem_Var (v, oty), _ ->
       let oty' = Option.map (xform_ty env) oty in
       let r' = Option.map (expr_value env) r in
-      let _ =
-        Option.map
-          (fun r'' ->
-            if isConst then Env.addLocalConst env v r''
-            else Env.addLocalVar env v r'')
-          r'
-      in
+      Option.iter
+        (fun r'' ->
+          if isConst then Env.addLocalConst env v r''
+          else Env.addLocalVar env v r'')
+        r';
       DeclItem_Var (v, oty')
   | DeclItem_Tuple dis, Some (Expr_Tuple rs) ->
       let dis' =

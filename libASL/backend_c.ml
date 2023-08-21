@@ -674,6 +674,12 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_If (c, t, els, e) ->
       let els1 = List.map (function AST.E_Elsif_Cond (c, e) -> (c, e)) els in
       conds loc fmt ((c, t) :: els1) e
+  | Expr_Let (v, t, e, b) ->
+      Format.fprintf fmt "({ const ";
+      varty loc fmt v t;
+      Format.fprintf fmt " = %a; %a })"
+        (expr loc) e
+        (expr loc) b
   | Expr_LitBits l -> bitsLit fmt l
   | Expr_LitHex l -> hexLit fmt l
   | Expr_LitInt l -> intLit fmt l

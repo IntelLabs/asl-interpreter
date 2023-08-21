@@ -28,6 +28,8 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
 %token UNDERSCORE_UNDERSCORE_ARRAY  (* __array *)
 %token UNDERSCORE_UNDERSCORE_BUILTIN  (* __builtin *)
+%token UNDERSCORE_UNDERSCORE_IN   (* __in *)
+%token UNDERSCORE_UNDERSCORE_LET  (* __let *)
 %token UNDERSCORE_UNDERSCORE_OPERATOR_ONE  (* __operator1 *)
 %token UNDERSCORE_UNDERSCORE_OPERATOR_TWO  (* __operator2 *)
 %token UNDERSCORE_UNDERSCORE_READWRITE  (* __readwrite *)
@@ -489,6 +491,8 @@ expr:
 conditional_expression:
 | IF c = cexpr THEN t = expr els = list(e_elsif) ELSE e = expr
     { Expr_If(c, t, els, e) }
+| UNDERSCORE_UNDERSCORE_LET v = ident COLON ty = ty EQ e = expr UNDERSCORE_UNDERSCORE_IN b = expr
+    { Expr_Let(v, ty, e, b) }
 | cexpr = cexpr { cexpr }
 
 e_elsif:

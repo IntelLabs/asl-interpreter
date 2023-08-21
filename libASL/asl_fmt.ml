@@ -386,6 +386,12 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       kw_else fmt;
       nbsp fmt;
       expr fmt e
+  | Expr_Let (v, t, e, b) ->
+      Format.fprintf fmt "__let %a : %a = %a __in %a"
+        varname v
+        ty t
+        expr e
+        expr b
   | Expr_Binop (a, op, b) ->
       expr fmt a;
       nbsp fmt;

@@ -342,6 +342,12 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
             else eval_if xs' d
       in
       eval_if (E_Elsif_Cond (c, t) :: els) e
+  | Expr_Let (v, t, e, b) ->
+      Env.nest env (fun env' ->
+        let e' = eval_expr loc env e in
+        Env.addLocalConst loc env v e';
+        eval_expr loc env b
+      )
   | Expr_Binop (a, op, b) ->
       raise
         (EvalError
