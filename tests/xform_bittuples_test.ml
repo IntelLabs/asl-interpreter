@@ -94,6 +94,18 @@ let tuple_tests : unit Alcotest.test_case list =
        let x = __a5[2 +: 3];
        let y = __a5[0 +: 2];
       ");
+
+    ("bittuple-expr transform 1", `Quick, test_bittuple_stmts globals prelude
+      "var x : bits(3); var y : bits(2);"
+      "y = x[2,0];"
+      "y = [x[2], x[0]];
+      ");
+
+    ("bittuple-expr transform 2", `Quick, test_bittuple_stmts globals prelude
+      "var x : integer; var y : bits(2);"
+      "y = (x DIV 3)[2,0];"
+      "y = __let __a6 : integer = (x DIV 3) __in [__a6[2], __a6[0]];
+      ")
   ]
 
 (****************************************************************

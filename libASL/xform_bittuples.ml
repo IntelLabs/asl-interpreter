@@ -34,14 +34,7 @@
  *
  *        ... = e[0 +: 8, 8 +: 8];
  *    ==>
- *        ... = [e[0 +: 8], e[8 +: 8]];
- *
- *    todo: this should really make sure that e is atomic
- *    by assigning to a tmp if needed
- *
- *    ==>
- *        tmp = e;
- *        ... = [tmp[0 +: 8], tmp[8 +: 8]];
+ *        ... = __let tmp = e __in [tmp[0 +: 8], tmp[8 +: 8]];
  *
  * 4) 'bittuple' variable initializers such as
  *
@@ -130,8 +123,11 @@ class replace_bittuples (ds : AST.declaration list option) =
       ( match x with
       | Expr_Slices (ty, e, ss) when List.length ss > 1 -> (* todo: only if e is atomic *)
         let ws = List.map slice_width ss in
-        let es = List.map (fun s -> Expr_Slices (ty, e, [s])) ss in
-        Visitor.ChangeTo (Expr_Concat (ws, es))
+        let x' = Asl_utils.mk_expr_safe_to_replicate assign_var e ty (fun e' ->
+            let es = List.map (fun s -> Expr_Slices (ty, e', [s])) ss in
+            Expr_Concat (ws, es))
+        in
+        Visitor.ChangeTo x'
       | _ -> DoChildren
       )
 
