@@ -1132,6 +1132,64 @@ let mk_cvt_int_bits (n : AST.expr) (x : AST.expr) : AST.expr =
   Expr_TApply (cvt_int_bits, [ n ], [ x; n ], false)
 
 (****************************************************************)
+(** {2 Safe expressions}                                        *)
+(****************************************************************)
+
+(** Conservatively test whether an expression is safe to evaluate more than
+ *  once or not to evaluate at all. That is:
+ *  - does it have side effects?
+ *  - can it throw an exception?
+ *  - can it cause a runtime error?
+ *  - is it expensive to evaluate?
+ *)
+let rec is_safe_to_replicate (x : expr) : bool =
+  ( match x with
+  (* trivial, atomic expressions *)
+  | Expr_Var _
+  | Expr_LitInt _
+  | Expr_LitHex _
+  | Expr_LitReal _
+  | Expr_LitBits _
+  | Expr_LitMask _
+  | Expr_LitString _
+  -> true
+
+  (* recursive cases *)
+  | Expr_Let (_, _, e, b) -> is_safe_to_replicate e && is_safe_to_replicate b
+  | Expr_Field (e, f) -> is_safe_to_replicate e
+  | Expr_Fields (e, fs) -> is_safe_to_replicate e
+  | Expr_In (e, p) -> is_safe_to_replicate e
+  | Expr_Parens e -> is_safe_to_replicate e
+  | Expr_Tuple es -> List.for_all is_safe_to_replicate es
+  | Expr_Array (e, i) -> is_safe_to_replicate e && is_safe_to_replicate i
+  | Expr_Concat (ws, es) -> List.for_all is_safe_to_replicate es
+
+  | _
+  -> false
+  )
+
+(** Make an expression safe to replicate by introducing a let-expression
+ *  if needed.
+ *
+ *  An expression is safe to replicate if it has no side effects, doesn't
+ *  throw exceptions and is cheap.
+ *
+ *  This function takes a continuation 'f' that is passed the resulting
+ *  safe expression.
+ *  - If the expression is already safe to replicate, then return '<f e>'.
+ *  - If the expression is not safe to replicate, then return
+ *    '__let tmp : ty = e __in <f tmp>'
+ *
+ *  The nameSupply is used to generate a fresh variable.
+ *)
+let mk_expr_safe_to_replicate (supply : nameSupply) (e : expr) (ty : AST.ty) (f : expr -> expr) : expr =
+  if is_safe_to_replicate e then
+    f e
+  else
+    let v = supply#fresh in
+    Expr_Let (v, ty, e, f (Expr_Var v))
+
+(****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)
 

@@ -419,6 +419,26 @@ val mk_ors : AST.expr list -> AST.expr
 val mk_cvt_int_bits : AST.expr -> AST.expr -> AST.expr
 
 (****************************************************************)
+(** {2 Safe expressions}                                        *)
+(****************************************************************)
+
+(** Make an expression safe to replicate by introducing a let-expression
+ *  if needed.
+ *
+ *  An expression is safe to replicate if it has no side effects, doesn't
+ *  throw exceptions and is cheap.
+ *
+ *  This function takes a continuation 'f' that is passed the resulting
+ *  safe expression.
+ *  - If the expression is already safe to replicate, then return '<f e>'.
+ *  - If the expression is not safe to replicate, then return
+ *    '__let tmp : ty = e __in <f tmp>'
+ *
+ *  The nameSupply is used to generate a fresh variable.
+ *)
+val mk_expr_safe_to_replicate : nameSupply -> AST.expr -> AST.ty -> (AST.expr -> AST.expr) -> AST.expr
+
+(****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)
 
