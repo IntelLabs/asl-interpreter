@@ -38,20 +38,20 @@ class lower_class =
           Visitor.ChangeTo (mk_int_select wd expr lo)
       | Expr_Slices (ty, expr, [Slice_HiLo (hi, lo)]) ->
           let lo_wd = transform_hi_lo hi lo in
-          Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))
+          Visitor.ChangeDoChildrenPost ((Expr_Slices (ty, expr, [lo_wd])), Fun.id)
       | Expr_Slices (ty, expr, [Slice_Single s]) ->
           let lo_wd = transform_single s in
-          Visitor.ChangeTo (Expr_Slices (ty, expr, [lo_wd]))
+          Visitor.ChangeDoChildrenPost ((Expr_Slices (ty, expr, [lo_wd])), Fun.id)
       | _ -> DoChildren
 
     method! vlexpr l =
       match l with
       | LExpr_Slices (ty, lexpr, [Slice_HiLo (hi, lo)]) ->
           let lo_wd = transform_hi_lo hi lo in
-          Visitor.ChangeTo (LExpr_Slices (ty, lexpr, [lo_wd]))
+          Visitor.ChangeDoChildrenPost ((LExpr_Slices (ty, lexpr, [lo_wd])), Fun.id)
       | LExpr_Slices (ty, lexpr, [Slice_Single s]) ->
           let lo_wd = transform_single s in
-          Visitor.ChangeTo (LExpr_Slices (ty, lexpr, [lo_wd]))
+          Visitor.ChangeDoChildrenPost ((LExpr_Slices (ty, lexpr, [lo_wd])), Fun.id)
       | _ -> DoChildren
 
   end
