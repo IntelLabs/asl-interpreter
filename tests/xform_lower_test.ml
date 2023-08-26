@@ -8,7 +8,6 @@
 open Test_utils
 open LibASL
 open Asl_utils
-module AST = Asl_ast
 module TC = Tcheck
 
 (****************************************************************
@@ -51,15 +50,15 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
        "x[i]"
        "asl_extract_int(x, i, 1)");
     ("lower x[7:0] where x is integer", `Quick, expr
-       "var x : integer; var i : integer;"
+       "var x : integer;"
        "x[7:0]"
        "x[0 +: 8]");
     ("lower (x+1)[7:0] where (x+1) is an integer expression", `Quick, expr
-       "var x : integer; var i : integer;"
+       "var x : integer;"
        "(x+1)[7:0]"
        "asl_extract_int((add_int(x, 1)), 0, 8)");
     ("lower (x+1)[0 +: 8] where (x+1) is an integer expression", `Quick, expr
-       "var x : integer; var i : integer;"
+       "var x : integer;"
        "(x+1)[0 +: 8]"
        "asl_extract_int((add_int(x, 1)), 0, 8)");
   ]
