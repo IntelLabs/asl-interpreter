@@ -14,6 +14,7 @@
 #include "asl/bits256.h"
 #include "asl/bits512.h"
 #include "asl/error.h"
+#include "asl/print.h"
 #include "asl/ram.h"
 
 #endif  // ASL_RUNTIME_H
