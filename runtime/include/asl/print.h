@@ -8,6 +8,10 @@
 #ifndef ASL_PRINT_H
 #define ASL_PRINT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static void
 ASL_print_char(ASL_int_t x)
 {
@@ -19,6 +23,10 @@ ASL_print_str(const char* x)
 {
         puts(x);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ASL_PRINT_H
 
