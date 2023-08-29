@@ -8,12 +8,6 @@
 #ifndef ASL_RUNTIME_H
 #define ASL_RUNTIME_H
 
-#include "assert.h"
-#include "stdbool.h"
-#include "stdint.h"
-#include "stdio.h"
-#include "stdlib.h"
-
 #include "asl/arith.h"
 #include "asl/bits64.h"
 #include "asl/bits128.h"
