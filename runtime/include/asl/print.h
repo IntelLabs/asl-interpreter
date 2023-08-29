@@ -8,6 +8,8 @@
 #ifndef ASL_PRINT_H
 #define ASL_PRINT_H
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
