@@ -10,12 +10,14 @@
 
 #include <stdio.h>
 
+#include "asl/integer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 static void
-ASL_print_char(ASL_int_t x)
+ASL_print_char(ASL_int64_t x)
 {
         putchar(x);
 }
