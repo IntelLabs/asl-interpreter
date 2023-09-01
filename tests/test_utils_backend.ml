@@ -48,11 +48,11 @@ let test_cases_expr : test_case list =
 
     ( "literal integer",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return 0; end" );
+      "func F() => integer begin return 01_000; end" );
 
     ( "literal hexadecimal",
       [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return 0x1; end" );
+      "func F() => integer begin return 0x01_0; end" );
 
     ( "literal bitvector",
       [ Backend_C; Backend_Verilog ],
