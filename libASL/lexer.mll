@@ -131,7 +131,7 @@ rule token = parse
     | '\'' ['0' '1' 'x' ' ']* '\''           as lxm { MASKLIT(String.sub lxm 1 (String.length lxm - 2)) }
     | '0''x'['0'-'9' 'A' - 'F' 'a'-'f' '_']+ as lxm { HEXLIT(String.sub lxm 2 (String.length lxm - 2)) }
     | ['0'-'9']+ '.' ['0'-'9']+              as lxm { REALLIT(lxm) }
-    | ['0'-'9']+                             as lxm { INTLIT(lxm) }
+    | ['0'-'9'] ['0'-'9' '_']*               as lxm { INTLIT(lxm) }
     | ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm {
            ( match List.assoc_opt lxm keywords with
            | Some x -> x
