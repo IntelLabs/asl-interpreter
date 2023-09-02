@@ -574,9 +574,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: args)
   | FIdent ("zero_extend_bits", _), _ ->
-      let n, m =
+      let m, n =
         match tes with
-        | [ n; m ] -> (n, m)
+        | [ m; n ] -> (m, n)
         | _ -> failwith "wrong number of type parameters"
       in
       apply loc fmt (fun _ -> fn_extern fmt f)
