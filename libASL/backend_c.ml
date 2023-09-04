@@ -216,8 +216,23 @@ let round_up_to_pow2 (x : int) : int =
   let x = Z.log2up (Z.of_int x) in
   Z.to_int (Z.shift_left Z.one x)
 
-let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
-let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
+let intLit (fmt : PP.formatter) (x : AST.intLit) : unit =
+  let x = drop_underscores x in
+  let (x' : Z.t) = Z.of_string_base 10 x in
+  if Z.fits_int64 x' then constant fmt (Z.format "%dLL" x')
+  else
+    raise
+      (InternalError
+         (__LOC__ ^ ": decimal literal wider than 64b not supported"))
+
+let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
+  let x = drop_underscores x in
+  let (x' : Z.t) = Z.of_string_base 16 x in
+  if Z.fits_int64 x' then constant fmt (Z.format "%#xLL" x')
+  else
+    raise
+      (InternalError
+         (__LOC__ ^ ": hexadecimal literal wider than 64b not supported"))
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let (x : string) = drop_spaces x in
