@@ -16,6 +16,9 @@ open Utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
+let drop_spaces (x : string) : string = Value.drop_chars x ' '
+let drop_underscores (x : string) : string = Value.drop_chars x '_'
+
 (* list of all exception tycons - used to decide whether to insert a tag in
  * Expr_RecordInit
  *)
@@ -217,7 +220,7 @@ let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt ("0x" ^ x)
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
-  let (x : string) = Value.drop_chars x ' ' in
+  let (x : string) = drop_spaces x in
   let len = String.length x in
   let bit_to_hex (s : string) : string =
     Z.format "%#x" (Z.of_string_base 2 s) ^ "ULL"
@@ -700,7 +703,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
   | Expr_In (e, Pat_LitMask x) ->
-      let x' = Value.drop_chars x ' ' in
+      let x' = drop_spaces x in
       let v = String.map (function 'x' -> '0' | c -> c) x' in
       let m = String.map (function 'x' -> '0' | c -> '1') x' in
       let v = Z.format "%#x" (Z.of_string_base 2 v) in

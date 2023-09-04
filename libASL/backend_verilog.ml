@@ -16,6 +16,8 @@ open Utils
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
+let drop_spaces (x : string) : string = Value.drop_chars x ' '
+
 let mangle (s : string) : string =
   (* detect whether s is a reserved name in System Verilog and rename to avoid conflict *)
   if s = "bit" then "_bit"
@@ -148,13 +150,13 @@ let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
   constant fmt (string_of_int !int_width ^ "'sh" ^ x)
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
-  let bits = Value.drop_chars x ' ' in
+  let bits = drop_spaces x in
   (* todo: better to just change spaces to _ *)
   let width = String.length bits in
   constant fmt (string_of_int width ^ "'b" ^ bits)
 
 let maskLit (fmt : PP.formatter) (x : AST.maskLit) : unit =
-  let bits = Value.drop_chars x ' ' in
+  let bits = drop_spaces x in
   (* todo: better to just change spaces to _ *)
   let bits = String.map (fun c -> if c = 'x' then '?' else c) bits in
   let width = String.length bits in
