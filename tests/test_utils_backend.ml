@@ -174,6 +174,10 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) begin return zeros_bits(2); end" );
 
+    ( "built-in fun call (ram_read)",
+      [ Backend_C ],
+      "func F() => bits(8) begin var m : __RAM(12); return ram_read(12, 1, m, '100000000000'); end" );
+
     ( "parentheses",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return ( 0 ); end" );
@@ -238,6 +242,10 @@ let test_cases_stmt : test_case list  =
     ( "uninitialized variables",
       [ Backend_C; Backend_Verilog ],
       "func F() begin var x, y : integer; end" );
+
+    ( "uninitialized variables (__RAM)",
+      [ Backend_C ],
+      "func F() begin var x, y : __RAM(8); end" );
 
     ( "variable",
       [ Backend_C; Backend_Verilog ],
@@ -310,6 +318,14 @@ let test_cases_stmt : test_case list  =
     ( "built-in procedure call (print_str)",
       [ Backend_C; Backend_Verilog ],
       "func F() begin print_str(\"a string\"); end" );
+
+    ( "built-in procedure call (ram_init)",
+      [ Backend_C ],
+      "func F() begin var m : __RAM(12); ram_init(12, 1, m, '00000001'); end" );
+
+    ( "built-in procedure call (ram_write)",
+      [ Backend_C ],
+      "func F() begin var m : __RAM(12); ram_write(12, 1, m, '100000000000', '00000001'); end" );
 
     ( "procedure return",
       [ Backend_C; Backend_Verilog ],
@@ -421,6 +437,10 @@ let test_cases_var_decl : test_case list  =
     ( "array2",
       [ Backend_C; Backend_Verilog ],
       "var x : array [1] of array [2] of integer;" );
+
+    ( "__RAM",
+      [ Backend_C ],
+      "var x : __RAM(8);" );
 
     ( "const (integer)",
       [ Backend_C ],

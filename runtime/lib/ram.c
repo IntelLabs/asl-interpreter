@@ -78,7 +78,7 @@ table_free(uint8_t *p, int level)
 /* When looking for a page, page table structures (tables and pages) are
    allocated on demand. */
 static uint8_t *
-page_lookup(ASL_ram_t *ram, uint64_t address)
+page_lookup(ASL_ram_t ram, uint64_t address)
 {
         uint8_t *p = ram->p;
         uint8_t **p_addr = &ram->p;
@@ -102,18 +102,37 @@ page_lookup(ASL_ram_t *ram, uint64_t address)
         return p;
 }
 
-void
-ASL_ram_init(int64_t address_size, int64_t size, ASL_ram_t *ram, uint64_t val)
+ASL_ram_t
+ASL_ram_alloc()
 {
+        return calloc(1, sizeof(struct ASL_ram));
+}
+
+void
+ASL_ram_free(struct ASL_ram **p)
+{
+        ASL_ram_t ram = *p;
+        runtime_error_if(!ram, "cannot deallocate RAM");
+
+        table_free(ram->p, 1);
+        free(ram);
+}
+
+void
+ASL_ram_init(int64_t address_size, int64_t size, ASL_ram_t ram, uint64_t val)
+{
+        runtime_error_if(!ram, "cannot initialize RAM");
+
         table_free(ram->p, 1);
         ram->p = 0;
         ram->init_val = (uint8_t)val;
 }
 
 uint64_t
-ASL_ram_read(int64_t address_size, int64_t size, ASL_ram_t *ram,
+ASL_ram_read(int64_t address_size, int64_t size, ASL_ram_t ram,
              uint64_t address)
 {
+        runtime_error_if(!ram, "cannot read RAM");
         runtime_error_if(size > 8, "unsupported read access size");
 
         uint64_t val = 0;
@@ -125,9 +144,10 @@ ASL_ram_read(int64_t address_size, int64_t size, ASL_ram_t *ram,
 }
 
 void
-ASL_ram_write(int64_t address_size, int64_t size, ASL_ram_t *ram,
+ASL_ram_write(int64_t address_size, int64_t size, ASL_ram_t ram,
               uint64_t address, uint64_t val)
 {
+        runtime_error_if(!ram, "cannot write RAM");
         runtime_error_if(size > 8, "unsupported write access size");
 
         for (int i = 0; i < size; ++i) {

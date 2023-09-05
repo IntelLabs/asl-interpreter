@@ -620,31 +620,8 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   (* RAM builtin functions *)
-  | [ a; n; ram; i ] when Ident.in_list f [ ram_init; ram_read ] ->
-      fn_extern fmt f;
-      parens fmt (fun _ ->
-          commasep fmt
-            (fun f -> f ())
-            [
-              (fun _ -> expr loc fmt a);
-              (fun _ -> expr loc fmt n);
-              (fun _ ->
-                make_unop fmt (fun _ -> amp fmt) (fun _ -> expr loc fmt ram));
-              (fun _ -> expr loc fmt i);
-            ])
-  | [ a; n; ram; i; x ] when Ident.equal f ram_write ->
-      fn_extern fmt f;
-      parens fmt (fun _ ->
-          commasep fmt
-            (fun f -> f ())
-            [
-              (fun _ -> expr loc fmt a);
-              (fun _ -> expr loc fmt n);
-              (fun _ ->
-                make_unop fmt (fun _ -> amp fmt) (fun _ -> expr loc fmt ram));
-              (fun _ -> expr loc fmt i);
-              (fun _ -> expr loc fmt x);
-            ])
+  | _ when Ident.in_list f [ ram_init; ram_read; ram_write ] ->
+      apply loc fmt (fun _ -> fn_extern fmt f) args
   (* File builtin functions *)
   | _ when Ident.in_list f [ asl_file_getc; asl_file_open; asl_file_write ] ->
       raise
@@ -849,6 +826,15 @@ let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
 
 let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with
+  | Stmt_VarDeclsNoInit (vs, (Type_Constructor (i, [ _ ]) as t), loc)
+    when Ident.equal i Builtin_idents.ram ->
+      List.iter (fun v ->
+          varty loc fmt v t;
+          PP.pp_print_string fmt " __attribute__((cleanup(ASL_ram_free)))";
+          semicolon fmt;
+          cut fmt
+      )
+      vs
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       List.iter (fun v ->
           varty loc fmt v t;
@@ -1007,21 +993,9 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       funcall loc fmt f tes args loc;
       semicolon fmt;
       if (throws) then rethrow_stmt fmt
-  | Stmt_VarDeclsNoInit (vs, Type_Constructor (i, [_]), loc) when
-    Ident.equal i Builtin_idents.ram ->
-      cutsep fmt
-        (fun v ->
-          varname fmt v;
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          parens fmt (fun _ -> ty_ram fmt);
-          braces fmt (fun _ ->
-              nbsp fmt;
-              intLit fmt "0";
-              nbsp fmt);
-          semicolon fmt)
-        vs
+  | Stmt_VarDeclsNoInit (vs, Type_Constructor (i, [ _ ]), loc)
+    when Ident.equal i Builtin_idents.ram ->
+      cutsep fmt (PP.fprintf fmt "%a = ASL_ram_alloc();" varname) vs
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
@@ -1123,7 +1097,7 @@ let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
   semicolon fmt;
   cut fmt
 
-let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
+let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
       match x with
       | Decl_BuiltinType (tc, loc) -> (
@@ -1202,6 +1176,12 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt
       | Decl_Var (v, ty, loc) ->
           varty loc fmt v ty;
+          let is_extern_val = Option.value is_extern ~default:false in
+          (match ty with
+          | Type_Constructor (i, [ _ ])
+            when Ident.equal i Builtin_idents.ram && is_extern_val = false ->
+              PP.pp_print_string fmt " = &(struct ASL_ram){ 0 }"
+          | _ -> ());
           semicolon fmt;
           cut fmt;
           cut fmt
@@ -1215,7 +1195,12 @@ let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
 
 let extern_declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
-  vbox fmt (fun _ -> map fmt (PP.fprintf fmt "extern @?%a" declaration) xs)
+  vbox fmt (fun _ ->
+      map fmt
+        (fun x ->
+          PP.fprintf fmt "extern @?";
+          declaration fmt ~is_extern:true x)
+        xs)
 
 let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ ->
