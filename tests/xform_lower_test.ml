@@ -15,8 +15,7 @@ module TC = Tcheck
  ****************************************************************)
 
 let bitslices_hilo_tests : unit Alcotest.test_case list =
-  let paths = [ "../../.." ] in
-  let prelude = LoadASL.read_file paths "prelude.asl" true false in
+  let prelude = load_test_libraries () in
   let globals = TC.env0 in
   let expr = test_xform_expr Xform_lower.xform_expr globals prelude in
   let stmts = test_xform_stmts Xform_lower.xform_stmts globals prelude in
