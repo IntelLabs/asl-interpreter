@@ -1103,7 +1103,8 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
                  let v = AST.Ident "ASL_fake_return_value" in
                  varty AST.Unknown fmt v rty;
                  Format.fprintf fmt ";@,return %a;" varname v
-               )
+               );
+               cut fmt
              )
            ));
          cut fmt
