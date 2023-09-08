@@ -151,10 +151,12 @@ let emit_c_header (filename : string) (f : PP.formatter -> unit) : unit =
       PP.fprintf fmt "#endif  // %s@." macro
   )
 
-(* Generate code for declarations *)
-let emit_c_code (filename : string) (ds : AST.declaration list) : unit =
+let emit_c_source (filename : string) (header_filenames : string list)
+    (f : PP.formatter -> unit) : unit =
   Utils.to_file filename (fun fmt ->
-    Backend_c.declarations fmt ds
+      List.iter (PP.fprintf fmt "#include \"%s\"@.") header_filenames;
+      PP.pp_print_newline fmt ();
+      f fmt
   )
 
 (****************************************************************
@@ -324,16 +326,22 @@ let main () =
 
     match !opt_backend with
     | Backend_C ->
-        emit_c_header (!output_file ^ "_types.h") (fun fmt ->
+        let filename_t = !output_file ^ "_types.h" in
+        emit_c_header filename_t (fun fmt ->
             type_decls ds |> Asl_utils.topological_sort |> List.rev |> Backend_c.declarations fmt
         );
-        emit_c_header (!output_file ^ "_exceptions.h") (fun fmt ->
+        let filename_e = !output_file ^ "_exceptions.h" in
+        emit_c_header filename_e (fun fmt ->
             Backend_c.exceptions fmt ds
         );
-        emit_c_header (!output_file ^ "_vars.h") (fun fmt ->
+        let filename_v = !output_file ^ "_vars.h" in
+        emit_c_header filename_v (fun fmt ->
             Backend_c.declarations fmt (var_decls ds)
         );
-        fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
+        let header_filenames = [filename_t; filename_e; filename_v] in
+        emit_c_source (!output_file ^ "_funs.c") header_filenames (fun fmt ->
+            Backend_c.declarations fmt (fun_decls ds)
+        );
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
             Backend_verilog.declarations fmt (List.rev ds))
