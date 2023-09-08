@@ -14,7 +14,7 @@ module V = Value
 open Format_utils
 open Utils
 
-exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
+exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
 
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
 let drop_underscores (x : string) : string = Value.drop_chars x '_'
@@ -311,15 +311,15 @@ let size_of_type (ty : AST.ty) : AST.expr option =
   | _ -> Asl_utils.width_of_type ty
 
 let rethrow_stmt (fmt : PP.formatter) : unit =
-  Format.fprintf fmt "if (ASL_exception._exc.ASL_tag != ASL_no_exception) goto %a;"
+  PP.fprintf fmt "if (ASL_exception._exc.ASL_tag != ASL_no_exception) goto %a;"
     varname (current_catcher ())
 
 let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
-  Format.fprintf fmt "({ __auto_type __r = ";
+  PP.fprintf fmt "({ __auto_type __r = ";
   f ();
-  Format.fprintf fmt "; ";
+  PP.fprintf fmt "; ";
   rethrow_stmt fmt;
-  Format.fprintf fmt " __r; })"
+  PP.fprintf fmt " __r; })"
 
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
   ( match x with
@@ -696,17 +696,17 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Parens e -> expr loc fmt e
   | Expr_RecordInit (tc, [], fas) ->
       if List.mem tc !exception_tcs then begin
-        Format.fprintf fmt "(ASL_exception_t){ ._%a={ .ASL_tag = tag_%a, " tycon tc tycon tc;
+        PP.fprintf fmt "(ASL_exception_t){ ._%a={ .ASL_tag = tag_%a, " tycon tc tycon tc;
         commasep fmt
-          (fun (f, e) -> Format.fprintf fmt ".%a = %a" varname f (expr loc) e)
+          (fun (f, e) -> PP.fprintf fmt ".%a = %a" varname f (expr loc) e)
           fas;
-        Format.fprintf fmt " }}"
+        PP.fprintf fmt " }}"
       end else begin
-        Format.fprintf fmt "(%a){ " tycon tc;
+        PP.fprintf fmt "(%a){ " tycon tc;
         commasep fmt
-          (fun (f, e) -> Format.fprintf fmt ".%a = %a" varname f (expr loc) e)
+          (fun (f, e) -> PP.fprintf fmt ".%a = %a" varname f (expr loc) e)
           fas;
-        Format.fprintf fmt " }"
+        PP.fprintf fmt " }"
       end
   | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
   | Expr_TApply (f, tes, es, throws) ->
@@ -866,7 +866,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
      | Range (p, _) ->
          let fname = p.Lexing.pos_fname in
          let line = p.Lexing.pos_lnum in
-         Format.fprintf fmt "#line %d \"%s\"@," line fname
+         PP.fprintf fmt "#line %d \"%s\"@," line fname
      | _ -> ()
   );
   match x with
@@ -890,7 +890,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                       if Option.is_some oc then
                         raise
                           (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
-                      List.iter (Format.fprintf fmt "case %a:@," (pattern loc)) ps;
+                      List.iter (PP.fprintf fmt "case %a:@," (pattern loc)) ps;
                       braces fmt (fun _ ->
                           indented_block fmt ss;
                           indented fmt (fun _ ->
@@ -1022,36 +1022,36 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       (* handled by decl *)
       ()
   | Stmt_Throw (e, loc) ->
-      Format.fprintf fmt "ASL_exception = %a;@," (expr loc) e;
-      Format.fprintf fmt "goto %a;" varname (current_catcher ())
+      PP.fprintf fmt "ASL_exception = %a;@," (expr loc) e;
+      PP.fprintf fmt "goto %a;" varname (current_catcher ())
   | Stmt_Try (tb, pos, catchers, odefault, loc) ->
       with_catch_label (fun catch_label ->
         brace_enclosed_block fmt tb;
-        Format.fprintf fmt "@,%a:@," varname catch_label;
+        PP.fprintf fmt "@,%a:@," varname catch_label;
         );
-      Format.fprintf fmt "if (ASL_exception._exc.ASL_tag == ASL_no_exception) {@,";
+      PP.fprintf fmt "if (ASL_exception._exc.ASL_tag == ASL_no_exception) {@,";
       List.iter (function AST.Catcher_Guarded (v, tc, b, loc) ->
-          Format.fprintf fmt "} else if (ASL_exception._exc.ASL_tag == tag_%a) {" tycon tc;
+          PP.fprintf fmt "} else if (ASL_exception._exc.ASL_tag == tag_%a) {" tycon tc;
           indented fmt (fun _ ->
-            Format.fprintf fmt "%a %a = ASL_exception._%a;@,"
+            PP.fprintf fmt "%a %a = ASL_exception._%a;@,"
               tycon tc
               varname v
               tycon tc;
-            Format.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
+            PP.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
             brace_enclosed_block fmt b
             );
           cut fmt
         )
         catchers;
-      Format.fprintf fmt "} else {";
+      PP.fprintf fmt "} else {";
       indented fmt (fun _ ->
         ( match odefault with
-        | None -> Format.fprintf fmt "goto %a;@," varname (current_catcher ())
+        | None -> PP.fprintf fmt "goto %a;@," varname (current_catcher ())
         | Some (s, _) ->
-            Format.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
+            PP.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
             brace_enclosed_block fmt s
         ));
-      Format.fprintf fmt "@,}"
+      PP.fprintf fmt "@,}"
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
     ->
@@ -1089,7 +1089,7 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
       (fun _ ->
          indented_block fmt b;
          cut fmt;
-         Format.fprintf fmt "%a:" varname catch_label;
+         PP.fprintf fmt "%a:" varname catch_label;
          (* When throwing an exception, we need to return a value with
           * the correct type. This value will never be used so the easy way
           * to create it is to declare a variable, not initialize it and
@@ -1097,13 +1097,13 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
           * *)
          indented fmt (fun _ ->
            ( match orty  with
-           | None -> Format.fprintf fmt "return;"
+           | None -> PP.fprintf fmt "return;"
            | Some rty ->
              braces fmt (fun _ ->
                indented fmt (fun _ ->
                  let v = AST.Ident "ASL_fake_return_value" in
                  varty AST.Unknown fmt v rty;
-                 Format.fprintf fmt ";@,return %a;" varname v
+                 PP.fprintf fmt ";@,return %a;" varname v
                );
                cut fmt
              )
@@ -1218,15 +1218,15 @@ let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
         xs
     in
     exception_tcs := List.map (fun (tc, _, _) -> tc) excs;
-    Format.fprintf fmt "enum ASL_exception_tag { ASL_no_exception, %a };@,@,"
-      (Fun.flip commasep (fun (tc, fs, _) -> Format.fprintf fmt "tag_%a" tycon tc)) excs;
+    PP.fprintf fmt "enum ASL_exception_tag { ASL_no_exception, %a };@,@,"
+      (Fun.flip commasep (fun (tc, fs, _) -> PP.fprintf fmt "tag_%a" tycon tc)) excs;
     List.iter (fun (tc, fs, loc) ->
       typedef fmt (fun _ ->
           kw_struct fmt;
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
-                  Format.fprintf fmt "enum ASL_exception_tag ASL_tag;@,";
+                  PP.fprintf fmt "enum ASL_exception_tag ASL_tag;@,";
                   cutsep fmt
                     (fun (f, t) ->
                       varty loc fmt f t;
@@ -1237,13 +1237,13 @@ let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
           tycon fmt tc);
       cut fmt)
       excs;
-    Format.fprintf fmt "@,typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
+    PP.fprintf fmt "@,typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
       "struct { enum ASL_exception_tag ASL_tag; } _exc;"
-      (Format.pp_print_list (fun fmt (tc, _, _) -> Format.fprintf fmt "    %a _%a;"
+      (PP.pp_print_list (fun fmt (tc, _, _) -> PP.fprintf fmt "    %a _%a;"
                                 tycon tc
                                 tycon tc))
       excs;
-    Format.fprintf fmt "ASL_exception_t ASL_exception = (ASL_exception_t){ ._exc={.ASL_tag = ASL_no_exception} };@,"
+    PP.fprintf fmt "ASL_exception_t ASL_exception = (ASL_exception_t){ ._exc={.ASL_tag = ASL_no_exception} };@,"
     )
 
 (****************************************************************

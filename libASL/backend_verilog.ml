@@ -14,7 +14,7 @@ module V = Value
 open Format_utils
 open Utils
 
-exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
+exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
 
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
 
