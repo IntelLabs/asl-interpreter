@@ -11,6 +11,7 @@ open LibASL
 module AST = Asl_ast
 module CP = Xform_constprop
 module ASL_FMT = Asl_fmt
+module PP = Format
 
 open Yojson
 
@@ -137,6 +138,18 @@ let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
     )
   in
   List.filter is_fun_decl xs
+
+let emit_c_header (filename : string) (f : PP.formatter -> unit) : unit =
+  let macro =
+    String.uppercase_ascii filename
+    |> String.map (fun c -> if List.mem c [ '.'; '/'; '-' ] then '_' else c)
+  in
+  Utils.to_file filename (fun fmt ->
+      PP.fprintf fmt "#ifndef %s@." macro;
+      PP.fprintf fmt "#define %s@,@." macro;
+      f fmt;
+      PP.fprintf fmt "#endif  // %s@." macro
+  )
 
 (* Generate code for declarations *)
 let emit_c_code (filename : string) (ds : AST.declaration list) : unit =
@@ -311,9 +324,15 @@ let main () =
 
     match !opt_backend with
     | Backend_C ->
-        type_decls ds |> Asl_utils.topological_sort |> List.rev |> emit_c_code (!output_file ^ "_types.h");
-        Utils.to_file (!output_file ^ "_exceptions.h") (fun fmt -> Backend_c.exceptions fmt ds);
-        var_decls ds |> emit_c_code (!output_file ^ "_vars.h");
+        emit_c_header (!output_file ^ "_types.h") (fun fmt ->
+            type_decls ds |> Asl_utils.topological_sort |> List.rev |> Backend_c.declarations fmt
+        );
+        emit_c_header (!output_file ^ "_exceptions.h") (fun fmt ->
+            Backend_c.exceptions fmt ds
+        );
+        emit_c_header (!output_file ^ "_vars.h") (fun fmt ->
+            Backend_c.declarations fmt (var_decls ds)
+        );
         fun_decls ds |> emit_c_code (!output_file ^ "_funs.c")
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
