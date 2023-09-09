@@ -1,5 +1,5 @@
 (****************************************************************
- * Test case lowering transform
+ * Test lowering transform
  *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause

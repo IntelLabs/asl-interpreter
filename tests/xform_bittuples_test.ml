@@ -1,5 +1,5 @@
 (****************************************************************
- * Test tuple lowering transform
+ * Test bittuple lowering transform
  *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
