@@ -741,8 +741,9 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
           nbsp fmt;
           constant fmt v
         )
-  | Expr_AsConstraint _
-  | Expr_AsType _
+  | Expr_AsConstraint (e, _)
+  | Expr_AsType (e, _) ->
+      expr loc fmt e
   | Expr_Binop _
   | Expr_Fields _
   | Expr_ImpDef _

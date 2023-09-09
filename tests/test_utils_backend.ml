@@ -182,6 +182,14 @@ let test_cases_expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) begin return [x, y, z]; end" );
 
+    ( "as constraint",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x : integer) => integer {0 .. 1} begin return x as {0 .. 1}; end" );
+
+    ( "as type",
+      [ Backend_C; Backend_Verilog ],
+      "func F(x : integer) => integer begin return x as integer; end" );
+
     ( "array",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) begin var x : array [1] of bits(1); return x[0]; end" );

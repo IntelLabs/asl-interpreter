@@ -526,11 +526,14 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
             nbsp fmt;
             expr loc fmt e)
           fas)
+  | Expr_AsConstraint (e, _)
+  | Expr_AsType (e, _) ->
+      expr loc fmt e
   (* unimplemented *)
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
   | Expr_RecordInit _ | Expr_ImpDef (_, _)
   | Expr_TApply _
-  | Expr_Tuple _ | Expr_Fields _ | Expr_AsConstraint _ | Expr_AsType _ ->
+  | Expr_Tuple _ | Expr_Fields _ ->
       raise
         (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
 
