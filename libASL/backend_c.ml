@@ -652,6 +652,9 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
               (fun _ -> expr loc fmt i);
               (fun _ -> expr loc fmt x);
             ])
+  (* Helper functions with ASL_ prefix *)
+  | FIdent (f, _), _ when String.starts_with ~prefix:"ASL_" f ->
+      apply loc fmt (fun _ -> PP.pp_print_string fmt f) args
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
