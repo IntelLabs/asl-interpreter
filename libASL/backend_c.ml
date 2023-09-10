@@ -684,24 +684,8 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
-  | Expr_Concat (ws, es) ->
-      assert (List.length ws == List.length es);
-      let _, shifts =
-        List.fold_right
-          (fun w (acc, shifts) -> (acc + const_int_expr loc w, acc :: shifts))
-          ws (0, [])
-      in
-      sepby fmt
-        (fun _ ->
-          nbsp fmt;
-          bar fmt;
-          nbsp fmt)
-        (fun (sh, e) ->
-          make_binop fmt
-            (fun _ -> lt_lt fmt)
-            (fun _ -> expr loc fmt e)
-            (fun _ -> intLit fmt (string_of_int sh)))
-        (List.combine shifts es)
+  | Expr_Concat _ ->
+      raise (InternalError (__LOC__ ^ ": Expr_Concat not expected"))
   | Expr_Field (e, f) ->
       expr loc fmt e;
       dot fmt;

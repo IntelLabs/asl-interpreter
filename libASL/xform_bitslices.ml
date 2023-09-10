@@ -1,8 +1,13 @@
 (****************************************************************
  * ASL bitslice transform
  *
- * This simplifies bitslice expressions where the width is not
- * a literal constant.
+ * 1) Simplifies bitslice expressions where the width is not
+ *    a literal constant.
+ *
+ * 2) Transforms bitvector concatenation {w1, .. wn}[ e1, .. en ]
+ *    to e1' OR .. en', where for each index i in [1, .. n]
+ *    wi' = sum of [wi .. wn]
+ *    ei' == zero_extend_bits(ei, total_width) << wi'
  *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -65,7 +70,7 @@ let transform_assignment (lident : AST.ident)
   let or_op1 = mk_and_bits width (AST.Expr_Var lident) slice_not_mask in
   let rhs'' = mk_or_bits width or_op1 rhs' in
 
-  Visitor.ChangeTo [AST.Stmt_Assign (LExpr_Var lident, rhs'', l)]
+  Visitor.ChangeDoChildrenPost ([AST.Stmt_Assign (LExpr_Var lident, rhs'', l)], Fun.id)
 
 class bitsliceClass =
   object
@@ -73,7 +78,7 @@ class bitsliceClass =
 
     method! vexpr x =
       ( match x with
-      | Expr_Concat (ws, es) when not (List.for_all is_literal_constant ws) ->
+      | Expr_Concat (ws, es) ->
         let total_width = Xform_simplify_expr.mk_add_ints ws in
         (* Transform "{w1, .. wn}[ e1, .. en ]" to "e1' OR .. en'"
          *   where, for each index i in [1, .. n]
@@ -88,9 +93,9 @@ class bitsliceClass =
           )
           ws es (zero, mk_zero_bits total_width)
         in
-        ChangeTo x'
+        ChangeDoChildrenPost (x', Fun.id)
       | Expr_TApply (FIdent ("ZeroExtend", _), [w; n], [e; _], _) ->
-        ChangeTo (transform n w zero e)
+        ChangeDoChildrenPost (transform n w zero e, Fun.id)
       | _ -> DoChildren
       )
 

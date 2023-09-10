@@ -179,7 +179,7 @@ let test_cases_expr : test_case list =
       "func F() => integer begin return ( 0 ); end" );
 
     ( "bitvector concatenation",
-      [ Backend_C; Backend_Verilog ],
+      [ Backend_Verilog ],
       "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) begin return [x, y, z]; end" );
 
     ( "as constraint",

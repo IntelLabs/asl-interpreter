@@ -23,7 +23,23 @@ let bitslice_tests : unit Alcotest.test_case list =
     ("combine (lo+:wd)", `Quick, expr
        "var x : bits(64); var y : bits(64); var i : integer;"
        "[x[i +: 64-i], y[0 +: i]]"
-       "lsl_bits(lsr_bits(x, i) AND mk_mask(64-i, 64), i) OR and_bits(y, mk_mask(i, 64))");
+       "lsl_bits(lsr_bits(x, i) AND mk_mask(64-i, 64), i)
+        OR and_bits(y, mk_mask(i, 64))");
+    ("bitvector concat", `Quick, expr
+       "var x : bits(2); var y : bits(2);"
+       "[x, y]"
+       "lsl_bits(zero_extend_bits(x, 4), 2) OR zero_extend_bits(y, 4)");
+    ("nested bitvector concat 1", `Quick, expr
+       "var x : bits(2); var y : bits(2); var z : bits(4);"
+       "[[x, y], z]"
+       "lsl_bits(zero_extend_bits(lsl_bits(zero_extend_bits(x, 4), 2)
+                                  OR zero_extend_bits(y, 4), 8), 4)
+        OR zero_extend_bits(z, 8)");
+    ("nested bitvector concat 2", `Quick, expr
+       "var x : bits(2); var y : bits(2);"
+       "ZeroExtend([x, y], 8)"
+       "zero_extend_bits(lsl_bits(zero_extend_bits(x, 4), 2)
+                         OR zero_extend_bits(y, 4), 8)");
     ("Ones() 1 lo+:width", `Quick, stmts
        "var x : bits(64); var i : integer;"
        "x[0 +: i+1] = Ones(i+1);"
@@ -54,6 +70,12 @@ let bitslice_tests : unit Alcotest.test_case list =
        "l[1 +: 7] = r[1 +: 7];"
        "l = and_bits(l, NOT lsl_bits(mk_mask(7, 8), 1))
             OR lsl_bits(zero_extend_bits(r[1 +: 7], 8), 1);");
+    ("assignment of bitvector concat", `Quick, stmts
+       "var x : bits(8); var y : bits(3); var z : bits(4);"
+       "x[1 +: 7] = [y, z];"
+       "x = and_bits(x, NOT lsl_bits(mk_mask(7, 8), 1))
+            OR lsl_bits(zero_extend_bits(lsl_bits(zero_extend_bits(y, 7), 4)
+                                         OR zero_extend_bits(z, 7), 8), 1);");
     ("ZeroExtend(Ones(i), n)", `Quick, expr
        "var i : integer;"
        "ZeroExtend(Ones(i), 64)"

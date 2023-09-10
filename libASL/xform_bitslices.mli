@@ -1,9 +1,6 @@
 (****************************************************************
  * ASL bitslice transform
  *
- * This simplifies bitslice expressions where the width is not
- * a literal constant.
- *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
