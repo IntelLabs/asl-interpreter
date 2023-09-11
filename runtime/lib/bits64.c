@@ -44,7 +44,7 @@ ASL_asr_bits_64(int width, ASL_bits64_t x, ASL_int_t d)
         return x;
 }
 
-ASL_int64_t
+ASL_int_t
 ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
 {
         const uint64_t mask = 1ULL << (width - 1);
@@ -53,14 +53,14 @@ ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
         return (x ^ mask) - mask;
 }
 
-ASL_int64_t
+ASL_int_t
 ASL_cvt_bits_uint_64(int width, ASL_bits64_t x)
 {
         return x;
 }
 
 ASL_bits64_t
-ASL_cvt_int_bits_64(int width, ASL_int64_t x)
+ASL_cvt_int_bits_64(int width, ASL_int_t x)
 {
         return x & ASL_mk_mask_64(width);
 }

@@ -1,7 +1,6 @@
 #define ASL_BITS_LIMBS_64 (N >> 6)
 #define ASL_BITS_LIMBS_32 (N >> 5)
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
-#define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
 ASL_BITS_TYPE
 ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
@@ -43,7 +42,7 @@ ASL_asr_bits(N, int width, ASL_BITS_TYPE x, ASL_int_t d)
         return x;
 }
 
-ASL_INT_TYPE
+ASL_int_t
 ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
 {
         bool sign_bit = ASL_lsr_bits(N, width, x, width - 1).u64[0];
@@ -52,27 +51,24 @@ ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
                                 ASL_not_bits(N, N, ASL_mk_mask(N, width)));
         }
 
-        ASL_INT_TYPE r;
-        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
-                r.u64[i] = x.u64[i];
-        return r;
+        return x.u64[0];
 }
 
-ASL_INT_TYPE
+ASL_int_t
 ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
 {
-        ASL_INT_TYPE r;
-        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
-             r.u64[i] = x.u64[i];
-        return r;
+        return x.u64[0];
 }
 
 ASL_BITS_TYPE
-ASL_cvt_int_bits(N, int width, ASL_INT_TYPE x)
+ASL_cvt_int_bits(N, int width, ASL_int_t x)
 {
         ASL_BITS_TYPE r;
-        for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
-             r.u64[i] = x.u64[i];
+        r.u64[0] = x;
+        if (x < 0) {
+                for (int i = 1; i < ASL_BITS_LIMBS_64; ++i)
+                        r.u64[i] = -1LL;
+        }
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
 
@@ -182,4 +178,3 @@ ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, ASL_int_t n)
 #undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_LIMBS_32
 #undef ASL_BITS_TYPE
-#undef ASL_INT_TYPE

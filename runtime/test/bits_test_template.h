@@ -1,6 +1,5 @@
 #define ASL_BITS_LIMBS_64 (N >> 6)
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
-#define ASL_INT_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_int, N), _t)
 
 class ASL_CC_INDIR(Bits, N) : public ::testing::Test {
  protected:
@@ -11,14 +10,8 @@ class ASL_CC_INDIR(Bits, N) : public ::testing::Test {
 bool operator==(const ASL_BITS_TYPE &x, const ASL_BITS_TYPE &y) {
     return Equal(x, y);
 }
-bool operator==(const ASL_INT_TYPE &x, const ASL_INT_TYPE &y) {
-    return Equal(x, y);
-}
 
 void PrintTo(const ASL_BITS_TYPE &x, std::ostream *os) {
-    Print(x, os);
-}
-void PrintTo(const ASL_INT_TYPE &x, std::ostream *os) {
     Print(x, os);
 }
 
@@ -63,20 +56,16 @@ TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsSInt)
 {
     int width = N - 1;
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
-    ASL_INT_TYPE minus_one = ASL_int_max(N);
-    ASL_INT_TYPE zero = ASL_int_zero(N);
 
-    EXPECT_EQ(minus_one, ASL_cvt_bits_sint(N, width, x));
-    EXPECT_EQ(zero, ASL_cvt_bits_sint(N, width, zeros));
+    EXPECT_EQ(-1LL, ASL_cvt_bits_sint(N, width, x));
+    EXPECT_EQ(0LL, ASL_cvt_bits_sint(N, width, zeros));
 }
 
 TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsUInt)
 {
     int width = N - 1;
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
-    ASL_INT_TYPE r;
-    for (int i = 0; i < ASL_BITS_LIMBS_64; ++i)
-         r.u64[i] = x.u64[i];
+    ASL_int_t r = x.u64[0];
 
     EXPECT_EQ(r, ASL_cvt_bits_uint(N, width, x));
 }
@@ -85,9 +74,8 @@ TEST_F(ASL_CC_INDIR(Bits, N), CvtIntBits)
 {
     int width = N - 1;
     ASL_BITS_TYPE r = ASL_mk_mask(N, width);
-    ASL_INT_TYPE minus_one = ASL_int_max(N);
 
-    EXPECT_EQ(r, ASL_cvt_int_bits(N, width, minus_one));
+    EXPECT_EQ(r, ASL_cvt_int_bits(N, width, -1LL));
 }
 
 TEST_F(ASL_CC_INDIR(Bits, N), Eor)
@@ -172,4 +160,3 @@ TEST_F(ASL_CC_INDIR(Bits, N), Sub)
 
 #undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_TYPE
-#undef ASL_INT_TYPE

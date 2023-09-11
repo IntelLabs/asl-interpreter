@@ -64,17 +64,17 @@ ASL_bits64_t ASL_asr_bits_64(int width, ASL_bits64_t x, ASL_int_t d);
 #define ASL_cvt_bits_sint(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_bits_sint_, sizeof_x)(n, x)
 
-ASL_int64_t ASL_cvt_bits_sint_64(int width, ASL_bits64_t x);
+ASL_int_t ASL_cvt_bits_sint_64(int width, ASL_bits64_t x);
 
 #define ASL_cvt_bits_uint(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_bits_uint_, sizeof_x)(n, x)
 
-ASL_int64_t ASL_cvt_bits_uint_64(int width, ASL_bits64_t x);
+ASL_int_t ASL_cvt_bits_uint_64(int width, ASL_bits64_t x);
 
 #define ASL_cvt_int_bits(sizeof_x, n, x) \
         ASL_CC(ASL_cvt_int_bits_, sizeof_x)(n, x)
 
-ASL_bits64_t ASL_cvt_int_bits_64(int width, ASL_int64_t x);
+ASL_bits64_t ASL_cvt_int_bits_64(int width, ASL_int_t x);
 
 #define ASL_eor_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_eor_bits_, sizeof_x)(n, x, y)
