@@ -433,9 +433,6 @@ val mk_ones_bits : AST.expr -> AST.expr
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 val mk_bits_select : AST.expr -> AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "asl_extract_int{w}(x, lo, w)" *)
-val mk_int_select : AST.expr -> AST.expr -> AST.expr -> AST.expr
-
 (** Construct "zero_extend_bits{w, n}(x, w)" *)
 val mk_zero_extend_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 

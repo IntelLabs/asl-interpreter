@@ -103,12 +103,6 @@ begin
 end
 
 // Bit slice helper functions used in some backends
-func asl_extract_int(x : integer, lo : integer, W : integer) => bits(W)
-begin
-    return x[lo +: W];
-end
-
-// Bit slice helper functions used in some backends
 func asl_extract_bits(x : bits(N), lo : integer, W : integer) => bits(W)
 begin
     return x[lo +: W];
