@@ -331,6 +331,7 @@ let main () =
     |> transform "bittuples" Xform_bittuples.xform_decls
     |> transform "getset" Xform_getset.xform_decls
     |> transform "rmw" Xform_rmw.xform_decls
+    |> transform "int_bitslices" Xform_int_bitslices.xform_decls
     |> transform "delete_imports" (delete_functions imports)
     |> transform "keep_exports2" (xform_reachable exports)
     in

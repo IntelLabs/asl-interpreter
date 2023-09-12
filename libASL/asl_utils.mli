@@ -454,6 +454,9 @@ val mk_ands : AST.expr list -> AST.expr
 (** Construct "(FALSE || x1) || ... || xn" *)
 val mk_ors : AST.expr list -> AST.expr
 
+(** Construct "cvt_int_bits{n}(x, n)" *)
+val mk_cvt_int_bits : AST.expr -> AST.expr -> AST.expr
+
 (****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)

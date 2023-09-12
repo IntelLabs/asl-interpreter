@@ -312,10 +312,9 @@ let bits (fmt : PP.formatter) (width : int) : unit =
 let size_of_type (ty : AST.ty) : AST.expr option =
   match ty with
   (* TODO For now assume the new type takes 64 bits *)
-  | Type_Constructor _
-  (* TODO implement integer range analysis to determine the correct type width.
-     For now assume 64 bits. *)
-  | Type_Integer _ -> Some (Asl_utils.mk_litint 64)
+  | Type_Constructor _ -> Some (Asl_utils.mk_litint 64)
+  | Type_Integer _ ->
+      raise (InternalError (__LOC__ ^ ": bitslicing an integer not expected"))
   | _ -> Asl_utils.width_of_type ty
 
 let rethrow_stmt (fmt : PP.formatter) : unit =

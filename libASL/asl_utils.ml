@@ -1227,6 +1227,10 @@ let mk_ands (xs : AST.expr list) : AST.expr =
 let mk_ors  (xs : AST.expr list) : AST.expr =
   List.fold_left mk_or asl_false xs
 
+(** Construct "cvt_int_bits{n}(x, n)" *)
+let mk_cvt_int_bits (n : AST.expr) (x : AST.expr) : AST.expr =
+  Expr_TApply (FIdent ("cvt_int_bits", 0), [ n ], [ x; n ], false)
+
 (****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)

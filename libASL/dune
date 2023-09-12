@@ -42,6 +42,7 @@
    xform_constprop
    xform_desugar
    xform_getset
+   xform_int_bitslices
    xform_lower
    xform_mono
    xform_rmw
