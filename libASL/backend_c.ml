@@ -533,8 +533,8 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
           c_int_width_64up_expr loc nm;
           m;
           n;
-          Asl_utils.mk_zero_extend_bits nm m x;
-          Asl_utils.mk_zero_extend_bits nm n y;
+          Asl_utils.mk_zero_extend_bits m nm x;
+          Asl_utils.mk_zero_extend_bits n nm y;
         ]
   | FIdent ("cvt_int_bits", _), [ x; n ] ->
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: [ x ])
@@ -565,11 +565,11 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
   | FIdent ("replicate_bits", _), [ x; n ] ->
-      let m = List.nth tes 1 in
+      let m = List.hd tes in
       let nm = Asl_utils.mk_litint (const_int_expr loc n * const_int_expr loc m) in
       apply loc fmt
         (fun _ -> fn_extern fmt f)
-        [ c_int_width_64up_expr loc nm; m; Asl_utils.mk_zero_extend_bits nm m x; n ]
+        [ c_int_width_64up_expr loc nm; m; Asl_utils.mk_zero_extend_bits m nm x; n ]
   | FIdent ("sub_bits", _), _ ->
       let n = List.hd tes in
       apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
