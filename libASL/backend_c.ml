@@ -293,9 +293,6 @@ let c_int_width (width : int) : int =
 let c_int_width_64up (width : int) : int =
   if width > 64 then round_up_to_pow2 width else 64
 
-let c_int_width_64up_expr (loc : AST.l) (width : AST.expr) : AST.expr =
-  Asl_utils.mk_litint (c_int_width_64up (const_int_expr loc width))
-
 let bits (fmt : PP.formatter) (width : int) : unit =
   asl_keyword fmt ("bits" ^ string_of_int (c_int_width_64up width) ^ "_t")
 
@@ -445,6 +442,18 @@ and conds (loc : AST.l) (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) 
   | [] -> expr loc fmt e
   | (c, t) :: cts' -> cond_cont loc fmt c t (fun _ -> conds loc fmt cts' e)
 
+and apply_bits_builtin (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit)
+    (widths : AST.expr list) (args : AST.expr list) : unit =
+  f ();
+  parens fmt (fun _ ->
+      commasep fmt
+        (fun w ->
+          constant fmt (string_of_int (c_int_width_64up (const_int_expr loc w))))
+        widths;
+      comma fmt;
+      nbsp fmt;
+      exprs loc fmt args)
+
 and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
@@ -519,7 +528,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("cvt_bits_sint", _), _
   | FIdent ("cvt_bits_uint", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   | FIdent ("append_bits", _), [ x; y ] ->
       let m, n =
         match tes with
@@ -527,24 +536,24 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
         | _ -> failwith "wrong number of type parameters"
       in
       let nm = Asl_utils.mk_litint (const_int_expr loc n + const_int_expr loc m) in
-      apply loc fmt
+      apply_bits_builtin loc fmt
         (fun _ -> fn_extern fmt f)
+        [ nm ]
         [
-          c_int_width_64up_expr loc nm;
           m;
           n;
           Asl_utils.mk_zero_extend_bits m nm x;
           Asl_utils.mk_zero_extend_bits n nm y;
         ]
   | FIdent ("cvt_int_bits", _), [ x; n ] ->
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: [ x ])
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] [ n; x ]
   | FIdent ("eor_bits", _), _
   | FIdent ("eq_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   | FIdent ("mk_mask", _), [ w; _ ] ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) [(c_int_width_64up_expr loc n); w]
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] [ w ]
   | FIdent ("frem_bits_int", _), _
   | FIdent ("in_mask", _), _
   | FIdent ("notin_mask", _), _ ->
@@ -557,33 +566,32 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
   | FIdent ("ne_bits", _), _
   | FIdent ("not_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   | FIdent ("ones_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
   | FIdent ("or_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   | FIdent ("replicate_bits", _), [ x; n ] ->
       let m = List.hd tes in
       let nm = Asl_utils.mk_litint (const_int_expr loc n * const_int_expr loc m) in
-      apply loc fmt
+      apply_bits_builtin loc fmt
         (fun _ -> fn_extern fmt f)
-        [ c_int_width_64up_expr loc nm; m; Asl_utils.mk_zero_extend_bits m nm x; n ]
+        [ nm ] [ m; Asl_utils.mk_zero_extend_bits m nm x; n ]
   | FIdent ("sub_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   | FIdent ("zeros_bits", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
   | FIdent ("zero_extend_bits", _), _ ->
       let m, n =
         match tes with
         | [ m; n ] -> (m, n)
         | _ -> failwith "wrong number of type parameters"
       in
-      apply loc fmt (fun _ -> fn_extern fmt f)
-        (c_int_width_64up_expr loc m :: c_int_width_64up_expr loc n :: m :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ m; n ] (m :: args)
   (* String builtin functions *)
   | FIdent ("append_str_str", _), [x; y] -> expr loc fmt x (* not perfect but better than nothing *)
   | FIdent ("cvt_bits_str", _), _
@@ -605,7 +613,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
       apply loc fmt (fun _ -> fn_extern fmt f) args
   | FIdent ("print_bits_hex", _), _ ->
       let n = List.hd tes in
-      apply loc fmt (fun _ -> fn_extern fmt f) ((c_int_width_64up_expr loc n) :: n :: args)
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   (* RAM builtin functions *)
   | FIdent ("ram_init", _), [ a; n; ram; i ]
   | FIdent ("ram_read", _), [ a; n; ram; i ] ->
@@ -637,11 +645,10 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
     (s : AST.slice) : unit =
-  let ew = c_int_width_64up_expr loc (Option.get (size_of_type t)) in
+  let ew = Option.get (size_of_type t) in
   match s with
   | Slice_LoWd (lo, wd) ->
-      let wdw = c_int_width_64up_expr loc wd in
-      apply loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wdw; e; lo; wd ]
+      apply_bits_builtin loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wd ] [ e; lo; wd ]
   | Slice_Single _ ->
       raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
