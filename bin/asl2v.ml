@@ -139,7 +139,16 @@ let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
   in
   List.filter is_fun_decl xs
 
-let emit_c_header (filename : string) (f : PP.formatter -> unit) : unit =
+let fprinf_sys_includes (fmt : PP.formatter) (filenames : string list) : unit =
+  List.iter (PP.fprintf fmt "#include <%s>@.") filenames;
+  PP.pp_print_newline fmt ()
+
+let fprinf_includes (fmt : PP.formatter) (filenames : string list) : unit =
+  List.iter (PP.fprintf fmt "#include \"%s\"@.") filenames;
+  PP.pp_print_newline fmt ()
+
+let emit_c_header (filename : string) (sys_h_filenames : string list)
+    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
   let macro =
     String.uppercase_ascii filename
     |> String.map (fun c -> if List.mem c [ '.'; '/'; '-' ] then '_' else c)
@@ -147,15 +156,16 @@ let emit_c_header (filename : string) (f : PP.formatter -> unit) : unit =
   Utils.to_file filename (fun fmt ->
       PP.fprintf fmt "#ifndef %s@." macro;
       PP.fprintf fmt "#define %s@,@." macro;
+      fprinf_sys_includes fmt sys_h_filenames;
+      fprinf_includes fmt h_filenames;
       f fmt;
       PP.fprintf fmt "#endif  // %s@." macro
   )
 
-let emit_c_source (filename : string) (header_filenames : string list)
+let emit_c_source (filename : string) (h_filenames : string list)
     (f : PP.formatter -> unit) : unit =
   Utils.to_file filename (fun fmt ->
-      List.iter (PP.fprintf fmt "#include \"%s\"@.") header_filenames;
-      PP.pp_print_newline fmt ();
+      fprinf_includes fmt h_filenames;
       f fmt
   )
 
@@ -326,22 +336,24 @@ let main () =
 
     match !opt_backend with
     | Backend_C ->
+        let sys_h_filenames = [ "stdbool.h" ] in
+        let h_filenames = [ "asl/runtime.h" ] in
+
         let filename_t = !output_file ^ "_types.h" in
-        emit_c_header filename_t (fun fmt ->
+        emit_c_header filename_t sys_h_filenames h_filenames (fun fmt ->
             type_decls ds |> Asl_utils.topological_sort |> List.rev |> Backend_c.declarations fmt
         );
         let filename_e = !output_file ^ "_exceptions.h" in
-        emit_c_header filename_e (fun fmt ->
+        emit_c_header filename_e sys_h_filenames h_filenames (fun fmt ->
             Backend_c.exceptions fmt ds
         );
         let filename_v = !output_file ^ "_vars.h" in
-        emit_c_header filename_v (fun fmt ->
+        emit_c_header filename_v sys_h_filenames h_filenames (fun fmt ->
             Backend_c.declarations fmt (var_decls ds)
         );
-        let header_filenames = [filename_t; filename_e; filename_v] in
-        emit_c_source (!output_file ^ "_funs.c") header_filenames (fun fmt ->
-            Backend_c.declarations fmt (fun_decls ds)
-        );
+        emit_c_source (!output_file ^ "_funs.c")
+          ([ filename_t; filename_e; filename_v ] @ h_filenames)
+          (fun fmt -> Backend_c.declarations fmt (fun_decls ds))
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
             Backend_verilog.declarations fmt (List.rev ds))
