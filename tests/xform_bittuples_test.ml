@@ -86,6 +86,14 @@ let tuple_tests : unit Alcotest.test_case list =
       "y = x[0 +: 3, 3 +: 2];"
       "y = [x[0 +: 3], x[3 +: 2]];
       ");
+
+    ("bittuple declaration transform", `Quick, test_bittuple_stmts globals prelude
+      ""
+      "let [x : bits(3), y : bits(2)] = '100 01';"
+      "let __a5 : bits(5) = '100 01';
+       let x = __a5[2 +: 3];
+       let y = __a5[0 +: 2];
+      ");
   ]
 
 (****************************************************************

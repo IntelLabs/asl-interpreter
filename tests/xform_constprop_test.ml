@@ -49,6 +49,9 @@ let constprop_tests : unit Alcotest.test_case list =
       "let c : bits(2) = '11';
        let a : bits(2) = c;"
       "let c : bits(2) = '11'; let a : bits(2) = '11';");
+    ("bittuple declaration", `Quick, test_cp_stmts "let N : integer = 2;"
+      "let [a : bits(N), b : bits(1)] = '111';"
+      "let [a : bits(2), b : bits(1)] = '111';");
     ("if-else", `Quick, test_cp_stmts "var d : boolean;"
       "var c : bits(2);
        if d then
