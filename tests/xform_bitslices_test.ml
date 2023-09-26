@@ -49,6 +49,11 @@ let bitslice_tests : unit Alcotest.test_case list =
        "let r = CountLeadingZeroBits(x);
         result = and_bits(result, NOT mk_mask(8, 32))
                  OR zero_extend_bits(r[0 +: 8], 32);");
+    ("transform bitslice, width of r > width of l", `Quick, stmts
+       "var l : bits(8); var r : bits(16);"
+       "l[1 +: 7] = r[1 +: 7];"
+       "l = and_bits(l, NOT lsl_bits(mk_mask(7, 8), 1))
+            OR lsl_bits(zero_extend_bits(r[1 +: 7], 8), 1);");
     ("transform ZeroExtend(Ones(i), n)", `Quick, expr
        "var i : integer;"
        "ZeroExtend(Ones(i), 64)"

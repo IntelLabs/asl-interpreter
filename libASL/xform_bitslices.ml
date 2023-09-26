@@ -12,6 +12,13 @@ module AST = Asl_ast
 open Asl_utils
 open Utils
 
+let transform_non_slices (n : AST.expr) (w : AST.expr) (i : AST.expr)
+    (x : AST.expr) : AST.expr =
+  match x with
+  | Expr_TApply (FIdent ("Ones", _), _, _, _) -> mk_lsl_bits n (mk_mask w n) i
+  | Expr_TApply (FIdent ("Zeros", _), _, _, _) -> mk_zero_bits n
+  | _ -> mk_lsl_bits n (mk_zero_extend_bits w n x) i
+
 (** Transform expression 'x' of width 'w' to an expression of width 'n'
  * that is equivalent to 'zero_extend_bits(x, n) << i'.
  *
@@ -37,11 +44,7 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
     let e2 = mk_lsr_bits n e1 lo in
     let e3 = mk_and_bits n e2 (mk_mask wd n) in
     mk_lsl_bits n e3 i
-  | Expr_TApply (FIdent ("Ones", _), _, _, _) ->
-    mk_lsl_bits n (mk_mask w n) i
-  | Expr_TApply (FIdent ("Zeros", _), _, _, _) ->
-    mk_zero_bits n
-  | _ -> mk_lsl_bits n (mk_zero_extend_bits w n x) i
+  | _ -> transform_non_slices n w i x
   )
 
 let transform_assignment (lident : AST.ident)
@@ -56,7 +59,7 @@ let transform_assignment (lident : AST.ident)
 
   (* Transform the rhs. The transformed rhs should already be correctly shifted
    * and masked *)
-  let rhs' = transform width slice_width shift rhs in
+  let rhs' = transform_non_slices width slice_width shift rhs in
 
   (* lhs = (lhs & ~slice_mask) | rhs' *)
   let or_op1 = mk_and_bits width (AST.Expr_Var lident) slice_not_mask in
