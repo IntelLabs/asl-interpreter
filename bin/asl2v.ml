@@ -163,9 +163,10 @@ let emit_c_header (filename : string) (sys_h_filenames : string list)
       PP.fprintf fmt "#endif  // %s@." macro
   )
 
-let emit_c_source (filename : string) (h_filenames : string list)
-    (f : PP.formatter -> unit) : unit =
-  let filename = filename ^ ".c" in
+let emit_c_source (filename : string) ?(index : int option)
+    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
+  let suffix = function None -> "" | Some i -> "_" ^ string_of_int i in
+  let filename = filename ^ suffix index ^ ".c" in
   Utils.to_file filename (fun fmt ->
       fprinf_includes fmt h_filenames;
       f fmt
@@ -255,6 +256,7 @@ type backend = Backend_C | Backend_Verilog
 let opt_filenames : string list ref = ref []
 let opt_verbose = ref false
 let opt_backend = ref Backend_Verilog
+let opt_num_c_files = ref 1
 let transforms : Yojson.Safe.t list ref = ref []
 let output_file : string ref = ref ""
 let backend_pairs = [ ("c", Backend_C); ("verilog", Backend_Verilog) ]
@@ -279,6 +281,8 @@ let options =
       ("--no-unroll", Arg.Clear CP.unroll_loops, "       Do not unroll loops");
       ("--max-verilog-width", Arg.Set_int Backend_verilog.int_width,
         "       Maximum width used in Verilog");
+      ("--num-c-files", Arg.Set_int opt_num_c_files,
+        "       Number of .c files created (default: 1)");
     ]
 
 let version = "ASL 0.2.0 alpha"
@@ -367,8 +371,27 @@ let main () =
         emit_c_source filename_v gen_h_filenames (fun fmt ->
             Backend_c.declarations fmt (var_decls ds));
 
-        emit_c_source (!output_file ^ "_funs") gen_h_filenames (fun fmt ->
-            Backend_c.declarations fmt (fun_decls ds))
+        let ds = fun_decls ds in
+        let emit_funs ?(index : int option) (ds : AST.declaration list) : unit =
+          emit_c_source (!output_file ^ "_funs") ?index gen_h_filenames (fun fmt ->
+              Backend_c.declarations fmt ds)
+        in
+        if !opt_num_c_files = 1 then
+          emit_funs ds
+        else
+          let threshold = List.length ds / !opt_num_c_files in
+          let rec emit_funs_by_chunk (i : int) (acc : AST.declaration list) = function
+            (* last chunk *)
+            | l when i + 1 = !opt_num_c_files ->
+                emit_funs ~index:i (List.rev acc @ l)
+            | h :: t when List.length acc < threshold ->
+                emit_funs_by_chunk i (h :: acc) t
+            | h :: t ->
+                emit_funs ~index:i (List.rev acc);
+                emit_funs_by_chunk (i + 1) [ h ] t
+            | [] -> emit_funs ~index:i (List.rev acc)
+          in
+          emit_funs_by_chunk 0 [] ds
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
             Backend_verilog.declarations fmt (List.rev ds))
