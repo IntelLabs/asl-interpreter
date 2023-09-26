@@ -27,30 +27,28 @@ let bitslice_tests : unit Alcotest.test_case list =
     ("transform Ones() 1 lo+:width", `Quick, stmts
        "var x : bits(64); var i : integer;"
        "x[0 +: i+1] = Ones(i+1);"
-       "x = or_bits(
-          and_bits(x, not_bits(mk_mask(add_int(i, 1), 64))),
-          mk_mask(add_int(i, 1), 64));");
+       "x = and_bits(x, NOT mk_mask(add_int(i, 1), 64))
+            OR mk_mask(add_int(i, 1), 64);");
     ("transform Ones() 2 lo+:width", `Quick, stmts
        "var x : bits(64); var i : integer;"
        "x[1 +: i] = Ones(i);"
-       "x = or_bits(
-          and_bits(x, not_bits(lsl_bits(mk_mask(i, 64), 1))),
-          lsl_bits(mk_mask(i, 64), 1));");
+       "x = and_bits(x, NOT lsl_bits(mk_mask(i, 64), 1))
+            OR lsl_bits(mk_mask(i, 64), 1);");
     ("transform Zeros() 1 lo+:width", `Quick, stmts
        "var x : bits(64); var i : integer;"
        "x[0 +: i + 1] = Zeros(i+1);"
-       "x = and_bits(x, not_bits(mk_mask(add_int(i, 1), 64)));");
+       "x = x AND NOT mk_mask(add_int(i, 1), 64);");
     ("transform Zeros() 2 lo+:width", `Quick, stmts
        "var x : bits(64); var i : integer;"
        "x[1 +: i] = Zeros(i);"
-       "x = and_bits(x, not_bits(lsl_bits(mk_mask(i, 64), 1)));");
+       "x = x AND NOT lsl_bits(mk_mask(i, 64), 1);");
     ("transform integer bitslice", `Quick, stmts
        "var result : bits(32); var x : bits(8);"
        "let r = CountLeadingZeroBits(x);
         result[0 +: 8] = r[0 +: 8];"
        "let r = CountLeadingZeroBits(x);
-        result = or_bits(and_bits(result, not_bits(mk_mask(8, 32))),
-            zero_extend_bits(r[0 +: 8], 32));");
+        result = and_bits(result, NOT mk_mask(8, 32))
+                 OR zero_extend_bits(r[0 +: 8], 32);");
     ("transform ZeroExtend(Ones(i), n)", `Quick, expr
        "var i : integer;"
        "ZeroExtend(Ones(i), 64)"
