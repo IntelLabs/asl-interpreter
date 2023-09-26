@@ -40,7 +40,11 @@ ASL_frem_int(ASL_int_t x, ASL_int_t y)
 static inline ASL_int_t
 ASL_mask_int(ASL_int_t w)
 {
+#ifdef ASL_INT128
+        return (unsigned __int128)(-1LL) >> (128 - w);
+#else
         return UINT64_MAX >> (64 - w);
+#endif
 }
 
 #ifdef __cplusplus

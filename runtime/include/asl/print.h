@@ -57,13 +57,22 @@ ASL_print_char(ASL_int_t x)
 static inline void
 ASL_print_int_hex(ASL_int_t x)
 {
-        printf("0x%llx", (long long)x);
+        printf("0x");
+#ifdef ASL_INT128
+        printf("%llx_", (long long)(x >> 64));
+#endif
+        printf("%llx", (long long)x);
 }
 
 static inline void
 ASL_print_int_dec(ASL_int_t x)
 {
+#ifdef ASL_INT128
+        // print in hex for simplicity
+        printf("0x%llx_%llx", (long long)(x >> 64), (long long)x);
+#else
         printf("%lld", (long long)x);
+#endif
 }
 
 static inline void

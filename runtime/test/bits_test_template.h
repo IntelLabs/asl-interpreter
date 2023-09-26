@@ -65,7 +65,11 @@ TEST_F(ASL_CC_INDIR(Bits, N), CvtBitsUInt)
 {
     int width = N - 1;
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
+#ifdef ASL_INT128
+    ASL_int_t r = ASL_int_128(x.u64[1], x.u64[0]);
+#else
     ASL_int_t r = x.u64[0];
+#endif
 
     EXPECT_EQ(r, ASL_cvt_bits_uint(N, width, x));
 }

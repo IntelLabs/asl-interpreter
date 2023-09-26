@@ -47,7 +47,11 @@ ASL_asr_bits_64(int width, ASL_bits64_t x, ASL_int_t d)
 ASL_int_t
 ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
 {
-        const uint64_t mask = 1ULL << (width - 1);
+#ifdef ASL_INT128
+        const unsigned __int128 mask = (unsigned __int128)1ULL << (width - 1);
+#else
+        const uint64_t mask = (uint64_t)1ULL << (width - 1);
+#endif
         /* If the sign bit is 1 then, after XOR-ing,
            the subtraction borrows from higher bits making them 111..1 */
         return (x ^ mask) - mask;

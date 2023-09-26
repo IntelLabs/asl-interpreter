@@ -50,14 +50,21 @@ ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
                 x = ASL_or_bits(N, N, x,
                                 ASL_not_bits(N, N, ASL_mk_mask(N, width)));
         }
-
+#ifdef ASL_INT128
+        return ASL_int_128(x.u64[1], x.u64[0]);
+#else
         return x.u64[0];
+#endif
 }
 
 ASL_int_t
 ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
 {
+#ifdef ASL_INT128
+        return ASL_int_128(x.u64[1], x.u64[0]);
+#else
         return x.u64[0];
+#endif
 }
 
 ASL_BITS_TYPE
@@ -65,10 +72,18 @@ ASL_cvt_int_bits(N, int width, ASL_int_t x)
 {
         ASL_BITS_TYPE r;
         r.u64[0] = x;
+#ifdef ASL_INT128
+        r.u64[1] = x >> 64;
+        if (x < 0) {
+                for (int i = 2; i < ASL_BITS_LIMBS_64; ++i)
+                        r.u64[i] = -1LL;
+        }
+#else
         if (x < 0) {
                 for (int i = 1; i < ASL_BITS_LIMBS_64; ++i)
                         r.u64[i] = -1LL;
         }
+#endif
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
 }
 

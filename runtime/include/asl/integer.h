@@ -15,12 +15,15 @@ extern "C" {
 #endif
 
 typedef int64_t ASL_int64_t;
+typedef __int128 ASL_int128_t;
 
-typedef struct {
-        uint64_t u64[2];
-} ASL_int128_t;
+#define ASL_INT128
 
+#ifdef ASL_INT128
+typedef ASL_int128_t ASL_int_t;
+#else
 typedef ASL_int64_t ASL_int_t;
+#endif
 
 #define ASL_int_zero(sizeof_x) \
         ASL_CC(ASL_int_zero_, sizeof_x)()
@@ -43,13 +46,13 @@ ASL_int_max_64()
 static inline ASL_int128_t
 ASL_int_128(uint64_t v1, uint64_t v0)
 {
-        return (ASL_int128_t){ { v0, v1 } };
+        return ((__int128)v1 << 64) | (__int128)v0;
 }
 
 static inline ASL_int128_t
 ASL_int_zero_128()
 {
-        return ASL_int_128(0, 0);
+        return 0;
 }
 
 static inline ASL_int128_t
