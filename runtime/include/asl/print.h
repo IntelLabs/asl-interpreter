@@ -14,6 +14,7 @@
 #include "asl/bits128.h"
 #include "asl/bits256.h"
 #include "asl/bits512.h"
+#include "asl/bits1024.h"
 #include "asl/integer.h"
 
 #ifdef __cplusplus
@@ -40,6 +41,10 @@ ASL_print_bits_hex_64(int width, ASL_bits64_t x)
 #undef N
 
 #define N 512
+#include "asl/print_template.h"
+#undef N
+
+#define N 1024
 #include "asl/print_template.h"
 #undef N
 

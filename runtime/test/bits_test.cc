@@ -9,6 +9,7 @@
 #include "asl/bits128.h"
 #include "asl/bits256.h"
 #include "asl/bits512.h"
+#include "asl/bits1024.h"
 
 #include "gtest/gtest.h"
 
@@ -193,6 +194,10 @@ static void Print(const T &x, std::ostream *os) {
 #include "bits_test_template.h"
 #undef N
 
+#define N 1024
+#include "bits_test_template.h"
+#undef N
+
 TEST_F(Bits128, Lsl)
 {
     ASL_bits128_t x = ASL_bits_128(3, 3);
@@ -221,6 +226,16 @@ TEST_F(Bits512, Lsl)
 
     EXPECT_EQ(ASL_bits_512(2, 6, 6, 6, 6, 6, 6, 6),
               ASL_lsl_bits_512(width, x, shift));
+}
+
+TEST_F(Bits1024, Lsl)
+{
+    ASL_bits1024_t x = ASL_bits_1024(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3);
+    int shift = 1;
+    int width = 64 * 15 + 2;
+
+    EXPECT_EQ(ASL_bits_1024(2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6),
+              ASL_lsl_bits_1024(width, x, shift));
 }
 
 TEST_F(Bits128, LslBy64)
@@ -253,6 +268,16 @@ TEST_F(Bits512, LslBy64)
               ASL_lsl_bits_512(width, x, shift));
 }
 
+TEST_F(Bits1024, LslBy64)
+{
+    ASL_bits1024_t x = ASL_bits_1024(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3);
+    int shift = 64;
+    int width = 64 * 15 + 1;
+
+    EXPECT_EQ(ASL_bits_1024(1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0),
+              ASL_lsl_bits_1024(width, x, shift));
+}
+
 TEST_F(Bits128, LslGt64)
 {
     ASL_bits128_t x = ASL_bits_128(3, 3);
@@ -281,6 +306,16 @@ TEST_F(Bits512, LslGt64)
 
     EXPECT_EQ(ASL_bits_512(2, 6, 6, 6, 6, 6, 6, 0),
               ASL_lsl_bits_512(width, x, shift));
+}
+
+TEST_F(Bits1024, LslGt64)
+{
+    ASL_bits1024_t x = ASL_bits_1024(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3);
+    int shift = 64 + 1;
+    int width = 64 * 15 + 2;
+
+    EXPECT_EQ(ASL_bits_1024(2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0),
+              ASL_lsl_bits_1024(width, x, shift));
 }
 
 TEST_F(Bits128, Lsr)
@@ -313,6 +348,16 @@ TEST_F(Bits512, Lsr)
               ASL_lsr_bits_512(width, x, shift));
 }
 
+TEST_F(Bits1024, Lsr)
+{
+    ASL_bits1024_t x = ASL_bits_1024(2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+    int shift = 1;
+    int width = 1024;
+
+    EXPECT_EQ(ASL_bits_1024(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+              ASL_lsr_bits_1024(width, x, shift));
+}
+
 TEST_F(Bits128, LsrBy64)
 {
     ASL_bits128_t x = ASL_bits_128(1, 1);
@@ -341,6 +386,16 @@ TEST_F(Bits512, LsrBy64)
 
     EXPECT_EQ(ASL_bits_512(0, 1, 1, 1, 1, 1, 1, 1),
               ASL_lsr_bits_512(width, x, shift));
+}
+
+TEST_F(Bits1024, LsrBy64)
+{
+    ASL_bits1024_t x = ASL_bits_1024(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+    int shift = 64;
+    int width = 1024;
+
+    EXPECT_EQ(ASL_bits_1024(0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+              ASL_lsr_bits_1024(width, x, shift));
 }
 
 TEST_F(Bits128, LsrGt64)
@@ -373,6 +428,16 @@ TEST_F(Bits512, LsrGt64)
               ASL_lsr_bits_512(width, x, shift));
 }
 
+TEST_F(Bits1024, LsrGt64)
+{
+    ASL_bits1024_t x = ASL_bits_1024(2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+    int shift = 64 + 1;
+    int width = 1024;
+
+    EXPECT_EQ(ASL_bits_1024(0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+              ASL_lsr_bits_1024(width, x, shift));
+}
+
 TEST_F(Bits128, MkMask)
 {
     EXPECT_EQ(ASL_bits_128(1, UINT64_MAX),
@@ -391,6 +456,15 @@ TEST_F(Bits512, MkMask)
               ASL_mk_mask_512(1 + 256));
 }
 
+TEST_F(Bits1024, MkMask)
+{
+    EXPECT_EQ(ASL_bits_1024(0, 0, 0, 0,
+                            0, 0, 0, 1,
+                            UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
+                            UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX),
+              ASL_mk_mask_1024(1 + 512));
+}
+
 TEST_F(Bits128, Zeros)
 {
     EXPECT_EQ(ASL_bits_128(0, 0),
@@ -407,4 +481,10 @@ TEST_F(Bits512, Zeros)
 {
     EXPECT_EQ(ASL_bits_512(0, 0, 0, 0, 0, 0, 0, 0),
               ASL_zeros_bits_512(1 + 256));
+}
+
+TEST_F(Bits1024, Zeros)
+{
+    EXPECT_EQ(ASL_bits_1024(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+              ASL_zeros_bits_1024(1 + 512));
 }

@@ -13,6 +13,7 @@
 #include "asl/bits128.h"
 #include "asl/bits256.h"
 #include "asl/bits512.h"
+#include "asl/bits1024.h"
 #include "asl/error.h"
 #include "asl/print.h"
 #include "asl/ram.h"

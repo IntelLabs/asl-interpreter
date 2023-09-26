@@ -28,6 +28,10 @@ typedef struct {
         uint64_t u64[8];
 } ASL_int512_t;
 
+typedef struct {
+        uint64_t u64[16];
+} ASL_int1024_t;
+
 #define ASL_int_zero(sizeof_x) \
         ASL_CC(ASL_int_zero_, sizeof_x)()
 
@@ -103,6 +107,31 @@ ASL_int_max_512()
                            UINT64_MAX, UINT64_MAX,
                            UINT64_MAX, UINT64_MAX,
                            UINT64_MAX, UINT64_MAX);
+}
+
+static inline ASL_int1024_t
+ASL_int_1024(uint64_t v15, uint64_t v14, uint64_t v13, uint64_t v12,
+             uint64_t v11, uint64_t v10, uint64_t v9, uint64_t v8,
+             uint64_t v7, uint64_t v6, uint64_t v5, uint64_t v4,
+             uint64_t v3, uint64_t v2, uint64_t v1, uint64_t v0)
+{
+        return (ASL_int1024_t){ { v0, v1, v2, v3, v4, v5, v6, v7,
+                                  v8, v9, v10, v11, v12, v13, v14, v15 } };
+}
+
+static inline ASL_int1024_t
+ASL_int_zero_1024()
+{
+        return ASL_int_1024(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
+static inline ASL_int1024_t
+ASL_int_max_1024()
+{
+        return ASL_int_1024(UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
+                            UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
+                            UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
+                            UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
 }
 
 #ifdef __cplusplus

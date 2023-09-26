@@ -11,7 +11,8 @@ CPPFLAGS = -Iinclude
 CFLAGS = -g -Wall -Werror -std=c99
 OBJEXT ?= o
 
-C_FILES = bits128.c \
+C_FILES = bits1024.c \
+          bits128.c \
           bits256.c \
           bits512.c \
           bits64.c \
