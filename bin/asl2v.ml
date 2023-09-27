@@ -275,7 +275,8 @@ let options =
         "       Apply transformations");
       ("-o", Arg.Set_string output_file, "       Output file");
       ("--no-unroll", Arg.Clear CP.unroll_loops, "       Do not unroll loops");
-      ("--max-verilog-width", Arg.Int (fun i -> Backend_verilog.int_width := i), "       Maximum width used in Verilog");
+      ("--max-verilog-width", Arg.Set_int Backend_verilog.int_width,
+        "       Maximum width used in Verilog");
     ]
 
 let version = "ASL 0.2.0 alpha"
