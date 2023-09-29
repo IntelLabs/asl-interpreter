@@ -51,7 +51,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), Append)
 
 TEST_F(ASL_CC_INDIR(Bits, N), Asr)
 {
-    int shift = 1;
+    ASL_int_t shift = 1;
     int width = N - 1;
     ASL_BITS_TYPE x = ASL_mk_mask(N, width);
 
@@ -132,7 +132,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), Not)
 
 TEST_F(ASL_CC_INDIR(Bits, N), Ones)
 {
-    int width = N - 1;
+    ASL_int_t width = N - 1;
     ASL_BITS_TYPE mask = ASL_mk_mask(N, width);
 
     EXPECT_EQ(mask, ASL_ones_bits(N, width));
@@ -153,7 +153,7 @@ TEST_F(ASL_CC_INDIR(Bits, N), Replicate)
 
 TEST_F(ASL_CC_INDIR(Bits, N), SliceLoWd)
 {
-    int width = N - 1;
+    ASL_int_t width = N - 1;
 
     EXPECT_EQ(ASL_mk_mask(N, width - 1),
               ASL_slice_lowd(N, N, ASL_mk_mask(N, width), 1, width));

@@ -32,6 +32,8 @@ typedef struct {
         uint64_t u64[16];
 } ASL_int1024_t;
 
+typedef ASL_int64_t ASL_int_t;
+
 #define ASL_int_zero(sizeof_x) \
         ASL_CC(ASL_int_zero_, sizeof_x)()
 

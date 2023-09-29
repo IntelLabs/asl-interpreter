@@ -202,6 +202,8 @@ let kw_uint32 (fmt : PP.formatter) : unit = keyword fmt "uint32_t"
 let kw_uint64 (fmt : PP.formatter) : unit = keyword fmt "uint64_t"
 let kw_uint8 (fmt : PP.formatter) : unit = keyword fmt "uint8_t"
 
+let kw_asl_int (fmt : PP.formatter) : unit = asl_keyword fmt "int_t"
+
 (* C types defined elsewhere *)
 let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
@@ -357,10 +359,9 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : 
     ty_ram fmt;
     nbsp fmt;
     varname fmt v
-  (* TODO implement integer range analysis to determine the correct type width.
-   * For now use int64. *)
+  (* TODO implement integer range analysis to determine the correct type width *)
   | Type_Integer _ ->
-    kw_int64 fmt;
+    kw_asl_int fmt;
     nbsp fmt;
     varname fmt v
   | Type_Array (Index_Enum tc, ety) ->
@@ -945,7 +946,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       kw_for fmt;
       nbsp fmt;
       parens fmt (fun _ ->
-          kw_int64 fmt;
+          kw_asl_int fmt;
           nbsp fmt;
           varname fmt v;
           nbsp fmt;

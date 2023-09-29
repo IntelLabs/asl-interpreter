@@ -11,26 +11,28 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "asl/integer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 static inline bool
-ASL_is_pow2_int(uint64_t x)
+ASL_is_pow2_int(ASL_int_t x)
 {
         return x != 0 && (x & (x - 1)) == 0;
 }
 
-static inline int64_t
-ASL_fdiv_int(int64_t x, int64_t y)
+static inline ASL_int_t
+ASL_fdiv_int(ASL_int_t x, ASL_int_t y)
 {
-        const int64_t quot = x / y;
-        const int64_t rem = x % y;
+        const ASL_int_t quot = x / y;
+        const ASL_int_t rem = x % y;
         return quot - (rem != 0 && quot < 0);
 }
 
-static inline int64_t
-ASL_frem_int(int64_t x, int64_t y)
+static inline ASL_int_t
+ASL_frem_int(ASL_int_t x, ASL_int_t y)
 {
         return x - ASL_fdiv_int(x, y) * y;
 }

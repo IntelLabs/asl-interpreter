@@ -73,17 +73,17 @@ ASL_cast_bits_1024_512(ASL_bits1024_t x)
                             x.u64[3], x.u64[2], x.u64[1], x.u64[0]);
 }
 
-ASL_bits1024_t ASL_lsl_bits_1024(int width, ASL_bits1024_t x, int d);
-ASL_bits1024_t ASL_lsr_bits_1024(int width, ASL_bits1024_t x, int d);
-ASL_bits512_t ASL_slice_lowd_1024_512(ASL_bits1024_t x, int lo, int width);
-ASL_bits256_t ASL_slice_lowd_1024_256(ASL_bits1024_t x, int lo, int width);
-ASL_bits128_t ASL_slice_lowd_1024_128(ASL_bits1024_t x, int lo, int width);
-ASL_bits64_t ASL_slice_lowd_1024_64(ASL_bits1024_t x, int lo, int width);
-ASL_bits1024_t ASL_zero_extend_bits_64_1024(int width, ASL_bits64_t x, int n);
-ASL_bits1024_t ASL_zero_extend_bits_128_1024(int width, ASL_bits128_t x, int n);
-ASL_bits1024_t ASL_zero_extend_bits_256_1024(int width, ASL_bits256_t x, int n);
-ASL_bits1024_t ASL_zero_extend_bits_512_1024(int width, ASL_bits512_t x, int n);
-ASL_bits1024_t ASL_zeros_bits_1024(int width);
+ASL_bits1024_t ASL_lsl_bits_1024(int width, ASL_bits1024_t x, ASL_int_t d);
+ASL_bits1024_t ASL_lsr_bits_1024(int width, ASL_bits1024_t x, ASL_int_t d);
+ASL_bits512_t ASL_slice_lowd_1024_512(ASL_bits1024_t x, ASL_int_t lo, ASL_int_t width);
+ASL_bits256_t ASL_slice_lowd_1024_256(ASL_bits1024_t x, ASL_int_t lo, ASL_int_t width);
+ASL_bits128_t ASL_slice_lowd_1024_128(ASL_bits1024_t x, ASL_int_t lo, ASL_int_t width);
+ASL_bits64_t ASL_slice_lowd_1024_64(ASL_bits1024_t x, ASL_int_t lo, ASL_int_t width);
+ASL_bits1024_t ASL_zero_extend_bits_64_1024(int width, ASL_bits64_t x, ASL_int_t n);
+ASL_bits1024_t ASL_zero_extend_bits_128_1024(int width, ASL_bits128_t x, ASL_int_t n);
+ASL_bits1024_t ASL_zero_extend_bits_256_1024(int width, ASL_bits256_t x, ASL_int_t n);
+ASL_bits1024_t ASL_zero_extend_bits_512_1024(int width, ASL_bits512_t x, ASL_int_t n);
+ASL_bits1024_t ASL_zeros_bits_1024(ASL_int_t width);
 
 #ifdef __cplusplus
 }

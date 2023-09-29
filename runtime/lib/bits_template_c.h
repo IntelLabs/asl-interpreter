@@ -30,7 +30,7 @@ ASL_append_bits(N, int x_width, int y_width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
-ASL_asr_bits(N, int width, ASL_BITS_TYPE x, int d)
+ASL_asr_bits(N, int width, ASL_BITS_TYPE x, ASL_int_t d)
 {
         bool sign_bit = ASL_lsr_bits(N, width, x, width - 1).u64[0];
         if (sign_bit) {
@@ -95,7 +95,7 @@ ASL_eor_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
-ASL_mk_mask(N, int width)
+ASL_mk_mask(N, ASL_int_t width)
 {
         return ASL_lsr_bits(N, N, ASL_bits_max(N), N - width);
 }
@@ -132,7 +132,7 @@ ASL_not_bits(N, int width, ASL_BITS_TYPE x)
 }
 
 ASL_BITS_TYPE
-ASL_ones_bits(N, int width)
+ASL_ones_bits(N, ASL_int_t width)
 {
         return ASL_mk_mask(N, width);
 }
@@ -146,7 +146,7 @@ ASL_or_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
-ASL_replicate_bits(N, int width, ASL_BITS_TYPE x, int n)
+ASL_replicate_bits(N, int width, ASL_BITS_TYPE x, ASL_int_t n)
 {
         ASL_BITS_TYPE r = ASL_zeros_bits(N, N);
         while (n-- > 0)
@@ -155,7 +155,7 @@ ASL_replicate_bits(N, int width, ASL_BITS_TYPE x, int n)
 }
 
 ASL_BITS_TYPE
-ASL_slice_lowd(N, N, ASL_BITS_TYPE x, int lo, int width)
+ASL_slice_lowd(N, N, ASL_BITS_TYPE x, ASL_int_t lo, ASL_int_t width)
 {
         x = ASL_lsr_bits(N, N, x, lo);
         return ASL_and_bits(N, N, x, ASL_mk_mask(N, width));
@@ -174,7 +174,7 @@ ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
 }
 
 ASL_BITS_TYPE
-ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, int n)
+ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, ASL_int_t n)
 {
         return x;
 }

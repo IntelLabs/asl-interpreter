@@ -14,7 +14,7 @@
 #undef N
 
 ASL_bits128_t
-ASL_lsl_bits_128(int width, ASL_bits128_t x, int d)
+ASL_lsl_bits_128(int width, ASL_bits128_t x, ASL_int_t d)
 {
         if (d == 0)
                 return x;
@@ -30,7 +30,7 @@ ASL_lsl_bits_128(int width, ASL_bits128_t x, int d)
 }
 
 ASL_bits128_t
-ASL_lsr_bits_128(int width, ASL_bits128_t x, int d)
+ASL_lsr_bits_128(int width, ASL_bits128_t x, ASL_int_t d)
 {
         if (d == 0)
                 return x;
@@ -46,19 +46,19 @@ ASL_lsr_bits_128(int width, ASL_bits128_t x, int d)
 }
 
 ASL_bits64_t
-ASL_slice_lowd_128_64(ASL_bits128_t x, int lo, int width)
+ASL_slice_lowd_128_64(ASL_bits128_t x, ASL_int_t lo, ASL_int_t width)
 {
         return ASL_cast_bits_128_64(ASL_slice_lowd_128_128(x, lo, width));
 }
 
 ASL_bits128_t
-ASL_zero_extend_bits_64_128(int width, ASL_bits64_t x, int n)
+ASL_zero_extend_bits_64_128(int width, ASL_bits64_t x, ASL_int_t n)
 {
         return ASL_bits_128(0, x);
 }
 
 ASL_bits128_t
-ASL_zeros_bits_128(int width)
+ASL_zeros_bits_128(ASL_int_t width)
 {
         return ASL_bits_128(0, 0);
 }
