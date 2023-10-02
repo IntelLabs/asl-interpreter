@@ -410,10 +410,7 @@ and pow2_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
 
 (* Calculate mask with x ones *)
 and mask_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
-  make_binop fmt
-    (fun _ -> minus fmt)
-    (fun _ -> pow2_int loc fmt x)
-    (fun _ -> intLit fmt "1")
+  apply loc fmt (fun _ -> fn_extern fmt (FIdent ("mask_int", 0))) [ x ]
 
 and binop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with

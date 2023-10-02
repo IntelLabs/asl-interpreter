@@ -35,6 +35,12 @@ ASL_frem_int(int64_t x, int64_t y)
         return x - ASL_fdiv_int(x, y) * y;
 }
 
+static inline ASL_int_t
+ASL_mask_int(ASL_int_t w)
+{
+        return UINT64_MAX >> (64 - w);
+}
+
 #ifdef __cplusplus
 }
 #endif
