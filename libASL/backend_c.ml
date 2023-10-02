@@ -651,6 +651,13 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr l
               (fun _ -> expr loc fmt i);
               (fun _ -> expr loc fmt x);
             ])
+  (* File builtin functions *)
+  | FIdent ("asl_file_getc", _), _
+  | FIdent ("asl_file_open", _), _
+  | FIdent ("asl_file_write", _), _ ->
+      raise
+        (Unimplemented
+           (loc, "file builtin function", fun fmt -> FMTAST.funname fmt f))
   (* Helper functions with ASL_ prefix *)
   | FIdent (f, _), _ when String.starts_with ~prefix:"ASL_" f ->
       apply loc fmt (fun _ -> PP.pp_print_string fmt f) args
