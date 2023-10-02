@@ -61,6 +61,36 @@ ASL_int_max_128()
         return ASL_int_128(INT64_MAX, UINT64_MAX);
 }
 
+static inline bool
+ASL_is_pow2_int(ASL_int_t x)
+{
+        return x != 0 && (x & (x - 1)) == 0;
+}
+
+static inline ASL_int_t
+ASL_fdiv_int(ASL_int_t x, ASL_int_t y)
+{
+        const ASL_int_t quot = x / y;
+        const ASL_int_t rem = x % y;
+        return quot - (rem != 0 && quot < 0);
+}
+
+static inline ASL_int_t
+ASL_frem_int(ASL_int_t x, ASL_int_t y)
+{
+        return x - ASL_fdiv_int(x, y) * y;
+}
+
+static inline ASL_int_t
+ASL_mask_int(ASL_int_t w)
+{
+#ifdef ASL_INT128
+        return (unsigned __int128)(-1LL) >> (128 - w);
+#else
+        return UINT64_MAX >> (64 - w);
+#endif
+}
+
 #ifdef __cplusplus
 }
 #endif

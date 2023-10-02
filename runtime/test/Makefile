@@ -13,7 +13,7 @@ CXX = g++
 CPPFLAGS = -I$(GTEST_DIR)/googletest/include -I../include
 CXXFLAGS = -g -Wall -Werror
 
-CC_FILES = arith_test.cc bits_test.cc error.cc
+CC_FILES = integer_test.cc bits_test.cc error.cc
 OBJ_FILES = $(CC_FILES:%.cc=$(OBJ_DIR)/%.o)
 DEP_FILES = $(OBJ_FILES:%.o=%.d)
 

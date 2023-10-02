@@ -7,15 +7,15 @@
 
 #include <stdint.h>
 
-#include "asl/arith.h"
+#include "asl/integer.h"
 
 #include "gtest/gtest.h"
 
-class Arith : public ::testing::Test {
+class Integer : public ::testing::Test {
  protected:
 };
 
-TEST_F(Arith, MaskInt)
+TEST_F(Integer, MaskInt)
 {
     EXPECT_EQ(1LL, ASL_mask_int(1LL));
 #ifdef ASL_INT128
