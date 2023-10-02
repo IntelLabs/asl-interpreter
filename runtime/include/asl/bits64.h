@@ -141,21 +141,9 @@ ASL_slice_lowd_64_64(ASL_bits64_t x, int lo, int width)
 }
 
 static inline ASL_bits64_t
-ASL_slice_hilo(ASL_bits64_t x, int hi, int lo)
-{
-        return (x & ASL_mk_mask_64(hi + 1)) >> lo;
-}
-
-static inline ASL_bits64_t
 ASL_slice_lowd_w(ASL_bits64_t val, ASL_bits64_t x, int lo, int width)
 {
         return (x & ~(ASL_mk_mask_64(width) << lo)) | (val << lo);
-}
-
-static inline ASL_bits64_t
-ASL_slice_hilo_w(ASL_bits64_t val, ASL_bits64_t x, int hi, int lo)
-{
-        return (x & ~(ASL_mk_mask_64(hi - lo + 1) << lo)) | (val << lo);
 }
 
 #define ASL_sub_bits(sizeof_x, n, x, y) \
