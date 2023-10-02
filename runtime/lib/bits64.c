@@ -92,7 +92,7 @@ ASL_lsr_bits_64(int width, ASL_bits64_t x, int d)
 ASL_bits64_t
 ASL_mk_mask_64(int w)
 {
-        return w < 64 ? (1ULL << w) - 1 : UINT64_MAX;
+        return UINT64_MAX >> (64 - w);
 }
 
 ASL_bits64_t

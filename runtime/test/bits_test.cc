@@ -105,6 +105,7 @@ TEST_F(Bits64, Lsr)
 TEST_F(Bits64, MkMask)
 {
     EXPECT_EQ(1ULL, ASL_mk_mask_64(1));
+    EXPECT_EQ(ones, ASL_mk_mask_64(64));
 }
 
 TEST_F(Bits64, Mul)
@@ -442,18 +443,24 @@ TEST_F(Bits128, MkMask)
 {
     EXPECT_EQ(ASL_bits_128(1, UINT64_MAX),
               ASL_mk_mask_128(1 + 64));
+    EXPECT_EQ(ASL_bits_max_128(),
+              ASL_mk_mask_128(128));
 }
 
 TEST_F(Bits256, MkMask)
 {
     EXPECT_EQ(ASL_bits_256(0, 1, UINT64_MAX, UINT64_MAX),
               ASL_mk_mask_256(1 + 128));
+    EXPECT_EQ(ASL_bits_max_256(),
+              ASL_mk_mask_256(256));
 }
 
 TEST_F(Bits512, MkMask)
 {
     EXPECT_EQ(ASL_bits_512(0, 0, 0, 1, UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX),
               ASL_mk_mask_512(1 + 256));
+    EXPECT_EQ(ASL_bits_max_512(),
+              ASL_mk_mask_512(512));
 }
 
 TEST_F(Bits1024, MkMask)
@@ -463,6 +470,8 @@ TEST_F(Bits1024, MkMask)
                             UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX,
                             UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX),
               ASL_mk_mask_1024(1 + 512));
+    EXPECT_EQ(ASL_bits_max_1024(),
+              ASL_mk_mask_1024(1024));
 }
 
 TEST_F(Bits128, Zeros)
