@@ -404,8 +404,8 @@ and pow2_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   make_binop fmt
     (fun _ -> lt_lt fmt)
     (fun _ ->
-      (* TODO determine correct type width. For now use uint64. *)
-      make_cast fmt (fun _ -> kw_uint64 fmt) (fun _ -> intLit fmt "1"))
+      (* TODO determine correct type width. For now use ASL_bits64_t. *)
+      make_cast fmt (fun _ -> bits fmt 64) (fun _ -> intLit fmt "1"))
     (fun _ -> expr loc fmt x)
 
 (* Calculate mask with x ones *)
