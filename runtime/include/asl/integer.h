@@ -65,7 +65,7 @@ ASL_int_zero_128()
 static inline ASL_int128_t
 ASL_int_max_128()
 {
-        return ASL_int_128(UINT64_MAX, UINT64_MAX);
+        return ASL_int_128(INT64_MAX, UINT64_MAX);
 }
 
 static inline ASL_int256_t
