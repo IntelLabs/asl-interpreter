@@ -1220,6 +1220,9 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
 
+let extern_declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
+  vbox fmt (fun _ -> map fmt (PP.fprintf fmt "extern @?%a" declaration) xs)
+
 let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ ->
     let excs = List.filter_map

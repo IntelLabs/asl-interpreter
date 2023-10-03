@@ -354,11 +354,18 @@ let main () =
         );
         let filename_v = !output_file ^ "_vars" in
         emit_c_header filename_v sys_h_filenames h_filenames (fun fmt ->
-            Backend_c.declarations fmt (var_decls ds)
+            Backend_c.extern_declarations fmt (var_decls ds)
         );
-        emit_c_source (!output_file ^ "_funs")
-          (List.map (fun s -> s ^ ".h") [ filename_t; filename_e; filename_v ])
-          (fun fmt -> Backend_c.declarations fmt (fun_decls ds))
+
+        let gen_h_filenames =
+          List.map (fun s -> s ^ ".h") [ filename_t; filename_e; filename_v ]
+        in
+
+        emit_c_source filename_v gen_h_filenames (fun fmt ->
+            Backend_c.declarations fmt (var_decls ds));
+
+        emit_c_source (!output_file ^ "_funs") gen_h_filenames (fun fmt ->
+            Backend_c.declarations fmt (fun_decls ds))
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
             Backend_verilog.declarations fmt (List.rev ds))
