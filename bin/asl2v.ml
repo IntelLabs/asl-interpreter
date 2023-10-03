@@ -355,7 +355,7 @@ let main () =
             Backend_c.declarations fmt (var_decls ds)
         );
         emit_c_source (!output_file ^ "_funs.c")
-          ([ filename_t; filename_e; filename_v ] @ h_filenames)
+          [ filename_t; filename_e; filename_v ]
           (fun fmt -> Backend_c.declarations fmt (fun_decls ds))
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
