@@ -1258,8 +1258,14 @@ let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
                                 tycon tc
                                 tycon tc))
       excs;
-    PP.fprintf fmt "ASL_exception_t ASL_exception = (ASL_exception_t){ ._exc={.ASL_tag = ASL_no_exception} };@,"
-    )
+    PP.fprintf fmt "@,extern ASL_exception_t ASL_exception;@,";
+  )
+
+let exceptions_init (fmt : PP.formatter) : unit =
+  vbox fmt (fun _ ->
+    PP.fprintf fmt "ASL_exception_t ASL_exception =@,";
+    PP.fprintf fmt "    (ASL_exception_t){ ._exc = { .ASL_tag = ASL_no_exception } };@,"
+  )
 
 (****************************************************************
  * End

@@ -361,6 +361,9 @@ let main () =
           List.map (fun s -> s ^ ".h") [ filename_t; filename_e; filename_v ]
         in
 
+        emit_c_source filename_e gen_h_filenames (fun fmt ->
+            Backend_c.exceptions_init fmt);
+
         emit_c_source filename_v gen_h_filenames (fun fmt ->
             Backend_c.declarations fmt (var_decls ds));
 
