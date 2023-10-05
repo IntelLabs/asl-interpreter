@@ -1233,15 +1233,15 @@ let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
         xs
     in
     exception_tcs := List.map (fun (tc, _, _) -> tc) excs;
-    PP.fprintf fmt "enum ASL_exception_tag { ASL_no_exception, %a };@,@,"
-      (Fun.flip commasep (fun (tc, fs, _) -> PP.fprintf fmt "tag_%a" tycon tc)) excs;
+    PP.fprintf fmt "typedef enum ASL_exception_tag { ASL_no_exception, %a } ASL_exception_tag_t;@,@,"
+      (Fun.flip commasep (fun (tc, _, _) -> PP.fprintf fmt "tag_%a" tycon tc)) excs;
     List.iter (fun (tc, fs, loc) ->
       typedef fmt (fun _ ->
           kw_struct fmt;
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
-                  PP.fprintf fmt "enum ASL_exception_tag ASL_tag;@,";
+                  PP.fprintf fmt "ASL_exception_tag_t ASL_tag;@,";
                   cutsep fmt
                     (fun (f, t) ->
                       varty loc fmt f t;
@@ -1252,8 +1252,8 @@ let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
           tycon fmt tc);
       cut fmt)
       excs;
-    PP.fprintf fmt "@,typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
-      "struct { enum ASL_exception_tag ASL_tag; } _exc;"
+    PP.fprintf fmt "typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
+      "struct { ASL_exception_tag_t ASL_tag; } _exc;"
       (PP.pp_print_list (fun fmt (tc, _, _) -> PP.fprintf fmt "    %a _%a;"
                                 tycon tc
                                 tycon tc))
