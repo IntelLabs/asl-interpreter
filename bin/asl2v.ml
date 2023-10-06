@@ -382,7 +382,7 @@ let main () =
           let threshold = List.length ds / !opt_num_c_files in
           let rec emit_funs_by_chunk (i : int) (acc : AST.declaration list) = function
             (* last chunk *)
-            | l when i + 1 = !opt_num_c_files ->
+            | l when i = !opt_num_c_files ->
                 emit_funs ~index:i (List.rev acc @ l)
             | h :: t when List.length acc < threshold ->
                 emit_funs_by_chunk i (h :: acc) t
@@ -391,7 +391,7 @@ let main () =
                 emit_funs_by_chunk (i + 1) [ h ] t
             | [] -> emit_funs ~index:i (List.rev acc)
           in
-          emit_funs_by_chunk 0 [] ds
+          emit_funs_by_chunk 1 [] ds
     | Backend_Verilog ->
         Utils.to_file !output_file (fun fmt ->
             Backend_verilog.declarations fmt (List.rev ds))
