@@ -75,29 +75,29 @@ module Env = struct
   let throw (env : t) : unit =
     ScopeStack.map_inplace (Fun.const Values.top) env.locals
 
-  let addLocalVar (env : t) (x : ident) (v : Values.t) : unit =
+  let addLocalVar (env : t) (x : Ident.t) (v : Values.t) : unit =
     ScopeStack.add env.locals x v
 
-  let addLocalConst (env : t) (x : ident) (v : Values.t) : unit =
+  let addLocalConst (env : t) (x : Ident.t) (v : Values.t) : unit =
     (* todo: should constants be held separately from local vars? *)
     ScopeStack.add env.locals x v
 
-  let getVar (env : t) (x : ident) : Values.t =
+  let getVar (env : t) (x : Ident.t) : Values.t =
     from_option (ScopeStack.get env.locals x) (fun _ ->
         from_option
           (Option.map Values.singleton
              (Eval.GlobalEnv.get_global_constant env.globalConsts x))
           (fun _ ->
-            raise (Value.EvalError (Unknown, "getVar: " ^ pprint_ident x))))
+            raise (Value.EvalError (Unknown, "getVar: " ^ Ident.pprint x))))
 
-  let setVar (env : t) (x : ident) (v : Values.t) : unit =
+  let setVar (env : t) (x : Ident.t) (v : Values.t) : unit =
     ignore (ScopeStack.set env.locals x v)
 
   let mapLocals (env : t) (f : Values.t -> Values.t) : unit =
     ScopeStack.map_inplace f env.locals
 end
 
-let mkEnv (genv : Eval.GlobalEnv.t) (values: (AST.ident * Value.value) list) : Env.t =
+let mkEnv (genv : Eval.GlobalEnv.t) (values: (Ident.t * Value.value) list) : Env.t =
   let env = Env.newEnv genv in
   List.iter (fun (x, v) -> Env.addLocalConst env x (Values.singleton v)) values;
   env
@@ -530,7 +530,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           [ Stmt_Try(tb', pos, catchers', odefault', loc) ]
 
 (** Create local environment and add parameters and arguments *)
-let mk_fun_env (env : Eval.GlobalEnv.t) (f : AST.ident) : Env.t =
+let mk_fun_env (env : Eval.GlobalEnv.t) (f : Ident.t) : Env.t =
   let fun_env = Env.newEnv env in
   ( match Eval.GlobalEnv.get_function env f with
   | Some (tvs, args, _, _) ->
@@ -579,11 +579,11 @@ let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
 
 let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :
     AST.declaration list =
-  let isConstant (v : ident) : bool =
+  let isConstant (v : Ident.t) : bool =
     Option.is_some (Eval.GlobalEnv.get_global_constant genv v)
   in
-  let isImpurePrim (v : ident) : bool =
-    List.exists (fun p -> Ident.matches p v) Value.impure_prims
+  let isImpurePrim (v : Ident.t) : bool =
+    List.exists (fun name -> Ident.matches v ~name) Value.impure_prims
   in
   impure_funs := identify_impure_funs isConstant isImpurePrim ds;
   List.map (xform_decl genv) ds

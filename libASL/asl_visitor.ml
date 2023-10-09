@@ -38,14 +38,14 @@ type access_kind
 
 class type aslVisitor =
   object
-    method vvar : access_kind -> ident -> ident visitAction
+    method vvar : access_kind -> Ident.t -> Ident.t visitAction
     method ve_elsif : e_elsif -> e_elsif visitAction
     method vslice : slice -> slice visitAction
     method vpattern : pattern -> pattern visitAction
     method vexpr : expr -> expr visitAction
     method vconstraint : constraint_range -> constraint_range visitAction
     method vtype : ty -> ty visitAction
-    method vlvar : ident -> ident visitAction
+    method vlvar : Ident.t -> Ident.t visitAction
     method vlexpr : lexpr -> lexpr visitAction
     method vdeclitem : decl_item -> decl_item visitAction
     method vstmt : stmt -> stmt list visitAction
@@ -54,8 +54,8 @@ class type aslVisitor =
     method vcatcher : catcher -> catcher visitAction
     method vmapfield : mapfield -> mapfield visitAction
     method vdecl : declaration -> declaration visitAction
-    method enter_scope : ident list -> unit
-    method leave_scope : ident list -> unit
+    method enter_scope : Ident.t list -> unit
+    method leave_scope : Ident.t list -> unit
   end
 
 (****************************************************************)
@@ -76,12 +76,12 @@ class type aslVisitor =
 let rec visit_exprs (vis : aslVisitor) (xs : expr list) : expr list =
   mapNoCopy (visit_expr vis) xs
 
-and visit_var (vis : aslVisitor) (kind : access_kind) (x : ident) : ident =
-  let aux (_ : aslVisitor) (x : ident) : ident = x in
+and visit_var (vis : aslVisitor) (kind : access_kind) (x : Ident.t) : Ident.t =
+  let aux (_ : aslVisitor) (x : Ident.t) : Ident.t = x in
   doVisit vis (vis#vvar kind x) aux x
 
-and visit_lvar (vis : aslVisitor) (x : ident) : ident =
-  let aux (_ : aslVisitor) (x : ident) : ident = x in
+and visit_lvar (vis : aslVisitor) (x : Ident.t) : Ident.t =
+  let aux (_ : aslVisitor) (x : Ident.t) : Ident.t = x in
   doVisit vis (vis#vlvar x) aux x
 
 and visit_e_elsif (vis : aslVisitor) (x : e_elsif) : e_elsif =
@@ -224,7 +224,7 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
   in
   doVisit vis (vis#vexpr x) aux x
 
-and visit_fieldassignment (vis : aslVisitor) (x : ident * expr) : ident * expr =
+and visit_fieldassignment (vis : aslVisitor) (x : Ident.t * expr) : Ident.t * expr =
   match x with
   | f, e ->
       let e' = visit_expr vis e in
@@ -340,30 +340,30 @@ and visit_lexpr (vis : aslVisitor) (x : lexpr) : lexpr =
   in
   doVisit vis (vis#vlexpr x) aux x
 
-let with_locals (vis : aslVisitor) (ls : ident list) (f : 'a -> 'b) (x: 'a) : 'b =
+let with_locals (vis : aslVisitor) (ls : Ident.t list) (f : 'a -> 'b) (x: 'a) : 'b =
   vis#enter_scope ls;
   let result = f x in
   vis#leave_scope ls;
   result
 
-let rec locals_of_declitem (x : decl_item) : ident list =
+let rec locals_of_declitem (x : decl_item) : Ident.t list =
   match x with
   | DeclItem_Var (v, _) -> [ v ]
   | DeclItem_Tuple dis -> List.concat_map locals_of_declitem dis
   | DeclItem_BitTuple dbs -> List.filter_map (fun (ov, ty) -> ov) dbs
   | DeclItem_Wildcard _ -> []
 
-let locals_of_stmt (x : stmt) : ident list =
+let locals_of_stmt (x : stmt) : Ident.t list =
   match x with
   | Stmt_VarDeclsNoInit (vs, ty, loc) -> vs
   | Stmt_VarDecl (dis, i, loc)
   | Stmt_ConstDecl (dis, i, loc) -> locals_of_declitem dis
   | _ -> []
 
-let visit_decl_bit (vis : aslVisitor) (x : (ident option * ty)) : (ident option * ty) =
+let visit_decl_bit (vis : aslVisitor) (x : (Ident.t option * ty)) : (Ident.t option * ty) =
   ( match x with
   | (ov, ty) ->
-      let ov' = mapOptionNoCopy (visit_lvar vis) ov in 
+      let ov' = mapOptionNoCopy (visit_lvar vis) ov in
       let ty' = visit_type vis ty in
       if ov == ov' && ty == ty' then x else (ov', ty')
   )
@@ -509,26 +509,26 @@ let visit_mapfield (vis : aslVisitor) (x : mapfield) : mapfield =
   in
   doVisit vis (vis#vmapfield x) aux x
 
-let visit_parameter (vis : aslVisitor) (x : ident * ty option) :
-    ident * ty option =
+let visit_parameter (vis : aslVisitor) (x : Ident.t * ty option) :
+    Ident.t * ty option =
   match x with
   | v, oty ->
       let oty' = mapOptionNoCopy (visit_type vis) oty in
       let v' = visit_var vis Definition v in
       if oty == oty' && v == v' then x else (v', oty')
 
-let visit_parameters (vis : aslVisitor) (xs : (ident * ty option) list) :
-    (ident * ty option) list =
+let visit_parameters (vis : aslVisitor) (xs : (Ident.t * ty option) list) :
+    (Ident.t * ty option) list =
   mapNoCopy (visit_parameter vis) xs
 
-let visit_arg (vis : aslVisitor) (x : ident * ty) : ident * ty =
+let visit_arg (vis : aslVisitor) (x : Ident.t * ty) : Ident.t * ty =
   match x with
   | v, ty ->
       let ty' = visit_type vis ty in
       let v' = visit_var vis Definition v in
       if ty == ty' && v == v' then x else (v', ty')
 
-let visit_args (vis : aslVisitor) (xs : (ident * ty) list) : (ident * ty) list =
+let visit_args (vis : aslVisitor) (xs : (Ident.t * ty) list) : (Ident.t * ty) list =
   mapNoCopy (visit_arg vis) xs
 
 let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
@@ -583,7 +583,7 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
         let args' = with_locals vis locals (visit_args vis) args in
         let ty' = with_locals vis locals (visit_type vis) ty in
         if ty == ty' && f == f' && ps == ps' && args == args' then x
-        else Decl_FunType (f', ps', args', ty', loc) 
+        else Decl_FunType (f', ps', args', ty', loc)
     | Decl_FunDefn (f, ps, args, ty, b, loc) ->
         let locals = List.map fst ps @ List.map fst args in
         let f' = visit_var vis Definition f in
@@ -730,14 +730,14 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
 
 class nopAslVisitor : aslVisitor =
   object
-    method vvar (_ : access_kind) (_ : ident) = DoChildren
+    method vvar (_ : access_kind) (_ : Ident.t) = DoChildren
     method ve_elsif (_ : e_elsif) = DoChildren
     method vslice (_ : slice) = DoChildren
     method vpattern (_ : pattern) = DoChildren
     method vexpr (_ : expr) = DoChildren
     method vconstraint (_ : constraint_range) = DoChildren
     method vtype (_ : ty) = DoChildren
-    method vlvar (_ : ident) = DoChildren
+    method vlvar (_ : Ident.t) = DoChildren
     method vlexpr (_ : lexpr) = DoChildren
     method vdeclitem (_ : decl_item) = DoChildren
     method vstmt (_ : stmt) = DoChildren

@@ -14,7 +14,7 @@ end
 
 val unroll_loops : bool ref
 
-val mkEnv : Eval.GlobalEnv.t -> (AST.ident * Value.value) list -> Env.t
+val mkEnv : Eval.GlobalEnv.t -> (Ident.t * Value.value) list -> Env.t
 
 val xform_ty : Env.t -> AST.ty -> AST.ty
 val xform_expr : Env.t -> AST.expr -> AST.expr

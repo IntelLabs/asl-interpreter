@@ -56,7 +56,7 @@ let ixtype_basetype (ty : AST.ixtype) : AST.ty =
  *)
 let binop_table : AST.binop Bindings.t ref = ref Bindings.empty
 
-let add_binop (op : binop) (x : ident) : unit =
+let add_binop (op : binop) (x : Ident.t) : unit =
   binop_table := Bindings.add x op !binop_table
 
 (** Resugar expression *)
@@ -70,12 +70,12 @@ let ppp_type (x : AST.ty) : AST.ty = resugar_type !binop_table x
 (****************************************************************)
 
 type typedef =
-  | Type_Builtin of ident
+  | Type_Builtin of Ident.t
   | Type_Forward
-  | Type_Record of (ident list * (ident * ty) list)
-  | Type_Exception of (ident * ty) list
-  | Type_Enumeration of ident list
-  | Type_Abbreviation of (ident list * ty)
+  | Type_Record of (Ident.t list * (Ident.t * ty) list)
+  | Type_Exception of (Ident.t * ty) list
+  | Type_Enumeration of Ident.t list
+  | Type_Abbreviation of (Ident.t list * ty)
 
 let pp_typedef (x : typedef) (fmt : formatter) : unit =
   match x with
@@ -128,7 +128,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
 
 (* Information about variables *)
 type var_info =
-  { name        : AST.ident;
+  { name        : Ident.t;
     loc         : AST.l;
     ty          : AST.ty;
     is_local    : bool;
@@ -145,11 +145,11 @@ let pp_var_info (fmt : Format.formatter) (x : var_info) : unit =
 
 (* Information about functions *)
 type funtype =
-  { funname : AST.ident;
+  { funname : Ident.t;
     loc     : AST.l;
     isArray : bool;
-    params  : (AST.ident * AST.ty option) list;
-    atys    : (AST.ident * AST.ty) list;
+    params  : (Ident.t * AST.ty option) list;
+    atys    : (Ident.t * AST.ty) list;
     ovty    : AST.ty option; (* type of rhs in setter functions *)
     rty     : AST.ty;
   }
@@ -189,23 +189,23 @@ module GlobalEnv : sig
 
   val mkempty : unit -> t
   val clone : t -> t
-  val addType : t -> AST.l -> AST.ident -> typedef -> unit
-  val getType : t -> AST.ident -> typedef option
-  val isType : t -> AST.ident -> bool
-  val isTycon : t -> AST.ident -> bool
-  val isEnum : t -> AST.ident -> bool
-  val addFuns : t -> AST.l -> AST.ident -> funtype list -> unit
-  val getFuns : t -> AST.ident -> funtype list
-  val addSetterFuns : t -> AST.ident -> funtype list -> unit
-  val getSetterFun : t -> AST.ident -> funtype list
+  val addType : t -> AST.l -> Ident.t -> typedef -> unit
+  val getType : t -> Ident.t -> typedef option
+  val isType : t -> Ident.t -> bool
+  val isTycon : t -> Ident.t -> bool
+  val isEnum : t -> Ident.t -> bool
+  val addFuns : t -> AST.l -> Ident.t -> funtype list -> unit
+  val getFuns : t -> Ident.t -> funtype list
+  val addSetterFuns : t -> Ident.t -> funtype list -> unit
+  val getSetterFun : t -> Ident.t -> funtype list
   val addOperators1 : t -> AST.l -> AST.unop -> funtype list -> unit
   val getOperators1 : t -> AST.l -> AST.unop -> funtype list
   val addOperators2 : t -> AST.l -> AST.binop -> funtype list -> unit
   val getOperators2 : t -> AST.l -> AST.binop -> funtype list
   val addGlobalVar : t -> var_info -> unit
-  val getGlobalVar : t -> AST.ident -> var_info option
-  val addConstant : t -> AST.ident -> AST.expr -> unit
-  val getConstant : t -> AST.ident -> AST.expr option
+  val getGlobalVar : t -> Ident.t -> var_info option
+  val addConstant : t -> Ident.t -> AST.expr -> unit
+  val getConstant : t -> Ident.t -> AST.expr option
 end = struct
   type t = {
     mutable types : typedef Bindings.t;
@@ -239,8 +239,8 @@ end = struct
       constants = env.constants;
     }
 
-  let addType (env : t) (loc : AST.l) (qid : AST.ident) (t : typedef) : unit =
-    (* Format.fprintf fmt "New type %a at %a\n" FMT.varname qid FMT.loc loc; *)
+  let addType (env : t) (loc : AST.l) (qid : Ident.t) (t : typedef) : unit =
+    (* Format.fprintf fmt "New type %a at %a\n" FMT.varname FMT.loc loc; *)
     let t' =
       match (Bindings.find_opt qid env.types, t) with
       | None, _ -> t
@@ -257,26 +257,26 @@ end = struct
     in
     env.types <- Bindings.add qid t' env.types
 
-  let getType (env : t) (qid : AST.ident) : typedef option =
+  let getType (env : t) (qid : Ident.t) : typedef option =
     Bindings.find_opt qid env.types
 
-  let isType (env : t) (qid : AST.ident) : bool = true (* todo *)
-  let isTycon (env : t) (qid : AST.ident) : bool = true (* todo *)
-  let isEnum (env : t) (qid : AST.ident) : bool = true (* todo *)
+  let isType (env : t) (qid : Ident.t) : bool = true (* todo *)
+  let isTycon (env : t) (qid : Ident.t) : bool = true (* todo *)
+  let isEnum (env : t) (qid : Ident.t) : bool = true (* todo *)
 
-  let addFuns (env : t) (loc : AST.l) (qid : AST.ident) (ftys : funtype list) :
+  let addFuns (env : t) (loc : AST.l) (qid : Ident.t) (ftys : funtype list) :
       unit =
     env.functions <- Bindings.add qid ftys env.functions
 
-  let getFuns (env : t) (qid : AST.ident) : funtype list =
+  let getFuns (env : t) (qid : Ident.t) : funtype list =
     match Bindings.find_opt qid env.functions with
     | None -> []
     | Some tys -> tys
 
-  let addSetterFuns (env : t) (qid : AST.ident) (ftys : funtype list) : unit =
+  let addSetterFuns (env : t) (qid : Ident.t) (ftys : funtype list) : unit =
     env.setters <- Bindings.add qid ftys env.setters
 
-  let getSetterFun (env : t) (qid : AST.ident) : funtype list =
+  let getSetterFun (env : t) (qid : Ident.t) : funtype list =
     match Bindings.find_opt qid env.setters with None -> [] | Some tys -> tys
 
   let addOperators1 (env : t) (loc : AST.l) (op : AST.unop)
@@ -308,14 +308,14 @@ end = struct
     (* Format.fprintf fmt "New global %a\n" pp_var_info v; *)
     env.globals <- Bindings.add v.name v env.globals
 
-  let getGlobalVar (env : t) (v : AST.ident) : var_info option =
+  let getGlobalVar (env : t) (v : Ident.t) : var_info option =
     (* Format.fprintf fmt "Looking for global variable %a\n" FMT.varname v; *)
     Bindings.find_opt v env.globals
 
-  let getConstant (env : t) (v : AST.ident) : AST.expr option =
+  let getConstant (env : t) (v : Ident.t) : AST.expr option =
     Bindings.find_opt v env.constants
 
-  let addConstant (env : t) (v : AST.ident) (e : AST.expr) : unit =
+  let addConstant (env : t) (v : Ident.t) (e : AST.expr) : unit =
     let e' = subst_fun_expr (getConstant env) e in
     env.constants <- Bindings.add v e' env.constants
 end
@@ -327,7 +327,7 @@ let subst_consts_type (env : GlobalEnv.t) (ty : AST.ty) : AST.ty =
   subst_fun_type (GlobalEnv.getConstant env) ty
 
 (** expand a type definition using type parameters *)
-let expand_type (loc : AST.l) (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
+let expand_type (loc : AST.l) (ps : Ident.t list) (ty : AST.ty) (es : expr list) : AST.ty =
   if List.length ps <> List.length es then begin
     raise (TypeError (loc, "wrong number of type parameters"))
   end;
@@ -362,8 +362,8 @@ let width_of_type (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.expr =
     - a list of fieldname/slice pairs for registers
  *)
 type fieldtypes =
-  | FT_Record of (ident * ty) list
-  | FT_Register of (AST.slice list * ident) list
+  | FT_Record of (Ident.t * ty) list
+  | FT_Register of (AST.slice list * Ident.t) list
 
 (** Get fieldtype information for a record/register type *)
 let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
@@ -375,7 +375,7 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
         FT_Record fs'
       | Some (Type_Exception fs) ->
         FT_Record fs
-      | _ -> raise (IsNotA (loc, "record or exception", pprint_ident tc)))
+      | _ -> raise (IsNotA (loc, "record or exception", Ident.pprint tc)))
   | Type_Register (wd, fs) -> FT_Register fs
   | Type_OfExpr e ->
       raise
@@ -383,30 +383,30 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
   | _ -> raise (IsNotA (loc, "record/register", pp_type x))
 
 (** Get fieldtype information for a named field of a record *)
-let get_recordfield (loc : AST.l) (rfs : (ident * ty) list) (f : ident) : AST.ty
+let get_recordfield (loc : AST.l) (rfs : (Ident.t * ty) list) (f : Ident.t) : AST.ty
     =
   match List.filter (fun (fnm, _) -> fnm = f) rfs with
   | [ (_, fty) ] -> fty
-  | [] -> raise (UnknownObject (loc, "field", pprint_ident f))
-  | fs -> raise (Ambiguous (loc, "field", pprint_ident f))
+  | [] -> raise (UnknownObject (loc, "field", Ident.pprint f))
+  | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
 
 (** Get fieldtype information for a named field of a slice *)
-let get_regfield_info (loc : AST.l) (rfs : (AST.slice list * ident) list)
-    (f : ident) : AST.slice list =
+let get_regfield_info (loc : AST.l) (rfs : (AST.slice list * Ident.t) list)
+    (f : Ident.t) : AST.slice list =
   match List.filter (fun (_, fnm) -> fnm = f) rfs with
   | [ (ss, _) ] -> ss
-  | [] -> raise (UnknownObject (loc, "field", pprint_ident f))
-  | fs -> raise (Ambiguous (loc, "field", pprint_ident f))
+  | [] -> raise (UnknownObject (loc, "field", Ident.pprint f))
+  | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
 
 (** Get named field of a register and calculate type *)
-let get_regfield (loc : AST.l) (rfs : (AST.slice list * ident) list) (f : ident)
+let get_regfield (loc : AST.l) (rfs : (AST.slice list * Ident.t) list) (f : Ident.t)
     : AST.slice list * AST.ty =
   let ss = get_regfield_info loc rfs f in
   (ss, type_bits (slices_width ss))
 
 (** Get named fields of a register and calculate type of concatenating them *)
-let get_regfields (loc : AST.l) (rfs : (AST.slice list * ident) list)
-    (fs : ident list) : AST.slice list * AST.ty =
+let get_regfields (loc : AST.l) (rfs : (AST.slice list * Ident.t) list)
+    (fs : Ident.t list) : AST.slice list * AST.ty =
   let ss = List.flatten (List.map (get_regfield_info loc rfs) fs) in
   (ss, type_bits (slices_width ss))
 
@@ -421,8 +421,8 @@ module Env : sig
   val globals : t -> GlobalEnv.t
   val nest : (t -> 'a) -> t -> 'a
   val addLocalVar : t -> var_info -> unit
-  val getVar : t -> AST.ident -> var_info option
-  val markModified : t -> AST.ident -> unit
+  val getVar : t -> Ident.t -> var_info option
+  val markModified : t -> Ident.t -> unit
   val addConstraint : t -> AST.l -> AST.expr -> unit
   val getConstraints : t -> AST.expr list
   val setReturnType : t -> AST.ty -> unit
@@ -467,7 +467,7 @@ end = struct
     parent.modified <- IdentSet.union parent.modified child.modified;
     r
 
-  let rec search_var (env : GlobalEnv.t) (bss : var_info Bindings.t list) (v : AST.ident) : var_info option =
+  let rec search_var (env : GlobalEnv.t) (bss : var_info Bindings.t list) (v : Ident.t) : var_info option =
     ( match bss with
     | bs :: bss' -> orelse_option (Bindings.find_opt v bs) (fun _ -> search_var env bss' v)
     | [] -> GlobalEnv.getGlobalVar env v
@@ -489,11 +489,11 @@ end = struct
     );
     if not v.is_constant then env.modified <- IdentSet.add v.name env.modified
 
-  let getVar (env : t) (v : AST.ident) : var_info option =
+  let getVar (env : t) (v : Ident.t) : var_info option =
     (* Format.fprintf fmt "Looking for variable %a\n" FMT.varname v; *)
     search_var env.globals env.locals v
 
-  let markModified (env : t) (v : AST.ident) : unit =
+  let markModified (env : t) (v : Ident.t) : unit =
     env.modified <- IdentSet.add v env.modified
 
   let addConstraint (env : t) (loc : AST.l) (c : AST.expr) : unit =
@@ -565,7 +565,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
   match x with
   | Expr_Var v ->
       let intsort = Z3.Arithmetic.Integer.mk_sort ctx in
-      Z3.Expr.mk_const_s ctx (pprint_ident v) intsort
+      Z3.Expr.mk_const_s ctx (Ident.pprint v) intsort
   | Expr_Parens y -> z3_of_expr ctx ufs y
   | Expr_LitInt i -> Z3.Arithmetic.Integer.mk_numeral_s ctx i
   (* todo: the following lines involving DIV are not sound *)
@@ -819,7 +819,7 @@ let synthesize_parameters (env : Env.t) (loc : AST.l)
   (* Extract values of the parameters from s *)
   let check_parameter (v, oe) =
     let e = from_option oe (fun _ ->
-        raise (TypeError (loc, "unable to synthesize type parameter " ^ pprint_ident v)))
+        raise (TypeError (loc, "unable to synthesize type parameter " ^ Ident.pprint v)))
     in
     (v, e)
   in
@@ -834,7 +834,7 @@ let synthesize_parameters (env : Env.t) (loc : AST.l)
 
 (** Instantiating a function type produces the following information *)
 type fun_instance =
-  { name       : AST.ident;
+  { name       : Ident.t;
     parameters : AST.expr list;
     ovty       : AST.ty option; (* type of setter rhs *)
     rty        : AST.ty;
@@ -941,7 +941,7 @@ let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
       reportChoices loc what nm tys fs;
       raise (Ambiguous (loc, what, nm))
 
-let check_duplicate_field_names (fx : 'a -> ident) (fs : 'a list) (loc : AST.l) =
+let check_duplicate_field_names (fx : 'a -> Ident.t) (fs : 'a list) (loc : AST.l) =
   let fieldnames = ref IdentSet.empty in
   List.iter (fun f ->
       let f' = fx f in
@@ -957,10 +957,10 @@ let check_duplicate_field_names (fx : 'a -> ident) (fs : 'a list) (loc : AST.l) 
 
 (** Disambiguate and typecheck application of a function to a list of arguments *)
 let tc_apply (env : Env.t) (loc : AST.l) (what : string)
-    (f : AST.ident) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
+    (f : Ident.t) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
   let genv = Env.globals env in
   let funs = GlobalEnv.getFuns genv f in
-  let nm = pprint_ident f in
+  let nm = Ident.pprint f in
   match funs with
   | [] ->
       raise (UnknownObject (loc, what, nm))
@@ -1010,20 +1010,20 @@ let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
 (****************************************************************)
 
 (** Lookup a variable in environment *)
-let get_var (env : Env.t) (loc : AST.l) (v : AST.ident) : var_info =
-  from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", pprint_ident v)))
+let get_var (env : Env.t) (loc : AST.l) (v : Ident.t) : var_info =
+  from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", Ident.pprint v)))
 
 (** check that we have exactly the fields required *)
-let check_field_assignments (loc : AST.l) (fs : (ident * ty) list) (fas : (ident * expr) list) : unit =
+let check_field_assignments (loc : AST.l) (fs : (Ident.t * ty) list) (fas : (Ident.t * expr) list) : unit =
   let expected = IdentSet.of_list (List.map fst fs) in
   let assigned = IdentSet.of_list (List.map fst fas) in
   if not (IdentSet.equal assigned expected) then begin
     let missing = IdentSet.elements (IdentSet.diff expected assigned) in
     let extra = IdentSet.elements (IdentSet.diff assigned expected) in
     let msg = "record initializer is missing fields "
-      ^ String.concat ", " (List.map pprint_ident missing)
+      ^ String.concat ", " (List.map Ident.pprint missing)
       ^ " and/or has extra fields "
-      ^ String.concat ", " (List.map pprint_ident extra)
+      ^ String.concat ", " (List.map Ident.pprint extra)
     in
     raise (TypeError (loc, msg))
   end
@@ -1201,11 +1201,11 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       | Expr_Var a -> (
           let tys = List.map (function _, ty -> ty) ss' in
           let getters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
+            GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix a ~suffix:"read")
           in
           let ogetters =
             chooseFunction (Env.globals env) loc "getter function"
-              (pprint_ident a) true tys getters
+              (Ident.pprint a) true tys getters
           in
           match ogetters with
           | Some fty when all_single ->
@@ -1222,12 +1222,12 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       | _ -> tc_slice_expr env loc e ss')
   | Expr_RecordInit (tc, es, fas) ->
       if not (GlobalEnv.isType (Env.globals env) tc) then
-        raise (IsNotA (loc, "type constructor", pprint_ident tc));
+        raise (IsNotA (loc, "type constructor", Ident.pprint tc));
       let (ps, fs) =
         match GlobalEnv.getType (Env.globals env) tc with
         | Some (Type_Record (ps, fs)) -> (ps, fs)
         | Some (Type_Exception fs) -> ([], fs)
-        | _ -> raise (IsNotA (loc, "record or exception type", pprint_ident tc))
+        | _ -> raise (IsNotA (loc, "record or exception type", Ident.pprint tc))
       in
       if List.length es <> List.length ps then
         raise (TypeError (loc, "wrong number of type parameters"));
@@ -1271,14 +1271,14 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
           end;
           (Expr_RecordInit (v, [], []), Type_Constructor (v, []))
         | Some _ ->
-          raise (IsNotA (loc, "record or exception type", pprint_ident v));
+          raise (IsNotA (loc, "record or exception type", Ident.pprint v));
         | None ->
           let getters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
+            GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix v ~suffix:"read")
           in
           match
             chooseFunction (Env.globals env) loc "getter function"
-              (pprint_ident v) false [] getters
+              (Ident.pprint v) false [] getters
           with
           | Some fty ->
               let fty' = instantiate_fun env loc fty [] [] in
@@ -1286,7 +1286,7 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
           | None ->
               raise
                 (UnknownObject
-                   (loc, "variable or getter functions", pprint_ident v))
+                   (loc, "variable or getter functions", Ident.pprint v))
         )
       )
   | Expr_Parens e ->
@@ -1360,7 +1360,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
   | Type_Constructor (tc, es) ->
       let es' = List.map (check_expr env loc type_integer) es in
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
-        raise (IsNotA (loc, "type constructor", pprint_ident tc))
+        raise (IsNotA (loc, "type constructor", Ident.pprint tc))
       end;
       Type_Constructor (tc, es')
   | Type_OfExpr e ->
@@ -1379,7 +1379,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       Type_Register (wd, fs')
   | Type_Array (Index_Enum tc, ety) ->
       if not (GlobalEnv.isEnum (Env.globals env) tc) then
-        raise (IsNotA (loc, "enumeration type", pprint_ident tc));
+        raise (IsNotA (loc, "enumeration type", Ident.pprint tc));
       let ety' = tc_type env loc ety in
       Type_Array (Index_Enum tc, ety')
   | Type_Array (Index_Int sz, ety) ->
@@ -1459,31 +1459,31 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
           (LExpr_Var i.name, i.ty)
       | None -> (
           let getters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix v "read")
+            GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix v ~suffix:"read")
           in
           let setters =
-            GlobalEnv.getSetterFun (Env.globals env) (addSuffix v "write")
+            GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix v ~suffix:"write")
           in
           let ogetter =
             chooseFunction (Env.globals env) loc "var getter function"
-              (pprint_ident v) false [] getters
+              (Ident.pprint v) false [] getters
           in
           match ogetter with
           | Some fty ->
               let gty =
                 match
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (pprint_ident v) false [] setters
+                    (Ident.pprint v) false [] setters
                 with
                 | Some gty -> gty
                 | None ->
                     raise
-                      (UnknownObject (loc, "var setter function", pprint_ident v))
+                      (UnknownObject (loc, "var setter function", Ident.pprint v))
               in
               let fty' = instantiate_fun env loc fty [] [] in
               let throws = false in (* todo: need to allow ? on var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, [], throws), fty'.rty)
-          | None -> raise (UnknownObject (loc, "variable", pprint_ident v))))
+          | None -> raise (UnknownObject (loc, "variable", Ident.pprint v))))
   | LExpr_Field (l, f) -> (
       let l', ty = tc_lexpr2 env loc l in
       match typeFields (Env.globals env) loc ty with
@@ -1516,18 +1516,18 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
       | LExpr_Var a -> (
           let tys = List.map (function _, ty -> ty) ss' in
           let getters =
-            GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
+            GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix a ~suffix:"read")
           in
           let setters =
-            GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set")
+            GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"set")
           in
           let ogetters =
             chooseFunction (Env.globals env) loc "getter function"
-              (pprint_ident a) true tys getters
+              (Ident.pprint a) true tys getters
           in
           let osetters =
             chooseFunction (Env.globals env) loc "setter function"
-              (pprint_ident a) true tys setters
+              (Ident.pprint a) true tys setters
           in
           match (ogetters, osetters) with
           | Some fty, Some gty when all_single ->
@@ -1542,9 +1542,9 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
               let throws = false in (* todo : need to add throws to Var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, es, throws), fty'.rty)
           | None, Some _ ->
-              raise (UnknownObject (loc, "getter function", pprint_ident a))
+              raise (UnknownObject (loc, "getter function", Ident.pprint a))
           | Some _, None ->
-              raise (UnknownObject (loc, "setter function", pprint_ident a))
+              raise (UnknownObject (loc, "setter function", Ident.pprint a))
           | _ -> tc_slice_lexpr env loc e ss')
       | _ -> tc_slice_lexpr env loc e ss')
   | LExpr_BitTuple (_, ls) ->
@@ -1593,11 +1593,11 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
           LExpr_Var v
       | None -> (
           let setters =
-            GlobalEnv.getSetterFun (Env.globals env) (addSuffix v "write")
+            GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix v ~suffix:"write")
           in
           let osetter =
             chooseFunction (Env.globals env) loc "var setter function"
-              (pprint_ident v) false [] setters
+              (Ident.pprint v) false [] setters
           in
           match osetter with
           | Some gty ->
@@ -1607,7 +1607,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
               let throws = false in
               LExpr_Write (gty'.name, gty'.parameters, [], throws)
           | None ->
-              raise (UnknownObject (loc, "variable", pprint_ident v))
+              raise (UnknownObject (loc, "variable", Ident.pprint v))
           )
       )
   | LExpr_Field (l, f) ->
@@ -1652,11 +1652,11 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
         | LExpr_Var a -> (
             let tys = List.map (function _, ty -> ty) ss' in
             let setters =
-              GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "set")
+              GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"set")
             in
             let osetters =
               chooseFunction (Env.globals env) loc "setter function"
-                (pprint_ident a) true tys setters
+                (Ident.pprint a) true tys setters
             in
             match osetters with
             | Some gty when all_single ->
@@ -1674,18 +1674,18 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                 (LExpr_Write (gty'.name, gty'.parameters, es, throws), ty)
             | _ -> (
                 let getters =
-                  GlobalEnv.getFuns (Env.globals env) (addSuffix a "read")
+                  GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix a ~suffix:"read")
                 in
                 let setters =
-                  GlobalEnv.getSetterFun (Env.globals env) (addSuffix a "write")
+                  GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"write")
                 in
                 let ogetter =
                   chooseFunction (Env.globals env) loc "var getter function"
-                    (pprint_ident a) false [] getters
+                    (Ident.pprint a) false [] getters
                 in
                 let osetter =
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (pprint_ident a) false [] setters
+                    (Ident.pprint a) false [] setters
                 in
                 match (ogetter, osetter) with
                 | Some fty, Some fty' ->
@@ -1698,10 +1698,10 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                     (LExpr_Slices (ty, wr, ss''), type_bits (slices_width ss''))
                 | None, Some _ ->
                     raise
-                      (UnknownObject (loc, "var getter function", pprint_ident a))
+                      (UnknownObject (loc, "var getter function", Ident.pprint a))
                 | Some _, None ->
                     raise
-                      (UnknownObject (loc, "var setter function", pprint_ident a))
+                      (UnknownObject (loc, "var setter function", Ident.pprint a))
                 | None, None -> tc_slice_lexpr env loc e ss'))
         | _ -> tc_slice_lexpr env loc e ss'
       in
@@ -1749,7 +1749,7 @@ let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x :
   | DeclItem_Var (v, None) ->
       raise (InternalError "visit_declitem")
 
-let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (AST.ident option * AST.ty)) : (AST.ident option * AST.ty) =
+let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (Ident.t option * AST.ty)) : (Ident.t option * AST.ty) =
   let (ov, ty) = x in
   let ty' = tc_type env loc ty in
   ( match ty' with
@@ -1819,7 +1819,7 @@ and tc_catcher (env : Env.t) (loc : AST.l) (x : AST.catcher) : AST.catcher =
   match x with
   | Catcher_Guarded (v, tc, b, loc) ->
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
-        raise (IsNotA (loc, "exception type", pprint_ident tc))
+        raise (IsNotA (loc, "exception type", Ident.pprint tc))
       end;
       let b' = Env.nest
         (fun env' ->
@@ -1937,7 +1937,7 @@ let tc_body = tc_stmts
 
 (** Typecheck function parameter *)
 let tc_parameter (env : Env.t) (loc : AST.l)
-    ((arg, oty) : AST.ident * AST.ty option) : AST.ident * AST.ty option =
+    ((arg, oty) : Ident.t * AST.ty option) : Ident.t * AST.ty option =
   let ty' =
     ( match oty with
     | None -> type_integer
@@ -1951,9 +1951,9 @@ let tc_parameter (env : Env.t) (loc : AST.l)
 let tc_argument
     (env : Env.t)
     (loc : AST.l)
-    (ps : (AST.ident * AST.ty option) list)
-    ((arg, ty) : AST.ident * AST.ty)
-  : AST.ident * AST.ty
+    (ps : (Ident.t * AST.ty option) list)
+    ((arg, ty) : Ident.t * AST.ty)
+  : Ident.t * AST.ty
   =
   let ty' = tc_type env loc ty in
   if not (List.mem_assoc arg ps) then begin
@@ -1966,13 +1966,13 @@ let tc_argument
 let tc_arguments
     (env : Env.t)
     (loc : AST.l)
-    (ps : (AST.ident * AST.ty option) list)
-    (args : (AST.ident * AST.ty) list)
+    (ps : (Ident.t * AST.ty option) list)
+    (args : (Ident.t * AST.ty) list)
     (rty : AST.ty)
-    : (AST.ident * AST.ty option) list * (AST.ident * AST.ty) list * AST.ty
+    : (Ident.t * AST.ty option) list * (Ident.t * AST.ty) list * AST.ty
   =
   let globals = Env.globals env in
-  let is_not_global (x : AST.ident) = Option.is_none (GlobalEnv.getGlobalVar globals x) in
+  let is_not_global (x : Ident.t) = Option.is_none (GlobalEnv.getGlobalVar globals x) in
 
   (* The implicit type parameters are based on the free variables of the function type. *)
   let argty_fvs = fv_args args |> IdentSet.filter is_not_global in
@@ -2012,9 +2012,9 @@ let tc_arguments
   (ps', args', rty')
 
 (** Add function definition to environment *)
-let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
-    (isArr : bool) (ps : (AST.ident * AST.ty option) list)
-    (args : (AST.ident * AST.ty) list) (rty : AST.ty) : funtype =
+let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
+    (isArr : bool) (ps : (Ident.t * AST.ty option) list)
+    (args : (Ident.t * AST.ty) list) (rty : AST.ty) : funtype =
   let argtys = List.map (fun (_, ty) -> ty) args in
   let funs = GlobalEnv.getFuns env qid in
   let num_funs = List.length funs in
@@ -2027,7 +2027,7 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        * We use the number of functions that already have that name as the tag.
        *)
       let tag = num_funs in
-      let qid' = addTag qid tag in
+      let qid' = Ident.add_tag qid ~tag in
       let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
       GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
@@ -2046,9 +2046,9 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
       (* internal error: multiple definitions *)
       failwith "addFunction"
 
-let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
-    (isArr : bool) (ps : (AST.ident * AST.ty option) list)
-    (args : (AST.ident * AST.ty) list) (vty : AST.ty) : funtype =
+let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
+    (isArr : bool) (ps : (Ident.t * AST.ty option) list)
+    (args : (Ident.t * AST.ty) list) (vty : AST.ty) : funtype =
   let argtys = List.map snd args in
   let funs = GlobalEnv.getSetterFun env qid in
   let num_funs = List.length funs in
@@ -2061,7 +2061,7 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : AST.ident)
        * We use the number of functions that already have that name as the tag.
        *)
       let tag = num_funs in
-      let qid' = addTag qid tag in
+      let qid' = Ident.add_tag qid ~tag in
       let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
       GlobalEnv.addSetterFuns env qid (fty :: funs);
       fty
@@ -2118,7 +2118,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
            let v = { name=e; loc; ty; is_local=false; is_constant=true } in
            GlobalEnv.addGlobalVar env v)
         es;
-      let cmp_args = [ (Ident "x", ty); (Ident "y", ty) ] in
+      let cmp_args = [ (Ident.Ident "x", ty); (Ident.Ident "y", ty) ] in
       let eq =
         addFunction env loc (Ident "eq_enum") false [] cmp_args type_bool
       in
@@ -2173,26 +2173,26 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
       (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (addSuffix qid "read") false ps' atys' rty' in
+      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") false ps' atys' rty' in
       [ Decl_VarGetterType (fty.funname, ps', rty', loc) ]
   | Decl_VarGetterDefn (qid, ps, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [] rty in
       (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (addSuffix qid "read") false ps' atys' rty' in
+      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") false ps' atys' rty' in
       let b' = tc_body locals loc b in
       [ Decl_VarGetterDefn (fty.funname, ps', rty', b', loc) ]
   | Decl_ArrayGetterType (qid, ps, atys, rty, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let fty = addFunction env loc (addSuffix qid "read") true ps' atys' rty' in
+      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") true ps' atys' rty' in
       (* todo: check that if a setter function exists, it has a compatible type *)
       [ Decl_ArrayGetterType (fty.funname, ps', atys', rty', loc) ]
   | Decl_ArrayGetterDefn (qid, ps, atys, rty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in
       (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (addSuffix qid "read") true ps' atys' rty' in
+      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") true ps' atys' rty' in
       let b' = tc_body locals loc b in
       [ Decl_ArrayGetterDefn (fty.funname, ps', atys', rty', b', loc) ]
   | Decl_VarSetterType (qid, ps, v, ty, loc) ->
@@ -2200,14 +2200,14 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let (ps', atys', _) = tc_arguments locals loc ps [ (v, ty) ] type_unit in
       let v', ty' = Utils.last atys' in
       (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (addSuffix qid "write") false ps' [] ty' in
+      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"write") false ps' [] ty' in
       [ Decl_VarSetterType (fty.funname, ps', v, ty', loc) ]
   | Decl_VarSetterDefn (qid, ps, v, ty, b, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps [ (v, ty) ] type_unit in
       let (v', ty') = Utils.last atys' in
       (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (addSuffix qid "write") false ps' [] ty' in
+      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"write") false ps' [] ty' in
       let b' = tc_body locals loc b in
       [ Decl_VarSetterDefn (fty.funname, ps', v, ty', b', loc) ]
   | Decl_ArraySetterType (qid, ps, atys, v, ty, loc) ->
@@ -2216,7 +2216,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let atys'' = Utils.init atys' in
       let v', ty' = Utils.last atys' in
       (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (addSuffix qid "set") true ps' atys'' ty' in
+      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"set") true ps' atys'' ty' in
       [ Decl_ArraySetterType (fty.funname, ps', atys'', v, ty', loc) ]
   | Decl_ArraySetterDefn (qid, ps, atys, v, ty, b, loc) ->
       let locals = Env.mkEnv env in
@@ -2228,7 +2228,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
        *)
       (* todo: check that if a getter function exists, it has a compatible
          type *)
-      let fty = addSetterFunction env loc (addSuffix qid "set") true ps' atys'' ty' in
+      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"set") true ps' atys'' ty' in
       let b' = tc_body locals loc b in
       [ Decl_ArraySetterDefn (fty.funname, ps', atys'', v, ty', b', loc) ]
   | Decl_Operator1 (op, funs, loc) ->
@@ -2240,7 +2240,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
                if fs = [] then
                  raise
                    (UnknownObject
-                      (loc, "unary operator implementation", pprint_ident f));
+                      (loc, "unary operator implementation", Ident.pprint f));
                fs)
              funs)
       in
@@ -2255,7 +2255,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
                if fs = [] then
                  raise
                    (UnknownObject
-                      (loc, "binary operator implementation", pprint_ident f));
+                      (loc, "binary operator implementation", Ident.pprint f));
                fs)
              funs)
       in
@@ -2274,10 +2274,10 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
           let _ = tc_arguments locals loc fty.params fty.atys type_unit in
           let b' = tc_body locals loc b in
           [ Decl_EventClause (fty.funname, b', loc) ]
-      | [] -> raise (UnknownObject (loc, "event", pprint_ident nm))
+      | [] -> raise (UnknownObject (loc, "event", Ident.pprint nm))
       | fs ->
-          reportChoices loc "event" (pprint_ident nm) [] fs;
-          raise (Ambiguous (loc, "event", pprint_ident nm)))
+          reportChoices loc "event" (Ident.pprint nm) [] fs;
+          raise (Ambiguous (loc, "event", Ident.pprint nm)))
   | Decl_NewMapDefn (qid, ps, atys, rty, b, loc) ->
       (* very similar to Decl_FunDefn *)
       let locals = Env.mkEnv env in
@@ -2293,17 +2293,17 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
           let tc_mapfield (MapField_Field (id, pat)) =
             ( match Env.getVar locals id with
             | Some i -> MapField_Field (id, tc_pattern locals loc i.ty pat)
-            | None -> raise (UnknownObject (loc, "mapfield", pprint_ident id))
+            | None -> raise (UnknownObject (loc, "mapfield", Ident.pprint id))
             )
           in
           let fs' = List.map tc_mapfield fs in
           let oc' = Option.map (check_expr locals loc type_bool) oc in
           let b' = tc_stmts locals loc b in
           [ Decl_MapClause (fty.funname, fs', oc', b', loc) ]
-      | [] -> raise (UnknownObject (loc, "map", pprint_ident nm))
+      | [] -> raise (UnknownObject (loc, "map", Ident.pprint nm))
       | fs ->
-          reportChoices loc "map" (pprint_ident nm) [] fs;
-          raise (Ambiguous (loc, "map", pprint_ident nm)))
+          reportChoices loc "map" (Ident.pprint nm) [] fs;
+          raise (Ambiguous (loc, "map", Ident.pprint nm)))
   | Decl_Config (qid, ty, i, loc) ->
       (* very similar to Decl_Const *)
       let locals = Env.mkEnv env in

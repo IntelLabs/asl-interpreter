@@ -86,7 +86,7 @@ let xform
 let xform_dbi
     (loc : AST.l)
     (is_const : bool)
-    (dbs : (AST.ident option * AST.ty) list)
+    (dbs : (Ident.t option * AST.ty) list)
     (r : AST.expr)
     : AST.stmt list =
     let tmp_ident = assign_var#fresh in

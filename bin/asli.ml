@@ -46,8 +46,8 @@ let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
       ds;
   let t = Bindings.bindings !cg
         |> List.map (fun (caller, callees) ->
-              let callee_names = IdentSet.elements callees |> List.map AST.pprint_ident in
-              (AST.pprint_ident caller, `List (List.map (fun s -> `String(s)) callee_names)))
+              let callee_names = IdentSet.elements callees |> List.map Ident.pprint in
+              (Ident.pprint caller, `List (List.map (fun s -> `String(s)) callee_names)))
         |> (fun xs -> `Assoc xs)
   in
   let chan = open_out filename in

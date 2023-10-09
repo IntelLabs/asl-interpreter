@@ -19,7 +19,7 @@ let rmwVariables = new Asl_utils.nameSupply "__rmw"
 class replaceRmwClass (ds : AST.declaration list) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
-    val mutable le_vars : (AST.lexpr * AST.ident) list = []
+    val mutable le_vars : (AST.lexpr * Ident.t) list = []
 
     method! vlexpr e =
       match e with

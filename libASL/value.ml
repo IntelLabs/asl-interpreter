@@ -20,13 +20,13 @@ open Asl_utils
 
 type value =
   | VBool of bool (* optimised special case of VEnum *)
-  | VEnum of (AST.ident * int)
+  | VEnum of (Ident.t * int)
   | VInt of bigint
   | VReal of real
   | VBits of bitvector
   | VMask of mask
   | VString of string
-  | VExc of (AST.l * AST.ident * value Asl_utils.Bindings.t)
+  | VExc of (AST.l * Ident.t * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Bindings.t
   | VArray of (value ImmutableArray.t * value)
@@ -40,7 +40,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (AST.l * string)
-exception Throw of (AST.l * AST.ident * value Asl_utils.Bindings.t)
+exception Throw of (AST.l * Ident.t * value Asl_utils.Bindings.t)
 
 (****************************************************************)
 (** {2 Printer for values}                                      *)
@@ -49,7 +49,7 @@ exception Throw of (AST.l * AST.ident * value Asl_utils.Bindings.t)
 let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   match x with
   | VBool b -> Format.pp_print_string fmt (prim_cvt_bool_str b)
-  | VEnum (e, _) -> Format.pp_print_string fmt (AST.pprint_ident e)
+  | VEnum (e, _) -> Format.pp_print_string fmt (Ident.pprint e)
   | VInt i -> Format.pp_print_string fmt (prim_cvt_int_decstr i)
   | VReal r -> Format.pp_print_string fmt (prim_cvt_real_str r)
   | VBits b -> Format.pp_print_string fmt (prim_cvt_bits_hexstr (Z.of_int b.n) b)
@@ -72,7 +72,7 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   | VRAM _ -> Format.pp_print_string fmt "RAM"
   | VUninitialized -> Format.pp_print_string fmt "UNINITIALIZED"
 
-and pp_field_value (fmt : Format.formatter) ((f, v) : AST.ident * value) : unit =
+and pp_field_value (fmt : Format.formatter) ((f, v) : Ident.t * value) : unit =
   Format.fprintf fmt "%a = %a"
     Asl_fmt.fieldname f
     pp_value v
@@ -137,7 +137,7 @@ let to_string (loc : AST.l) (x : value) : string =
   | VString s -> s
   | _ -> raise (EvalError (loc, "string expected. Got " ^ string_of_value x))
 
-let to_exc (loc : AST.l) (x : value) : AST.l * AST.ident * value Asl_utils.Bindings.t =
+let to_exc (loc : AST.l) (x : value) : AST.l * Ident.t * value Asl_utils.Bindings.t =
   match x with
   | VExc (loc, exc, fs) -> (loc, exc, fs)
   | _ -> raise (EvalError (loc, "exception expected. Got " ^ string_of_value x))
@@ -149,18 +149,18 @@ let of_tuple (loc : AST.l) (x : value) : value list =
   | VTuple xs -> xs
   | _ -> raise (EvalError (loc, "tuple expected. Got " ^ string_of_value x))
 
-let mkrecord (fs : (AST.ident * value) list) : value = VRecord (mk_bindings fs)
+let mkrecord (fs : (Ident.t * value) list) : value = VRecord (mk_bindings fs)
 
-let get_field (loc : AST.l) (x : value) (f : AST.ident) : value =
+let get_field (loc : AST.l) (x : value) (f : Ident.t) : value =
   match x with
   | VRecord fs ->
       ( match Bindings.find_opt f fs with
       | Some r -> r
-      | None -> raise (EvalError (loc, "Field " ^ AST.pprint_ident f ^ " not found in " ^ string_of_value x))
+      | None -> raise (EvalError (loc, "Field " ^ Ident.pprint f ^ " not found in " ^ string_of_value x))
       )
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
 
-let set_field (loc : AST.l) (x : value) (f : AST.ident) (v : value) : value =
+let set_field (loc : AST.l) (x : value) (f : Ident.t) (v : value) : value =
   match x with
   | VRecord fs -> VRecord (Bindings.add f v fs)
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
@@ -318,9 +318,9 @@ module type Tracer = sig
 
   val trace_event : kind:string -> string list -> unit
 
-  val trace_function : is_prim:bool -> is_return:bool -> Asl_ast.ident -> value list -> value list -> unit
+  val trace_function : is_prim:bool -> is_return:bool -> Ident.t -> value list -> value list -> unit
 
-  val trace_var : is_local:bool -> is_read:bool -> Asl_ast.ident -> value -> unit
+  val trace_var : is_local:bool -> is_read:bool -> Ident.t -> value -> unit
 end
 
 (** Tracer module that produces textual trace on stdout
@@ -383,7 +383,7 @@ module TextTracer = struct
         ; Z.format "%#08x" data.v
         ]
 
-  let trace_var ~(is_local : bool) ~(is_read : bool) (name : AST.ident) (data : value) : unit =
+  let trace_var ~(is_local : bool) ~(is_read : bool) (name : Ident.t) (data : value) : unit =
     let enabled = if is_local
                   then (if is_read then !enable_trace_local_read else !enable_trace_local_write)
                   else (if is_read then !enable_trace_global_read else !enable_trace_global_write)
@@ -391,7 +391,7 @@ module TextTracer = struct
     if enabled then
       trace
         ("var_" ^ (if is_local then "local_" else "global_") ^ (if is_read then "read" else "write"))
-        [ AST.pprint_ident name
+        [ Ident.pprint name
         ; string_of_value data
         ]
 
@@ -407,13 +407,13 @@ module TextTracer = struct
         ("event " ^ kind)
         vs
 
-  let trace_function ~(is_prim : bool) ~(is_return : bool) (name : AST.ident) (tvs : value list) (vs : value list) : unit =
+  let trace_function ~(is_prim : bool) ~(is_return : bool) (name : Ident.t) (tvs : value list) (vs : value list) : unit =
     let enabled = if is_prim then !enable_trace_primops else !enable_trace_functions
     in
     if enabled then
       trace
         ("function_" ^ (if is_return then "return" else "call"))
-        ( AST.pprint_ident name :: "{" :: List.append (List.map string_of_value tvs) ("}" :: List.map string_of_value vs))
+        ( Ident.pprint name :: "{" :: List.append (List.map string_of_value tvs) ("}" :: List.map string_of_value vs))
 
 end
 

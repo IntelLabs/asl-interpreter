@@ -25,6 +25,7 @@
    flags
    format_utils
    global_checks
+   ident
    lattice
    lexer
    lexersupport

@@ -187,7 +187,7 @@ let emit_c_source (filename : string) ?(index : int option)
  * Small transformations
  ****************************************************************)
 
-let xform_reachable (roots : AST.ident list) (ds : AST.declaration list) : AST.declaration list =
+let xform_reachable (roots : Ident.t list) (ds : AST.declaration list) : AST.declaration list =
   let ds' = Asl_utils.reachable_decls roots ds in
   (* A minimal sanity check on code generation is that the result
    * should contain at least one definition.
@@ -221,7 +221,7 @@ let get_entry (key : string) (tree : Safe.t) : Safe.t option =
   )
 
 (* Read list of identifiers from Json *)
-let get_idents (key : string) (transforms : Safe.t list) : AST.ident list =
+let get_idents (key : string) (transforms : Safe.t list) : Ident.t list =
   let nms = List.concat_map (fun json ->
       Option.bind (get_entry key json) (fun e ->
       Option.bind (get_list e) (fun es ->
@@ -234,8 +234,8 @@ let get_idents (key : string) (transforms : Safe.t list) : AST.ident list =
   (* The names could be either functions or variables/types
    * so treat them as both.
    *)
-  let xs = List.map (fun f -> AST.FIdent (f, 0)) nms in
-  let ys = List.map (fun f -> AST.Ident f) nms in
+  let xs = List.map (fun f -> Ident.FIdent (f, 0)) nms in
+  let ys = List.map (fun f -> Ident.Ident f) nms in
   xs @ ys
 
 (****************************************************************
@@ -246,7 +246,7 @@ let get_idents (key : string) (transforms : Safe.t list) : AST.ident list =
  * (i.e., delete the function body) if it occurs in the list
  * of functions to be deleted.
  *)
-let delete_function (discard : AST.ident list) (x : AST.declaration) =
+let delete_function (discard : Ident.t list) (x : AST.declaration) =
   ( match x with
   | AST.Decl_FunDefn (f, ps, args, ty, b, loc) when List.mem f discard ->
     AST.Decl_FunType (f, ps, args, ty, loc)
@@ -255,7 +255,7 @@ let delete_function (discard : AST.ident list) (x : AST.declaration) =
   | _ -> x
   )
 
-let delete_functions (discard : AST.ident list) (ds : AST.declaration list) : AST.declaration list =
+let delete_functions (discard : Ident.t list) (ds : AST.declaration list) : AST.declaration list =
   List.map (delete_function discard) ds
 
 (****************************************************************

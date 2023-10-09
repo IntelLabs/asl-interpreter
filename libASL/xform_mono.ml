@@ -18,10 +18,10 @@ let const_int_expr (x : AST.expr) : Z.t option =
   match x with Expr_LitInt x -> Some (Z.of_string x) | _ -> None
 
 module InstanceKey = struct
-  type t = AST.ident * Z.t list
+  type t = Ident.t * Z.t list
 
   let compare (x : t) (y : t) : int =
-    AST.Ident.compare (fst x) (fst y) <?> (List.compare Z.compare, snd x, snd y)
+    Ident.compare (fst x) (fst y) <?> (List.compare Z.compare, snd x, snd y)
 end
 
 module Instances = Map.Make (InstanceKey)
@@ -32,9 +32,9 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     val mutable instances : AST.declaration Instances.t = Instances.empty
     method getInstances = List.map snd (Instances.bindings instances)
 
-    method monomorphize_type (genv : Eval.GlobalEnv.t) (tc : AST.ident)
+    method monomorphize_type (genv : Eval.GlobalEnv.t) (tc : Ident.t)
         (d : AST.declaration) (szs : Z.t list)
-      : AST.ident option =
+      : Ident.t option =
       let ps =
         ( match Eval.GlobalEnv.get_typedef genv tc with
         | Some (ps, ty) -> ps
@@ -47,10 +47,10 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
-          (fun p sz -> AST.pprint_ident p ^ "_" ^ Z.to_string sz)
+          (fun p sz -> Ident.pprint p ^ "_" ^ Z.to_string sz)
           ps szs
       in
-      let tc' = AST.addSuffix tc (String.concat "_" suffices) in
+      let tc' = Ident.add_suffix tc ~suffix:(String.concat "_" suffices) in
       let key = (tc, szs) in
       if Instances.mem key instances then (
         Some tc'
@@ -75,9 +75,9 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
         )
       )
 
-    method monomorphize_fun (genv : Eval.GlobalEnv.t) (f : AST.ident)
+    method monomorphize_fun (genv : Eval.GlobalEnv.t) (f : Ident.t)
         (d : AST.declaration) (szs : Z.t list) (args : AST.expr list)
-      : (AST.ident * AST.expr list) option =
+      : (Ident.t * AST.expr list) option =
       let (tvs, arg_names) =
         match Eval.GlobalEnv.get_function genv f with
         | Some (tvs, arg_names, _, _) -> (tvs, arg_names)
@@ -86,10 +86,10 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
-          (fun nm sz -> AST.pprint_ident nm ^ "_" ^ Z.to_string sz)
+          (fun nm sz -> Ident.pprint nm ^ "_" ^ Z.to_string sz)
           tvs szs
       in
-      let f' = AST.addSuffix f (String.concat "_" suffices) in
+      let f' = Ident.add_suffix f ~suffix:(String.concat "_" suffices) in
       let args' : AST.expr list = Utils.filter_map2
           (fun nm arg -> if List.mem nm tvs then None else Some arg)
           arg_names args

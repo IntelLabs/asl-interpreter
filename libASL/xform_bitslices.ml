@@ -52,7 +52,7 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
   | _ -> transform_non_slices n w i x
   )
 
-let transform_assignment (lident : AST.ident)
+let transform_assignment (lident : Ident.t)
     (width : AST.expr)
     (slice_width : AST.expr)
     (shift : AST.expr)

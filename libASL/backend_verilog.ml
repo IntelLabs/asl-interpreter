@@ -36,16 +36,16 @@ let constant (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
 let ident_str (fmt : PP.formatter) (x : string) : unit =
   PP.pp_print_string fmt x
 
-let ident (fmt : PP.formatter) (x : AST.ident) : unit =
+let ident (fmt : PP.formatter) (x : Ident.t) : unit =
   match x with
   | Ident s -> ident_str fmt (mangle s)
   | FIdent (s, t) -> ident_str fmt (s ^ "_" ^ string_of_int t)
 
-let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let fieldname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let funname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let varname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let fieldname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let varnames (fmt : PP.formatter) (xs : Ident.t list) : unit =
   commasep fmt (varname fmt) xs
 
 (* integer representation is a signed value of some width
@@ -185,7 +185,7 @@ let ones (fmt : PP.formatter) (x : int) : unit =
       intLit fmt (string_of_int x);
       braces fmt (fun _ -> bitsLit fmt "1"))
 
-let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
+let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
   | Type_Bits n
   | Type_Register (n, _) ->
@@ -345,7 +345,7 @@ and conds (loc : AST.l) (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) 
   | [] -> expr loc fmt e
   | (c, t) :: cts' -> cond_cont loc fmt c t (fun _ -> conds loc fmt cts' e)
 
-and funcall (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
+and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
   (* Boolean builtin functions *)
@@ -760,16 +760,16 @@ and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
       cutsep fmt (stmt fmt) xs)
   end
 
-let formal (loc : AST.l) (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
+let formal (loc : AST.l) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   let (v, t) = x in
   kw_input fmt;
   nbsp fmt;
   varty loc fmt v t
 
-let formals (loc : AST.l) (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
+let formals (loc : AST.l) (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal loc fmt) xs
 
-let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
+let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
     (args : unit -> unit) : unit =
   kw_function fmt;
   nbsp fmt;

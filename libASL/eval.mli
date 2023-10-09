@@ -11,15 +11,15 @@ module AST = Asl_ast
 module GlobalEnv : sig
   type t
 
-  val get_global_constant : t -> AST.ident -> Value.value option
+  val get_global_constant : t -> Ident.t -> Value.value option
 
-  val get_record : t -> AST.ident -> (AST.ident list * (AST.ident * AST.ty) list) option
-  val get_typedef : t -> AST.ident -> (AST.ident list * AST.ty) option
+  val get_record : t -> Ident.t -> (Ident.t list * (Ident.t * AST.ty) list) option
+  val get_typedef : t -> Ident.t -> (Ident.t list * AST.ty) option
 
   val get_function :
     t ->
-    AST.ident ->
-    (AST.ident list * AST.ident list * AST.l * AST.stmt list) option
+    Ident.t ->
+    (Ident.t list * Ident.t list * AST.l * AST.stmt list) option
 
   val set_impl_def : t -> string -> Value.value -> unit
   val pp : Format.formatter -> t -> unit
@@ -39,13 +39,13 @@ val eval_expr : AST.l -> Env.t -> AST.expr -> Value.value
 val eval_stmt : Env.t -> AST.stmt -> unit
 
 val eval_proccall :
-  AST.l -> Env.t -> AST.ident -> Value.value list -> Value.value list -> unit
+  AST.l -> Env.t -> Ident.t -> Value.value list -> Value.value list -> unit
 (** Evaluate call to procedure *)
 
 val eval_funcall :
   AST.l ->
   Env.t ->
-  AST.ident ->
+  Ident.t ->
   Value.value list ->
   Value.value list ->
   Value.value

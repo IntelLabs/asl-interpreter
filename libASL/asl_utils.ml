@@ -17,15 +17,15 @@ open Asl_visitor
 (** {2 Bindings and IdentSet}                                   *)
 (****************************************************************)
 
-module Bindings = Map.Make (AST.Ident)
+module Bindings = Map.Make (Ident)
 (** {2 Bindings: maps indexed by identifiers} *)
 
 (** add association list to bindings *)
-let add_bindings (bs : 'a Bindings.t) (xs : (ident * 'a) list) : 'a Bindings.t =
+let add_bindings (bs : 'a Bindings.t) (xs : (Ident.t * 'a) list) : 'a Bindings.t =
   List.fold_left (fun a (k, v) -> Bindings.add k v a) bs xs
 
 (** create bindings from association list *)
-let mk_bindings (xs : (ident * 'a) list) : 'a Bindings.t =
+let mk_bindings (xs : (Ident.t * 'a) list) : 'a Bindings.t =
   add_bindings Bindings.empty xs
 
 (** format bindings *)
@@ -55,9 +55,9 @@ module Scope = struct
 
   (* create copy of a scope that can be independently mutated *)
   let clone (s : 'a t) : 'a t = { bs = s.bs }
-  let mem (s : 'a t) (k : ident) : bool = Bindings.mem k s.bs
-  let get (s : 'a t) (k : ident) : 'a option = Bindings.find_opt k s.bs
-  let set (s : 'a t) (k : ident) (v : 'a) : unit = s.bs <- Bindings.add k v s.bs
+  let mem (s : 'a t) (k : Ident.t) : bool = Bindings.mem k s.bs
+  let get (s : 'a t) (k : Ident.t) : 'a option = Bindings.find_opt k s.bs
+  let set (s : 'a t) (k : Ident.t) (v : 'a) : unit = s.bs <- Bindings.add k v s.bs
   let map (f : 'a -> 'b) (s : 'a t) : 'b t = { bs = Bindings.map f s.bs }
 
   let filter_map (f : 'a -> 'b option) (s : 'a t) : 'b t =
@@ -77,7 +77,7 @@ module Scope = struct
     in
     s1.bs <- Bindings.merge merge s1.bs s2.bs
 
-  let bindings (s : 'a t) : (ident * 'a) list = Bindings.bindings s.bs
+  let bindings (s : 'a t) : (Ident.t * 'a) list = Bindings.bindings s.bs
 end
 
 (* A collection of nested mutable scopes *)
@@ -93,20 +93,20 @@ module ScopeStack = struct
 
   let clone (ss : 'a t) : 'a Scope.t list = List.map Scope.clone ss
 
-  let add (ss : 'a t) (x : ident) (v : 'a) : unit =
+  let add (ss : 'a t) (x : Ident.t) (v : 'a) : unit =
     match ss with
     | s :: _ -> Scope.set s x v
     | [] -> failwith "ScopeStack.add: broken invariant"
 
-  let rec get (ss : 'a t) (x : ident) : 'a option =
+  let rec get (ss : 'a t) (x : Ident.t) : 'a option =
     match ss with
     | s :: ss' -> (
         match Scope.get s x with Some v -> Some v | None -> get ss' x)
     | [] -> None
 
-  let mem (ss : 'a t) (x : ident) : bool = Option.is_some (get ss x)
+  let mem (ss : 'a t) (x : Ident.t) : bool = Option.is_some (get ss x)
 
-  let rec set (ss : 'a t) (x : ident) (v : 'a) : bool =
+  let rec set (ss : 'a t) (x : Ident.t) (v : 'a) : bool =
     match ss with
     | s :: ss' ->
         if Scope.mem s x then (
@@ -134,7 +134,7 @@ module ScopeStack = struct
     let newscope = Scope.empty () in
     k (newscope :: ss)
 
-  let bindings (ss : 'a t) : (ident * 'a) list list =
+  let bindings (ss : 'a t) : (Ident.t * 'a) list list =
     List.map Scope.bindings ss
 
   let equal (eq : 'a -> 'a -> bool) (ss1 : 'a t) (ss2 : 'a t) : bool =
@@ -149,7 +149,7 @@ let unionSets (idss : IdentSet.t list) : IdentSet.t =
   List.fold_left IdentSet.union IdentSet.empty idss
 
 (** add v to set of identifiers mapped to k *)
-let addToBindingSet (k : ident) (v : ident) (bs : IdentSet.t Bindings.t) :
+let addToBindingSet (k : Ident.t) (v : Ident.t) (bs : IdentSet.t Bindings.t) :
     IdentSet.t Bindings.t =
   Bindings.update k
     (fun old ->
@@ -166,7 +166,7 @@ let pp_identset (fmt : Format.formatter) (xs : IdentSet.t) : unit =
     The implementation is trivial and exists mostly to emphasize that the
     resulting list is sorted
  *)
-let to_sorted_list (s : IdentSet.t) : ident list = IdentSet.elements s
+let to_sorted_list (s : IdentSet.t) : Ident.t list = IdentSet.elements s
 
 (****************************************************************)
 (** {2 Name supply}                                             *)
@@ -186,8 +186,8 @@ class nameSupply (prefix : string) =
   object
     val mutable vnum = 0
 
-    method fresh : AST.ident =
-      let v = AST.Ident (prefix ^ string_of_int vnum) in
+    method fresh : Ident.t =
+      let v = Ident.Ident (prefix ^ string_of_int vnum) in
       vnum <- vnum + 1;
       v
   end
@@ -196,7 +196,7 @@ class nameSupply (prefix : string) =
 (** {2 Equivalence classes}                                     *)
 (****************************************************************)
 
-type tree = { mutable parent : tree; data : ident }
+type tree = { mutable parent : tree; data : Ident.t }
 (** Equivalence classes are represented by trees.
 
     The root of the tree is the canonical member of the class.
@@ -235,7 +235,7 @@ class equivalences =
 
     (* Find the root of the set containing 'x' - creating a new
      * set if not already known *)
-    method private find_ident (x : ident) : tree =
+    method private find_ident (x : Ident.t) : tree =
       let s =
         match Bindings.find_opt x forest with
         | None ->
@@ -247,7 +247,7 @@ class equivalences =
       s
 
     (* Find the canonical member of the set containing 'x' *)
-    method canonicalize (x : ident) : ident =
+    method canonicalize (x : Ident.t) : Ident.t =
       let s = self#find_ident x in
       s.data
 
@@ -256,7 +256,7 @@ class equivalences =
      * Efficiency of this data structure critically depends on the
      * use of pointer equality when merging nodes.
      *)
-    method merge (x : ident) (y : ident) : unit =
+    method merge (x : Ident.t) (y : Ident.t) : unit =
       let x' = self#find_ident x in
       let y' = self#find_ident y in
       if x != y then y'.parent <- x'
@@ -268,7 +268,7 @@ class equivalences =
     (* Return mapping from identifiers to the canonical representation of their
      * equivalence class
      *)
-    method mapping : ident Bindings.t =
+    method mapping : Ident.t Bindings.t =
       self#normalize;
       Bindings.map (fun t -> (self#find t).data) forest
 
@@ -380,7 +380,7 @@ class freevarClass =
       free_tcs <- IdentSet.add tc free_tcs;
       DoChildren
 
-    method! leave_scope (vs : ident list) =
+    method! leave_scope (vs : Ident.t list) =
       (* remove reads/writes to local variables *)
       List.iter (fun v -> free_vars <- IdentSet.remove v free_vars) vs
   end
@@ -395,7 +395,7 @@ let fv_type (x : ty) : IdentSet.t =
   ignore (visit_type (fv :> aslVisitor) x);
   fv#vars
 
-let fv_args (atys : (ident * ty) list) : IdentSet.t =
+let fv_args (atys : (Ident.t * ty) list) : IdentSet.t =
   unionSets (List.map (fun (_, ty) -> fv_type ty) atys)
 
 let fv_stmts stmts =
@@ -653,7 +653,7 @@ let stmt_loc (x : AST.stmt) : AST.l =
 (** {2 Keep definitions reachable from roots}                   *)
 (****************************************************************)
 
-let decl_name (x : declaration) : ident option =
+let decl_name (x : declaration) : Ident.t option =
   match x with
   | Decl_BuiltinType (v, loc) -> Some v
   | Decl_Forward (v, loc) -> Some v
@@ -696,14 +696,14 @@ let decl_map_of (ds : declaration list) : declaration Bindings.t =
   !decls
 
 (* construct map of Union { x -> f x | for x in xs } *)
-let memoize (xs : ident list) (f : ident -> IdentSet.t) : IdentSet.t Bindings.t
+let memoize (xs : Ident.t list) (f : Ident.t -> IdentSet.t) : IdentSet.t Bindings.t
     =
   let results = ref Bindings.empty in
   List.iter (fun x -> results := Bindings.add x (f x) !results) xs;
   !results
 
 (* construct map of Union { f x -> x | for x in xs } *)
-let rev_memoize (xs : ident list) (f : ident -> IdentSet.t) :
+let rev_memoize (xs : Ident.t list) (f : Ident.t -> IdentSet.t) :
     IdentSet.t Bindings.t =
   let results = ref Bindings.empty in
   List.iter
@@ -729,11 +729,11 @@ let rev_memoize (xs : ident list) (f : ident -> IdentSet.t) :
  *
  * If the graph is cyclic, there are no ordering guarantees.
  *)
-let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
-  let result : ident list ref = ref [] in
+let reach (next : Ident.t -> IdentSet.t) (roots : Ident.t list) : Ident.t list =
+  let result : Ident.t list ref = ref [] in
   let visited = ref IdentSet.empty in
 
-  let rec dfs (x : ident) : unit =
+  let rec dfs (x : Ident.t) : unit =
     if not (IdentSet.mem x !visited) then begin
       visited := IdentSet.add x !visited;
       IdentSet.iter dfs (next x);
@@ -745,7 +745,7 @@ let reach (next : ident -> IdentSet.t) (roots : ident list) : ident list =
   !result
 
 (* f (find x bs) if x in bs, empty otherwise *)
-let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
+let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : Ident.t)
     : IdentSet.t =
   Option.value
     (Option.map f (Bindings.find_opt x bs))
@@ -761,7 +761,7 @@ let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : ident)
  *
  * If the graph is cyclic, there are no ordering guarantees.
  *)
-let reachable_decls (roots : ident list) (ds : declaration list) :
+let reachable_decls (roots : Ident.t list) (ds : declaration list) :
     declaration list =
   let next (d : declaration) : IdentSet.t =
     let fvs = new freevarClass in
@@ -784,7 +784,7 @@ let topological_sort (ds : declaration list) : declaration list =
   let roots = List.filter_map decl_name ds in
   reachable_decls roots ds
 
-let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
+let callers (leaves : Ident.t list) (ds : declaration list) : IdentSet.t =
   let next (d : declaration) : IdentSet.t =
     let fvs = new freevarClass in
     ignore (visit_decl (fvs :> aslVisitor) d);
@@ -803,7 +803,7 @@ let callers (leaves : ident list) (ds : declaration list) : IdentSet.t =
 (* All RAM accesses are considered to modify a single RAM variable
  * Note that the name is the same as the __RAM type in the Prelude.
  *)
-let dummy_ram_variable = Ident "__RAM"
+let dummy_ram_variable = Ident.Ident "__RAM"
 
 class sideEffectClass =
   object
@@ -828,7 +828,7 @@ class sideEffectClass =
       match e with
       | Expr_TApply (f, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
-          if Ident.matches "ram_read" f then begin
+          if Ident.matches ~name:"ram_read" f then begin
             reads <- IdentSet.add dummy_ram_variable reads
           end;
           DoChildren
@@ -838,7 +838,7 @@ class sideEffectClass =
       match s with
       | Stmt_TCall (f, _, _, _, _) ->
           functions_called <- IdentSet.add f functions_called;
-          if Ident.matches "ram_init" f || Ident.matches "ram_write" f then begin
+          if Ident.matches ~name:"ram_init" f || Ident.matches ~name:"ram_write" f then begin
             writes <- IdentSet.add dummy_ram_variable writes
           end;
           DoChildren
@@ -847,7 +847,7 @@ class sideEffectClass =
           DoChildren
       | _ -> DoChildren
 
-    method! leave_scope (vs : ident list) =
+    method! leave_scope (vs : Ident.t list) =
       (* remove reads/writes to local variables *)
       List.iter (fun v -> writes <- IdentSet.remove v writes) vs;
       List.iter (fun v -> reads <- IdentSet.remove v reads) vs
@@ -858,8 +858,8 @@ let side_effects_of_decl (d : declaration) : (IdentSet.t * IdentSet.t * IdentSet
   ignore (visit_decl (se :> aslVisitor) d);
   se#sideEffects
 
-let identify_impure_funs (isConstant : ident -> bool)
-    (isImpurePrim : ident -> bool) (ds : declaration list) : IdentSet.t =
+let identify_impure_funs (isConstant : Ident.t -> bool)
+    (isImpurePrim : Ident.t -> bool) (ds : declaration list) : IdentSet.t =
   let is_impure_prim (d : declaration) : bool =
     match d with
     | Decl_BuiltinFunction (f, ps, args, ty, loc) -> isImpurePrim f
@@ -916,7 +916,7 @@ let subst_lexpr (s : expr Bindings.t) (x : lexpr) : lexpr =
   let subst = new substClass s in
   visit_lexpr subst x
 
-let subst_var (s : expr Bindings.t) (kind : access_kind) (x : ident) : ident =
+let subst_var (s : expr Bindings.t) (kind : access_kind) (x : Ident.t) : Ident.t =
   let subst = new substClass s in
   visit_var subst kind x
 
@@ -935,7 +935,7 @@ let subst_decl_item (s : expr Bindings.t) (x : decl_item) : decl_item =
 (** More flexible substitution class - takes a function instead
     of a binding set.
  *)
-class substFunClass (replace : ident -> expr option) =
+class substFunClass (replace : Ident.t -> expr option) =
   object
     inherit nopAslVisitor
 
@@ -946,19 +946,19 @@ class substFunClass (replace : ident -> expr option) =
       | _ -> DoChildren
   end
 
-let subst_fun_expr (replace : ident -> expr option) (x : expr) : expr =
+let subst_fun_expr (replace : Ident.t -> expr option) (x : expr) : expr =
   let subst = new substFunClass replace in
   visit_expr subst x
 
-let subst_fun_lexpr (replace : ident -> expr option) (x : lexpr) : lexpr =
+let subst_fun_lexpr (replace : Ident.t -> expr option) (x : lexpr) : lexpr =
   let subst = new substFunClass replace in
   visit_lexpr subst x
 
-let subst_fun_slice (replace : ident -> expr option) (x : slice) : slice =
+let subst_fun_slice (replace : Ident.t -> expr option) (x : slice) : slice =
   let subst = new substFunClass replace in
   visit_slice subst x
 
-let subst_fun_type (replace : ident -> expr option) (x : ty) : ty =
+let subst_fun_type (replace : Ident.t -> expr option) (x : ty) : ty =
   let subst = new substFunClass replace in
   visit_type subst x
 
@@ -1284,7 +1284,7 @@ let is_literal_constant (x : expr) : bool =
 
 (** Find declaration (type, function, procedure, getters and setters)
     definition by an identifier *)
-let rec find_decl (f : AST.ident) (ds : AST.declaration list) :
+let rec find_decl (f : Ident.t) (ds : AST.declaration list) :
     AST.declaration option =
   ( match ds with
   | [] -> None

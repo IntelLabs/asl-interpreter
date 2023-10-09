@@ -9,11 +9,11 @@ module AST = Asl_ast
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
-let mkReturnTypeName (f : AST.ident) : AST.ident = AST.addPrefix "__Return_" f
+let mkReturnTypeName (f : Ident.t) : Ident.t = Ident.add_prefix f ~prefix:"__Return_"
 
-let mkReturnFieldName (i : int) : AST.ident = AST.Ident ("r" ^ string_of_int i)
+let mkReturnFieldName (i : int) : Ident.t = Ident ("r" ^ string_of_int i)
 
-let mkReturnRecord (tyname : AST.ident) (rtys : AST.ty list) (loc : AST.l) : AST.declaration =
+let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : AST.l) : AST.declaration =
   let fs = List.mapi (fun i ty -> (mkReturnFieldName i, ty)) rtys in
   Decl_Record (tyname, [], fs, loc)
 
@@ -21,7 +21,7 @@ let returnVariables = new Asl_utils.nameSupply "__r"
 
 let ifVariables = new Asl_utils.nameSupply "__t"
 
-class replaceTupleClass (tc : AST.ident option) =
+class replaceTupleClass (tc : Ident.t option) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
 

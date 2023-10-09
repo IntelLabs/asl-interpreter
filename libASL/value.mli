@@ -10,13 +10,13 @@ module AST = Asl_ast
 
 type value =
   | VBool of bool (* optimised special case of VEnum *)
-  | VEnum of (AST.ident * int)
+  | VEnum of (Ident.t * int)
   | VInt of Primops.bigint
   | VReal of Primops.real
   | VBits of Primops.bitvector
   | VMask of Primops.mask
   | VString of string
-  | VExc of (AST.l * AST.ident * value Asl_utils.Bindings.t)
+  | VExc of (AST.l * Ident.t * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Asl_utils.Bindings.t
   | VArray of (value Primops.ImmutableArray.t * value)
@@ -25,7 +25,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (AST.l * string)
-exception Throw of (AST.l * AST.ident * value Asl_utils.Bindings.t)
+exception Throw of (AST.l * Ident.t * value Asl_utils.Bindings.t)
 
 val pp_value : Format.formatter -> value -> unit
 val string_of_value : value -> string
@@ -44,12 +44,12 @@ val to_int : AST.l -> value -> int
 val to_bits : AST.l -> value -> Primops.bitvector
 val to_mask : AST.l -> value -> Primops.mask
 val to_string : AST.l -> value -> string
-val to_exc : AST.l -> value -> (AST.l * AST.ident * value Asl_utils.Bindings.t)
+val to_exc : AST.l -> value -> (AST.l * Ident.t * value Asl_utils.Bindings.t)
 val to_tuple : value list -> value
 val of_tuple : AST.l -> value -> value list
-val mkrecord : (AST.ident * value) list -> value
-val get_field : AST.l -> value -> AST.ident -> value
-val set_field : AST.l -> value -> AST.ident -> value -> value
+val mkrecord : (Ident.t * value) list -> value
+val get_field : AST.l -> value -> Ident.t -> value
+val set_field : AST.l -> value -> Ident.t -> value -> value
 val empty_array : value -> value
 val get_array : AST.l -> value -> value -> value
 val set_array : AST.l -> value -> value -> value -> value
@@ -109,9 +109,9 @@ module type Tracer = sig
 
   val trace_event : kind:string -> string list -> unit
 
-  val trace_function : is_prim:bool -> is_return:bool -> Asl_ast.ident -> value list -> value list -> unit
+  val trace_function : is_prim:bool -> is_return:bool -> Ident.t -> value list -> value list -> unit
 
-  val trace_var : is_local:bool -> is_read:bool -> Asl_ast.ident -> value -> unit
+  val trace_var : is_local:bool -> is_read:bool -> Ident.t -> value -> unit
 end
 
 val tracer : (module Tracer) ref

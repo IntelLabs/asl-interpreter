@@ -48,10 +48,10 @@ end
 module GlobalEnv = struct
   type t = {
     mutable functions :
-      (ident list * ident list * AST.l * stmt list) Bindings.t;
+      (Ident.t list * Ident.t list * AST.l * stmt list) Bindings.t;
     mutable enums : value list Bindings.t;
-    mutable records : (ident list * (ident * AST.ty) list) Bindings.t;
-    mutable typedefs : (ident list * AST.ty) Bindings.t;
+    mutable records : (Ident.t list * (Ident.t * AST.ty) list) Bindings.t;
+    mutable typedefs : (Ident.t list * AST.ty) Bindings.t;
     mutable constants : value Scope.t;
     mutable impdefs : value ImpDefs.t;
   }
@@ -68,42 +68,42 @@ module GlobalEnv = struct
       impdefs = ImpDefs.empty;
     }
 
-  let addGlobalConst (env : t) (x : ident) (v : value) : unit =
+  let addGlobalConst (env : t) (x : Ident.t) (v : value) : unit =
     Scope.set env.constants x v
 
-  let getGlobalConst (env : t) (x : ident) : value =
+  let getGlobalConst (env : t) (x : Ident.t) : value =
     match Scope.get env.constants x with
     | Some v -> v
     | None -> failwith "getGlobalConst"
 
-  let get_global_constant (env : t) (x : ident) : value option =
+  let get_global_constant (env : t) (x : Ident.t) : value option =
     Scope.get env.constants x
 
-  let addEnum (env : t) (x : ident) (vs : value list) : unit =
+  let addEnum (env : t) (x : Ident.t) (vs : value list) : unit =
     env.enums <- Bindings.add x vs env.enums
 
-  let getEnum (env : t) (x : ident) : value list option =
+  let getEnum (env : t) (x : Ident.t) : value list option =
     Bindings.find_opt x env.enums
 
-  let addRecord (env : t) (x : ident) (ps : ident list) (fs : (ident * AST.ty) list) : unit =
+  let addRecord (env : t) (x : Ident.t) (ps : Ident.t list) (fs : (Ident.t * AST.ty) list) : unit =
     env.records <- Bindings.add x (ps, fs) env.records
 
-  let get_record (env : t) (x : ident) : (ident list * (ident * AST.ty) list) option =
+  let get_record (env : t) (x : Ident.t) : (Ident.t list * (Ident.t * AST.ty) list) option =
     Bindings.find_opt x env.records
 
-  let addTypedef (env : t) (x : ident) (ps : ident list) (ty : AST.ty) : unit =
+  let addTypedef (env : t) (x : Ident.t) (ps : Ident.t list) (ty : AST.ty) : unit =
     env.typedefs <- Bindings.add x (ps, ty) env.typedefs
 
-  let get_typedef (env : t) (x : ident) : (ident list * AST.ty) option =
+  let get_typedef (env : t) (x : Ident.t) : (Ident.t list * AST.ty) option =
     Bindings.find_opt x env.typedefs
 
-  let get_function (env : t) (x : ident) :
-      (ident list * ident list * AST.l * stmt list) option =
+  let get_function (env : t) (x : Ident.t) :
+      (Ident.t list * Ident.t list * AST.l * stmt list) option =
     Bindings.find_opt x env.functions
 
-  let addFun (loc : l) (env : t) (x : ident)
-      (def : ident list * ident list * AST.l * stmt list) : unit =
-    if false then Printf.printf "Adding function %s\n" (pprint_ident x);
+  let addFun (loc : l) (env : t) (x : Ident.t)
+      (def : Ident.t list * Ident.t list * AST.l * stmt list) : unit =
+    if false then Printf.printf "Adding function %s\n" (Ident.pprint x);
     if Bindings.mem x env.functions then
       if true then () (* silently override *)
       else if override_conflicts then
@@ -111,8 +111,8 @@ module GlobalEnv = struct
         Printf.printf
           "Stern warning: %s function %s conflicts with earlier definition - \
            discarding earlier definition\n"
-          (pp_loc loc) (pprint_ident x)
-      else raise (TC.Ambiguous (loc, "function definition", pprint_ident x));
+          (pp_loc loc) (Ident.pprint x)
+      else raise (TC.Ambiguous (loc, "function definition", Ident.pprint x));
     env.functions <- Bindings.add x def env.functions
 
   let set_impl_def (env : t) (x : string) (v : value) : unit =
@@ -163,21 +163,21 @@ module Env = struct
 
   let globals (env : t) : GlobalEnv.t = env.globalConsts
 
-  let addLocalVar (loc : l) (env : t) (x : ident) (v : value) : unit =
+  let addLocalVar (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
     let module Tracer = (val (!tracer) : Tracer) in
     Tracer.trace_var ~is_local:true ~is_read:false x v;
     ScopeStack.add env.locals x v
 
-  let addLocalConst (loc : l) (env : t) (x : ident) (v : value) : unit =
+  let addLocalConst (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
     (* todo: should constants be held separately from local vars? *)
     let module Tracer = (val (!tracer) : Tracer) in
     Tracer.trace_var ~is_local:true ~is_read:false x v;
     ScopeStack.add env.locals x v
 
-  let addGlobalVar (env : t) (x : ident) (v : value) : unit =
+  let addGlobalVar (env : t) (x : Ident.t) (v : value) : unit =
     Scope.set env.globalVars x v
 
-  let getVar (loc : l) (env : t) (x : ident) : value =
+  let getVar (loc : l) (env : t) (x : Ident.t) : value =
     match ScopeStack.get env.locals x with
     | Some r ->
         let module Tracer = (val (!tracer) : Tracer) in
@@ -191,9 +191,9 @@ module Env = struct
             r
         | None ->
             from_option (GlobalEnv.get_global_constant env.globalConsts x)
-              (fun _ -> raise (EvalError (loc, "getVar: " ^ pprint_ident x)))
+              (fun _ -> raise (EvalError (loc, "getVar: " ^ Ident.pprint x)))
 
-  let setVar (loc : l) (env : t) (x : ident) (v : value) : unit =
+  let setVar (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
     if ScopeStack.set env.locals x v then begin
         let module Tracer = (val (!tracer) : Tracer) in
         Tracer.trace_var ~is_local:true ~is_read:false x v
@@ -211,7 +211,7 @@ end
 (****************************************************************)
 
 (** expand a type definition using type parameters *)
-let expand_type (ps : ident list) (ty : AST.ty) (es : expr list) : AST.ty =
+let expand_type (ps : Ident.t list) (ty : AST.ty) (es : expr list) : AST.ty =
   let bs = mk_bindings (List.combine ps es) in
   subst_type bs ty
 
@@ -372,7 +372,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
       (* First deal with &&, || and IMPLIES all of which only evaluate
        * their second argument if they need to
        *)
-      if name_of_FIdent f = "and_bool" then
+      if Ident.name_of_FIdent f = "and_bool" then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then eval_expr loc env y
@@ -380,14 +380,14 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
         | _ ->
             raise
               (EvalError (loc, "malformed and_bool expression " ^ pp_expr x))
-      else if name_of_FIdent f = "or_bool" then
+      else if Ident.name_of_FIdent f = "or_bool" then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then from_bool true
             else eval_expr loc env y
         | _ ->
             raise (EvalError (loc, "malformed or_bool expression " ^ pp_expr x))
-      else if name_of_FIdent f = "implies_bool" then
+      else if Ident.name_of_FIdent f = "implies_bool" then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then eval_expr loc env y
@@ -436,7 +436,7 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
   | LExpr_Field (l, f) ->
       eval_lexpr_modify loc env l (fun prev -> set_field loc prev f r)
   | LExpr_Fields (l, fs) ->
-      let rec set_fields (i : int) (fs : ident list) (prev : value) : value =
+      let rec set_fields (i : int) (fs : Ident.t list) (prev : value) : value =
         match fs with
         | [] -> prev
         | f :: fs' ->
@@ -524,7 +524,7 @@ and add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.de
            ( loc,
              "add_decl_item_vars should be a tuple " ^ string_of_value i))
   | (DeclItem_BitTuple dbs, r) ->
-      let _ = List.fold_right (fun ((ov, ty) : AST.ident option * AST.ty) (idx : int) ->
+      let _ = List.fold_right (fun ((ov, ty) : Ident.t option * AST.ty) (idx : int) ->
         let width_expr = Option.get (Asl_utils.width_of_type ty) in
         let width = eval_expr loc env width_expr |> to_int loc in
         Option.iter (fun v ->
@@ -660,10 +660,10 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
       )
 
 (** Evaluate call to function or procedure *)
-and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
+and eval_call (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : unit =
   let module Tracer = (val (!tracer) : Tracer) in
-  match eval_prim (name_of_FIdent f) tvs vs with
+  match eval_prim (Ident.name_of_FIdent f) tvs vs with
   | Some r ->
       Tracer.trace_function ~is_prim:true ~is_return:false f tvs vs;
       Tracer.trace_function ~is_prim:true ~is_return:true f [] [r];
@@ -674,7 +674,7 @@ and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
         Utils.from_option
           (GlobalEnv.get_function (Env.globals env) f)
           (fun _ ->
-            raise (EvalError (loc, "Undeclared function " ^ pprint_ident f)))
+            raise (EvalError (loc, "Undeclared function " ^ Ident.pprint f)))
       in
       Env.nestTop env (fun env' ->
           List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) targs tvs;
@@ -682,7 +682,7 @@ and eval_call (loc : l) (env : Env.t) (f : ident) (tvs : value list)
           eval_stmts env' b)
 
 (** Evaluate call to function *)
-and eval_funcall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
+and eval_funcall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : value =
   try
     eval_call loc env f tvs vs;
@@ -694,18 +694,18 @@ and eval_funcall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
       v
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (Ident.pprint f);
     raise ex
 
 (** Evaluate call to procedure *)
-and eval_proccall (loc : l) (env : Env.t) (f : ident) (tvs : value list)
+and eval_proccall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : unit =
   ( try eval_call loc env f tvs vs with
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (pprint_ident f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (Ident.pprint f);
     raise ex
   );
   let module Tracer = (val (!tracer) : Tracer) in
@@ -734,11 +734,11 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
       | Decl_Exception (v, fs, loc) -> GlobalEnv.addRecord genv v [] fs (* todo: mark as exception *)
       | Decl_Enum (qid, es, loc) ->
           let evs =
-            if qid = Ident "boolean" then
+            if qid = Ident.Ident "boolean" then
               [
                 (* optimized special case *)
-                (Ident "FALSE", VBool false);
-                (Ident "TRUE", VBool true);
+                (Ident.Ident "FALSE", VBool false);
+                (Ident.Ident "TRUE", VBool true);
               ]
             else List.mapi (fun i e -> (e, VEnum (e, i))) es
           in
@@ -792,7 +792,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
       | Decl_EventClause (f, body, loc) ->
           let tvs, args, _, body0 =
             from_option (GlobalEnv.get_function genv f) (fun _ ->
-                raise (EvalError (loc, "Undeclared event " ^ pprint_ident f)))
+                raise (EvalError (loc, "Undeclared event " ^ Ident.pprint f)))
           in
           GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)
       (* todo: when creating initial environment, should pass in a set of configuration

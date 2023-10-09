@@ -20,7 +20,7 @@ module FMT = Asl_fmt
 open Asl_utils
 
 (** Add one entry to a set *)
-let add_one (f : AST.ident) (x : AST.ident) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
+let add_one (f : Ident.t) (x : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
   Bindings.update
     f
     (function
@@ -30,7 +30,7 @@ let add_one (f : AST.ident) (x : AST.ident) (bs : IdentSet.t Bindings.t) : Ident
     bs
 
 (** Add multiple entries to a set *)
-let add (f : AST.ident) (xs : IdentSet.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
+let add (f : Ident.t) (xs : IdentSet.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
   Bindings.update
     f
     (function
@@ -39,7 +39,7 @@ let add (f : AST.ident) (xs : IdentSet.t) (bs : IdentSet.t Bindings.t) : IdentSe
     )
     bs
 
-let get (f : AST.ident) (bs : IdentSet.t Bindings.t) : IdentSet.t =
+let get (f : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t =
   Option.value ~default:IdentSet.empty (Bindings.find_opt f bs)
 
 (** Calculates the effects of all functions in a set of declarations.
@@ -51,8 +51,8 @@ let get (f : AST.ident) (bs : IdentSet.t Bindings.t) : IdentSet.t =
  *
  *)
 class effects_class
-    (is_constant : AST.ident -> bool)
-    (is_impure_prim : AST.ident -> bool)
+    (is_constant : Ident.t -> bool)
+    (is_impure_prim : Ident.t -> bool)
     (ds : AST.declaration list) =
 
   object (self)
@@ -63,12 +63,12 @@ class effects_class
     val mutable reads : IdentSet.t Bindings.t = Bindings.empty
     val mutable writes : IdentSet.t Bindings.t = Bindings.empty
 
-    method is_global (x : AST.ident) : bool = IdentSet.mem x globals
+    method is_global (x : Ident.t) : bool = IdentSet.mem x globals
 
-    method fun_effects (f : AST.ident) : (IdentSet.t * IdentSet.t * bool) =
+    method fun_effects (f : Ident.t) : (IdentSet.t * IdentSet.t * bool) =
       (get f reads, get f writes, IdentSet.mem f throws)
 
-    method add_effects (f : AST.ident) (rds : IdentSet.t) (wrs : IdentSet.t) (throws_exn : bool) : bool =
+    method add_effects (f : Ident.t) (rds : IdentSet.t) (wrs : IdentSet.t) (throws_exn : bool) : bool =
       let changed = ref false in
       changed := !changed || (throws_exn && not (IdentSet.mem f throws));
       changed := !changed || not (IdentSet.subset rds (get f reads));
@@ -81,7 +81,7 @@ class effects_class
     (* Update the effects of 'f' with the effects of all functions that it calls.
      * Return 'true' if this adds anything new.
      *)
-    method private update (f : AST.ident) : bool =
+    method private update (f : Ident.t) : bool =
       let changed = ref false in
       IdentSet.iter (fun g ->
           let (rds, wrs, throws_exn) = self#fun_effects g in
@@ -132,7 +132,7 @@ class effects_class
  * - 'e1' and 'e2' can both throw an exception
  *)
 let check_effect_conflicts
-    (loc : AST.l) 
+    (loc : AST.l)
     ((e1, fx1) : AST.expr * (IdentSet.t * IdentSet.t * bool))
     ((e2, fx2) : AST.expr * (IdentSet.t * IdentSet.t * bool))
   : unit
@@ -309,11 +309,11 @@ class global_checks_class_wrapper (effects : effects_class) =
 
 let check_decls (ds : AST.declaration list) : AST.declaration list =
   let genv = Eval.build_constant_environment ds in
-  let is_constant (v : AST.ident) : bool =
+  let is_constant (v : Ident.t) : bool =
     Option.is_some (Eval.GlobalEnv.get_global_constant genv v)
   in
-  let is_impure_prim (v : AST.ident) : bool =
-    List.exists (fun p -> AST.Ident.matches p v) Value.impure_prims
+  let is_impure_prim (v : Ident.t) : bool =
+    List.exists (fun name -> Ident.matches v ~name) Value.impure_prims
   in
   let effects = new effects_class is_constant is_impure_prim ds in
   let checker = new global_checks_class_wrapper effects in

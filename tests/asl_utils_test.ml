@@ -23,10 +23,10 @@ let format_identSet (fmt : Format.formatter) (s : IdentSet.t) : unit =
 let identSet = Alcotest.testable format_identSet IdentSet.equal
 
 let varNames_to_identSet (vs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> AST.Ident f) vs)
+  IdentSet.of_list (List.map (fun f -> Ident.Ident f) vs)
 
 let funNames_to_identSet (fs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> AST.FIdent (f, 0)) fs)
+  IdentSet.of_list (List.map (fun f -> Ident.FIdent (f, 0)) fs)
 
 let in_identSet (s : IdentSet.t) (f : string) : bool =
   IdentSet.mem (FIdent (f, 0)) s
@@ -47,7 +47,7 @@ let test_side_effects (globals : TC.GlobalEnv.t) (prelude : AST.declaration list
   (* to find the definition called 'f', we extract all the declarations called 'f'
    * and take the last element (because any function prototype will be listed first)
    *)
-  let ds = List.filter (fun x -> Option.value (Option.map (AST.Ident.matches f) (decl_name x)) ~default:false) ds in
+  let ds = List.filter (fun x -> Option.value (Option.map (Ident.matches ~name:f) (decl_name x)) ~default:false) ds in
   let d = ( match List.rev ds with
           | (d::_) -> d
           | []     -> Alcotest.fail ("Can't find declaration " ^ f)
@@ -95,9 +95,9 @@ let test_impure_functions (globals : TC.GlobalEnv.t) (prelude : AST.declaration 
   let ds = List.append prelude ds in
 
   (* for testing purposes, we treat any variable whose name starts with K as a constant *)
-  let isConstant (v : AST.ident) : bool = String.get (AST.pprint_ident v) 0 = 'K' in
+  let isConstant (v : Ident.t) : bool = String.get (Ident.pprint v) 0 = 'K' in
 
-  let isImpurePrim (v : AST.ident) : bool = List.exists (fun p -> AST.Ident.matches p v) Value.impure_prims in
+  let isImpurePrim (v : Ident.t) : bool = List.exists (fun name -> Ident.matches v ~name) Value.impure_prims in
   let impure = identify_impure_funs isConstant isImpurePrim ds in
 
   List.iter (fun f -> if in_identSet impure f then Alcotest.fail ("Function " ^ f ^ " incorrectly marked impure")) ex_pure;
@@ -147,11 +147,11 @@ let test_reach
     (roots : string list)
     (expected : string list)
     () : unit =
-  let to_ident (x : string) : AST.ident = Ident x in
-  let of_ident (x : AST.ident) : string = AST.pprint_ident x in
+  let to_ident (x : string) : Ident.t = Ident x in
+  let of_ident (x : Ident.t) : string = Ident.pprint x in
 
   (* generate dependencies of a node *)
-  let next (x : AST.ident) : IdentSet.t =
+  let next (x : Ident.t) : IdentSet.t =
     let ys = List.assoc (of_ident x) graph in
     List.map to_ident ys |> IdentSet.of_list
   in
@@ -214,12 +214,12 @@ let toposort_tests : unit Alcotest.test_case list =
 let test_reachable_decls (globals : TC.GlobalEnv.t)
     (prelude : AST.declaration list) (decls : string) (roots : string list)
     (expected : string list) () : unit =
-  let roots = List.map (fun f -> AST.FIdent (f, 0)) roots in
+  let roots = List.map (fun f -> Ident.FIdent (f, 0)) roots in
   let tcenv, ds = extend_tcenv globals decls in
   let ds = List.append prelude ds in
   let reachable : AST.declaration list = reachable_decls roots ds in
   let reachable : string list =
-    List.map AST.pprint_ident (List.filter_map decl_name reachable)
+    List.map Ident.pprint (List.filter_map decl_name reachable)
   in
 
   Alcotest.(check (list string)) "sorted declarations" expected reachable

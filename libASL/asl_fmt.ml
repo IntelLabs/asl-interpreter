@@ -26,18 +26,18 @@ let keyword (fmt : PP.formatter) (s : string) : unit =
 let constant (fmt : PP.formatter) (s : string) : unit =
   with_color fmt ColorT.blue (fun _ -> PP.pp_print_string fmt s)
 
-let ident (fmt : PP.formatter) (color : ColorT.color4) (x : AST.ident) : unit =
-  with_color fmt color (fun _ -> PP.pp_print_string fmt (AST.pprint_ident x))
+let ident (fmt : PP.formatter) (color : ColorT.color4) (x : Ident.t) : unit =
+  with_color fmt color (fun _ -> PP.pp_print_string fmt (Ident.pprint x))
 
-let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt ColorT.green x
+let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt ColorT.green x
 
-let funname (fmt : PP.formatter) (x : AST.ident) : unit =
+let funname (fmt : PP.formatter) (x : Ident.t) : unit =
   ident fmt ColorT.hi_cyan x
 
-let varname (fmt : PP.formatter) (x : AST.ident) : unit =
+let varname (fmt : PP.formatter) (x : Ident.t) : unit =
   ident fmt ColorT.cyan x
 
-let fieldname (fmt : PP.formatter) (x : AST.ident) : unit =
+let fieldname (fmt : PP.formatter) (x : Ident.t) : unit =
   ident fmt ColorT.yellow x
 
 (* ASL delimiters *)
@@ -221,10 +221,10 @@ let comment_here (fmt : PP.formatter) (pos : Lexing.position) : unit =
   in
   insert_comment fmt here
 
-let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+let varnames (fmt : PP.formatter) (xs : Ident.t list) : unit =
   commasep fmt (varname fmt) xs
 
-let funnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+let funnames (fmt : PP.formatter) (xs : Ident.t list) : unit =
   commasep fmt (funname fmt) xs
 
 let binop (fmt : PP.formatter) (x : AST.binop) : unit =
@@ -331,7 +331,7 @@ and constraint_range (fmt : PP.formatter) (x : AST.constraint_range) : unit =
 and constraints (fmt : PP.formatter) (x : AST.constraint_range list) : unit =
   braces fmt (fun _ -> commasep fmt (constraint_range fmt) x)
 
-and regfield (fmt : PP.formatter) (rf : AST.slice list * AST.ident) : unit =
+and regfield (fmt : PP.formatter) (rf : AST.slice list * Ident.t) : unit =
   brackets fmt (fun _ -> commasep fmt (slice fmt) (fst rf));
   nbsp fmt;
   fieldname fmt (snd rf)
@@ -467,7 +467,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
 and exprs (fmt : PP.formatter) (es : AST.expr list) : unit =
   commasep fmt (expr fmt) es
 
-and field_assignment (fmt : PP.formatter) (x : AST.ident * AST.expr) : unit =
+and field_assignment (fmt : PP.formatter) (x : Ident.t * AST.expr) : unit =
   match x with
   | f, e ->
       fieldname fmt f;
@@ -547,20 +547,20 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
 and lexprs (fmt : PP.formatter) (ps : AST.lexpr list) : unit =
   commasep fmt (lexpr fmt) ps
 
-let varty (fmt : PP.formatter) (v : AST.ident) (t : AST.ty) : unit =
+let varty (fmt : PP.formatter) (v : Ident.t) (t : AST.ty) : unit =
   varname fmt v;
   nbsp fmt;
   colon fmt;
   nbsp fmt;
   ty fmt t
 
-let varoty (fmt : PP.formatter) (v : AST.ident) (ot : AST.ty option) : unit =
+let varoty (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option) : unit =
   match ot with None -> varname fmt v | Some t -> varty fmt v t
 
 let direction (fmt : PP.formatter) (x : AST.direction) : unit =
   match x with Direction_Up -> kw_to fmt | Direction_Down -> kw_downto fmt
 
-let decl_bit (fmt : PP.formatter) (x : (AST.ident option * AST.ty)) : unit =
+let decl_bit (fmt : PP.formatter) (x : (Ident.t option * AST.ty)) : unit =
   let (ov, ty) = x in
   varty fmt (Option.value ov ~default:(Ident "-")) ty
 
@@ -794,23 +794,23 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
 and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
   indented fmt (fun _ -> cutsep fmt (stmt fmt) xs)
 
-let parameter (fmt : PP.formatter) (x : AST.ident * AST.ty option) : unit =
+let parameter (fmt : PP.formatter) (x : Ident.t * AST.ty option) : unit =
   let v, ot = x in
   varoty fmt v ot
 
-let parameters (fmt : PP.formatter) (xs : (AST.ident * AST.ty option) list) :
+let parameters (fmt : PP.formatter) (xs : (Ident.t * AST.ty option) list) :
     unit =
   commasep fmt (parameter fmt) xs
 
-let formal (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
+let formal (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   let v, t = x in
   varty fmt v t
 
-let formals (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
+let formals (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal fmt) xs
 
-let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
-    (ps : (AST.ident * AST.ty option) list) (args : unit -> unit) : unit =
+let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
+    (ps : (Ident.t * AST.ty option) list) (args : unit -> unit) : unit =
   funname fmt f;
   braces fmt (fun _ -> parameters fmt ps);
   parens fmt args;

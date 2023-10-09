@@ -12,11 +12,11 @@ type comment = Lexing.position * Lexing.position * string
 
 val comment_list : comment list ref
 val loc : formatter -> AST.l -> unit
-val tycon : formatter -> AST.ident -> unit
-val varname : formatter -> AST.ident -> unit
-val funname : formatter -> AST.ident -> unit
-val fieldname : formatter -> AST.ident -> unit
-val varnames : formatter -> AST.ident list -> unit
+val tycon : formatter -> Ident.t -> unit
+val varname : formatter -> Ident.t -> unit
+val funname : formatter -> Ident.t -> unit
+val fieldname : formatter -> Ident.t -> unit
+val varnames : formatter -> Ident.t list -> unit
 val unop : formatter -> AST.unop -> unit
 val binop : formatter -> AST.binop -> unit
 val ty : formatter -> AST.ty -> unit
@@ -31,8 +31,8 @@ val lexpr : formatter -> AST.lexpr -> unit
 val decl_item : formatter -> AST.decl_item -> unit
 val stmt : formatter -> AST.stmt -> unit
 val indented_block : formatter -> AST.stmt list -> unit
-val parameters : formatter -> (AST.ident * AST.ty option) list -> unit
-val formals : formatter -> (AST.ident * AST.ty) list -> unit
+val parameters : formatter -> (Ident.t * AST.ty option) list -> unit
+val formals : formatter -> (Ident.t * AST.ty) list -> unit
 val declaration : formatter -> AST.declaration -> unit
 val declarations : formatter -> AST.declaration list -> unit
 val delimiter : formatter -> string -> unit

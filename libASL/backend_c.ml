@@ -24,14 +24,14 @@ let include_line_info : bool ref = ref false
 (* list of all exception tycons - used to decide whether to insert a tag in
  * Expr_RecordInit
  *)
-let exception_tcs : AST.ident list ref = ref []
+let exception_tcs : Ident.t list ref = ref []
 
 (** supply of goto labels for exception implementation *)
 let catch_labels = new Asl_utils.nameSupply "catch"
 
-let catch_stack : AST.ident list ref = ref []
+let catch_stack : Ident.t list ref = ref []
 
-let with_catch_label (f : AST.ident -> 'a) : 'a =
+let with_catch_label (f : Ident.t -> 'a) : 'a =
   let prev = !catch_stack in
   let catch_label = catch_labels#fresh in
   catch_stack := catch_label :: prev;
@@ -39,7 +39,7 @@ let with_catch_label (f : AST.ident -> 'a) : 'a =
   catch_stack := prev;
   r
 
-let current_catcher (_ : unit) : AST.ident = List.hd !catch_stack
+let current_catcher (_ : unit) : Ident.t = List.hd !catch_stack
 
 (** List of all the reserved words in C *)
 let reserved = [
@@ -94,16 +94,16 @@ let constant (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt s
 let ident_str (fmt : PP.formatter) (x : string) : unit =
   PP.pp_print_string fmt x
 
-let ident (fmt : PP.formatter) (x : AST.ident) : unit =
+let ident (fmt : PP.formatter) (x : Ident.t) : unit =
   match x with
   | Ident s -> ident_str fmt (mangle s)
   | FIdent (s, t) -> ident_str fmt (s ^ "_" ^ string_of_int t)
 
-let tycon (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let funname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let varname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let fieldname (fmt : PP.formatter) (x : AST.ident) : unit = ident fmt x
-let varnames (fmt : PP.formatter) (xs : AST.ident list) : unit =
+let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let funname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let varname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let fieldname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let varnames (fmt : PP.formatter) (xs : Ident.t list) : unit =
   commasep fmt (varname fmt) xs
 
 (* C delimiters *)
@@ -213,8 +213,8 @@ let fn_slice_lowd_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd_w"
 let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error_unmatched_case"
 let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
-let fn_extern (fmt : PP.formatter) (x : AST.ident) : unit =
-  asl_keyword fmt (AST.name_of_FIdent x)
+let fn_extern (fmt : PP.formatter) (x : Ident.t) : unit =
+  asl_keyword fmt (Ident.name_of_FIdent x)
 
 (* Round up to the next power of 2 *)
 let round_up_to_pow2 (x : int) : int =
@@ -330,7 +330,7 @@ let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
   rethrow_stmt fmt;
   PP.fprintf fmt " __r; })"
 
-let rec varty (loc : AST.l) (fmt : PP.formatter) (v : AST.ident) (x : AST.ty) : unit =
+let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
   | Type_Bits n
   | Type_Register (n, _) ->
@@ -462,7 +462,7 @@ and apply_bits_builtin (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit)
       nbsp fmt;
       exprs loc fmt args)
 
-and funcall (loc : AST.l) (fmt : PP.formatter) (f : AST.ident) (tes : AST.expr list)
+and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
   match (f, args) with
   (* Boolean builtin functions *)
@@ -1081,14 +1081,14 @@ and brace_enclosed_block (fmt : PP.formatter) (b : AST.stmt list) =
       indented_block fmt b;
       cut fmt)
 
-let formal (loc : AST.l) (fmt : PP.formatter) (x : AST.ident * AST.ty) : unit =
+let formal (loc : AST.l) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   let v, t = x in
   varty loc fmt v t
 
-let formals (loc : AST.l) (fmt : PP.formatter) (xs : (AST.ident * AST.ty) list) : unit =
+let formals (loc : AST.l) (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal loc fmt) xs
 
-let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : AST.ident)
+let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
     (args : unit -> unit) : unit =
   PP.pp_print_option
     ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
@@ -1113,7 +1113,7 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
            | Some rty ->
              braces fmt (fun _ ->
                indented fmt (fun _ ->
-                 let v = AST.Ident "ASL_fake_return_value" in
+                 let v = Ident.Ident "ASL_fake_return_value" in
                  varty AST.Unknown fmt v rty;
                  PP.fprintf fmt ";@,return %a;" varname v
                );

@@ -16,14 +16,14 @@ module FMTUtils = Format_utils
 (** {2 Bindings and IdentSet}                                   *)
 (****************************************************************)
 
-module Bindings : Map.S with type key = AST.ident
+module Bindings : Map.S with type key = Ident.t
 (** {2 Bindings: maps indexed by identifiers} *)
 
 (** add association list to bindings *)
-val add_bindings : 'a Bindings.t -> (AST.ident * 'a) list -> 'a Bindings.t
+val add_bindings : 'a Bindings.t -> (Ident.t * 'a) list -> 'a Bindings.t
 
 (** create bindings from association list *)
-val mk_bindings : (AST.ident * 'a) list -> 'a Bindings.t
+val mk_bindings : (Ident.t * 'a) list -> 'a Bindings.t
 
 (** print bindings *)
 val pp_bindings : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a Bindings.t -> unit
@@ -40,15 +40,15 @@ module Scope : sig
 
   (* make a clean copy that can be independently mutated *)
   val clone : 'a t -> 'a t
-  val mem : 'a t -> AST.ident -> bool
-  val get : 'a t -> AST.ident -> 'a option
-  val set : 'a t -> AST.ident -> 'a -> unit
+  val mem : 'a t -> Ident.t -> bool
+  val get : 'a t -> Ident.t -> 'a option
+  val set : 'a t -> Ident.t -> 'a -> unit
   val map : ('a -> 'b) -> 'a t -> 'b t
   val filter_map : ('a -> 'b option) -> 'a t -> 'b t
   val map_inplace : ('a -> 'a) -> 'a t -> unit
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
-  val bindings : 'a t -> (AST.ident * 'a) list
+  val bindings : 'a t -> (Ident.t * 'a) list
   val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 end
 
@@ -60,22 +60,22 @@ module ScopeStack : sig
 
   (* make a clean copy that can be independently mutated *)
   val clone : 'a t -> 'a t
-  val add : 'a t -> AST.ident -> 'a -> unit
-  val mem : 'a t -> AST.ident -> bool
-  val get : 'a t -> AST.ident -> 'a option
-  val set : 'a t -> AST.ident -> 'a -> bool
+  val add : 'a t -> Ident.t -> 'a -> unit
+  val mem : 'a t -> Ident.t -> bool
+  val get : 'a t -> Ident.t -> 'a option
+  val set : 'a t -> Ident.t -> 'a -> bool
   val map : ('a -> 'b) -> 'a t -> 'b t
   val filter_map : ('a -> 'b option) -> 'a t -> 'b t
   val map_inplace : ('a -> 'a) -> 'a t -> unit
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
   val nest : 'a t -> ('a t -> 'b) -> 'b
-  val bindings : 'a t -> (AST.ident * 'a) list list
+  val bindings : 'a t -> (Ident.t * 'a) list list
   val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
   val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
 end
 
-module IdentSet : Set.S with type elt = AST.ident
+module IdentSet : Set.S with type elt = Ident.t
 
 (** {2 Sets of identifiers} *)
 
@@ -83,7 +83,7 @@ module IdentSet : Set.S with type elt = AST.ident
 val unionSets : IdentSet.t list -> IdentSet.t
 
 (** add v to set of identifiers mapped to k *)
-val addToBindingSet : AST.ident -> AST.ident -> IdentSet.t Bindings.t -> IdentSet.t Bindings.t
+val addToBindingSet : Ident.t -> Ident.t -> IdentSet.t Bindings.t -> IdentSet.t Bindings.t
 
 val pp_identset : Format.formatter -> IdentSet.t -> unit
 
@@ -92,7 +92,7 @@ val pp_identset : Format.formatter -> IdentSet.t -> unit
     The implementation is trivial and exists mostly to emphasize that the
     resulting list is sorted
  *)
-val to_sorted_list : IdentSet.t -> AST.ident list
+val to_sorted_list : IdentSet.t -> Ident.t list
 
 (****************************************************************)
 (** {2 Name supply}                                             *)
@@ -100,14 +100,14 @@ val to_sorted_list : IdentSet.t -> AST.ident list
 
 class nameSupply : string ->
   object
-    method fresh : AST.ident
+    method fresh : Ident.t
   end
 
 (****************************************************************)
 (** {2 Equivalence classes}                                     *)
 (****************************************************************)
 
-type tree = { mutable parent : tree; data : AST.ident }
+type tree = { mutable parent : tree; data : Ident.t }
 (** Equivalence classes are represented by trees.
 
     The root of the tree is the canonical member of the class.
@@ -126,15 +126,15 @@ type tree = { mutable parent : tree; data : AST.ident }
 class equivalences :
   object
     (* Find the canonical member of the set containing 'x' *)
-    method canonicalize : AST.ident -> AST.ident
+    method canonicalize : Ident.t -> Ident.t
 
     (* Merge the sets containing 'x' and 'y' *)
-    method merge : AST.ident -> AST.ident -> unit
+    method merge : Ident.t -> Ident.t -> unit
 
     (* Return mapping from identifiers to the canonical representation of their
      * equivalence class
      *)
-    method mapping : AST.ident Bindings.t
+    method mapping : Ident.t Bindings.t
 
     (* Construct equivalence classes for each canonical member of a class.
      *
@@ -162,7 +162,7 @@ class equivalences :
 
 val fv_expr : AST.expr -> IdentSet.t
 val fv_type : AST.ty -> IdentSet.t
-val fv_args : (AST.ident * AST.ty) list -> IdentSet.t
+val fv_args : (Ident.t * AST.ty) list -> IdentSet.t
 val fv_stmts : AST.stmt list -> IdentSet.t
 val fv_decl : AST.declaration -> IdentSet.t
 
@@ -206,16 +206,16 @@ val decl_loc : AST.declaration -> AST.l
 (** {2 Keep definitions reachable from roots}                   *)
 (****************************************************************)
 
-val decl_name : AST.declaration -> AST.ident option
+val decl_name : AST.declaration -> Ident.t option
 
 (* Map of declarations *)
 val decl_map_of : AST.declaration list -> AST.declaration Bindings.t
 
 (* construct map of Union { x -> f x | for x in xs } *)
-val memoize : AST.ident list -> (AST.ident -> IdentSet.t) -> IdentSet.t Bindings.t
+val memoize : Ident.t list -> (Ident.t -> IdentSet.t) -> IdentSet.t Bindings.t
 
 (* construct map of Union { f x -> x | for x in xs } *)
-val rev_memoize : AST.ident list -> (AST.ident -> IdentSet.t) -> IdentSet.t Bindings.t
+val rev_memoize : Ident.t list -> (Ident.t -> IdentSet.t) -> IdentSet.t Bindings.t
 
 (* Generate list of objects reachable from roots
  *
@@ -227,10 +227,10 @@ val rev_memoize : AST.ident list -> (AST.ident -> IdentSet.t) -> IdentSet.t Bind
  *
  * If the graph is cyclic, there are no ordering guarantees.
  *)
-val reach : (AST.ident -> IdentSet.t) -> AST.ident list -> AST.ident list
+val reach : (Ident.t -> IdentSet.t) -> Ident.t list -> Ident.t list
 
 (* f (find x bs) if x in bs, empty otherwise *)
-val bindings_to_function : 'a Bindings.t -> ('a -> IdentSet.t) -> AST.ident -> IdentSet.t
+val bindings_to_function : 'a Bindings.t -> ('a -> IdentSet.t) -> Ident.t -> IdentSet.t
 
 (* Generate list of declarations reachable from roots
  *
@@ -242,14 +242,14 @@ val bindings_to_function : 'a Bindings.t -> ('a -> IdentSet.t) -> AST.ident -> I
  *
  * If the graph is cyclic, there are no ordering guarantees.
  *)
-val reachable_decls : AST.ident list -> AST.declaration list -> AST.declaration list
+val reachable_decls : Ident.t list -> AST.declaration list -> AST.declaration list
 
 (* Topological sort of declarations
  * The declarations should be acyclic
  *)
 val topological_sort : AST.declaration list -> AST.declaration list
 
-val callers : AST.ident list -> AST.declaration list -> IdentSet.t
+val callers : Ident.t list -> AST.declaration list -> IdentSet.t
 
 (****************************************************************)
 (** {2 Side effect detection}                                   *)
@@ -263,7 +263,7 @@ val side_effects_of_decl : AST.declaration -> (IdentSet.t * IdentSet.t * IdentSe
  * - or call impure primops
  * - or call an impure function.
  *)
-val identify_impure_funs : (AST.ident -> bool) -> (AST.ident -> bool) -> AST.declaration list -> IdentSet.t
+val identify_impure_funs : (Ident.t -> bool) -> (Ident.t -> bool) -> AST.declaration list -> IdentSet.t
 
 (****************************************************************)
 (** {2 Substitutions}                                           *)
@@ -279,7 +279,7 @@ val identify_impure_funs : (AST.ident -> bool) -> (AST.ident -> bool) -> AST.dec
 
 val subst_expr : AST.expr Bindings.t -> AST.expr -> AST.expr
 val subst_lexpr : AST.expr Bindings.t -> AST.lexpr -> AST.lexpr
-val subst_var : AST.expr Bindings.t -> Asl_visitor.access_kind -> AST.ident -> AST.ident
+val subst_var : AST.expr Bindings.t -> Asl_visitor.access_kind -> Ident.t -> Ident.t
 val subst_slice : AST.expr Bindings.t -> AST.slice -> AST.slice
 val subst_type : AST.expr Bindings.t -> AST.ty -> AST.ty
 val subst_decl_item : AST.expr Bindings.t -> AST.decl_item -> AST.decl_item
@@ -287,12 +287,12 @@ val subst_decl_item : AST.expr Bindings.t -> AST.decl_item -> AST.decl_item
 (** More flexible substitution class - takes a function instead
     of a binding set.
  *)
-class substFunClass : (AST.ident -> AST.expr option) -> Asl_visitor.aslVisitor
+class substFunClass : (Ident.t -> AST.expr option) -> Asl_visitor.aslVisitor
 
-val subst_fun_expr : (AST.ident -> AST.expr option) -> AST.expr -> AST.expr
-val subst_fun_lexpr : (AST.ident -> AST.expr option) -> AST.lexpr -> AST.lexpr
-val subst_fun_slice : (AST.ident -> AST.expr option) -> AST.slice -> AST.slice
-val subst_fun_type : (AST.ident -> AST.expr option) -> AST.ty -> AST.ty
+val subst_fun_expr : (Ident.t -> AST.expr option) -> AST.expr -> AST.expr
+val subst_fun_lexpr : (Ident.t -> AST.expr option) -> AST.lexpr -> AST.lexpr
+val subst_fun_slice : (Ident.t -> AST.expr option) -> AST.slice -> AST.slice
+val subst_fun_type : (Ident.t -> AST.expr option) -> AST.ty -> AST.ty
 
 (****************************************************************)
 (** {2 Expression transformation}                               *)
@@ -484,7 +484,7 @@ val width_of_type : AST.ty -> AST.expr option
 
 (** Find declaration (type, function, procedure, getters and setters)
     definition by an identifier *)
-val find_decl : AST.ident -> AST.declaration list -> AST.declaration option
+val find_decl : Ident.t -> AST.declaration list -> AST.declaration option
 
 (****************************************************************
  * End

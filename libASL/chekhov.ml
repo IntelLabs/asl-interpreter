@@ -175,8 +175,8 @@ let chekhovTracer
       Out.add_access agent !next_access_id !page_walk_id true true 0L (Z.to_int64 phys_addr) (data.n / 8);
       page_walk_id := Int32.add !page_walk_id 1l
 
-  let trace_var ~(is_local : bool) ~(is_read : bool) (name : AST.ident) (v : Value.value) : unit =
-    let name = AST.pprint_ident name in
+  let trace_var ~(is_local : bool) ~(is_read : bool) (name : Ident.t) (v : Value.value) : unit =
+    let name = Ident.pprint name in
     if not is_local && not is_read then
       ( match RegMap.find_opt name regmap with
       | Some ix ->
@@ -194,7 +194,7 @@ let chekhovTracer
   let trace_event ~(kind : string) (vs : string list) : unit =
     Out.comment ("EVENT " ^ kind ^ " " ^ String.concat " " vs)
 
-  let trace_function ~(is_prim : bool) ~(is_return : bool) (name : AST.ident) (tvs : Value.value list) (vs : Value.value list) : unit = ()
+  let trace_function ~(is_prim : bool) ~(is_return : bool) (name : Ident.t) (tvs : Value.value list) (vs : Value.value list) : unit = ()
 
   let _ = begin
     List.iter (fun (name, value) -> Out.setenv name value) env;

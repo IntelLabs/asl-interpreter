@@ -23,14 +23,14 @@ type access_kind
 
 class type aslVisitor =
   object
-    method vvar : access_kind -> ident -> ident visitAction
+    method vvar : access_kind -> Ident.t -> Ident.t visitAction
     method ve_elsif : e_elsif -> e_elsif visitAction
     method vslice : slice -> slice visitAction
     method vpattern : pattern -> pattern visitAction
     method vexpr : expr -> expr visitAction
     method vconstraint : constraint_range -> constraint_range visitAction
     method vtype : ty -> ty visitAction
-    method vlvar : ident -> ident visitAction
+    method vlvar : Ident.t -> Ident.t visitAction
     method vlexpr : lexpr -> lexpr visitAction
     method vdeclitem : decl_item -> decl_item visitAction
     method vstmt : stmt -> stmt list visitAction
@@ -39,13 +39,13 @@ class type aslVisitor =
     method vcatcher : catcher -> catcher visitAction
     method vmapfield : mapfield -> mapfield visitAction
     method vdecl : declaration -> declaration visitAction
-    method enter_scope : ident list -> unit
-    method leave_scope : ident list -> unit
+    method enter_scope : Ident.t list -> unit
+    method leave_scope : Ident.t list -> unit
   end
 
 val visit_alt : aslVisitor -> alt -> alt
-val visit_arg : aslVisitor -> ident * ty -> ident * ty
-val visit_args : aslVisitor -> (ident * ty) list -> (ident * ty) list
+val visit_arg : aslVisitor -> Ident.t * ty -> Ident.t * ty
+val visit_args : aslVisitor -> (Ident.t * ty) list -> (Ident.t * ty) list
 val visit_catcher : aslVisitor -> catcher -> catcher
 val visit_constraint_range : aslVisitor -> constraint_range -> constraint_range
 
@@ -59,12 +59,12 @@ val visit_expr : aslVisitor -> expr -> expr
 val visit_exprs : aslVisitor -> expr list -> expr list
 val visit_lexpr : aslVisitor -> lexpr -> lexpr
 val visit_lexprs : aslVisitor -> lexpr list -> lexpr list
-val visit_lvar : aslVisitor -> ident -> ident
+val visit_lvar : aslVisitor -> Ident.t -> Ident.t
 val visit_mapfield : aslVisitor -> mapfield -> mapfield
-val visit_parameter : aslVisitor -> ident * ty option -> ident * ty option
+val visit_parameter : aslVisitor -> Ident.t * ty option -> Ident.t * ty option
 
 val visit_parameters :
-  aslVisitor -> (ident * ty option) list -> (ident * ty option) list
+  aslVisitor -> (Ident.t * ty option) list -> (Ident.t * ty option) list
 
 val visit_pattern : aslVisitor -> pattern -> pattern
 val visit_patterns : aslVisitor -> pattern list -> pattern list
@@ -74,6 +74,6 @@ val visit_stmt : aslVisitor -> stmt -> stmt list
 val visit_stmts : aslVisitor -> stmt list -> stmt list
 val visit_type : aslVisitor -> ty -> ty
 val visit_types : aslVisitor -> ty list -> ty list
-val visit_var : aslVisitor -> access_kind -> ident -> ident
+val visit_var : aslVisitor -> access_kind -> Ident.t -> Ident.t
 
 class nopAslVisitor : aslVisitor

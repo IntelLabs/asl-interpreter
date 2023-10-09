@@ -7,7 +7,7 @@
 
 module AST = Asl_ast
 
-val xform_decl : AST.declaration -> (AST.ident * AST.expr list) list -> AST.declaration list
+val xform_decl : AST.declaration -> (Ident.t * AST.expr list) list -> AST.declaration list
 
 (****************************************************************
  * End
