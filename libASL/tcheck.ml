@@ -11,6 +11,7 @@ module AST = Asl_ast
 module Visitor = Asl_visitor
 module FMT = Asl_fmt
 module FMTUtils = Format_utils
+open Builtin_idents
 open AST
 open Utils
 open Asl_utils
@@ -531,10 +532,10 @@ let rec simplify_expr (x : AST.expr) : AST.expr =
   | Expr_TApply (f, tes, es, throws) -> (
       let es' = List.map simplify_expr es in
       match (f, flatten_map_option eval es') with
-      | FIdent ("neg_int", _), Some [ a ]    -> to_expr (Z.neg a)
-      | FIdent ("add_int", _), Some [ a; b ] -> to_expr (Z.add a b)
-      | FIdent ("sub_int", _), Some [ a; b ] -> to_expr (Z.sub a b)
-      | FIdent ("mul_int", _), Some [ a; b ] -> to_expr (Z.mul a b)
+      | i, Some [ a ]    when Ident.equal i neg_int -> to_expr (Z.neg a)
+      | i, Some [ a; b ] when Ident.equal i add_int -> to_expr (Z.add a b)
+      | i, Some [ a; b ] when Ident.equal i sub_int -> to_expr (Z.sub a b)
+      | i, Some [ a; b ] when Ident.equal i mul_int -> to_expr (Z.mul a b)
       | _ -> Expr_TApply (f, tes, es', throws))
   | _ -> x
 
@@ -570,53 +571,53 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
   | Expr_LitInt i -> Z3.Arithmetic.Integer.mk_numeral_s ctx i
   (* todo: the following lines involving DIV are not sound *)
   | Expr_TApply
-      ( FIdent ("mul_int", _),
+      ( i,
         [],
-        [ Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ], _); c ],
+        [ Expr_TApply (j, [], [ a; b ], _); c ],
         _
       )
-    when b = c ->
+    when Ident.equal i mul_int && Ident.equal j fdiv_int && b = c ->
       z3_of_expr ctx ufs a
   | Expr_TApply
-      ( FIdent ("mul_int", _),
+      ( i,
         [],
-        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ], _) ],
+        [ a; Expr_TApply (j, [], [ b; c ], _) ],
         _
       )
-    when a = c ->
+    when Ident.equal i mul_int && Ident.equal j fdiv_int && a = c ->
       z3_of_expr ctx ufs b
   | Expr_TApply
-      ( FIdent ("add_int", _),
+      ( i,
         [],
         [
-          Expr_TApply (FIdent ("fdiv_int", _), [], [ a1; b1 ], _);
-          Expr_TApply (FIdent ("fdiv_int", _), [], [ a2; b2 ], _);
+          Expr_TApply (j, [], [ a1; b1 ], _);
+          Expr_TApply (k, [], [ a2; b2 ], _);
         ],
         _
       )
-    when a1 = a2 && b1 = b2 && b1 = two ->
+    when Ident.equal i add_int && Ident.equal j fdiv_int && Ident.equal k fdiv_int && a1 = a2 && b1 = b2 && b1 = two ->
       z3_of_expr ctx ufs a1
   | Expr_TApply
-      ( FIdent ("eq_int", _),
+      ( i,
         [],
-        [ a; Expr_TApply (FIdent ("fdiv_int", _), [], [ b; c ], _) ],
+        [ a; Expr_TApply (j, [], [ b; c ], _) ],
         _
-      ) ->
+      ) when Ident.equal i eq_int && Ident.equal j fdiv_int ->
       Z3.Boolean.mk_eq ctx
         (Z3.Arithmetic.mk_mul ctx
            [ z3_of_expr ctx ufs c; z3_of_expr ctx ufs a ])
         (z3_of_expr ctx ufs b)
-  | Expr_TApply (FIdent ("neg_int", _), [], [x], _) ->
+  | Expr_TApply (i, [], [x], _) when Ident.equal i neg_int ->
       Z3.Arithmetic.mk_unary_minus ctx (z3_of_expr ctx ufs x)
-  | Expr_TApply (FIdent ("add_int", _), [], xs, _) ->
+  | Expr_TApply (i, [], xs, _) when Ident.equal i add_int ->
       Z3.Arithmetic.mk_add ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("sub_int", _), [], xs, _) ->
+  | Expr_TApply (i, [], xs, _) when Ident.equal i sub_int ->
       Z3.Arithmetic.mk_sub ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("mul_int", _), [], xs, _) ->
+  | Expr_TApply (i, [], xs, _) when Ident.equal i mul_int ->
       Z3.Arithmetic.mk_mul ctx (List.map (z3_of_expr ctx ufs) xs)
-  | Expr_TApply (FIdent ("fdiv_int", _), [], [ a; b ], _) ->
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i fdiv_int ->
       Z3.Arithmetic.mk_div ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
-  | Expr_TApply (FIdent ("eq_int", _), [], [ a; b ], _) ->
+  | Expr_TApply (i, [], [ a; b ], _) when Ident.equal i eq_int ->
       Z3.Boolean.mk_eq ctx (z3_of_expr ctx ufs a) (z3_of_expr ctx ufs b)
   | _ -> (
       if verbose then
@@ -1575,7 +1576,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
   match x with
   | LExpr_Wildcard ->
       LExpr_Wildcard
-  | LExpr_Var v when v = Ident "_" ->
+  | LExpr_Var v when Ident.equal v  wildcard_ident ->
       (* treat '_' as wildcard token *)
       LExpr_Wildcard
   | LExpr_Var v -> (
@@ -2027,7 +2028,7 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
        * We use the number of functions that already have that name as the tag.
        *)
       let tag = num_funs in
-      let qid' = Ident.add_tag qid ~tag in
+      let qid' = Ident.mk_fident_with_tag qid ~tag in
       let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
       GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
@@ -2061,7 +2062,7 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
        * We use the number of functions that already have that name as the tag.
        *)
       let tag = num_funs in
-      let qid' = Ident.add_tag qid ~tag in
+      let qid' = Ident.mk_fident_with_tag qid ~tag in
       let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
       GlobalEnv.addSetterFuns env qid (fty :: funs);
       fty
@@ -2118,12 +2119,12 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
            let v = { name=e; loc; ty; is_local=false; is_constant=true } in
            GlobalEnv.addGlobalVar env v)
         es;
-      let cmp_args = [ (Ident.Ident "x", ty); (Ident.Ident "y", ty) ] in
+      let cmp_args = [ (Ident.mk_ident "x", ty); (Ident.mk_ident "y", ty) ] in
       let eq =
-        addFunction env loc (Ident "eq_enum") false [] cmp_args type_bool
+        addFunction env loc eq_enum false [] cmp_args type_bool
       in
       let ne =
-        addFunction env loc (Ident "ne_enum") false [] cmp_args type_bool
+        addFunction env loc ne_enum false [] cmp_args type_bool
       in
       GlobalEnv.addOperators2 env loc Binop_Eq [ eq ];
       GlobalEnv.addOperators2 env loc Binop_NtEq [ ne ];

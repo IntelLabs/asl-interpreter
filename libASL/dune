@@ -17,6 +17,7 @@
    asl_visitor
    backend_c
    backend_verilog
+   builtin_idents
    chekhov
    cpu
    elf

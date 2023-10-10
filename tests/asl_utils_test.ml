@@ -23,13 +23,13 @@ let format_identSet (fmt : Format.formatter) (s : IdentSet.t) : unit =
 let identSet = Alcotest.testable format_identSet IdentSet.equal
 
 let varNames_to_identSet (vs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> Ident.Ident f) vs)
+  IdentSet.of_list (List.map (fun f -> Ident.mk_ident f) vs)
 
 let funNames_to_identSet (fs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> Ident.FIdent (f, 0)) fs)
+  IdentSet.of_list (List.map (fun f -> Ident.mk_fident f) fs)
 
 let in_identSet (s : IdentSet.t) (f : string) : bool =
-  IdentSet.mem (FIdent (f, 0)) s
+  IdentSet.mem (Ident.mk_fident f) s
 
 (****************************************************************
  * Test side_effects_of_decl
@@ -147,7 +147,7 @@ let test_reach
     (roots : string list)
     (expected : string list)
     () : unit =
-  let to_ident (x : string) : Ident.t = Ident x in
+  let to_ident (x : string) : Ident.t = Ident.mk_ident x in
   let of_ident (x : Ident.t) : string = Ident.pprint x in
 
   (* generate dependencies of a node *)
@@ -197,9 +197,9 @@ let toposort_tests : unit Alcotest.test_case list =
     ("linear4", `Quick, test_reach true total_order ["D"; "C"] ["C"; "D"; "E"]);
 
     ("diamond1", `Quick, test_reach true diamond ["B"] ["B"; "D"]);
-    (* Note that ABCD would also be correct in the following tests *)
-    ("diamond2", `Quick, test_reach true diamond ["A"] ["A"; "C"; "B"; "D"]);
-    ("diamond3", `Quick, test_reach true diamond ["A"; "B"] ["A"; "C"; "B"; "D"]);
+    (* Note that ACBD would also be correct in the following tests *)
+    ("diamond2", `Quick, test_reach true diamond ["A"] ["A"; "B"; "C"; "D"]);
+    ("diamond3", `Quick, test_reach true diamond ["A"; "B"] ["A"; "B"; "C"; "D"]);
     ("diamond4", `Quick, test_reach true diamond ["B"; "A"] ["A"; "C"; "B"; "D"]);
 
     ("cycle1", `Quick, test_reach false cycle ["A"] ["A"; "B"; "C"; "D"]);
@@ -214,7 +214,7 @@ let toposort_tests : unit Alcotest.test_case list =
 let test_reachable_decls (globals : TC.GlobalEnv.t)
     (prelude : AST.declaration list) (decls : string) (roots : string list)
     (expected : string list) () : unit =
-  let roots = List.map (fun f -> Ident.FIdent (f, 0)) roots in
+  let roots = List.map (fun f -> Ident.mk_fident f) roots in
   let tcenv, ds = extend_tcenv globals decls in
   let ds = List.append prelude ds in
   let reachable : AST.declaration list = reachable_decls roots ds in

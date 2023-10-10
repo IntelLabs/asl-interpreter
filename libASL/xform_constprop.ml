@@ -11,6 +11,7 @@ module AST = Asl_ast
 open Asl_utils
 open AST
 open Utils
+open Builtin_idents
 
 let unroll_loops : bool ref = ref true
 
@@ -125,7 +126,7 @@ let expr_value (env : Env.t) (x : AST.expr) : Values.t =
 
 let rec value_to_expr (x : Value.value) : expr option =
   match x with
-  | VBool b -> Some (Expr_Var (Ident (if b then "TRUE" else "FALSE")))
+  | VBool b -> Some (Expr_Var (if b then true_ident else false_ident))
   | VEnum (v, _) -> Some (Expr_Var v)
   | VInt v -> Some (Asl_utils.mk_litbigint v)
   | VBits v ->
@@ -154,15 +155,17 @@ let algebraic_simplifications (x : expr) : expr =
       in
       if xs' = [] then Expr_LitBits "" else Expr_Concat (ws', xs')
   (* '' : x == x == x : '' *)
-  | Expr_TApply (FIdent ("append_bits", _), [ Expr_LitInt "0"; _ ], [ _; y ], _) ->
+  | Expr_TApply (i, [ Expr_LitInt "0"; _ ], [ _; y ], _) when
+    Ident.equal i append_bits ->
       y
-  | Expr_TApply (FIdent ("append_bits", _), [ _; Expr_LitInt "0" ], [ x; _ ], _) ->
+  | Expr_TApply (i, [ _; Expr_LitInt "0" ], [ x; _ ], _) when
+    Ident.equal i append_bits ->
       x
   (* x + 0 == x == 0 + x *)
-  | Expr_TApply (FIdent ("add_int", _), [], [ x; Expr_LitInt "0" ], _) -> x
-  | Expr_TApply (FIdent ("add_int", _), [], [ Expr_LitInt "0"; x ], _) -> x
+  | Expr_TApply (i, [], [ x; Expr_LitInt "0" ], _) when Ident.equal i add_int -> x
+  | Expr_TApply (i, [], [ Expr_LitInt "0"; x ], _) when Ident.equal i add_int -> x
   (* x - 0 == x *)
-  | Expr_TApply (FIdent ("sub_int", _), [], [ x; Expr_LitInt "0" ], _) -> x
+  | Expr_TApply (i, [], [ x; Expr_LitInt "0" ], _) when Ident.equal i sub_int -> x
   | _ -> x
 
 (* impure functions: set during initialization *)

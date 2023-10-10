@@ -13,6 +13,7 @@
 
 module AST = Asl_ast
 open Asl_ast
+open Builtin_idents
 
 class desugar (ds : AST.declaration list option) =
   object (self)
@@ -20,12 +21,30 @@ class desugar (ds : AST.declaration list option) =
 
     method! vexpr x =
       ( match x with
-      | Expr_TApply (FIdent ("add_bits_int", _), [n], [x; y], _) ->
-        Visitor.ChangeTo (Asl_utils.mk_add_bits n x (Expr_Slices (Asl_utils.type_bits n, y, [Slice_LoWd (Asl_utils.zero, n)])))
-      | Expr_TApply (FIdent ("sub_bits_int", _), [n], [x; y], _) ->
-        Visitor.ChangeTo (Asl_utils.mk_sub_bits n x (Expr_Slices (Asl_utils.type_bits n, y, [Slice_LoWd (Asl_utils.zero, n)])))
-      | Expr_TApply (FIdent ("mul_bits_int", _), [n], [x; y], _) ->
-        Visitor.ChangeTo (Asl_utils.mk_mul_bits n x (Expr_Slices (Asl_utils.type_bits n, y, [Slice_LoWd (Asl_utils.zero, n)])))
+      | Expr_TApply (i, [n], [x; y], _) when Ident.equal i add_bits_int ->
+        Visitor.ChangeTo (Asl_utils.mk_add_bits
+          n
+          x
+          (Expr_Slices (Asl_utils.type_bits
+            n,
+            y,
+            [Slice_LoWd (Asl_utils.zero, n)])))
+      | Expr_TApply (i, [n], [x; y], _) when Ident.equal i sub_bits_int ->
+        Visitor.ChangeTo (Asl_utils.mk_sub_bits
+          n
+          x
+          (Expr_Slices (Asl_utils.type_bits
+            n,
+            y,
+            [Slice_LoWd (Asl_utils.zero, n)])))
+      | Expr_TApply (i, [n], [x; y], _) when Ident.equal i sub_bits_int ->
+        Visitor.ChangeTo (Asl_utils.mk_mul_bits
+          n
+          x
+          (Expr_Slices (Asl_utils.type_bits
+            n,
+            y,
+            [Slice_LoWd (Asl_utils.zero, n)])))
       | _ -> DoChildren
       )
   end

@@ -13,6 +13,7 @@ module PP = Format
 module V = Value
 open Format_utils
 open Utils
+open Builtin_idents
 
 exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
 
@@ -77,12 +78,7 @@ let reserved = [
   "while"
 ]
 
-(** Rename any identifiers that match C reserved words *)
-let mangle (s : string) : string =
-  if List.mem s reserved then
-    "xx"^s
-  else
-    s
+let reserved_idents = List.map Ident.mk_ident reserved
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =
   PP.pp_print_string fmt s
@@ -95,9 +91,12 @@ let ident_str (fmt : PP.formatter) (x : string) : unit =
   PP.pp_print_string fmt x
 
 let ident (fmt : PP.formatter) (x : Ident.t) : unit =
-  match x with
-  | Ident s -> ident_str fmt (mangle s)
-  | FIdent (s, t) -> ident_str fmt (s ^ "_" ^ string_of_int t)
+  (* Rename any identifiers that match C reserved words *)
+  if Ident.in_list x reserved_idents then
+    ident_str fmt ("xx" ^ (Ident.name_with_tag x))
+  else
+    ident_str fmt (Ident.name_with_tag x)
+
 
 let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
 let funname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
@@ -214,7 +213,7 @@ let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error
 let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
 let fn_extern (fmt : PP.formatter) (x : Ident.t) : unit =
-  asl_keyword fmt (Ident.name_of_FIdent x)
+  asl_keyword fmt (Ident.name x)
 
 (* Round up to the next power of 2 *)
 let round_up_to_pow2 (x : int) : int =
@@ -339,11 +338,11 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
     varname fmt v
   | Type_Constructor (tc, []) ->
       ( match tc with
-      | Ident "boolean" ->
+      | i when Ident.equal i boolean_ident ->
         kw_bool fmt;
         nbsp fmt;
         varname fmt v
-      | Ident "string" ->
+      | i when Ident.equal i string_ident ->
         kw_const fmt;
         nbsp fmt;
         kw_char fmt;
@@ -355,7 +354,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
         nbsp fmt;
         varname fmt v
       )
-  | Type_Constructor (Ident "__RAM", [_]) ->
+  | Type_Constructor (i, [_]) when Ident.equal i Builtin_idents.ram ->
     ty_ram fmt;
     nbsp fmt;
     varname fmt v
@@ -411,7 +410,7 @@ and pow2_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
 
 (* Calculate mask with x ones *)
 and mask_int (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
-  apply loc fmt (fun _ -> fn_extern fmt (FIdent ("mask_int", 0))) [ x ]
+  apply loc fmt (fun _ -> fn_extern fmt Builtin_idents.mask_int) [x]
 
 and binop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with
@@ -464,80 +463,82 @@ and apply_bits_builtin (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit)
 
 and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
     (args : AST.expr list) (loc : AST.l) =
-  match (f, args) with
+  match args with
   (* Boolean builtin functions *)
-  | FIdent ("and_bool", _), _ -> binop loc fmt "&&" args
-  | FIdent ("eq_bool", _), _ | FIdent ("equiv_bool", _), _ ->
+  | _ when Ident.equal f and_bool -> binop loc fmt "&&" args
+  | _ when Ident.in_list f [eq_bool; equiv_bool] ->
       binop loc fmt "==" args
-  | FIdent ("implies_bool", _), [ x; y ] ->
+  | [ x; y ] when Ident.equal f implies_bool ->
       cond loc fmt x y Asl_utils.asl_true
-  | FIdent ("ne_bool", _), _ -> binop loc fmt "!=" args
-  | FIdent ("not_bool", _), _ -> unop loc fmt "!" args
-  | FIdent ("or_bool", _), _ -> binop loc fmt "||" args
+  | _ when Ident.equal f ne_bool -> binop loc fmt "!=" args
+  | _ when Ident.equal f not_bool -> unop loc fmt "!" args
+  | _ when Ident.equal f or_bool -> binop loc fmt "||" args
   (* Enumeration builtin functions *)
-  | FIdent ("eq_enum", _), _ -> binop loc fmt "==" args
-  | FIdent ("ne_enum", _), _ -> binop loc fmt "!=" args
+  (* The reason we need direct checks against eq_enum and ne_enum is because
+     the identifier eq_enum with tag 0 doesn't have a root. And we need this
+     function identifier in the xform_case transform right now *)
+  | _ when Ident.equal f eq_enum -> binop loc fmt "==" args
+  | _ when Ident.equal f ne_enum -> binop loc fmt "!=" args
+  | _ when Ident.root_equal f ~root:eq_enum -> binop loc fmt "==" args
+  | _ when Ident.root_equal f ~root:ne_enum -> binop loc fmt "!=" args
   (* Integer builtin functions *)
-  | FIdent ("add_int", _), _ -> binop loc fmt "+" args
-  | FIdent ("align_int", _), [ x; y ] ->
+  | _ when Ident.equal f add_int -> binop loc fmt "+" args
+  | [ x; y ] when Ident.equal f align_int ->
       make_binop fmt
         (fun _ -> amp fmt)
         (fun _ -> expr loc fmt x)
         (fun _ -> make_unop fmt (fun _ -> tilde fmt) (fun _ -> mask_int loc fmt y))
-  | FIdent ("eq_int", _), _ -> binop loc fmt "==" args
-  | FIdent ("fdiv_int", _), _
-  | FIdent ("frem_int", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
-  | FIdent ("ge_int", _), _ -> binop loc fmt ">=" args
-  | FIdent ("gt_int", _), _ -> binop loc fmt ">" args
-  | FIdent ("is_pow2_int", _), _ -> apply loc fmt (fun _ -> fn_extern fmt f) args
-  | FIdent ("le_int", _), _ -> binop loc fmt "<=" args
-  | FIdent ("lt_int", _), _ -> binop loc fmt "<" args
-  | FIdent ("mod_pow2_int", _), [ x; y ] ->
+  | _ when Ident.equal f eq_int -> binop loc fmt "==" args
+  | _ when Ident.in_list f [fdiv_int; frem_int] ->
+      apply loc fmt (fun _ -> fn_extern fmt f) args
+  | _ when Ident.equal f ge_int -> binop loc fmt ">=" args
+  | _ when Ident.equal f gt_int -> binop loc fmt ">" args
+  | _ when Ident.equal f is_pow2_int ->
+      apply loc fmt (fun _ -> fn_extern fmt f) args
+  | _ when Ident.equal f le_int -> binop loc fmt "<=" args
+  | _ when Ident.equal f lt_int -> binop loc fmt "<" args
+  | [ x; y ] when Ident.equal f mod_pow2_int ->
       make_binop fmt
         (fun _ -> amp fmt)
         (fun _ -> expr loc fmt x)
         (fun _ -> mask_int loc fmt y)
-  | FIdent ("mul_int", _), _ -> binop loc fmt "*" args
-  | FIdent ("ne_int", _), _ -> binop loc fmt "!=" args
-  | FIdent ("neg_int", _), _ -> unop loc fmt "-" args
-  | FIdent ("pow2_int", _), [ x ] -> pow2_int loc fmt x
-  | FIdent ("shl_int", _), _ -> binop loc fmt "<<" args
-  | FIdent ("shr_int", _), _ -> binop loc fmt ">>" args
-  | FIdent ("sub_int", _), _ -> binop loc fmt "-" args
-  | FIdent ("zdiv_int", _), _ -> binop loc fmt "/" args
-  | FIdent ("zrem_int", _), _ -> binop loc fmt "%" args
+  | _ when Ident.equal f mul_int -> binop loc fmt "*" args
+  | _ when Ident.equal f ne_int -> binop loc fmt "!=" args
+  | _ when Ident.equal f neg_int -> unop loc fmt "-" args
+  | [ x ] when Ident.equal f Builtin_idents.pow2_int -> pow2_int loc fmt x
+  | _ when Ident.equal f shl_int -> binop loc fmt "<<" args
+  | _ when Ident.equal f shr_int -> binop loc fmt ">>" args
+  | _ when Ident.equal f sub_int -> binop loc fmt "-" args
+  | _ when Ident.equal f zdiv_int -> binop loc fmt "/" args
+  | _ when Ident.equal f zrem_int -> binop loc fmt "%" args
   (* Real builtin functions *)
-  | FIdent ("add_real", _), _
-  | FIdent ("cvt_int_real", _), _
-  | FIdent ("divide_real", _), _
-  | FIdent ("eq_real", _), _
-  | FIdent ("ge_real", _), _
-  | FIdent ("gt_real", _), _
-  | FIdent ("le_real", _), _
-  | FIdent ("lt_real", _), _
-  | FIdent ("mul_real", _), _
-  | FIdent ("ne_real", _), _
-  | FIdent ("neg_real", _), _
-  | FIdent ("pow2_real", _), _
-  | FIdent ("round_down_real", _), _
-  | FIdent ("round_tozero_real", _), _
-  | FIdent ("round_up_real", _), _
-  | FIdent ("sqrt_real", _), _
-  | FIdent ("sub_real", _), _ ->
+  | _ when Ident.in_list f [add_real;
+    cvt_int_real;
+    divide_real;
+    eq_real ;
+    ge_real;
+    gt_real;
+    le_real;
+    lt_real;
+    mul_real;
+    ne_real ;
+    neg_real;
+    pow2_real;
+    round_down_real;
+    round_tozero_real;
+    round_up_real ;
+    sqrt_real;
+    sub_real] ->
       raise
         (Unimplemented
            ( loc,
              "real builtin function",
              fun fmt -> FMTAST.funname fmt f ))
   (* Bitvector builtin functions *)
-  | FIdent ("add_bits", _), _
-  | FIdent ("and_bits", _), _
-  | FIdent ("asr_bits", _), _
-  | FIdent ("cvt_bits_sint", _), _
-  | FIdent ("cvt_bits_uint", _), _ ->
+  | _ when Ident.in_list f [ add_bits; and_bits; asr_bits; cvt_bits_sint; cvt_bits_uint ] ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
-  | FIdent ("append_bits", _), [ x; y ] ->
+  | [ x; y ] when Ident.equal f append_bits ->
       let m, n =
         match tes with
         | [ m; n ] -> (m, n)
@@ -553,47 +554,40 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
           Asl_utils.mk_zero_extend_bits m nm x;
           Asl_utils.mk_zero_extend_bits n nm y;
         ]
-  | FIdent ("cvt_int_bits", _), [ x; n ] ->
+  | [ x; n ] when Ident.equal f cvt_int_bits ->
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] [ n; x ]
-  | FIdent ("eor_bits", _), _
-  | FIdent ("eq_bits", _), _ ->
+  | _ when Ident.in_list f [ eor_bits; eq_bits ] ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
-  | FIdent ("mk_mask", _), [ w; _ ] ->
+  | [ w; _ ] when Ident.equal f Builtin_idents.mk_mask ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] [ w ]
-  | FIdent ("frem_bits_int", _), _
-  | FIdent ("in_mask", _), _
-  | FIdent ("notin_mask", _), _ ->
+  | _ when Ident.in_list f [ frem_bits_int; in_mask; notin_mask ] ->
       raise
         (Unimplemented
            (loc, "bitvector builtin function", fun fmt -> FMTAST.funname fmt f))
-  | FIdent ("lsl_bits", _), _
-  | FIdent ("lsr_bits", _), _
-  | FIdent ("mul_bits", _), _
-  | FIdent ("ne_bits", _), _
-  | FIdent ("not_bits", _), _ ->
+  | _ when Ident.in_list f [ lsl_bits; lsr_bits; mul_bits; ne_bits; not_bits ] ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
-  | FIdent ("ones_bits", _), _ ->
+  | _ when Ident.equal f ones_bits ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
-  | FIdent ("or_bits", _), _ ->
+  | _ when Ident.equal f or_bits ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
-  | FIdent ("replicate_bits", _), [ x; n ] ->
+  | [ x; n ] when Ident.equal f replicate_bits ->
       let m = List.hd tes in
       let nm = Asl_utils.mk_litint (const_int_expr loc n * const_int_expr loc m) in
       apply_bits_builtin loc fmt
         (fun _ -> fn_extern fmt f)
         [ nm ] [ m; Asl_utils.mk_zero_extend_bits m nm x; n ]
-  | FIdent ("sub_bits", _), _ ->
+  | _ when Ident.equal f sub_bits ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
-  | FIdent ("zeros_bits", _), _ ->
+  | _ when Ident.equal f zeros_bits ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
-  | FIdent ("zero_extend_bits", _), _ ->
+  | _ when Ident.equal f zero_extend_bits ->
       let m, n =
         match tes with
         | [ m; n ] -> (m, n)
@@ -601,30 +595,32 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ m; n ] (m :: args)
   (* String builtin functions *)
-  | FIdent ("append_str_str", _), [x; y] -> expr loc fmt x (* not perfect but better than nothing *)
-  | FIdent ("cvt_bits_str", _), _
-  | FIdent ("cvt_bool_str", _), _
-  | FIdent ("cvt_int_decstr", _), _
-  | FIdent ("cvt_int_hexstr", _), _
-  | FIdent ("cvt_real_str", _), _ ->
+  | [x; y] when Ident.equal f append_str_str -> expr loc fmt x (* not perfect but better than nothing *)
+  | _ when Ident.in_list f [
+      cvt_bits_str;
+      cvt_bool_str;
+      cvt_int_decstr;
+      cvt_int_hexstr;
+      cvt_real_str
+    ] ->
       dquote fmt;
       dquote fmt
-  | FIdent ("eq_str", _), _
-  | FIdent ("ne_str", _), _ ->
+  | _ when Ident.in_list f [ eq_str; ne_str ] ->
       raise
         (Unimplemented
            (loc, "string builtin function", fun fmt -> FMTAST.funname fmt f))
-  | FIdent ("print_int_hex", _), _
-  | FIdent ("print_int_dec", _), _
-  | FIdent ("print_char", _), _
-  | FIdent ("print_str", _), _ ->
+  | _ when Ident.in_list f [
+      print_int_hex;
+      print_int_dec;
+      print_char;
+      print_str
+    ] ->
       apply loc fmt (fun _ -> fn_extern fmt f) args
-  | FIdent ("print_bits_hex", _), _ ->
+  | _ when Ident.equal f print_bits_hex ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
   (* RAM builtin functions *)
-  | FIdent ("ram_init", _), [ a; n; ram; i ]
-  | FIdent ("ram_read", _), [ a; n; ram; i ] ->
+  | [ a; n; ram; i ] when Ident.in_list f [ ram_init; ram_read ] ->
       fn_extern fmt f;
       parens fmt (fun _ ->
           commasep fmt
@@ -636,7 +632,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
                 make_unop fmt (fun _ -> amp fmt) (fun _ -> expr loc fmt ram));
               (fun _ -> expr loc fmt i);
             ])
-  | FIdent ("ram_write", _), [ a; n; ram; i; x ] ->
+  | [ a; n; ram; i; x ] when Ident.equal f ram_write ->
       fn_extern fmt f;
       parens fmt (fun _ ->
           commasep fmt
@@ -650,15 +646,13 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
               (fun _ -> expr loc fmt x);
             ])
   (* File builtin functions *)
-  | FIdent ("asl_file_getc", _), _
-  | FIdent ("asl_file_open", _), _
-  | FIdent ("asl_file_write", _), _ ->
+  | _ when Ident.in_list f [ asl_file_getc; asl_file_open; asl_file_write ] ->
       raise
         (Unimplemented
            (loc, "file builtin function", fun fmt -> FMTAST.funname fmt f))
   (* Helper functions with ASL_ prefix *)
-  | FIdent (f, _), _ when String.starts_with ~prefix:"ASL_" f ->
-      apply loc fmt (fun _ -> PP.pp_print_string fmt f) args
+  | _ when String.starts_with ~prefix:"ASL_" (Ident.name f) ->
+      apply loc fmt (fun _ -> PP.pp_print_string fmt (Ident.name f)) args
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
@@ -723,11 +717,10 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
         rethrow_expr fmt (fun _ -> funcall loc fmt f tes es loc)
       else
         funcall loc fmt f tes es loc
-  | Expr_Var v -> (
-      match v with
-      | Ident "TRUE" -> kw_true fmt
-      | Ident "FALSE" -> kw_false fmt
-      | _ -> varname fmt v)
+  | Expr_Var v ->
+      if Ident.equal v true_ident then kw_true fmt
+      else if Ident.equal v false_ident then kw_false fmt
+      else varname fmt v
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
@@ -776,11 +769,9 @@ let pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_LitHex l -> hexLit fmt l
   | Pat_LitInt l -> intLit fmt l
   | Pat_Const v ->
-      ( match v with
-      | Ident "TRUE" -> kw_true fmt
-      | Ident "FALSE" -> kw_false fmt
-      | _ -> varname fmt v
-      )
+      if Ident.equal v true_ident then kw_true fmt
+      else if Ident.equal v false_ident then kw_false fmt
+      else varname fmt v
   | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
   | Pat_Tuple _ | Pat_Wildcard ->
       raise
@@ -1016,7 +1007,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       funcall loc fmt f tes args loc;
       semicolon fmt;
       if (throws) then rethrow_stmt fmt
-  | Stmt_VarDeclsNoInit (vs, Type_Constructor (Ident "__RAM", [_]), loc) ->
+  | Stmt_VarDeclsNoInit (vs, Type_Constructor (i, [_]), loc) when
+    Ident.equal i Builtin_idents.ram ->
       cutsep fmt
         (fun v ->
           varname fmt v;
@@ -1113,7 +1105,7 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
            | Some rty ->
              braces fmt (fun _ ->
                indented fmt (fun _ ->
-                 let v = Ident.Ident "ASL_fake_return_value" in
+                 let v = asl_fake_return_value in
                  varty AST.Unknown fmt v rty;
                  PP.fprintf fmt ";@,return %a;" varname v
                );
@@ -1136,11 +1128,13 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       match x with
       | Decl_BuiltinType (tc, loc) -> (
           match tc with
-          | Ident "real"
-          | Ident "string"
-          | Ident "__mask"
-          | Ident "__Exception"
-          | Ident "__RAM" -> ()
+          | _ when Ident.in_list tc [
+              real_ident;
+              string_ident;
+              mask_ident;
+              exception_ident;
+              ram
+            ] -> ()
           | _ ->
               raise
                 (Unimplemented
@@ -1158,7 +1152,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_Enum (tc, es, loc) ->
-          if tc = Ident "boolean" then (* is in C99 stdbool.h *) ()
+          if Ident.equal tc boolean_ident then (* is in C99 stdbool.h *) ()
           else (
             typedef fmt (fun _ ->
                 kw_enum fmt;

@@ -10,6 +10,7 @@
 module AST = Asl_ast
 module FMT = Asl_fmt
 module FMTUtils = Format_utils
+open Builtin_idents
 open AST
 open Asl_visitor
 
@@ -187,7 +188,7 @@ class nameSupply (prefix : string) =
     val mutable vnum = 0
 
     method fresh : Ident.t =
-      let v = Ident.Ident (prefix ^ string_of_int vnum) in
+      let v = Ident.mk_ident (prefix ^ string_of_int vnum) in
       vnum <- vnum + 1;
       v
   end
@@ -803,7 +804,7 @@ let callers (leaves : Ident.t list) (ds : declaration list) : IdentSet.t =
 (* All RAM accesses are considered to modify a single RAM variable
  * Note that the name is the same as the __RAM type in the Prelude.
  *)
-let dummy_ram_variable = Ident.Ident "__RAM"
+let dummy_ram_variable = Builtin_idents.ram
 
 class sideEffectClass =
   object
@@ -1032,16 +1033,14 @@ let pp_stmt (x : stmt) : string = Utils.to_string2 (Fun.flip FMT.stmt x)
 
 let type_unit = Type_Tuple []
 let type_integer = Type_Integer None
-let type_bool = Type_Constructor (Ident "boolean", [])
-let type_real = Type_Constructor (Ident "real", [])
-let type_string = Type_Constructor (Ident "string", [])
+let type_bool = Type_Constructor (boolean_ident, [])
+let type_real = Type_Constructor (real_ident, [])
+let type_string = Type_Constructor (string_ident, [])
 let type_bits (n : expr) = Type_Bits n
-let type_exn = Type_Constructor (Ident "__Exception", [])
+let type_exn = Type_Constructor (exception_ident, [])
 
-let mk_enum (nm : string) : AST.expr = AST.Expr_Var (Ident nm)
-
-let asl_false = mk_enum "FALSE"
-let asl_true = mk_enum "TRUE"
+let asl_false = AST.Expr_Var false_ident
+let asl_true = AST.Expr_Var true_ident
 
 let mk_litint (x : int) : AST.expr = Expr_LitInt (string_of_int x)
 let mk_litbigint (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x)
@@ -1051,62 +1050,62 @@ let zero = Expr_LitInt "0"
 let one = Expr_LitInt "1"
 let two = Expr_LitInt "2"
 
-let mk_unop (op : string) (tys : AST.expr list) (x : AST.expr) : AST.expr =
-  Expr_TApply (FIdent (op, 0), tys, [x], false)
+let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
+  Expr_TApply (op, tys, [x], false)
 
-let mk_binop (op : string) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (FIdent (op, 0), tys, [x; y], false)
+let mk_binop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
+  Expr_TApply (op, tys, [x; y], false)
 
 (** Construct "!x" *)
 let mk_not (x : AST.expr) : AST.expr =
   if x = asl_false then asl_true
   else if x = asl_true then asl_false
-  else mk_unop "not_bool" [] x
+  else mk_unop not_bool [] x
 
 (** Construct "x && y" *)
 let mk_and (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = asl_false then asl_false
   else if x = asl_true then y
   else if y = asl_true then x
-  else mk_binop "and_bool" [] x y
+  else mk_binop and_bool [] x y
 
 (** Construct "x || y" *)
 let mk_or (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = asl_true then asl_true
   else if x = asl_false then y
   else if y = asl_false then x
-  else mk_binop "or_bool" [] x y
+  else mk_binop or_bool [] x y
 
 (** Construct "x --> y" *)
 let mk_implies (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = asl_false then asl_true
   else if x = asl_true then y
   else if y = asl_false then mk_not x
-  else mk_binop "implies_bool" [] x y
+  else mk_binop implies_bool [] x y
 
 (** Construct "eq_enum(x, y)" *)
-let mk_eq_enum (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "eq_enum" [] x y
+let mk_eq_enum (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop eq_enum [] x y
 
 (** Construct "eq_int(x, y)" *)
-let mk_eq_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "eq_int" [] x y
+let mk_eq_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop eq_int [] x y
 
 (** Construct "le_int(x, y)" *)
-let mk_le_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop "le_int" [] x y
+let mk_le_int (x : AST.expr) (y : AST.expr) : AST.expr = mk_binop le_int [] x y
 
 (** Construct "add_int(x, y)" *)
 let mk_add_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = zero then y
   else if y = zero then x
-  else mk_binop "add_int" [] x y
+  else mk_binop add_int [] x y
 
 (** Construct "sub_int(x, y)" *)
 let mk_sub_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if y = zero then x
-  else mk_binop "sub_int" [] x y
+  else mk_binop sub_int [] x y
 
 (** Construct "neg_int(x)" *)
 let mk_neg_int (x : AST.expr) : AST.expr =
-  mk_unop "neg_int" [] x
+  mk_unop neg_int [] x
 
 (** Construct "mul_int(x, y)" *)
 let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
@@ -1114,56 +1113,56 @@ let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
   else if y = one then x
   else if x = minus_one then mk_neg_int y
   else if y = minus_one then mk_neg_int x
-  else mk_binop "mul_int" [] x y
+  else mk_binop mul_int [] x y
 
 (** Construct "fdiv_int(x, y)" *)
 let mk_fdiv_int (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "fdiv_int" [] x y
+  mk_binop fdiv_int [] x y
 
 (** Construct "Max(x, y)" *)
 let mk_max_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = y then x
-  else mk_binop "Max" [] x y
+  else mk_binop max [] x y
 
 (** Construct "Min(x, y)" *)
 let mk_min_int (x : AST.expr) (y : AST.expr) : AST.expr =
   if x = y then x
-  else mk_binop "Min" [] x y
+  else mk_binop min [] x y
 
 (** Construct "eq_bits{w}(x, y)" *)
 let mk_eq_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "eq_bits" [w] x y
+  mk_binop eq_bits [w] x y
 
 (** Construct "add_bits{w}(x, y)" *)
 let mk_add_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "add_bits" [w] x y
+  mk_binop add_bits [w] x y
 
 (** Construct "sub_bits{w}(x, y)" *)
 let mk_sub_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "sub_bits" [w] x y
+  mk_binop sub_bits [w] x y
 
 (** Construct "mul_bits{w}(x, y)" *)
 let mk_mul_bits (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "mul_bits" [w] x y
+  mk_binop mul_bits [w] x y
 
 (** Construct "in_mask{w}(x, y)" *)
 let mk_in_mask (w : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
-  mk_binop "in_mask" [w] x y
+  mk_binop in_mask [w] x y
 
 (** Construct "and_bits{N}(x, y)" *)
 let mk_and_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   ( match (x, y) with
-  | (Expr_TApply (FIdent ("ones_bits", _), _, _, _), _) -> y
-  | (_, Expr_TApply (FIdent ("ones_bits", _), _, _, _)) -> x
-  | _ -> mk_binop "and_bits" [n] x y
+  | (Expr_TApply (i, _, _, _), _) when Ident.equal i ones_bits -> y
+  | (_, Expr_TApply (i, _, _, _)) when Ident.equal i ones_bits -> x
+  | _ -> mk_binop and_bits [n] x y
   )
 
 (** Construct "or_bits{N}(x, y)" *)
 let mk_or_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   ( match (x, y) with
-  | (Expr_TApply (FIdent ("zeros_bits", _), _, _, _), _) -> y
-  | (_, Expr_TApply (FIdent ("zeros_bits", _), _, _, _)) -> x
-  | _ -> mk_binop "or_bits" [n] x y
+  | (Expr_TApply (i, _, _, _), _) when Ident.equal i zeros_bits -> y
+  | (_, Expr_TApply (i, _, _, _)) when Ident.equal i zeros_bits -> x
+  | _ -> mk_binop or_bits [n] x y
   )
 
 (** Construct "lsr_bits{N}(x, y)" *)
@@ -1171,33 +1170,33 @@ let mk_lsr_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   if y = zero then
     x
   else
-    mk_binop "lsr_bits" [n] x y
+    mk_binop lsr_bits [n] x y
 
 (** Construct "lsl_bits{N}(x, y)" *)
 let mk_lsl_bits (n : AST.expr) (x : AST.expr) (y : AST.expr) : AST.expr =
   if y = zero then
     x
   else
-    mk_binop "lsl_bits" [n] x y
+    mk_binop lsl_bits [n] x y
 
 (** Construct "zeros_bits{N}(N)" *)
 let mk_zero_bits (n : AST.expr) : AST.expr =
-  mk_unop "zeros_bits" [n] n
+  mk_unop zeros_bits [n] n
 
 (** Construct "ones_bits{N}(N)" *)
 let mk_ones_bits (n : AST.expr) : AST.expr =
-  mk_unop "ones_bits" [n] n
+  mk_unop ones_bits [n] n
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("asl_extract_bits", 0), [ w; n ], [ x; lo; w ], false)
+  Expr_TApply (asl_extract_bits, [ w; n ], [ x; lo; w ], false)
 
 (** Construct "zero_extend_bits{w, n}(x, n)" *)
 let mk_zero_extend_bits (w : AST.expr) (n : AST.expr) (x : AST.expr) : AST.expr =
   if w = n then
     x
   else
-    Expr_TApply (FIdent ("zero_extend_bits", 0), [ w; n ], [ x; n ], false)
+    Expr_TApply (zero_extend_bits, [ w; n ], [ x; n ], false)
 
 (** Construct "mk_mask{n}(w, n)" which is equivalent to
  *  'ZeroExtend{n}(Ones(w), n)'
@@ -1206,10 +1205,10 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   if w = n then
     mk_ones_bits n
   else
-    Expr_TApply (FIdent ("mk_mask", 0), [n], [w; n], false)
+    Expr_TApply (Builtin_idents.mk_mask, [n], [w; n], false)
 
 let mk_not_mask(m : AST.expr) (n : AST.expr) =
-  Expr_TApply (FIdent ("not_bits", 0), [n], [m], false)
+  Expr_TApply (not_bits, [n], [m], false)
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =
@@ -1229,7 +1228,7 @@ let mk_ors  (xs : AST.expr list) : AST.expr =
 
 (** Construct "cvt_int_bits{n}(x, n)" *)
 let mk_cvt_int_bits (n : AST.expr) (x : AST.expr) : AST.expr =
-  Expr_TApply (FIdent ("cvt_int_bits", 0), [ n ], [ x; n ], false)
+  Expr_TApply (cvt_int_bits, [ n ], [ x; n ], false)
 
 (****************************************************************)
 (** {2 Misc}                                                    *)

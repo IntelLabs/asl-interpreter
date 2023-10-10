@@ -10,6 +10,7 @@
 
 open Primops
 module AST = Asl_ast
+open Builtin_idents
 open Asl_utils
 
 (****************************************************************)
@@ -426,156 +427,252 @@ let tracer = ref (module TextTracer : Tracer)
 
 (** Returns None iff function does not exist or arguments have wrong type *)
 
-let eval_prim (f : string) (tvs : value list) (vs : value list) : value option =
-  match (f, tvs, vs) with
-  | "eq_enum", [], [ VEnum x; VEnum y ] -> Some (VBool (snd x = snd y))
-  | "eq_enum", [], [ VBool x; VBool y ] -> Some (VBool (x = y))
-  | "ne_enum", [], [ VEnum x; VEnum y ] -> Some (VBool (snd x <> snd y))
-  | "ne_enum", [], [ VBool x; VBool y ] -> Some (VBool (x <> y))
-  | "eq_bool", [], [ VBool x; VBool y ] -> Some (VBool (prim_eq_bool x y))
-  | "ne_bool", [], [ VBool x; VBool y ] -> Some (VBool (prim_ne_bool x y))
-  | "equiv_bool", [], [ VBool x; VBool y ] -> Some (VBool (prim_equiv_bool x y))
-  | "not_bool", [], [ VBool x ] -> Some (VBool (prim_not_bool x))
-  | "eq_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_eq_int x y))
-  | "ne_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_ne_int x y))
-  | "le_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_le_int x y))
-  | "lt_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_lt_int x y))
-  | "ge_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_ge_int x y))
-  | "gt_int", [], [ VInt x; VInt y ] -> Some (VBool (prim_gt_int x y))
-  | "is_pow2_int", [], [ VInt x ] -> Some (VBool (prim_is_pow2_int x))
-  | "neg_int", [], [ VInt x ] -> Some (VInt (prim_neg_int x))
-  | "add_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_add_int x y))
-  | "sub_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_sub_int x y))
-  | "shl_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_shl_int x y))
-  | "shr_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_shr_int x y))
-  | "mul_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_mul_int x y))
-  | "zdiv_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_zdiv_int x y))
-  | "zrem_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_zrem_int x y))
-  | "fdiv_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_fdiv_int x y))
-  | "frem_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_frem_int x y))
-  | "mod_pow2_int", [], [ VInt x; VInt y ] ->
+let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option =
+  match (tvs, vs) with
+  (* The reason we need direct checks against eq_enum and ne_enum is because
+     the identifier eq_enum with tag 0 doesn't have a root. And we need this
+     function identifier in the xform_case transform right now *)
+  | [], [ VEnum x; VEnum y ] when Ident.equal f eq_enum ->
+      Some (VBool (snd x = snd y))
+  | [], [ VBool x; VBool y ] when Ident.equal f eq_enum ->
+      Some (VBool (x = y))
+  | [], [ VEnum x; VEnum y ] when Ident.equal f ne_enum ->
+      Some (VBool (snd x <> snd y))
+  | [], [ VBool x; VBool y ] when Ident.equal f ne_enum ->
+      Some (VBool (x <> y))
+  | [], [ VEnum x; VEnum y ] when Ident.root_equal f ~root:eq_enum ->
+      Some (VBool (snd x = snd y))
+  | [], [ VBool x; VBool y ] when Ident.root_equal f ~root:eq_enum ->
+      Some (VBool (x = y))
+  | [], [ VEnum x; VEnum y ] when Ident.root_equal f ~root:ne_enum ->
+      Some (VBool (snd x <> snd y))
+  | [], [ VBool x; VBool y ] when Ident.root_equal f ~root:ne_enum ->
+      Some (VBool (x <> y))
+  | [], [ VBool x; VBool y ] when Ident.equal f eq_bool ->
+      Some (VBool (prim_eq_bool x y))
+  | [], [ VBool x; VBool y ] when Ident.equal f ne_bool ->
+      Some (VBool (prim_ne_bool x y))
+  | [], [ VBool x; VBool y ] when Ident.equal f equiv_bool ->
+      Some (VBool (prim_equiv_bool x y))
+  | [], [ VBool x ] when Ident.equal f not_bool -> Some (VBool (prim_not_bool x))
+  | [], [ VInt x; VInt y ] when Ident.equal f eq_int ->
+      Some (VBool (prim_eq_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f ne_int ->
+      Some (VBool (prim_ne_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f le_int ->
+      Some (VBool (prim_le_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f lt_int ->
+      Some (VBool (prim_lt_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f ge_int ->
+      Some (VBool (prim_ge_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f gt_int ->
+      Some (VBool (prim_gt_int x y))
+  | [], [ VInt x ] when Ident.equal f is_pow2_int ->
+      Some (VBool (prim_is_pow2_int x))
+  | [], [ VInt x ] when Ident.equal f neg_int -> Some (VInt (prim_neg_int x))
+  | [], [ VInt x; VInt y ] when Ident.equal f add_int ->
+      Some (VInt (prim_add_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f sub_int ->
+      Some (VInt (prim_sub_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f shl_int ->
+      Some (VInt (prim_shl_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f shr_int ->
+      Some (VInt (prim_shr_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f mul_int ->
+      Some (VInt (prim_mul_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f zdiv_int ->
+      Some (VInt (prim_zdiv_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f zrem_int ->
+      Some (VInt (prim_zrem_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f fdiv_int ->
+      Some (VInt (prim_fdiv_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f frem_int ->
+      Some (VInt (prim_frem_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f mod_pow2_int ->
       Some (VInt (prim_mod_pow2_int x y))
-  | "align_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_align_int x y))
-  | "pow2_int", [], [ VInt x ] -> Some (VInt (prim_pow2_int x))
-  | "pow_int_int", [], [ VInt x; VInt y ] -> Some (VInt (prim_pow_int_int x y))
-  | "cvt_int_real", [], [ VInt x ] -> Some (VReal (prim_cvt_int_real x))
-  | "eq_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_eq_real x y))
-  | "ne_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_ne_real x y))
-  | "le_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_le_real x y))
-  | "lt_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_lt_real x y))
-  | "ge_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_ge_real x y))
-  | "gt_real", [], [ VReal x; VReal y ] -> Some (VBool (prim_gt_real x y))
-  | "add_real", [], [ VReal x; VReal y ] -> Some (VReal (prim_add_real x y))
-  | "neg_real", [], [ VReal x ] -> Some (VReal (prim_neg_real x))
-  | "sub_real", [], [ VReal x; VReal y ] -> Some (VReal (prim_sub_real x y))
-  | "mul_real", [], [ VReal x; VReal y ] -> Some (VReal (prim_mul_real x y))
-  | "divide_real", [], [ VReal x; VReal y ] -> Some (VReal (prim_div_real x y))
-  | "pow2_real", [], [ VInt x ] -> Some (VReal (prim_pow2_real x))
-  | "round_tozero_real", [], [ VReal x ] ->
+  | [], [ VInt x; VInt y ] when Ident.equal f align_int ->
+      Some (VInt (prim_align_int x y))
+  | [], [ VInt x ] when Ident.equal f pow2_int -> Some (VInt (prim_pow2_int x))
+  | [], [ VInt x; VInt y ] when Ident.equal f pow_int_int ->
+      Some (VInt (prim_pow_int_int x y))
+  | [], [ VInt x ] when Ident.equal f cvt_int_real ->
+      Some (VReal (prim_cvt_int_real x))
+  | [], [ VReal x; VReal y ] when Ident.equal f eq_real ->
+      Some (VBool (prim_eq_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f ne_real ->
+      Some (VBool (prim_ne_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f le_real ->
+      Some (VBool (prim_le_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f lt_real ->
+      Some (VBool (prim_lt_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f ge_real ->
+      Some (VBool (prim_ge_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f gt_real ->
+      Some (VBool (prim_gt_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f add_real ->
+      Some (VReal (prim_add_real x y))
+  | [], [ VReal x ] when Ident.equal f neg_real ->
+      Some (VReal (prim_neg_real x))
+  | [], [ VReal x; VReal y ] when Ident.equal f sub_real ->
+      Some (VReal (prim_sub_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f mul_real ->
+      Some (VReal (prim_mul_real x y))
+  | [], [ VReal x; VReal y ] when Ident.equal f divide_real ->
+      Some (VReal (prim_div_real x y))
+  | [], [ VInt x ] when Ident.equal f pow2_real -> Some (VReal (prim_pow2_real x))
+  | [], [ VReal x ] when Ident.equal f round_tozero_real ->
       Some (VInt (prim_round_tozero_real x))
-  | "round_down_real", [], [ VReal x ] -> Some (VInt (prim_round_down_real x))
-  | "round_up_real", [], [ VReal x ] -> Some (VInt (prim_round_up_real x))
-  | "sqrt_real", [], [ VReal x; VReal y ] -> Some (VReal (prim_sqrt_real x))
-  | "cvt_int_bits", [ _ ], [ VInt x; VInt n ] ->
+  | [], [ VReal x ] when Ident.equal f round_down_real ->
+      Some (VInt (prim_round_down_real x))
+  | [], [ VReal x ] when Ident.equal f round_up_real ->
+      Some (VInt (prim_round_up_real x))
+  | [], [ VReal x; VReal y ] when Ident.equal f sqrt_real ->
+      Some (VReal (prim_sqrt_real x))
+  | [ _ ], [ VInt x; VInt n ] when Ident.equal f cvt_int_bits ->
       Some (VBits (prim_cvt_int_bits n x))
-  | "cvt_bits_sint", [ VInt n ], [ VBits x ] ->
+  | [ VInt n ], [ VBits x ] when Ident.equal f cvt_bits_sint ->
       Some (VInt (prim_cvt_bits_sint x))
-  | "cvt_bits_uint", [ VInt n ], [ VBits x ] ->
+  | [ VInt n ], [ VBits x ] when Ident.equal f cvt_bits_uint ->
       Some (VInt (prim_cvt_bits_uint x))
-  | "in_mask", [ VInt n ], [ VBits x; VMask y ] ->
+  | [ VInt n ], [ VBits x; VMask y ] when Ident.equal f in_mask ->
       Some (VBool (prim_in_mask x y))
-  | "notin_mask", [ VInt n ], [ VBits x; VMask y ] ->
+  | [ VInt n ], [ VBits x; VMask y ] when Ident.equal f notin_mask ->
       Some (VBool (prim_notin_mask x y))
-  | "eq_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f eq_bits ->
       Some (VBool (prim_eq_bits x y))
-  | "ne_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f ne_bits ->
       Some (VBool (prim_ne_bits x y))
-  | "add_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f add_bits ->
       Some (VBits (prim_add_bits x y))
-  | "sub_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f sub_bits ->
       Some (VBits (prim_sub_bits x y))
-  | "mul_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f mul_bits ->
       Some (VBits (prim_mul_bits x y))
-  | "and_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f and_bits ->
       Some (VBits (prim_and_bits x y))
-  | "or_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f or_bits ->
       Some (VBits (prim_or_bits x y))
-  | "eor_bits", [ VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt n ], [ VBits x; VBits y ] when Ident.equal f eor_bits ->
       Some (VBits (prim_eor_bits x y))
-  | "not_bits", [ VInt n ], [ VBits x ] -> Some (VBits (prim_not_bits x))
-  | "zeros_bits", [ VInt n ], [_] -> Some (VBits (prim_zeros_bits n))
-  | "ones_bits", [ VInt n ], [_] -> Some (VBits (prim_ones_bits n))
-  | "lsl_bits", [_], [ VBits x; VInt d ] -> Some (VBits (prim_lsl x d))
-  | "lsr_bits", [_], [ VBits x; VInt d ] -> Some (VBits (prim_lsr x d))
-  | "asr_bits", [_], [ VBits x; VInt d ] -> Some (VBits (prim_asr x d))
-  | "replicate_bits", [ _; _ ], [ VBits x; VInt y ] ->
+  | [ VInt n ], [ VBits x ] when Ident.equal f not_bits ->
+      Some (VBits (prim_not_bits x))
+  | [ VInt n ], [_] when Ident.equal f zeros_bits ->
+      Some (VBits (prim_zeros_bits n))
+  | [ VInt n ], [_] when Ident.equal f ones_bits ->
+      Some (VBits (prim_ones_bits n))
+  | [_], [ VBits x; VInt d ] when Ident.equal f lsl_bits ->
+      Some (VBits (prim_lsl x d))
+  | [_], [ VBits x; VInt d ] when Ident.equal f lsr_bits ->
+      Some (VBits (prim_lsr x d))
+  | [_], [ VBits x; VInt d ] when Ident.equal f asr_bits ->
+      Some (VBits (prim_asr x d))
+  | [ _; _ ], [ VBits x; VInt y ] when Ident.equal f replicate_bits ->
       Some (VBits (prim_replicate_bits x y))
-  | "zero_extend_bits", [ _; _ ], [ VBits x; VInt y ] ->
+  | [ _; _ ], [ VBits x; VInt y ]  when Ident.equal f zero_extend_bits ->
       Some (VBits (prim_zero_extend_bits x y))
-  | "append_bits", [ VInt m; VInt n ], [ VBits x; VBits y ] ->
+  | [ VInt m; VInt n ], [ VBits x; VBits y ] when Ident.equal f append_bits ->
       Some (VBits (prim_append_bits x y))
-  | "mk_mask", [ _ ], [ VInt w; VInt n ] -> Some (VBits (prim_mk_mask w n))
-  | "eq_str", [], [ VString x; VString y ] -> Some (VBool (prim_eq_str x y))
-  | "ne_str", [], [ VString x; VString y ] -> Some (VBool (prim_ne_str x y))
-  | "append_str_str", [], [ VString x; VString y ] ->
+  | [ _ ], [ VInt w; VInt n ] when Ident.equal f Builtin_idents.mk_mask ->
+      Some (VBits (prim_mk_mask w n))
+  | [], [ VString x; VString y ] when Ident.equal f eq_str ->
+      Some (VBool (prim_eq_str x y))
+  | [], [ VString x; VString y ] when Ident.equal f ne_str ->
+      Some (VBool (prim_ne_str x y))
+  | [], [ VString x; VString y ] when Ident.equal f append_str_str ->
       Some (VString (prim_append_str x y))
-  | "cvt_int_hexstr", [], [ VInt x ] -> Some (VString (prim_cvt_int_hexstr x))
-  | "cvt_int_decstr", [], [ VInt x ] -> Some (VString (prim_cvt_int_decstr x))
-  | "cvt_bool_str", [], [ VBool x ] -> Some (VString (prim_cvt_bool_str x))
-  | "cvt_bits_str", [ _ ], [ VInt n; VBits x ] ->
+  | [], [ VInt x ] when Ident.equal f cvt_int_hexstr ->
+      Some (VString (prim_cvt_int_hexstr x))
+  | [], [ VInt x ] when Ident.equal f cvt_int_decstr ->
+      Some (VString (prim_cvt_int_decstr x))
+  | [], [ VBool x ] when Ident.equal f cvt_bool_str ->
+      Some (VString (prim_cvt_bool_str x))
+  | [ _ ], [ VInt n; VBits x ] when Ident.equal f cvt_bits_str ->
       Some (VString (prim_cvt_bits_str n x))
-  | "cvt_real_str", [], [ VReal x ] -> Some (VString (prim_cvt_real_str x))
+  | [], [ VReal x ] when Ident.equal f cvt_real_str ->
+      Some (VString (prim_cvt_real_str x))
   (* The remaining primops all have side effects *)
-  | "print_int_hex",  [],  [ VInt x ]          -> prim_print_int_hex x;    Some (VTuple [])
-  | "print_int_dec",  [],  [ VInt x ]          -> prim_print_int_dec x;    Some (VTuple [])
-  | "print_bits_hex", [_], [ VInt n; VBits x ] -> prim_print_bits_hex n x; Some (VTuple [])
-
-  | "ram_init", _, [ VInt a; VInt n; VRAM ram; VBits i ] ->
+  | [],  [ VInt x ]          when Ident.equal f print_int_hex ->
+      prim_print_int_hex x;    Some (VTuple [])
+  | [],  [ VInt x ]          when Ident.equal f print_int_dec ->
+      prim_print_int_dec x;    Some (VTuple [])
+  | [_], [ VInt n; VBits x ] when Ident.equal f print_bits_hex ->
+      prim_print_bits_hex n x; Some (VTuple [])
+  | _, [ VInt a; VInt n; VRAM ram; VBits i ] when Ident.equal f ram_init ->
       Some
         (prim_init_ram a n ram i;
          VTuple [])
-  | "ram_read", _, [ VInt a; VInt n; VRAM ram; VBits i ] ->
+  | _, [ VInt a; VInt n; VRAM ram; VBits i ] when Ident.equal f ram_read ->
       Some (VBits (prim_read_ram a n ram i.v))
-  | "ram_write", _, [ VInt a; VInt n; VRAM ram; VBits i; VBits x ] ->
+  | _, [ VInt a; VInt n; VRAM ram; VBits i; VBits x ] when
+    Ident.equal f ram_write ->
       Some
         (prim_write_ram a n ram i.v x;
          VTuple [])
 
-  | "__TraceNext", _, [ ] ->
+  | _, [ ] when Ident.equal f trace_next ->
       let module Tracer = (val (!tracer) : Tracer) in
       Some (Tracer.trace_next (); VTuple [])
-  | "__TracePhysicalMemory", _, [ VBool is_read; VBool is_data; VInt a; VInt n; VBits pa; VBits v ] ->
+  | _, [ VBool is_read; VBool is_data; VInt a; VInt n; VBits pa; VBits v ] when
+    Ident.equal f trace_physical_memory ->
       let module Tracer = (val (!tracer) : Tracer) in
-      Some (Tracer.trace_physical_memory ~is_read ~is_data ~phys_addr:pa.v ~data:v; VTuple [])
-  | "__TraceVirtualMemory", _, [ VBool is_read; VBool is_data; VInt vw; VInt pw; VInt n; VBits ctxt; VBits va; VBits pa; VBits v ] ->
+      Some (Tracer.trace_physical_memory
+          ~is_read
+          ~is_data
+          ~phys_addr:pa.v
+          ~data:v;
+        VTuple [])
+  | _, [ VBool is_read;
+         VBool is_data;
+         VInt vw; VInt pw;
+         VInt n;
+         VBits ctxt;
+         VBits va;
+         VBits pa;
+         VBits v
+       ] when
+    Ident.equal f trace_virtual_memory ->
       let module Tracer = (val (!tracer) : Tracer) in
-      Some (Tracer.trace_virtual_memory ~is_read ~is_data ~context:ctxt.v ~phys_addr:pa.v ~virt_addr:va.v ~data:v; VTuple [])
-  | "__TracePageTableWalk", _, [ VInt pw; VInt n; VBits ctxt; VInt level; VBits pa; VBits v ] ->
+      Some (Tracer.trace_virtual_memory
+          ~is_read
+          ~is_data
+          ~context:ctxt.v
+          ~phys_addr:pa.v
+          ~virt_addr:va.v
+          ~data:v;
+        VTuple [])
+  | _, [ VInt pw; VInt n; VBits ctxt; VInt level; VBits pa; VBits v ] when
+    Ident.equal f trace_page_table_walk ->
       let module Tracer = (val (!tracer) : Tracer) in
-      Some (Tracer.trace_memory_pte ~context:ctxt.v ~level ~phys_addr:pa.v ~data:v; VTuple [])
-  | "__TraceError", _, [ VString kind; VString s ] ->
+      Some (Tracer.trace_memory_pte
+          ~context:ctxt.v
+          ~level
+          ~phys_addr:pa.v
+          ~data:v;
+        VTuple [])
+  | _, [ VString kind; VString s ] when Ident.equal f trace_error ->
       let module Tracer = (val (!tracer) : Tracer) in
       Some (Tracer.trace_error ~kind [s]; VTuple [])
-  | "__TraceEvent", _, [ VString kind; VString s ] ->
+  | _, [ VString kind; VString s ] when Ident.equal f trace_event ->
       let module Tracer = (val (!tracer) : Tracer) in
       Some (Tracer.trace_event ~kind [s]; VTuple [])
 
-  | "asl_file_open", _, [ VString name; VString mode ] ->
+  | _, [ VString name; VString mode ] when Ident.equal f asl_file_open ->
       Some (VInt (prim_open_file name mode))
-  | "asl_file_write", _, [ VInt fd; VString data ] ->
+  | _, [ VInt fd; VString data ] when Ident.equal f asl_file_write ->
       Some
         (prim_write_file fd data;
          VTuple [])
-  | "asl_file_getc", _, [ VInt fd ] -> Some (VInt (prim_getc_file fd))
-  | "print_str", _, [ VString s ] ->
+  | _, [ VInt fd ] when Ident.equal f asl_file_getc ->
+      Some (VInt (prim_getc_file fd))
+  | _, [ VString s ] when Ident.equal f print_str ->
       Some
         (prim_print_str s;
          VTuple [])
-  | "print_char", _, [ VInt c ] ->
+  | _, [ VInt c ] when Ident.equal f print_char ->
       Some
         (prim_print_char c;
          VTuple [])
-  | "print_bits", [ VInt n ], [ VBits b ] ->
+  | [ VInt n ], [ VBits b ] when Ident.equal f print_bits ->
       Some
         (prim_print_bits_hex n b;
          VTuple [])

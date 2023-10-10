@@ -31,7 +31,7 @@ val pp_value : Format.formatter -> value -> unit
 val string_of_value : value -> string
 val eq_value : value -> value -> bool
 
-val eval_prim : string -> value list -> value list -> value option
+val eval_prim : Ident.t -> value list -> value list -> value option
 val impure_prims : string list
 
 (* value constructors and destructors *)

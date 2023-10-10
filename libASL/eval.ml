@@ -10,6 +10,7 @@
 module AST = Asl_ast
 module FMT = Asl_fmt
 module TC = Tcheck
+open Builtin_idents
 open AST
 open Utils
 open Asl_utils
@@ -256,9 +257,10 @@ and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
 (** Evaluate UNKNOWN at given type *)
 and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
   match x with
-  | Type_Constructor (Ident "real", []) -> eval_unknown_real ()
-  | Type_Constructor (Ident "string", []) -> eval_unknown_string ()
-  | Type_Constructor (Ident "__RAM", [ a ]) ->
+  | Type_Constructor (i, []) when Ident.equal i real_ident -> eval_unknown_real ()
+  | Type_Constructor (i, []) when Ident.equal i string_ident ->
+      eval_unknown_string ()
+  | Type_Constructor (i, [ a ]) when Ident.equal i Builtin_idents.ram ->
       let a' = to_integer loc (eval_expr loc env a) in
       eval_unknown_ram a'
   | Type_Constructor (tc, es) ->
@@ -372,7 +374,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
       (* First deal with &&, || and IMPLIES all of which only evaluate
        * their second argument if they need to
        *)
-      if Ident.name_of_FIdent f = "and_bool" then
+      if Ident.equal f and_bool then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then eval_expr loc env y
@@ -380,14 +382,14 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
         | _ ->
             raise
               (EvalError (loc, "malformed and_bool expression " ^ pp_expr x))
-      else if Ident.name_of_FIdent f = "or_bool" then
+      else if Ident.equal f or_bool then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then from_bool true
             else eval_expr loc env y
         | _ ->
             raise (EvalError (loc, "malformed or_bool expression " ^ pp_expr x))
-      else if Ident.name_of_FIdent f = "implies_bool" then
+      else if Ident.equal f implies_bool then
         match (tes, es) with
         | [], [ x; y ] ->
             if to_bool loc (eval_expr loc env x) then eval_expr loc env y
@@ -663,7 +665,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
 and eval_call (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : unit =
   let module Tracer = (val (!tracer) : Tracer) in
-  match eval_prim (Ident.name_of_FIdent f) tvs vs with
+  match eval_prim f tvs vs with
   | Some r ->
       Tracer.trace_function ~is_prim:true ~is_return:false f tvs vs;
       Tracer.trace_function ~is_prim:true ~is_return:true f [] [r];
@@ -734,11 +736,11 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
       | Decl_Exception (v, fs, loc) -> GlobalEnv.addRecord genv v [] fs (* todo: mark as exception *)
       | Decl_Enum (qid, es, loc) ->
           let evs =
-            if qid = Ident.Ident "boolean" then
+            if qid = boolean_ident then
               [
                 (* optimized special case *)
-                (Ident.Ident "FALSE", VBool false);
-                (Ident.Ident "TRUE", VBool true);
+                (false_ident, VBool false);
+                (true_ident, VBool true);
               ]
             else List.mapi (fun i e -> (e, VEnum (e, i))) es
           in

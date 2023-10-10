@@ -18,6 +18,7 @@
 module AST = Asl_ast
 module FMT = Asl_fmt
 open Asl_utils
+open Builtin_idents
 
 (** Add one entry to a set *)
 let add_one (f : Ident.t) (x : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
@@ -205,10 +206,12 @@ let rec check_expression_order (loc : AST.l) (effects : effects_class) (e : AST.
   | _ ->
     let ordered = (* is evaluation order specified by ASL language? *)
       ( match e with
-      | Expr_If _
-      | Expr_TApply (FIdent ("and_bool", _), _, _, _)
-      | Expr_TApply (FIdent ("or_bool", _), _, _, _)
-      | Expr_TApply (FIdent ("implies_bool", _), _, _, _)
+      | Expr_If _ -> true
+      | Expr_TApply (i, _, _, _) when Ident.in_list i [
+          and_bool;
+          or_bool;
+          implies_bool
+        ]
         -> true
       | _
         -> false

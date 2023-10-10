@@ -9,9 +9,10 @@ module AST = Asl_ast
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
-let mkReturnTypeName (f : Ident.t) : Ident.t = Ident.add_prefix f ~prefix:"__Return_"
+let mkReturnTypeName (f : Ident.t) : Ident.t =
+  Ident.add_prefix f ~prefix:"__Return"
 
-let mkReturnFieldName (i : int) : Ident.t = Ident ("r" ^ string_of_int i)
+let mkReturnFieldName (i : int) : Ident.t = Ident.mk_ident ("r" ^ string_of_int i)
 
 let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : AST.l) : AST.declaration =
   let fs = List.mapi (fun i ty -> (mkReturnFieldName i, ty)) rtys in

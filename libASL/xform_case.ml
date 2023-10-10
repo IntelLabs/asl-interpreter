@@ -10,6 +10,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Builtin_idents
 
 exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
 
@@ -33,6 +34,9 @@ let rec match_pattern (loc : AST.l) (e : AST.expr) (p : AST.pattern) : AST.expr 
   | (Pat_LitHex l,  _) -> mk_eq_int e (Expr_LitHex l)
   | (Pat_LitBits l, _) -> mk_eq_bits (Asl_utils.masklength_expr l) e (Expr_LitBits l)
   | (Pat_LitMask l, _) -> Expr_In (e, p)
+  (* This actually makes the type information invalid because mk_eq_enum will
+     just use eq_enum with tag 0 which most likely corresponds to some other
+     enum. *)
   | (Pat_Const c,   _) -> mk_eq_enum e (Expr_Var c)
   | (Pat_Wildcard,  _) -> asl_true
   | (Pat_Set ps,    _) -> match_any_pattern loc e ps
@@ -116,7 +120,7 @@ class simplifyCaseClass =
           | Some d -> d
           | None ->
             let msg = AST.pp_loc loc in
-            let f = Ident.FIdent ("ASL_error_unmatched_case", 0) in
+            let f = asl_error_unmatched_case in
             let s = AST.Stmt_TCall (f, [], [Expr_LitString msg], false, loc) in
             ([s], loc)
         in

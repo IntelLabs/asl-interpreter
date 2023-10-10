@@ -11,6 +11,7 @@ module PP = Format
 module AST = Asl_ast
 module ColorT = Ocolor_types
 open Format_utils
+open Builtin_idents
 
 let show_tyargs = true
 
@@ -289,10 +290,10 @@ let strLit (fmt : PP.formatter) (x : string) : unit =
 let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
   | Type_Integer ocrs -> (
-      tycon fmt (Ident "integer");
+      tycon fmt integer_ident;
       match ocrs with None -> () | Some crs -> constraints fmt crs)
   | Type_Bits n ->
-      tycon fmt (Ident "bits");
+      tycon fmt bits_ident;
       parens fmt (fun _ -> expr fmt n)
   | Type_Constructor (tc, es) ->
       tycon fmt tc;
@@ -301,7 +302,7 @@ let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
       kw_typeof fmt;
       parens fmt (fun _ -> expr fmt e)
   | Type_Register (wd, fs) ->
-      tycon fmt (Ident "bits");
+      tycon fmt bits_ident;
       parens fmt (fun _ -> expr fmt wd);
       nbsp fmt;
       braces fmt (fun _ ->
@@ -562,14 +563,14 @@ let direction (fmt : PP.formatter) (x : AST.direction) : unit =
 
 let decl_bit (fmt : PP.formatter) (x : (Ident.t option * AST.ty)) : unit =
   let (ov, ty) = x in
-  varty fmt (Option.value ov ~default:(Ident "-")) ty
+  varty fmt (Option.value ov ~default:dash_ident) ty
 
 let rec decl_item (fmt : PP.formatter) (x : AST.decl_item) : unit =
   match x with
   | DeclItem_Var (v, ot) -> varoty fmt v ot
   | DeclItem_Tuple dis -> parens fmt (fun _ -> commasep fmt (decl_item fmt) dis)
   | DeclItem_BitTuple dbs -> parens fmt (fun _ -> commasep fmt (decl_bit fmt) dbs)
-  | DeclItem_Wildcard ot -> varoty fmt (Ident "-") ot
+  | DeclItem_Wildcard ot -> varoty fmt dash_ident ot
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   match x with

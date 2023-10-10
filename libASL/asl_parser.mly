@@ -22,7 +22,7 @@ open Asl_ast
  * is not especially helpful because all later passes assume that
  * the type is available.
  *)
-let type_unknown = Type_Constructor (Ident "<type_unknown>", [])
+let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %}
 
 %token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
@@ -174,7 +174,7 @@ pos:
 | { $symbolstartpos }
 
 ident:
-| id = ID { Ident id }
+| id = ID { Ident.mk_ident id }
 
 declarations:
 | declaration0 = list(declaration) { declaration0 }
@@ -570,7 +570,7 @@ aexpr:
     { Expr_Var(v) }
 | f = ident LPAREN es = separated_list(COMMA, expr) RPAREN throws=throws
     { Expr_TApply(f, [], es, throws) }
-| tc = ident 
+| tc = ident
     LPAREN es = separated_list(COMMA, expr) RPAREN
     LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
     { Expr_RecordInit(tc, es, fas) }
@@ -598,7 +598,7 @@ opt_stringLit:
 | stringLit = STRINGLIT { Some(stringLit) }
 | { None }
 
-throws: 
+throws:
 | QUERY { true }
 |       { false }
 

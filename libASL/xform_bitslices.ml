@@ -15,13 +15,15 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Builtin_idents
 open Utils
 
 let transform_non_slices (n : AST.expr) (w : AST.expr) (i : AST.expr)
     (x : AST.expr) : AST.expr =
   match x with
-  | Expr_TApply (FIdent ("Ones", _), _, _, _) -> mk_lsl_bits n (mk_mask w n) i
-  | Expr_TApply (FIdent ("Zeros", _), _, _, _) -> mk_zero_bits n
+  | Expr_TApply (f, _, _, _) when Ident.equal f ones  ->
+      mk_lsl_bits n (Asl_utils.mk_mask w n) i
+  | Expr_TApply (f, _, _, _) when Ident.equal f zeros -> mk_zero_bits n
   | _ -> mk_lsl_bits n (mk_zero_extend_bits w n x) i
 
 (** Transform expression 'x' of width 'w' to an expression of width 'n'
@@ -47,7 +49,7 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 lo in
-    let e3 = mk_and_bits n e2 (mk_mask wd n) in
+    let e3 = mk_and_bits n e2 (Asl_utils.mk_mask wd n) in
     mk_lsl_bits n e3 i
   | _ -> transform_non_slices n w i x
   )
@@ -59,7 +61,7 @@ let transform_assignment (lident : Ident.t)
     (rhs : AST.expr)
     (l : AST.l) =
   (* Generate masks for clearing affected bits in slice *)
-  let slice_mask = mk_lsl_bits width (mk_mask slice_width width) shift in
+  let slice_mask = mk_lsl_bits width (Asl_utils.mk_mask slice_width width) shift in
   let slice_not_mask = mk_not_mask slice_mask width in
 
   (* Transform the rhs. The transformed rhs should already be correctly shifted
@@ -94,7 +96,7 @@ class bitsliceClass =
           ws es (zero, mk_zero_bits total_width)
         in
         ChangeDoChildrenPost (x', Fun.id)
-      | Expr_TApply (FIdent ("ZeroExtend", _), [w; n], [e; _], _) ->
+      | Expr_TApply (f, [w; n], [e; _], _) when Ident.equal f zero_extend ->
         ChangeDoChildrenPost (transform n w zero e, Fun.id)
       | _ -> DoChildren
       )
