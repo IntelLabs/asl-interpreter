@@ -35,6 +35,12 @@ ASL_bits_max_256()
         return ASL_bits_256(UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
 }
 
+static inline ASL_bits256_t
+ASL_bits_zero_256()
+{
+        return ASL_bits_256(0, 0, 0, 0);
+}
+
 #define N 256
 #include "asl/bits_template.h"
 #undef N

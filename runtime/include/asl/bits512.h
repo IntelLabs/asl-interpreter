@@ -38,6 +38,12 @@ ASL_bits_max_512()
                             UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
 }
 
+static inline ASL_bits512_t
+ASL_bits_zero_512()
+{
+        return ASL_bits_512(0, 0, 0, 0, 0, 0, 0, 0);
+}
+
 #define N 512
 #include "asl/bits_template.h"
 #undef N

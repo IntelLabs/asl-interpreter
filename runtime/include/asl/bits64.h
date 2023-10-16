@@ -41,6 +41,15 @@ ASL_bits_max_64()
         return UINT64_MAX;
 }
 
+#define ASL_bits_zero(sizeof_x) \
+        ASL_CC(ASL_bits_zero_, sizeof_x)()
+
+static inline ASL_bits64_t
+ASL_bits_zero_64()
+{
+        return 0;
+}
+
 #define ASL_add_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_add_bits_, sizeof_x)(n, x, y)
 

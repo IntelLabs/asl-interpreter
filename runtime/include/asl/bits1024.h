@@ -44,6 +44,12 @@ ASL_bits_max_1024()
                              UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX);
 }
 
+static inline ASL_bits1024_t
+ASL_bits_zero_1024()
+{
+        return ASL_bits_1024(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+}
+
 #define N 1024
 #include "asl/bits_template.h"
 #undef N
