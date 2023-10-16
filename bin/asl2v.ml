@@ -157,9 +157,20 @@ let emit_c_header (filename : string) (sys_h_filenames : string list)
   Utils.to_file filename (fun fmt ->
       PP.fprintf fmt "#ifndef %s@." macro;
       PP.fprintf fmt "#define %s@,@." macro;
+
       fprinf_sys_includes fmt sys_h_filenames;
       fprinf_includes fmt h_filenames;
+
+      PP.fprintf fmt "#ifdef __cplusplus@.";
+      PP.fprintf fmt "extern \"C\" {@.";
+      PP.fprintf fmt "#endif@,@.";
+
       f fmt;
+
+      PP.fprintf fmt "#ifdef __cplusplus@.";
+      PP.fprintf fmt "}@.";
+      PP.fprintf fmt "#endif@,@.";
+
       PP.fprintf fmt "#endif  // %s@." macro
   )
 
