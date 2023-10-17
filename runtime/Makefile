@@ -8,7 +8,7 @@ default: $(LIB)
 AR ?= ar
 CC ?= gcc
 CPPFLAGS = -Iinclude
-CFLAGS = -g -Wall -Werror -std=c99
+CFLAGS = -g -Wall -Werror -std=c99 -fPIC
 OBJEXT ?= o
 
 C_FILES = bits1024.c \
