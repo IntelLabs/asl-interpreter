@@ -294,6 +294,8 @@ let options =
         "       Maximum width used in Verilog");
       ("--num-c-files", Arg.Set_int opt_num_c_files,
         "       Number of .c files created (default: 1)");
+      ("--line-info", Arg.Set Backend_c.include_line_info,
+        "       Include line number information");
     ]
 
 let version = "ASL 0.2.0 alpha"
