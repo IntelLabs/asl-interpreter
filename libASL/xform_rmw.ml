@@ -6,6 +6,7 @@
  ****************************************************************)
 
 module AST = Asl_ast
+open Asl_utils
 
 let getFunReturnType (d : AST.declaration) : AST.ty option =
   match d with
@@ -20,6 +21,12 @@ class replaceRmwClass (ds : AST.declaration list) =
   object (self)
     inherit Asl_visitor.nopAslVisitor
     val mutable le_vars : (AST.lexpr * Ident.t) list = []
+
+    val decl_lookup_table =
+      ds
+      |> List.to_seq
+      |> Seq.filter_map monomorphizable_decl_to_ident_and_decl
+      |> IdentTable.of_seq
 
     method! vlexpr e =
       match e with
@@ -36,7 +43,7 @@ class replaceRmwClass (ds : AST.declaration list) =
             let wrap_stmts (ss : AST.stmt list) = function
               | AST.LExpr_ReadWrite (f, g, tes, es, throws), v ->
                   let e = AST.Expr_TApply (f, tes, es, throws) in
-                  let fd = Option.get (Asl_utils.find_decl f ds) in
+                  let fd = Option.get (IdentTable.find_opt decl_lookup_table f) in
                   let rty = Option.get (getFunReturnType fd) in
                   let r =
                     AST.Stmt_VarDecl (AST.DeclItem_Var (v, Some rty), e, loc)

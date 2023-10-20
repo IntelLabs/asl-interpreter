@@ -1,5 +1,7 @@
 type t
 
+val hash : t -> int
+
 val compare : t -> t -> int
 
 val matches : t -> name:string -> bool

@@ -25,6 +25,8 @@ type t = {
   root : t option;
 }
 
+let hash (t : t) = t.id
+
 let compare (x : t) (y : t) : int =
   Int.compare x.id y.id
 

@@ -28,6 +28,8 @@ val mk_bindings : (Ident.t * 'a) list -> 'a Bindings.t
 (** print bindings *)
 val pp_bindings : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a Bindings.t -> unit
 
+module IdentTable : Hashtbl.S with type key = Ident.t
+
 (****************************************************************)
 (** {2 Scopes}                                                  *)
 (****************************************************************)
@@ -207,6 +209,8 @@ val decl_loc : AST.declaration -> AST.l
 (****************************************************************)
 
 val decl_name : AST.declaration -> Ident.t option
+
+val monomorphizable_decl_to_ident_and_decl : AST.declaration -> (Ident.t * AST.declaration) option
 
 (* Map of declarations *)
 val decl_map_of : AST.declaration list -> AST.declaration Bindings.t
@@ -481,10 +485,6 @@ val tupleTypes : AST.ty -> AST.ty list
 
 (** Bitwidth of type (which is expected to be a bitvector) *)
 val width_of_type : AST.ty -> AST.expr option
-
-(** Find declaration (type, function, procedure, getters and setters)
-    definition by an identifier *)
-val find_decl : Ident.t -> AST.declaration list -> AST.declaration option
 
 (****************************************************************
  * End

@@ -21,6 +21,8 @@ open Asl_visitor
 module Bindings = Map.Make (Ident)
 (** {2 Bindings: maps indexed by identifiers} *)
 
+module IdentTable = Hashtbl.Make(Ident)
+
 (** add association list to bindings *)
 let add_bindings (bs : 'a Bindings.t) (xs : (Ident.t * 'a) list) : 'a Bindings.t =
   List.fold_left (fun a (k, v) -> Bindings.add k v a) bs xs
@@ -685,6 +687,22 @@ let decl_name (x : declaration) : Ident.t option =
   | Decl_MapClause (v, fs, oc, b, loc) -> Some v
   | Decl_Config (v, ty, e, loc) -> Some v
 
+(** Similar to decl_name but for declarations that are monomorphizable *)
+let monomorphizable_decl_name (d : AST.declaration) : Ident.t option =
+  match d with
+  | Decl_Record (v, ps, fs, loc) -> Some v
+  | Decl_Typedef (v, ps, ty, loc) -> Some v
+  | Decl_FunDefn (f, ps, args, ty, b, loc) -> Some f
+  | Decl_ProcDefn (f, ps, args, b, loc) -> Some f
+  | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> Some f
+  | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
+  | Decl_VarGetterDefn (f, ps, ty, b, loc) -> Some f
+  | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> Some f
+  | _ -> None
+
+let monomorphizable_decl_to_ident_and_decl (d : AST.declaration) : (Ident.t * AST.declaration) option =
+  monomorphizable_decl_name d |> Option.map (fun i -> (i, d))
+
 let decl_map_of (ds : declaration list) : declaration Bindings.t =
   (* Map of declarations *)
   let decls : declaration Bindings.t ref = ref Bindings.empty in
@@ -1279,31 +1297,6 @@ let is_literal_constant (x : expr) : bool =
   | Expr_LitMask _
   | Expr_LitString _ -> true
   | _ -> false
-  )
-
-(** Find declaration (type, function, procedure, getters and setters)
-    definition by an identifier *)
-let rec find_decl (f : Ident.t) (ds : AST.declaration list) :
-    AST.declaration option =
-  ( match ds with
-  | [] -> None
-  | (Decl_Record (tc, ps, fs, loc) as d) :: ds' ->
-      if f = tc then Some d else find_decl f ds'
-  | (Decl_Typedef (tc, ps, ty, loc) as d) :: ds' ->
-      if f = tc then Some d else find_decl f ds'
-  | (Decl_FunDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | (Decl_ProcDefn (f', ps, atys, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | (Decl_ArrayGetterDefn (f', ps, atys, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | (Decl_ArraySetterDefn (f', ps, atys, v, t, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | (Decl_VarGetterDefn (f', ps, rty, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | (Decl_VarSetterDefn (f', ps, v, t, body, loc) as d) :: ds' ->
-      if f = f' then Some d else find_decl f ds'
-  | _ :: ds' -> find_decl f ds'
   )
 
 (****************************************************************

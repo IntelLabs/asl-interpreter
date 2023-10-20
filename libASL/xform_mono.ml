@@ -32,6 +32,12 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
     val mutable instances : AST.declaration Instances.t = Instances.empty
     method getInstances = List.map snd (Instances.bindings instances)
 
+    val decl_lookup_table =
+      ds
+      |> List.to_seq
+      |> Seq.filter_map monomorphizable_decl_to_ident_and_decl
+      |> IdentTable.of_seq
+
     method monomorphize_type (genv : Eval.GlobalEnv.t) (tc : Ident.t)
         (d : AST.declaration) (szs : Z.t list)
       : Ident.t option =
@@ -81,7 +87,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
       let (tvs, arg_names) =
         match Eval.GlobalEnv.get_function genv f with
         | Some (tvs, arg_names, _, _) -> (tvs, arg_names)
-        | _ -> failwith "monomorphize_fun"
+        | _ -> failwith (Printf.sprintf "monomorphize_fun: %s" (Ident.name_with_tag f))
       in
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
@@ -168,7 +174,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (find_decl tc ds) (fun d ->
+                (Option.bind (IdentTable.find_opt decl_lookup_table tc) (fun d ->
                  Option.bind (self#monomorphize_type genv tc d sizes) (fun tc' ->
                  Some
                    (ChangeDoChildrenPost
@@ -188,7 +194,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value (
-                Option.bind (find_decl tc ds) (fun d ->
+                Option.bind (IdentTable.find_opt decl_lookup_table tc) (fun d ->
                 Option.bind (self#monomorphize_type genv tc d sizes) (fun tc' ->
                 Some (ChangeDoChildrenPost (AST.Expr_RecordInit (tc', [], fs), Fun.id))
                 )))
@@ -199,7 +205,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (find_decl f ds) (fun d ->
+                (Option.bind (IdentTable.find_opt decl_lookup_table f) (fun d ->
                      Option.bind (self#monomorphize_fun genv f d sizes args)
                        (fun (f', args') ->
                          Some
@@ -216,7 +222,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (find_decl f ds) (fun d ->
+                (Option.bind (IdentTable.find_opt decl_lookup_table f) (fun d ->
                      Option.bind (self#monomorphize_fun genv f d sizes es)
                        (fun (f', es') ->
                          Some
@@ -233,7 +239,7 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
-                (Option.bind (find_decl f ds) (fun d ->
+                (Option.bind (IdentTable.find_opt decl_lookup_table f) (fun d ->
                      Option.bind (self#monomorphize_fun genv f d sizes args)
                        (fun (f', args') ->
                          Some
