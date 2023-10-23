@@ -303,7 +303,6 @@ let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
 (* C functions defined elsewhere *)
 let fn_slice_lowd (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd"
-let fn_slice_lowd_w (fmt : PP.formatter) : unit = asl_keyword fmt "slice_lowd_w"
 let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error_unmatched_case"
 let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
@@ -743,23 +742,6 @@ and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
   | Slice_Element _ ->
       raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
 
-and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
-    (s : AST.slice) : unit =
-  (* e is evaluated twice below, which could result in performance impact *)
-  expr loc fmt e;
-  nbsp fmt;
-  eq fmt;
-  nbsp fmt;
-  match s with
-  | Slice_LoWd (lo, wd) ->
-      apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
-  | Slice_Single _ ->
-      raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_HiLo _ ->
-      raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_Element _ ->
-      raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_Concat _ ->
@@ -894,12 +876,7 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
 let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
   match x with
   | LExpr_Slices (_, l, [ s ]) ->
-      let e = match Asl_utils.lexpr_to_expr l with
-              | Some e -> e
-              | None -> raise (Error.Unimplemented (loc, "lexpr_assign", fun fmt -> Asl_fmt.lexpr fmt x))
-      in
-      lslice loc fmt r e s;
-      semicolon fmt
+      raise (InternalError (loc, "LExpr_Slices not expected", (fun fmt -> FMTAST.lexpr fmt x), __LOC__))
   | LExpr_Wildcard ->
       make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr loc fmt r);
       semicolon fmt

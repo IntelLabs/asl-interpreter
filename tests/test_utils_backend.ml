@@ -272,7 +272,7 @@ let test_cases_stmt : test_case list  =
       "func F() begin var x : integer; x = 0; end" );
 
     ( "assignment to slice",
-      [ Backend_C; Backend_Verilog ],
+      [ Backend_Verilog ],
       "func F() begin var x : bits(8); x[4 +: 2] = '10'; end" );
 
     ( "assignment to field",
@@ -286,14 +286,6 @@ let test_cases_stmt : test_case list  =
     ( "assignment to array element",
       [ Backend_C; Backend_Verilog ],
       "func F() begin var x : array [1] of bits(1); x[0] = '0'; end" );
-
-    ( "assignment to slice of field",
-      [ Backend_C ],
-      "record X { b : bits(8); }; func F() begin var x : X; x.b[4 +: 2] = '10'; end" );
-
-    ( "assignment to slice of array element",
-      [ Backend_C ],
-      "func F() begin var x : array [1] of bits(8); x[0][4 +: 2] = '10'; end" );
 
     ( "procedure call",
       [ Backend_C; Backend_Verilog ],

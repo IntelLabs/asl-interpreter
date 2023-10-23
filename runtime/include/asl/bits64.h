@@ -149,12 +149,6 @@ ASL_slice_lowd_64_64(ASL_bits64_t x, ASL_int_t lo, ASL_int_t width)
         return (x >> lo) & ASL_mk_mask_64(width);
 }
 
-static inline ASL_bits64_t
-ASL_slice_lowd_w(ASL_bits64_t val, ASL_bits64_t x, ASL_int_t lo, ASL_int_t width)
-{
-        return (x & ~(ASL_mk_mask_64(width) << lo)) | (val << lo);
-}
-
 #define ASL_sub_bits(sizeof_x, n, x, y) \
         ASL_CC(ASL_sub_bits_, sizeof_x)(n, x, y)
 
