@@ -1618,7 +1618,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
         | FT_Record rfs -> (LExpr_Field (l', f), get_recordfield loc rfs f)
         | FT_Register rfs ->
             let ss, ty' = get_regfield loc rfs f in
-            (LExpr_Slices (ty, l', ss), ty')
+            (LExpr_Slices (rty, l', ss), ty')
       in
       check_subtype_satisfies env loc ty fty;
       r
@@ -1633,7 +1633,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
             (LExpr_Fields (l', fs), type_bits w)
         | FT_Register rfs ->
             let ss, ty' = get_regfields loc rfs fs in
-            (LExpr_Slices (ty, l', ss), ty')
+            (LExpr_Slices (lty, l', ss), ty')
       in
       check_subtype_satisfies env loc ty ty';
       r
