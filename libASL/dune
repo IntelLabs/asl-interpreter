@@ -40,7 +40,6 @@
    xform_bitslices
    xform_bittuples
    xform_case
-   xform_casesplit
    xform_constprop
    xform_desugar
    xform_getset
