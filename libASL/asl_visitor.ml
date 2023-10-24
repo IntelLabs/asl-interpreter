@@ -329,14 +329,14 @@ and visit_lexpr (vis : aslVisitor) (x : lexpr) : lexpr =
         let tes' = visit_exprs vis tes in
         let es' = visit_exprs vis es in
         if f == f' && tes == tes' && es == es' then x
-        else LExpr_Write (f, tes', es', throws)
+        else LExpr_Write (f', tes', es', throws)
     | LExpr_ReadWrite (f, g, tes, es, throws) ->
         let f' = visit_var vis Call f in
         let g' = visit_var vis Call g in
         let tes' = visit_exprs vis tes in
         let es' = visit_exprs vis es in
         if f == f' && g == g' && tes == tes' && es == es' then x
-        else LExpr_ReadWrite (f, g, tes', es', throws)
+        else LExpr_ReadWrite (f', g', tes', es', throws)
   in
   doVisit vis (vis#vlexpr x) aux x
 
