@@ -103,6 +103,12 @@ let from_option (ox : 'a option) (d : unit -> 'a) : 'a =
 let orelse_option (ox : 'a option) (f : unit -> 'a option) : 'a option =
   match ox with None -> f () | Some _ -> ox
 
+(* Examples:
+ * concat_option [ Some [1;2]; None; Some [3] ];;
+ * None
+ * concat_option [ Some [1;2]; Some [3] ];;
+ * Some [1; 2; 3]
+ *)
 let rec concat_option (oss : 'a list option list) : 'a list option =
   match oss with
   | [] -> Some []
@@ -111,13 +117,8 @@ let rec concat_option (oss : 'a list option list) : 'a list option =
 
 (* extract all non-None elements from a list *)
 let flatten_option (os : 'a option list) : 'a list =
-  let rec aux r os =
-    match os with
-    | [] -> List.rev r
-    | Some o :: os' -> aux (o :: r) os'
-    | None :: os' -> aux r os'
-  in
-  aux [] os
+  let f acc = function Some o -> (o :: acc) | None -> acc in
+  List.fold_left f [] os |> List.rev
 
 (* Like Option.filter_map for binary operations
  *
