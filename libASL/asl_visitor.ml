@@ -236,7 +236,7 @@ and visit_constraint_range (vis : aslVisitor) (x : constraint_range) :
     match x with
     | Constraint_Single e ->
         let e' = visit_expr vis e in
-        if e == e' then x else Constraint_Single e
+        if e == e' then x else Constraint_Single e'
     | Constraint_Range (lo, hi) ->
         let lo' = visit_expr vis lo in
         let hi' = visit_expr vis hi in
