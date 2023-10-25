@@ -25,10 +25,6 @@ let keywords : (string * Asl_parser.token) list = [
     ("XOR",                    EOR);
     ("__array",                UNDERSCORE_UNDERSCORE_ARRAY);
     ("__builtin",              UNDERSCORE_UNDERSCORE_BUILTIN);
-    ("__event",                UNDERSCORE_UNDERSCORE_EVENT);
-    ("__map",                  UNDERSCORE_UNDERSCORE_MAP);
-    ("__newmap",               UNDERSCORE_UNDERSCORE_NEWMAP);
-    ("__newevent",             UNDERSCORE_UNDERSCORE_NEWEVENT);
     ("__operator1",            UNDERSCORE_UNDERSCORE_OPERATOR_ONE);
     ("__operator2",            UNDERSCORE_UNDERSCORE_OPERATOR_TWO);
     ("__readwrite",            UNDERSCORE_UNDERSCORE_READWRITE);

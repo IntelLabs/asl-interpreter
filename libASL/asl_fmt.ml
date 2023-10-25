@@ -1079,55 +1079,6 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           funnames fmt fs;
           semicolon fmt
-      | Decl_NewEventDefn (f, ps, args, loc) ->
-          comments_before fmt loc;
-          kw_underscore_newevent fmt;
-          nbsp fmt;
-          function_header fmt None f ps (fun _ -> formals fmt args);
-          semicolon fmt
-      | Decl_EventClause (f, b, loc) ->
-          comments_before fmt loc;
-          kw_underscore_event fmt;
-          nbsp fmt;
-          funname fmt f;
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_NewMapDefn (f, ps, args, t, b, loc) ->
-          comments_before fmt loc;
-          kw_underscore_newevent fmt;
-          nbsp fmt;
-          function_header fmt (Some t) f ps (fun _ -> formals fmt args);
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_MapClause (f, fs, oc, b, loc) ->
-          comments_before fmt loc;
-          kw_underscore_event fmt;
-          nbsp fmt;
-          funname fmt f;
-          parens fmt (fun _ ->
-              commasep fmt
-                (fun (AST.MapField_Field (f, p)) ->
-                  varname fmt f;
-                  nbsp fmt;
-                  eq fmt;
-                  nbsp fmt;
-                  pattern fmt p)
-                fs);
-          PP.pp_print_option
-            (fun _ c ->
-              kw_when fmt;
-              expr fmt c)
-            fmt oc;
-          kw_then fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
       | Decl_Config (v, t, e, loc) ->
           comments_before fmt loc;
           kw_config fmt;

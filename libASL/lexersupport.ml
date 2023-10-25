@@ -24,10 +24,6 @@ let string_of_token (t : Asl_parser.token) : string =
   | BITSLIT x -> "bin:" ^ x
   | UNDERSCORE_UNDERSCORE_ARRAY -> "__array"
   | UNDERSCORE_UNDERSCORE_BUILTIN -> "__builtin"
-  | UNDERSCORE_UNDERSCORE_EVENT -> "__event"
-  | UNDERSCORE_UNDERSCORE_MAP -> "__map"
-  | UNDERSCORE_UNDERSCORE_NEWEVENT -> "__newevent"
-  | UNDERSCORE_UNDERSCORE_NEWMAP -> "__newmap"
   | UNDERSCORE_UNDERSCORE_OPERATOR_ONE -> "__operator1"
   | UNDERSCORE_UNDERSCORE_OPERATOR_TWO -> "__operator2"
   | UNDERSCORE_UNDERSCORE_READWRITE -> "__readwrite"

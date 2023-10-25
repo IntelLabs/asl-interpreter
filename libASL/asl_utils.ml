@@ -625,10 +625,6 @@ let decl_loc (x : AST.declaration) : AST.l =
   | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> loc
   | Decl_Operator1 (op, vs, loc) -> loc
   | Decl_Operator2 (op, vs, loc) -> loc
-  | Decl_NewEventDefn (v, ps, args, loc) -> loc
-  | Decl_EventClause (v, b, loc) -> loc
-  | Decl_NewMapDefn (v, ps, args, ty, b, loc) -> loc
-  | Decl_MapClause (v, fs, oc, b, loc) -> loc
   | Decl_Config (v, ty, e, loc) -> loc
   )
 
@@ -681,10 +677,6 @@ let decl_name (x : declaration) : Ident.t option =
   | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
   | Decl_Operator1 (op, vs, loc) -> None
   | Decl_Operator2 (op, vs, loc) -> None
-  | Decl_NewEventDefn (v, ps, args, loc) -> Some v
-  | Decl_EventClause (v, b, loc) -> Some v
-  | Decl_NewMapDefn (v, ps, args, ty, b, loc) -> Some v
-  | Decl_MapClause (v, fs, oc, b, loc) -> Some v
   | Decl_Config (v, ty, e, loc) -> Some v
 
 (** Similar to decl_name but for declarations that are monomorphizable *)

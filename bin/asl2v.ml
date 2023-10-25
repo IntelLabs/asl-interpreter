@@ -53,10 +53,6 @@ let rec type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
-    | Decl_NewEventDefn _
-    | Decl_EventClause _
-    | Decl_NewMapDefn _
-    | Decl_MapClause _
     | Decl_Config _
       -> None
     )
@@ -91,10 +87,6 @@ let rec var_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
-    | Decl_NewEventDefn _
-    | Decl_EventClause _
-    | Decl_NewMapDefn _
-    | Decl_MapClause _
     | Decl_Config _
       -> false
     )
@@ -129,10 +121,6 @@ let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
-    | Decl_NewEventDefn _
-    | Decl_EventClause _
-    | Decl_NewMapDefn _
-    | Decl_MapClause _
     | Decl_Config _
       -> false
     )

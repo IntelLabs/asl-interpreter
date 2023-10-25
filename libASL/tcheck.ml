@@ -2262,49 +2262,6 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       in
       GlobalEnv.addOperators2 env loc op funs';
       [ Decl_Operator2 (op, List.map (fun f -> f.funname) funs', loc) ]
-  | Decl_NewEventDefn (qid, ps, atys, loc) ->
-      (* very similar to Decl_ProcType *)
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys type_unit in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      [ Decl_NewEventDefn (qid', ps', atys', loc) ]
-  | Decl_EventClause (nm, b, loc) -> (
-      match GlobalEnv.getFuns env nm with
-      | [ fty ] ->
-          let locals = Env.mkEnv env in
-          let _ = tc_arguments locals loc fty.params fty.atys type_unit in
-          let b' = tc_body locals loc b in
-          [ Decl_EventClause (fty.funname, b', loc) ]
-      | [] -> raise (UnknownObject (loc, "event", Ident.pprint nm))
-      | fs ->
-          reportChoices loc "event" (Ident.pprint nm) [] fs;
-          raise (Ambiguous (loc, "event", Ident.pprint nm)))
-  | Decl_NewMapDefn (qid, ps, atys, rty, b, loc) ->
-      (* very similar to Decl_FunDefn *)
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      let b' = tc_body locals loc b in
-      [ Decl_NewMapDefn (qid', ps', atys', rty', b', loc) ]
-  | Decl_MapClause (nm, fs, oc, b, loc) -> (
-      match GlobalEnv.getFuns env nm with
-      | [ fty ] ->
-          let locals = Env.mkEnv env in
-          let _ = tc_arguments locals loc fty.params fty.atys fty.rty in
-          let tc_mapfield (MapField_Field (id, pat)) =
-            ( match Env.getVar locals id with
-            | Some i -> MapField_Field (id, tc_pattern locals loc i.ty pat)
-            | None -> raise (UnknownObject (loc, "mapfield", Ident.pprint id))
-            )
-          in
-          let fs' = List.map tc_mapfield fs in
-          let oc' = Option.map (check_expr locals loc type_bool) oc in
-          let b' = tc_stmts locals loc b in
-          [ Decl_MapClause (fty.funname, fs', oc', b', loc) ]
-      | [] -> raise (UnknownObject (loc, "map", Ident.pprint nm))
-      | fs ->
-          reportChoices loc "map" (Ident.pprint nm) [] fs;
-          raise (Ambiguous (loc, "map", Ident.pprint nm)))
   | Decl_Config (qid, ty, i, loc) ->
       (* very similar to Decl_Const *)
       let locals = Env.mkEnv env in
@@ -2344,18 +2301,6 @@ let genPrototypes (ds : AST.declaration list) :
       | Decl_ArraySetterDefn (qid, ps, atys, v, ty, _, loc) ->
           post := d :: !post;
           pre := Decl_ArraySetterType (qid, ps, atys, v, ty, loc) :: !pre
-      | Decl_NewEventDefn (qid, ps, atys, loc) ->
-          post := d :: !post;
-          (* todo: replacing it with a function declaration is not
-           * completely kosher *)
-          pre := Decl_ProcType (qid, ps, atys, loc) :: !pre
-      | Decl_NewMapDefn (qid, ps, atys, rty, b, loc) ->
-          post := d :: !post;
-          (* todo: replacing it with a function declaration is not
-           * completely kosher *)
-          pre := Decl_FunType (qid, ps, atys, rty, loc) :: !pre
-      | Decl_EventClause (nm, b, loc) -> post := d :: !post
-      | Decl_MapClause (nm, fs, oc, b, loc) -> post := d :: !post
       | _ -> pre := d :: !pre)
     ds;
   (List.rev !pre, List.rev !post)

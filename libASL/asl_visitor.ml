@@ -52,7 +52,6 @@ class type aslVisitor =
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
-    method vmapfield : mapfield -> mapfield visitAction
     method vdecl : declaration -> declaration visitAction
     method enter_scope : Ident.t list -> unit
     method leave_scope : Ident.t list -> unit
@@ -499,16 +498,6 @@ and visit_catcher (vis : aslVisitor) (x : catcher) : catcher =
   in
   doVisit vis (vis#vcatcher x) aux x
 
-let visit_mapfield (vis : aslVisitor) (x : mapfield) : mapfield =
-  let aux (vis : aslVisitor) (x : mapfield) : mapfield =
-    match x with
-    | MapField_Field (v, p) ->
-        let v' = visit_var vis Read v in
-        let p' = visit_pattern vis p in
-        if v == v' && p == p' then x else MapField_Field (v', p')
-  in
-  doVisit vis (vis#vmapfield x) aux x
-
 let visit_parameter (vis : aslVisitor) (x : Ident.t * ty option) :
     Ident.t * ty option =
   match x with
@@ -682,32 +671,6 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
     | Decl_Operator2 (op, vs, loc) ->
         let vs' = mapNoCopy (visit_var vis Definition) vs in
         if vs == vs' then x else Decl_Operator2 (op, vs', loc)
-    | Decl_NewEventDefn (v, ps, args, loc) ->
-        let v' = visit_var vis Definition v in
-        let ps' = visit_parameters vis ps in
-        let args' = visit_args vis args in
-        if v == v' && ps == ps' && args == args' then x
-        else Decl_NewEventDefn (v', ps', args', loc)
-    | Decl_EventClause (v, b, loc) ->
-        let v' = visit_var vis Definition v in
-        let b' = visit_stmts vis b in
-        if v == v' && b == b' then x else Decl_EventClause (v', b', loc)
-    | Decl_NewMapDefn (v, ps, args, ty, b, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
-        let v' = visit_var vis Definition v in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if v == v' && ps == ps' && args == args' && b == b' then x
-        else Decl_NewMapDefn (v', ps', args', ty', b', loc)
-    | Decl_MapClause (v, fs, oc, b, loc) ->
-        let v' = visit_var vis Definition v in
-        let fs' = mapNoCopy (visit_mapfield vis) fs in
-        let oc' = mapOptionNoCopy (visit_expr vis) oc in
-        let b' = visit_stmts vis b in
-        if v == v' && fs == fs' && oc == oc' && b == b' then x
-        else Decl_MapClause (v', fs', oc', b', loc)
     | Decl_Config (v, ty, e, loc) ->
         let ty' = visit_type vis ty in
         let v' = visit_var vis Definition v in
@@ -744,7 +707,6 @@ class nopAslVisitor : aslVisitor =
     method vs_elsif (_ : s_elsif) = DoChildren
     method valt (_ : alt) = DoChildren
     method vcatcher (_ : catcher) = DoChildren
-    method vmapfield (_ : mapfield) = DoChildren
     method vdecl (_ : declaration) = DoChildren
     method enter_scope _ = ()
     method leave_scope _ = ()

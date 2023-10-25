@@ -184,10 +184,6 @@ direction =
  | Direction_Down
 
 type
-mapfield =
-   MapField_Field of Ident.t * pattern
-
-type
 catcher =
    Catcher_Guarded of Ident.t * Ident.t * stmt list * l
 
@@ -240,10 +236,6 @@ declaration =
  | Decl_ArraySetterDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * Ident.t * ty * stmt list * l
  | Decl_Operator1 of unop * Ident.t list * l
  | Decl_Operator2 of binop * Ident.t list * l
- | Decl_NewEventDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * l
- | Decl_EventClause of Ident.t * stmt list * l
- | Decl_NewMapDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * stmt list * l
- | Decl_MapClause of Ident.t * mapfield list * expr option * stmt list * l
  | Decl_Config of Ident.t * ty * expr * l
 
 type

@@ -777,29 +777,6 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           let tvs = List.map fst ps in
           let args = List.map fst atys in
           GlobalEnv.addFun loc genv f (tvs, args @ [ v ], loc, body)
-      | Decl_NewMapDefn (f, ps, atys, rty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      (*
-        | Decl_MapClause(f, ps, atys, cond, body, loc) ->
-                let tvs   = List.map fst ps in
-                let args' = List.map fst args in
-                GlobalEnv.addFun loc genv f (tvs, args', loc, body)
-        *)
-      | Decl_NewEventDefn (f, ps, atys, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, [])
-      | Decl_EventClause (f, body, loc) ->
-          let tvs, args, _, body0 =
-            from_option (GlobalEnv.get_function genv f) (fun _ ->
-                raise (EvalError (loc, "Undeclared event " ^ Ident.pprint f)))
-          in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, List.append body body0)
-      (* todo: when creating initial environment, should pass in a set of configuration
-       * options that will override any default values given in definition
-       *)
       | Decl_Config (v, ty, i, loc) ->
           (* todo: config constants need to be lazily evaluated or need to be
            * sorted by dependencies
@@ -819,8 +796,7 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
       | Decl_VarSetterType (_, _, _, _, _)
       | Decl_ArraySetterType (_, _, _, _, _, _)
       | Decl_Operator1 (_, _, _)
-      | Decl_Operator2 (_, _, _)
-      | Decl_MapClause (_, _, _, _, _) ->
+      | Decl_Operator2 (_, _, _) ->
           ())
     ds;
   genv

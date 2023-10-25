@@ -28,10 +28,6 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
 %token UNDERSCORE_UNDERSCORE_ARRAY  (* __array *)
 %token UNDERSCORE_UNDERSCORE_BUILTIN  (* __builtin *)
-%token UNDERSCORE_UNDERSCORE_EVENT  (* __event *)
-%token UNDERSCORE_UNDERSCORE_MAP  (* __map *)
-%token UNDERSCORE_UNDERSCORE_NEWEVENT  (* __newevent *)
-%token UNDERSCORE_UNDERSCORE_NEWMAP  (* __newmap *)
 %token UNDERSCORE_UNDERSCORE_OPERATOR_ONE  (* __operator1 *)
 %token UNDERSCORE_UNDERSCORE_OPERATOR_TWO  (* __operator2 *)
 %token UNDERSCORE_UNDERSCORE_READWRITE  (* __readwrite *)
@@ -308,23 +304,8 @@ internal_definition:
     { Decl_Operator1(op, vs, Range($symbolstartpos, $endpos)) }
 | UNDERSCORE_UNDERSCORE_OPERATOR_TWO op = binop EQ vs = separated_nonempty_list(COMMA, ident) SEMICOLON
     { Decl_Operator2(op, vs, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_NEWEVENT v = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
-    { Decl_NewEventDefn(v, ps, args, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_EVENT v = ident begin1 b = block END
-    { Decl_EventClause(v, b, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_NEWMAP v = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty begin1 b = block END
-    { Decl_NewMapDefn(v, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
-| UNDERSCORE_UNDERSCORE_MAP v = ident vs = separated_list(COMMA, mapfield) oc = optmapcond THEN begin1 b = block END
-    { Decl_MapClause(v, vs, oc, b, Range($symbolstartpos, $endpos)) }
 | CONFIG v = ident colon ty = ty EQ e = expr SEMICOLON
     { Decl_Config(v, ty, e, Range($symbolstartpos, $endpos)) }
-
-optmapcond:
-| WHEN expr = expr { Some(expr) }
-| { None }
-
-mapfield:
-| f = ident EQ p = pattern { MapField_Field(f, p) }
 
 ty:
 | ident = ident

@@ -37,7 +37,6 @@ class type aslVisitor =
     method vs_elsif : s_elsif -> s_elsif visitAction
     method valt : alt -> alt visitAction
     method vcatcher : catcher -> catcher visitAction
-    method vmapfield : mapfield -> mapfield visitAction
     method vdecl : declaration -> declaration visitAction
     method enter_scope : Ident.t list -> unit
     method leave_scope : Ident.t list -> unit
@@ -60,7 +59,6 @@ val visit_exprs : aslVisitor -> expr list -> expr list
 val visit_lexpr : aslVisitor -> lexpr -> lexpr
 val visit_lexprs : aslVisitor -> lexpr list -> lexpr list
 val visit_lvar : aslVisitor -> Ident.t -> Ident.t
-val visit_mapfield : aslVisitor -> mapfield -> mapfield
 val visit_parameter : aslVisitor -> Ident.t * ty option -> Ident.t * ty option
 
 val visit_parameters :
