@@ -438,6 +438,8 @@ val mk_cvt_int_bits : AST.expr -> AST.expr -> AST.expr
  *)
 val mk_expr_safe_to_replicate : nameSupply -> AST.expr -> AST.ty -> (AST.expr -> AST.expr) -> AST.expr
 
+val is_safe_to_replicate : AST.expr -> bool
+
 (****************************************************************)
 (** {2 Misc}                                                    *)
 (****************************************************************)

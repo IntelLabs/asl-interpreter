@@ -295,6 +295,8 @@ let xform_slice (env : Env.t) (x : AST.slice) : AST.slice =
     raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
     raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+  | Slice_Element _ ->
+    raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
 
 (* todo: this combines abstract interpretation with transformation
  * would it be cleaner to just use a visitior to perform the transformation

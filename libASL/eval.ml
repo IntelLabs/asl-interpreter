@@ -329,6 +329,10 @@ and eval_slice (loc : l) (env : Env.t) (x : AST.slice) : value * value =
       let lo' = eval_expr loc env lo in
       let wd' = eval_expr loc env wd in
       (lo', wd')
+  | Slice_Element (lo, wd) ->
+      let wd' = eval_expr loc env wd in
+      let lo' = eval_mul_int loc (eval_expr loc env lo) wd' in
+      (lo', wd')
 
 (** Evaluate expression *)
 and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =

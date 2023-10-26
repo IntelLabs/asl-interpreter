@@ -39,6 +39,7 @@ let slice_width (x : AST.slice) : AST.expr =
   | Slice_Single e -> one
   | Slice_HiLo (hi, lo) -> Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) one
   | Slice_LoWd (lo, wd) -> wd
+  | Slice_Element (_, wd) -> wd
 
 let slices_width (xs : AST.slice list) : AST.expr =
   mk_add_ints (List.map slice_width xs)
@@ -1067,6 +1068,10 @@ and tc_slice (env : Env.t) (loc : AST.l) (x : AST.slice) :
       let lo' = check_expr env loc type_integer lo in
       let wd' = check_expr env loc type_integer wd in
       (Slice_LoWd (lo', wd'), type_integer)
+  | Slice_Element (lo, wd) ->
+      let lo' = check_expr env loc type_integer lo in
+      let wd' = check_expr env loc type_integer wd in
+      (Slice_Element (lo', wd'), type_integer)
 
 (** Typecheck pattern against type ty *)
 and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :

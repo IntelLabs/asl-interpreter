@@ -744,6 +744,9 @@ and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
       raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+  | Slice_Element _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
+
 
 and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
     (s : AST.slice) : unit =
@@ -759,6 +762,8 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
       raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+  | Slice_Element _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with

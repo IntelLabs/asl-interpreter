@@ -83,6 +83,7 @@ val eval_eq_int : AST.l -> value -> value -> bool
 val eval_eq_bits : AST.l -> value -> value -> bool
 val eval_inmask : AST.l -> value -> value -> bool
 val eval_add_int : AST.l -> value -> value -> value
+val eval_mul_int : AST.l -> value -> value -> value
 val eval_sub_int : AST.l -> value -> value -> value
 val eval_concat : AST.l -> value list -> value
 

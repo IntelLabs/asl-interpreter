@@ -59,6 +59,7 @@ val lt_lt : formatter -> unit
 val minus : formatter -> unit
 val plus : formatter -> unit
 val plus_colon : formatter -> unit
+val star_colon : formatter -> unit
 val plus_plus : formatter -> unit
 val rbrace_rbrace : formatter -> unit
 val semicolon : formatter -> unit

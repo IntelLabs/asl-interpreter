@@ -235,6 +235,8 @@ and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
       raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
   | Slice_HiLo _ ->
       raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+  | Slice_Element _ ->
+      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
 
 and ixtype (loc : AST.l) (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with

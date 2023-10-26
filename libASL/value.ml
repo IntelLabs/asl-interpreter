@@ -767,6 +767,9 @@ let eval_inmask (loc : AST.l) (x : value) (m : value) : bool =
 let eval_add_int (loc : AST.l) (x : value) (y : value) : value =
   VInt (prim_add_int (to_integer loc x) (to_integer loc y))
 
+let eval_mul_int (loc : AST.l) (x : value) (y : value) : value =
+  VInt (prim_mul_int (to_integer loc x) (to_integer loc y))
+
 let eval_sub_int (loc : AST.l) (x : value) (y : value) : value =
   VInt (prim_sub_int (to_integer loc x) (to_integer loc y))
 
