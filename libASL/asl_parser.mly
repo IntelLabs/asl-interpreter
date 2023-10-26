@@ -220,9 +220,9 @@ field:
 variable_declaration:
 | VAR v = ident colon ty = ty SEMICOLON
     { Decl_Var(v, ty, Range($symbolstartpos, $endpos)) }
-| CONSTANT v = ident colon ty = ty EQ e = expr SEMICOLON
+| CONSTANT v = ident ty = ty_opt EQ e = expr SEMICOLON
     { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
-| LET v = ident colon ty = ty EQ e = expr SEMICOLON
+| LET v = ident ty = ty_opt EQ e = expr SEMICOLON
     { Decl_Const(v, ty, e, Range($symbolstartpos, $endpos)) }
 
 ixtype:

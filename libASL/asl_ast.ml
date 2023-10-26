@@ -220,7 +220,7 @@ declaration =
  | Decl_Typedef of Ident.t * Ident.t list * ty * l
  | Decl_Enum of Ident.t * Ident.t list * l
  | Decl_Var of Ident.t * ty * l
- | Decl_Const of Ident.t * ty * expr * l
+ | Decl_Const of Ident.t * ty option * expr * l
  | Decl_BuiltinFunction of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * l
  | Decl_FunType of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * l
  | Decl_FunDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * stmt list * l

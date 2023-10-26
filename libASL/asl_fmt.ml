@@ -904,11 +904,11 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           varty fmt v t;
           semicolon fmt
-      | Decl_Const (v, t, e, loc) ->
+      | Decl_Const (v, ot, e, loc) ->
           comments_before fmt loc;
           kw_constant fmt;
           nbsp fmt;
-          varty fmt v t;
+          varoty fmt v ot;
           nbsp fmt;
           eq fmt;
           nbsp fmt;

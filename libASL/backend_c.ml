@@ -375,6 +375,11 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
       raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
   )
 
+and varoty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option) : unit =
+  match ot with
+  | None -> raise (InternalError (__LOC__ ^ ": Expected identifier to have a type"))
+  | Some t -> varty loc fmt v t
+
 and apply (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
     unit =
   f ();
@@ -1115,10 +1120,10 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
                 (Unimplemented
                    (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
           )
-      | Decl_Const (v, ty, e, loc) ->
+      | Decl_Const (v, oty, e, loc) ->
           kw_const fmt;
           nbsp fmt;
-          varty loc fmt v ty;
+          varoty loc fmt v oty;
           if not is_extern_val then (
             PP.fprintf fmt " = ";
             expr loc fmt e

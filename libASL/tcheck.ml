@@ -1391,6 +1391,11 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       let tys' = tc_types env loc tys in
       Type_Tuple tys'
 
+and check_type (env : Env.t) (loc : l) (ty1 : ty) (ty : ty) : ty =
+  let ty' = tc_type env loc ty in
+  check_subtype_satisfies env loc ty' ty1;
+  ty'
+
 and tc_constraint (env : Env.t) (loc : AST.l) (c : AST.constraint_range) :
     AST.constraint_range =
   match c with
@@ -1764,8 +1769,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
   | (ity, DeclItem_Var (v, None)) ->
     DeclItem_Var (v, Some ity)
   | (ity, DeclItem_Var (v, Some ty)) ->
-      let ty' = tc_type env loc ty in
-      check_subtype_satisfies env loc ity ty';
+      let ty' = check_type env loc ity ty in
       DeclItem_Var (v, Some ty')
   | (Type_Tuple itys, DeclItem_Tuple dis) when List.length dis = List.length itys ->
       let dis' = List.map2 (tc_decl_item env loc) itys dis in
@@ -1787,8 +1791,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
   | (ity, DeclItem_Wildcard None) ->
       DeclItem_Wildcard (Some ity)
   | (ity, DeclItem_Wildcard (Some ty)) ->
-      let ty' = tc_type env loc ty in
-      check_subtype_satisfies env loc ity ty';
+      let ty' = check_type env loc ity ty in
       DeclItem_Wildcard (Some ty')
 
 (** Typecheck list of statements *)
@@ -2136,13 +2139,17 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let v = { name=qid; loc; ty=ty'; is_local=false; is_constant=false } in
       GlobalEnv.addGlobalVar env v;
       [ Decl_Var (qid, ty', loc) ]
-  | Decl_Const (qid, ty, i, loc) ->
-      let ty' = tc_type (Env.mkEnv env) loc ty in
-      let i' = check_expr (Env.mkEnv env) loc ty' i in
+  | Decl_Const (qid, ty_opt, i, loc) ->
+      let locals = Env.mkEnv env in
+      let (i', ity) = tc_expr locals loc i in
+      let ty' = match ty_opt with
+        | None -> ity
+        | Some ty -> check_type locals loc ity ty
+      in
       let v = { name=qid; loc; ty=ty'; is_local=false; is_constant=true } in
       GlobalEnv.addGlobalVar env v;
       GlobalEnv.addConstant env qid (simplify_expr i');
-      [ Decl_Const (qid, ty', i', loc) ]
+      [ Decl_Const (qid, Some ty', i', loc) ]
   | Decl_BuiltinFunction (qid, ps, atys, rty, loc) ->
       let locals = Env.mkEnv env in
       let ps', atys', rty' = tc_arguments locals loc ps atys rty in

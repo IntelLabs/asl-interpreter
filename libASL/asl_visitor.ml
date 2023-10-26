@@ -551,12 +551,12 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
         let ty' = visit_type vis ty in
         let v' = visit_var vis Definition v in
         if ty == ty' && v == v' then x else Decl_Var (v', ty', loc)
-    | Decl_Const (v, ty, e, loc) ->
-        let ty' = visit_type vis ty in
+    | Decl_Const (v, oty, e, loc) ->
+        let oty' = mapOptionNoCopy (visit_type vis) oty in
         let v' = visit_var vis Definition v in
         let e' = visit_expr vis e in
-        if ty == ty' && v == v' && e == e' then x
-        else Decl_Const (v', ty', e', loc)
+        if oty == oty' && v == v' && e == e' then x
+        else Decl_Const (v', oty', e', loc)
     | Decl_BuiltinFunction (f, ps, args, ty, loc) ->
         let locals = List.map fst ps @ List.map fst args in
         let f' = visit_var vis Definition f in
