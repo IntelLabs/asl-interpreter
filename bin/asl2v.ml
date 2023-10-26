@@ -29,15 +29,16 @@ open Yojson
 let rec type_decls (xs : AST.declaration list) : AST.declaration list =
   let mk_type_decl (x : AST.declaration) : AST.declaration option =
     ( match x with
-    | Decl_Const _
     | Decl_Enum _
     | Decl_Record _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _ -> Some x
+    | Decl_ProcType _
+      -> Some x
+
     | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
     | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
-
+    | Decl_Const _
     | Decl_Exception _
     | Decl_Var _
     | Decl_BuiltinType _
@@ -62,10 +63,10 @@ let rec type_decls (xs : AST.declaration list) : AST.declaration list =
 let rec var_decls (xs : AST.declaration list) : AST.declaration list =
   let is_var_decl (x : AST.declaration) : bool =
     ( match x with
+    | Decl_Const _
     | Decl_Var _
       -> true
 
-    | Decl_Const _
     | Decl_Enum _
     | Decl_Record _
     | Decl_Exception _

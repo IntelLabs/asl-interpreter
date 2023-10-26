@@ -1098,6 +1098,7 @@ let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
   cut fmt
 
 let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declaration) : unit =
+  let is_extern_val = Option.value is_extern ~default:false in
   vbox fmt (fun _ ->
       match x with
       | Decl_BuiltinType (tc, loc) -> (
@@ -1118,10 +1119,10 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           kw_const fmt;
           nbsp fmt;
           varty loc fmt v ty;
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          expr loc fmt e;
+          if not is_extern_val then (
+            PP.fprintf fmt " = ";
+            expr loc fmt e
+          );
           semicolon fmt;
           cut fmt;
           cut fmt
@@ -1176,10 +1177,9 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           cut fmt
       | Decl_Var (v, ty, loc) ->
           varty loc fmt v ty;
-          let is_extern_val = Option.value is_extern ~default:false in
           (match ty with
           | Type_Constructor (i, [ _ ])
-            when Ident.equal i Builtin_idents.ram && is_extern_val = false ->
+            when Ident.equal i Builtin_idents.ram && not is_extern_val ->
               PP.pp_print_string fmt " = &(struct ASL_ram){ 0 }"
           | _ -> ());
           semicolon fmt;
