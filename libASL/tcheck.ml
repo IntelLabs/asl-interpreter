@@ -1363,7 +1363,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
         raise (IsNotA (loc, "type constructor", Ident.pprint tc))
       end;
-      Type_Constructor (tc, es')
+      derefType (Env.globals env) loc (Type_Constructor (tc, es'))
   | Type_OfExpr e ->
       let (_, ty) = tc_expr env loc e in
       ty
@@ -2133,13 +2133,13 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       [ d; deq; dne ]
   | Decl_Var (qid, ty, loc) ->
       let ty' = tc_type (Env.mkEnv env) loc ty in
-      let v = { name=qid; loc; ty; is_local=false; is_constant=false } in
+      let v = { name=qid; loc; ty=ty'; is_local=false; is_constant=false } in
       GlobalEnv.addGlobalVar env v;
       [ Decl_Var (qid, ty', loc) ]
   | Decl_Const (qid, ty, i, loc) ->
       let ty' = tc_type (Env.mkEnv env) loc ty in
       let i' = check_expr (Env.mkEnv env) loc ty' i in
-      let v = { name=qid; loc; ty; is_local=false; is_constant=true } in
+      let v = { name=qid; loc; ty=ty'; is_local=false; is_constant=true } in
       GlobalEnv.addGlobalVar env v;
       GlobalEnv.addConstant env qid (simplify_expr i');
       [ Decl_Const (qid, ty', i', loc) ]
@@ -2267,7 +2267,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       let locals = Env.mkEnv env in
       let ty' = tc_type locals loc ty in
       let i' = check_expr locals loc ty' i in
-      let v = { name=qid; loc; ty; is_local=false; is_constant=true } in
+      let v = { name=qid; loc; ty=ty'; is_local=false; is_constant=true } in
       GlobalEnv.addGlobalVar env v;
       [ Decl_Config (qid, ty', i', loc) ]
 
