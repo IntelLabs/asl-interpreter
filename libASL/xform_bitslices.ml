@@ -113,7 +113,7 @@ class bitsliceClass =
         raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
       | Stmt_Assign (
           LExpr_Slices (
-            Type_Bits (Expr_LitInt _ as w),
+            ( Type_Bits (Expr_LitInt _ as w) | Type_Register ((Expr_LitInt _ as w), _) ),
             LExpr_Var lident,
             [Slice_LoWd (lo, sw)]),
           rhs,
