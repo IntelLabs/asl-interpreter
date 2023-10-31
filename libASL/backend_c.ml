@@ -405,12 +405,10 @@ let c_int_width_64up (width : int) : int =
 let bits (fmt : PP.formatter) (width : int) : unit =
   asl_keyword fmt ("bits" ^ string_of_int (c_int_width_64up width) ^ "_t")
 
-(* Similar to width_of_type except that it also handles integers and new
-   types *)
-let size_of_type (loc : AST.l) (ty : AST.ty) : AST.expr option =
+let width_of_type (loc : AST.l) (ty : AST.ty) : AST.expr option =
   match ty with
-  (* TODO For now assume the new type takes 64 bits *)
-  | Type_Constructor _ -> Some (Asl_utils.mk_litint 64)
+  | Type_Constructor _ ->
+      raise (InternalError (loc, "bitslicing a named type not expected", (fun fmt -> FMTAST.ty fmt ty), __LOC__))
   | Type_Integer _ ->
       raise (InternalError (loc, "bitslicing an integer not expected", (fun fmt -> FMTAST.ty fmt ty), __LOC__))
   | _ -> Asl_utils.width_of_type ty
@@ -736,7 +734,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
     (s : AST.slice) : unit =
-  let ew = Option.get (size_of_type loc t) in
+  let ew = Option.get (width_of_type loc t) in
   match s with
   | Slice_LoWd (lo, wd) ->
       apply_bits_builtin loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wd ] [ e; lo; wd ]
