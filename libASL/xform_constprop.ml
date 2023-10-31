@@ -124,23 +124,33 @@ let expr_value (env : Env.t) (x : AST.expr) : Values.t =
     Values.singleton (Eval.eval_expr Unknown env0 x)
   else Values.bottom
 
+let cvt_bitvector_binstr (x : Primops.bitvector) : string =
+  if x.n = 0 then ""
+  else
+    let s = Z.format "%0b" x.v in
+    let pad = String.make (x.n - String.length s) '0' in
+    pad ^ s
+
 let rec value_to_expr (x : Value.value) : expr option =
   match x with
   | VBool b -> Some (Expr_Var (if b then true_ident else false_ident))
   | VEnum (v, _) -> Some (Expr_Var v)
   | VInt v -> Some (Asl_utils.mk_litbigint v)
-  | VBits v ->
-      if v.n = 0 then Some (Expr_LitBits "")
-      else
-        let s = Z.format "%0b" v.v in
-        let pad = String.make (v.n - String.length s) '0' in
-        Some (Expr_LitBits (pad ^ s))
+  | VBits v -> Some (Expr_LitBits (cvt_bitvector_binstr v))
   (*
     | VReal v -> _
     *)
   | VString v -> Some (Expr_LitString v)
   | VTuple vs ->
       Option.map (fun es -> Expr_Tuple es) (flatten_map_option value_to_expr vs)
+  | _ -> None
+
+let value_to_pattern (x : Value.value) : pattern option =
+  match x with
+  | VBool b -> Some (Pat_Const (if b then true_ident else false_ident))
+  | VEnum (v, _) -> Some (Pat_Const v)
+  | VInt v -> Some (Pat_LitInt (Z.to_string v))
+  | VBits v -> Some (Pat_LitBits (cvt_bitvector_binstr v))
   | _ -> None
 
 let algebraic_simplifications (x : expr) : expr =
@@ -325,7 +335,12 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
 (** Evaluate pattern match *)
 let rec xform_pattern (env : Env.t) (x : AST.pattern) : AST.pattern =
   match x with
-  | Pat_Const c -> Pat_Const c
+  | Pat_Const c -> (
+      let r = try Env.getVar env c with _ -> Values.bottom in
+      match Option.bind (Values.to_concrete r) value_to_pattern with
+      | Some r -> r
+      | None -> Pat_Const c
+    )
   | Pat_Tuple ps -> Pat_Tuple (List.map (xform_pattern env) ps)
   | Pat_Set ps -> Pat_Set (xform_patterns env ps)
   | Pat_Single e -> Pat_Single (xform_expr env e)

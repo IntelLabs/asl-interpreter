@@ -302,6 +302,22 @@ let constprop_tests : unit Alcotest.test_case list =
        let b = x2;
        let c = x3;
        let d : integer = 1;");
+
+    ("pattern in case stmt" , `Quick, test_cp_stmts
+      "constant a : boolean = TRUE;
+       constant b : integer = 1;
+       constant c : bits(1) = '1';
+       enumeration T { E1, E2 }; constant d : T = E2;"
+
+      "case FALSE of when a => return; end
+       case 0 of when b => return; end
+       case '0' of when c => return; end
+       case E1 of when d => return; end"
+
+      "case FALSE of when TRUE => return; end
+       case 0 of when 1 => return; end
+       case '0' of when '1' => return; end
+       case E1 of when E2 => return; end");
   ]
 
 (****************************************************************
