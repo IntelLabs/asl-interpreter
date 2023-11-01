@@ -29,7 +29,7 @@ end
 module Env : sig
   type t
 
-  val mkEnv : GlobalEnv.t -> Value.value Asl_utils.ScopeStack.t -> t
+  val mkEnv : GlobalEnv.t -> Value.value ScopeStack.t -> t
   val newEnv : GlobalEnv.t -> t
   val globals : t -> GlobalEnv.t
   val pp : Format.formatter -> t -> unit

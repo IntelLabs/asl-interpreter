@@ -33,6 +33,8 @@
    loadASL
    obj32
    primops
+   scope
+   scopeStack
    tcheck
    utils
    value

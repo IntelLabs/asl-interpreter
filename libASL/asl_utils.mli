@@ -34,49 +34,6 @@ module IdentTable : Hashtbl.S with type key = Ident.t
 (** {2 Scopes}                                                  *)
 (****************************************************************)
 
-(** A mutable binding *)
-module Scope : sig
-  type 'a t
-
-  val empty : unit -> 'a t
-
-  (* make a clean copy that can be independently mutated *)
-  val clone : 'a t -> 'a t
-  val mem : 'a t -> Ident.t -> bool
-  val get : 'a t -> Ident.t -> 'a option
-  val set : 'a t -> Ident.t -> 'a -> unit
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
-  val map_inplace : ('a -> 'a) -> 'a t -> unit
-  val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
-  val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
-  val bindings : 'a t -> (Ident.t * 'a) list
-  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
-end
-
-(* A collection of nested mutable scopes *)
-module ScopeStack : sig
-  type 'a t
-
-  val empty : unit -> 'a t
-
-  (* make a clean copy that can be independently mutated *)
-  val clone : 'a t -> 'a t
-  val add : 'a t -> Ident.t -> 'a -> unit
-  val mem : 'a t -> Ident.t -> bool
-  val get : 'a t -> Ident.t -> 'a option
-  val set : 'a t -> Ident.t -> 'a -> bool
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
-  val map_inplace : ('a -> 'a) -> 'a t -> unit
-  val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
-  val merge_inplace : ('a -> 'b -> 'a) -> 'a t -> 'b t -> unit
-  val nest : 'a t -> ('a t -> 'b) -> 'b
-  val bindings : 'a t -> (Ident.t * 'a) list list
-  val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
-  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-end
-
 module IdentSet : Set.S with type elt = Ident.t
 
 (** {2 Sets of identifiers} *)
