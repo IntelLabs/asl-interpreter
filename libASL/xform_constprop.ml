@@ -371,6 +371,24 @@ let rec xform_pattern (env : Env.t) (x : AST.pattern) : AST.pattern =
 and xform_patterns (env : Env.t) (ps : AST.pattern list) : AST.pattern list =
   List.map (xform_pattern env) ps
 
+and xform_pattern_with_expr (env : Env.t) (p : AST.pattern) (e : AST.expr) : AST.pattern =
+  let add_id (id : Ident.t) (v : Value.value) =
+    Env.addLocalVar env id (Values.singleton v)
+  in
+  match (e, p) with
+  | (Expr_Tuple rs, Pat_Tuple ps) ->
+      Pat_Tuple (List.map2 (xform_pattern_with_expr env) ps rs)
+  | (Expr_Var v, Pat_LitInt il) ->
+      add_id v (Value.from_intLit il);
+      p
+  | (Expr_Var v, Pat_LitHex hl) ->
+      add_id v (Value.from_hexLit hl);
+      p
+  | (Expr_Var v, Pat_LitBits bl) ->
+      add_id v (Value.from_bitsLit bl);
+      p
+  | _ -> xform_pattern env p
+
 let rec xform_declitem (env : Env.t) (isConst : bool) (x : AST.decl_item)
     (r : AST.expr option) : AST.decl_item =
   match (x, r) with
@@ -478,14 +496,20 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
             in
             ([], odefault')
         | Alt_Alt (ps, oc, s, loc) :: alts' ->
-            let ps' = xform_patterns env ps in
-            let oc' = Option.map (xform_expr env) oc in
-            let s', (alts'', odefault') =
-              Env.fork_join env
-                (fun env -> xform_stmts env s)
-                (fun env -> xform env alts')
-            in
-            (Alt_Alt (ps', oc', s', loc) :: alts'', odefault')
+            Env.nest env (fun env' ->
+              let (ps', oc', s'), (alts'', odefault') =
+                Env.fork_join env'
+                  (fun env ->
+                    let ps' = match ps with
+                    | [p] -> [ xform_pattern_with_expr env p e ]
+                    | _   -> xform_patterns env ps
+                    in
+                    let oc' = Option.map (xform_expr env) oc in
+                    let s' = xform_stmts env s in
+                    (ps', oc', s'))
+                  (fun env -> xform env alts')
+              in
+              (Alt_Alt (ps', oc', s', loc) :: alts'', odefault'))
       in
       let alts', odefault' = xform env alts in
       [ Stmt_Case (e', alts', odefault', loc) ]

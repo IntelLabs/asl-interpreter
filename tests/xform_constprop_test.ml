@@ -302,7 +302,6 @@ let constprop_tests : unit Alcotest.test_case list =
        let b = x2;
        let c = x3;
        let d : integer = 1;");
-
     ("pattern in case stmt" , `Quick, test_cp_stmts
       "constant a : boolean = TRUE;
        constant b : integer = 1;
@@ -318,6 +317,127 @@ let constprop_tests : unit Alcotest.test_case list =
        case 0 of when 1 => return; end
        case '0' of when '1' => return; end
        case E1 of when E2 => return; end");
+
+    ("case stmt integers", `Quick, test_cp_stmts
+     "var i : integer; func Foo(x : integer) begin end"
+     "case i of
+         when 16 => Foo(i);
+         when 0x20 => Foo(i);
+      end"
+     "case i of
+         when 16 => Foo(16);
+         when 0x20 => Foo(32);
+      end");
+    ("case stmt bitvectors", `Quick, test_cp_stmts
+     "var i : bits(8); func Foo(x : bits(8)) begin end"
+     "case i of
+         when '11110000' => Foo(i);
+         when '10101010' => Foo(i);
+      end"
+     "case i of
+         when '11110000' => Foo('11110000');
+         when '10101010' => Foo('10101010');
+      end");
+    ("case stmt list", `Quick, test_cp_stmts
+     "var i : integer; func Foo(x : integer) begin end"
+     "case i of
+         when 16, 32 => Foo(i);
+      end"
+     "case i of
+         when 16, 32 => Foo(i);
+      end");
+    ("case stmt tuple", `Quick, test_cp_stmts
+     "var i : integer; var j : integer; func Foo(x : integer, y : integer) begin end"
+     "case (i, j) of
+         when (16, 32) => Foo(i, j);
+         when (24, 64) => Foo(i, j);
+      end"
+     "case (i, j) of
+         when (16, 32) => Foo(16, 32);
+         when (24, 64) => Foo(24, 64);
+      end");
+    ("case stmt nested tuple", `Quick, test_cp_stmts
+     "var i : integer; var j : integer; var k : integer; func Foo(x : integer, y : integer, z : integer) begin end"
+     "case (i, (j, k)) of
+         when (16, (32, 64)) => Foo(i, j, k);
+         when (24, (64, 32)) => Foo(i, j, k);
+      end"
+     "case (i, (j, k)) of
+         when (16, (32, 64)) => Foo(16, 32, 64);
+         when (24, (64, 32)) => Foo(24, 64, 32);
+      end");
+    ("case stmt missing const 1", `Quick, test_cp_stmts
+     "var i : integer; var j : integer; func Foo(x : integer, y : integer) begin end"
+     "case (i, j) of
+         when (16, -) => Foo(i, j);
+         when (24, -) => Foo(i, j);
+      end"
+     "case (i, j) of
+         when (16, -) => Foo(16, j);
+         when (24, -) => Foo(24, j);
+      end");
+    ("case stmt missing const 2", `Quick, test_cp_stmts
+     "var i : integer; func Foo(x : integer) begin end"
+     "case i of
+         when 32 => Foo(i);
+         when - => Foo(i);
+      end"
+     "case i of
+         when 32 => Foo(32);
+         when - => Foo(i);
+      end");
+    ("case stmt missing const 3", `Quick, test_cp_stmts
+     "var i : integer; var j : integer; func Foo(x : integer, y : integer) begin end"
+     "case (i, j) of
+         when (24, 32) => Foo(i, j);
+         when (16, -) => Foo(i, j);
+      end"
+     "case (i, j) of
+         when (24, 32) => Foo(24, 32);
+         when (16, -) => Foo(16, j);
+      end");
+    ("case stmt missing const 4", `Quick, test_cp_stmts
+     "var i : integer; var j : integer; func Foo(x : integer, y : integer) begin end"
+     "case (i, j) of
+         when (16, 32) => Foo(i, j);
+         when (24, {2..4}) => Foo(i, j);
+      end"
+     "case (i, j) of
+         when (16, 32) => Foo(16, 32);
+         when (24, {2..4}) => Foo(24, j);
+      end");
+    ("case stmt propagate x", `Quick, test_cp_stmts
+     "var i : integer; var y : integer;"
+     "var x : integer;
+      case i of
+         when 16 => x = 5;
+         when 24 => x = 5;
+         otherwise => x = 5;
+      end
+      y = x;
+      "
+     "var x : integer;
+      case i of
+         when 16 => x = 5;
+         when 24 => x = 5;
+         otherwise => x = 5;
+      end
+      y = 5;");
+    ("case stmt cannot propagate x", `Quick, test_cp_stmts
+     "var i : integer; var y : integer;"
+     "var x : integer;
+      case i of
+         when 16 => x = 5;
+         when 24 => x = 5;
+      end
+      y = x;
+      "
+     "var x : integer;
+      case i of
+         when 16 => x = 5;
+         when 24 => x = 5;
+      end
+      y = x;");
   ]
 
 (****************************************************************
