@@ -93,6 +93,19 @@ let cross_combine (f : 'a -> 'b -> 'c) (xs : 'a list) (ys : 'b list) : 'c list =
   ) [] xs
   |> List.rev
 
+(** Cartesian product.
+  Example:
+  # let ls = [[1;2]; [3;4]];;
+  val ls : int list list = [[1; 2]; [3; 4]]
+  # cartesian_product ls;;
+  - : int list list = [[1; 3]; [1; 4]; [2; 3]; [2; 4]]
+*)
+let cartesian_product (xss : 'a list list) : 'a list list =
+  let f (xss' : 'a list list) (ys : 'a list) : 'a list list =
+    xss' |> List.concat_map (fun xs' -> ys |> List.map (fun y -> y :: xs'))
+  in
+  List.fold_left f [[]] xss |> List.map (List.rev)
+
 (****************************************************************
  * Option related
  ****************************************************************)
