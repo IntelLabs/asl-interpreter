@@ -11,6 +11,7 @@ module AST = Asl_ast
 module FMTAST = Asl_fmt
 module PP = Format
 module V = Value
+open Asl_utils
 open Format_utils
 open Utils
 open Builtin_idents
@@ -43,7 +44,7 @@ let with_catch_label (f : Ident.t -> 'a) : 'a =
 let current_catcher (_ : unit) : Ident.t = List.hd !catch_stack
 
 (** List of all the reserved words in C *)
-let reserved = [
+let reserved_c = [
   "auto";
   "break";
   "case";
@@ -78,7 +79,104 @@ let reserved = [
   "while"
 ]
 
-let reserved_idents = List.map Ident.mk_ident reserved
+(** List of all the reserved words in C++ *)
+let reserved_cpp = [
+  "alignas";
+  "alignof";
+  "and";
+  "and_eq";
+  "asm";
+  "auto";
+  "bitand";
+  "bitor";
+  "bool";
+  "break";
+  "case";
+  "catch";
+  "char";
+  "char8_t";
+  "char16_t";
+  "char32_t";
+  "class";
+  "compl";
+  "concept";
+  "consteval";
+  "constexpr";
+  "constinit";
+  "const_cast";
+  "continue";
+  "co_await";
+  "co_return";
+  "co_yield";
+  "decltype";
+  "default";
+  "delete";
+  "do";
+  "double";
+  "dynamic_cast";
+  "else";
+  "enum";
+  "explicit";
+  "export";
+  "extern";
+  "false";
+  "float";
+  "for";
+  "friend";
+  "goto";
+  "if";
+  "inline";
+  "int";
+  "long";
+  "mutable";
+  "namespace";
+  "new";
+  "noexcept";
+  "not";
+  "not_eq";
+  "nullptr";
+  "operator";
+  "or";
+  "or_eq";
+  "private";
+  "protected";
+  "public";
+  "register";
+  "reinterpret_cast";
+  "requires";
+  "return";
+  "short";
+  "signed";
+  "sizeof";
+  "static";
+  "static_assert";
+  "static_cast";
+  "struct";
+  "switch";
+  "template";
+  "this";
+  "thread_local";
+  "throw";
+  "true";
+  "try";
+  "typedef";
+  "typeid";
+  "typename";
+  "union";
+  "unsigned";
+  "using";
+  "virtual";
+  "void";
+  "volatile";
+  "wchar_t";
+  "xor";
+  "xor_eq"
+]
+
+let reserved_idents =
+  reserved_c @ reserved_cpp
+  |> List.map Ident.mk_ident
+  |> IdentSet.of_list
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =
   PP.pp_print_string fmt s
@@ -91,11 +189,10 @@ let ident_str (fmt : PP.formatter) (x : string) : unit =
   PP.pp_print_string fmt x
 
 let ident (fmt : PP.formatter) (x : Ident.t) : unit =
-  (* Rename any identifiers that match C reserved words *)
-  if Ident.in_list x reserved_idents then
-    ident_str fmt ("xx" ^ (Ident.name_with_tag x))
-  else
-    ident_str fmt (Ident.name_with_tag x)
+  (* Rename any identifiers that match C/C++ reserved words *)
+  if IdentSet.mem x reserved_idents
+  then ident_str fmt ("__asl_" ^ Ident.name_with_tag x)
+  else ident_str fmt (Ident.name_with_tag x)
 
 
 let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
