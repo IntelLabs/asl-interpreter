@@ -41,6 +41,15 @@ let stmts =
   in
   Alcotest.testable Asl_fmt.indented_block eq_stmts
 
+let declarations =
+  (* Format to strings and then compare to avoid comparing location information *)
+  let eq_decls (s1 : AST.declaration list) (s2 : AST.declaration list) : bool =
+    let f1 = Utils.to_string2 (fun fmt -> Asl_fmt.declarations fmt s1) in
+    let f2 = Utils.to_string2 (fun fmt -> Asl_fmt.declarations fmt s2) in
+    f1 = f2
+  in
+  Alcotest.testable Asl_fmt.declarations eq_decls
+
 (****************************************************************
  * Support code for parsing, typechecking and building environments
  ****************************************************************)
@@ -96,6 +105,53 @@ let test_xform_stmts
   with e ->
     Error.print_exception e;
     Alcotest.fail "exception during test"
+
+let test_xform_decl
+    (f : (AST.declaration list) xform)
+    (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
+    (decls : string)
+    (decls_mono : string)
+    (decl_name : string)
+    (l : string) (r : string)
+    () : unit =
+  try
+    let find_decl (name : string) (d : AST.declaration) : bool =
+      match d with
+      | Decl_FunDefn (f, ps, args, ty, b, loc) -> Ident.matches f ~name
+      | Decl_ProcDefn (f, ps, args, b, loc) -> Ident.matches f ~name
+      | _ -> false
+    in
+
+    (* Handle decls *)
+    let decls_env = TC.GlobalEnv.clone globals in
+    let decls = LoadASL.read_declarations decls_env decls in
+
+    (* Handle mono decls *)
+    let decls_mono_env = TC.GlobalEnv.clone globals in
+    let _ = LoadASL.read_declarations decls_mono_env decls_mono in
+
+    (* Handle left side, actual result *)
+    let l_env = TC.GlobalEnv.clone decls_env in
+    let ls = LoadASL.read_declarations l_env l in
+    let genv = Eval.build_constant_environment (decls @ ls) in
+    let ls = Xform_constprop.xform_decls genv (decls @ ls) in (* Adding decls *)
+    let ls = f ls in
+    (* Retrieve resulting fun/proc def of decl_name *)
+    let l' = List.find (find_decl decl_name) ls in
+
+    (* Handle right side, expected result *)
+    let r_env = TC.GlobalEnv.clone decls_mono_env in
+    let rs = LoadASL.read_declarations r_env r in
+    (* Retrieve expected fun/proc def of decl_name *)
+    let r' = List.find (find_decl decl_name) rs in
+
+    (* Compare results *)
+    let what = l ^ "\n==>\n" ^ r in
+    Alcotest.check declarations what [r'] [l']
+  with e ->
+    Error.print_exception e;
+    Alcotest.fail "exception during test"
+
 
 (****************************************************************
  * End

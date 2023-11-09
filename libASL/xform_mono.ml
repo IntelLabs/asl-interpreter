@@ -8,7 +8,6 @@
 (** ASL function monomorphization transform *)
 
 module AST = Asl_ast
-module TC = Tcheck
 open Visitor
 open Asl_visitor
 open Utils
@@ -26,11 +25,95 @@ end
 
 module Instances = Map.Make (InstanceKey)
 
-class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
+let ( let* ) = Option.bind
+
+(* Class for recursively collecting identifiers from parameters for call
+   expressions *)
+class param_collector =
+  object (self)
+    inherit Asl_visitor.nopAslVisitor
+
+    val mutable params = IdentSet.empty
+
+    method add_param (p : AST.expr) =
+      match p with
+      | Expr_Var id -> params <- IdentSet.add id params;
+      | _           -> ()
+
+    method! vexpr e =
+      match e with
+      | Expr_TApply (_, params, _, _) ->
+          List.iter self#add_param params;
+          DoChildren
+      | _ -> DoChildren
+
+    method get_params =
+      params |> IdentSet.to_list
+  end
+
+class monoClass
+    (genv : Eval.GlobalEnv.t)
+    (global_type_info : AST.ty Bindings.t)
+    (ds : AST.declaration list) =
   object (self)
     inherit nopAslVisitor
     val mutable instances : AST.declaration Instances.t = Instances.empty
+
+    val mutable local_type_info : AST.ty Bindings.t = Bindings.empty
+
+    method update_local_type_info (t : Ident.t) (ty : AST.ty) : unit =
+      local_type_info <- Bindings.add t ty local_type_info
+
+    method clear_local_type_info () : unit =
+      local_type_info <- Bindings.empty
+
+    method get_type (i : Ident.t) : AST.ty option =
+      orelse_option
+        (Bindings.find_opt i global_type_info)
+        (fun _ -> Bindings.find_opt i local_type_info)
+
     method getInstances = List.map snd (Instances.bindings instances)
+
+    (* Return the constraints for a given parameter identifier, if constraints
+       exist and they are of type integer. *)
+    method param_to_constraints (p : Ident.t) : AST.constraint_range list option =
+      match self#get_type p with
+      | Some (AST.Type_Integer cs) -> cs
+      | _ -> None
+
+    (* Create a 'when' branch with statement [stmt] using the constraints [cs] as
+       pattern. *)
+    method constraints_to_when_branch (loc : AST.l) (stmt : AST.stmt) (cs : AST.constraint_range list)
+      : AST.alt option =
+      let to_pattern (c : AST.constraint_range) : AST.pattern option =
+        match c with
+        | Constraint_Single (Expr_LitHex s) -> Some (Pat_LitHex s)
+        | Constraint_Single (Expr_LitInt s) -> Some (Pat_LitInt s)
+        | Constraint_Single (Expr_LitBits s) -> Some (Pat_LitBits s)
+        | _ -> None
+      in
+      let* ps = flatten_map_option to_pattern cs in
+      Some (AST.Alt_Alt ([AST.Pat_Tuple ps], None, [stmt], loc))
+
+    (* Create a 'Stmt_Case' from [stmt], creating when-branches for all
+       combinations of parameter constraints using parameters [params]. *)
+    method build_case_stmt (loc : AST.l) (stmt : AST.stmt) (params : Ident.t list)
+      : AST.stmt option =
+      let* constraints = flatten_map_option self#param_to_constraints params in
+      let constraints_combinations = cartesian_product constraints in
+      let* when_branches = flatten_map_option (self#constraints_to_when_branch loc stmt) constraints_combinations in
+      let params' = List.map (fun p -> AST.Expr_Var p) params in
+      Some (AST.Stmt_Case ((Expr_Tuple params'), when_branches, None, loc))
+
+    (* Collect the parameters from a list of expressions [e]. Also add the
+       parameters from the list of [params]. *)
+    method collect_params (e : AST.expr list) (params : AST.expr list)
+      : Ident.t list =
+      let collector = new param_collector in
+      let _ = Asl_visitor.visit_exprs (collector :> Asl_visitor.aslVisitor) e in
+      List.iter collector#add_param params;
+      collector#get_params
+
 
     val decl_lookup_table =
       ds
@@ -234,8 +317,53 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
 
     method! vstmt s =
       match s with
-      | Stmt_TCall (f, tys, args, loc, throws) -> (
+      | Stmt_VarDecl (d, e, loc)
+      | Stmt_ConstDecl (d, e, loc) -> (
+
+          let rec add_decl (d : AST.decl_item) : unit =
+            match d with
+            | AST.DeclItem_Tuple ds -> List.iter add_decl ds
+            | DeclItem_Var (i, Some ty) -> self#update_local_type_info i ty
+            | DeclItem_BitTuple ds ->
+                List.iter (fun d -> match d with (Some i, ty) -> self#update_local_type_info i ty | _ -> ()) ds
+            | _ -> ()
+          in
+
+          (* possibly update type info *)
+          add_decl d;
+
+          match d with
+          | DeclItem_Var (i, Some ty) -> (
+            match self#collect_params [e] [] with
+            | [] -> DoChildren
+            | params -> (
+                let decl = AST.Stmt_VarDeclsNoInit ([i], ty, loc) in
+                let assign_stmt = AST.Stmt_Assign (AST.LExpr_Var i, e, loc) in
+                match self#build_case_stmt loc assign_stmt params with
+                | None -> DoChildren
+                | Some case_stmt ->
+                  let env = Xform_constprop.mkEnv genv [] in
+                  let case_stmts' = Xform_constprop.xform_stmts env [ case_stmt ] in
+                  (* Now monomorphize the calls in each 'when' *)
+                  ChangeDoChildrenPost (decl :: case_stmts', Fun.id)
+              )
+            )
+          | _ -> DoChildren)
+      | Stmt_TCall (f, tys, args, throws, loc) -> (
           match Utils.flatten_map_option const_int_expr tys with
+          | None ->
+              (match self#collect_params args tys with
+              | [] -> DoChildren
+              | params' ->
+                  (match self#build_case_stmt loc s params' with
+                  | None -> DoChildren
+                  | Some case_stmt ->
+                    let env = Xform_constprop.mkEnv genv [] in
+                    let case_stmts' = Xform_constprop.xform_stmts env [ case_stmt ] in
+                    (* Now monomorphize the calls in each 'when' *)
+                    ChangeDoChildrenPost (case_stmts', Fun.id)
+                  )
+              )
           | Some [] -> DoChildren
           | Some sizes ->
               Option.value
@@ -244,15 +372,64 @@ class monoClass (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) =
                        (fun (f', args') ->
                          Some
                            (ChangeDoChildrenPost
-                              ([AST.Stmt_TCall (f', [], args', loc, throws)], Fun.id)))))
+                              ([AST.Stmt_TCall (f', [], args', throws, loc)], Fun.id)))))
                 ~default:DoChildren
-          | None -> DoChildren)
+          )
+      | Stmt_Assign (LExpr_Var i, e, loc) -> (
+          match self#collect_params [e] [] with
+          | [] -> DoChildren
+          | params -> (
+              match self#build_case_stmt loc s params with
+              | None -> DoChildren
+              | Some case_stmt ->
+                let env = Xform_constprop.mkEnv genv [] in
+                let case_stmts' = Xform_constprop.xform_stmts env [ case_stmt ] in
+                (* Now monomorphize the calls in each 'when' *)
+                ChangeDoChildrenPost (case_stmts', Fun.id)
+            )
+          )
+      | _ -> DoChildren
+
+    method! vdecl d =
+      (* Clear type info for each new declaration being processed *)
+      self#clear_local_type_info ();
+
+      (* If declaration is a function, add argument type info, then regardless
+         of declaration process it *)
+      match d with
+      | Decl_BuiltinFunction (_, _, args, _, _)
+      | Decl_FunType (_, _, args, _, _)
+      | Decl_FunDefn (_, _, args, _, _, _)
+      | Decl_ProcType (_, _, args, _)
+      | Decl_ProcDefn (_, _, args, _, _)
+      | Decl_ArrayGetterType (_, _, args, _, _)
+      | Decl_ArrayGetterDefn (_, _, args, _, _, _)
+      | Decl_ArraySetterType (_, _, args, _, _, _)
+      | Decl_ArraySetterDefn (_, _, args, _, _, _, _) ->
+          List.iter (fun (i, ty) -> self#update_local_type_info i ty) args;
+          DoChildren
+      | Decl_VarSetterType (_, _, v, ty, _)
+      | Decl_VarSetterDefn (_, _, v, ty, _, _) ->
+          List.iter (fun (i, ty) -> self#update_local_type_info i ty) [ (v, ty) ];
+          DoChildren
       | _ -> DoChildren
   end
 
+(* Add all global variables that has a type to the global type info map which
+   is passed to the mono class *)
+let build_global_type_info (ds : AST.declaration list) =
+  let add_type_info (map : AST.ty Bindings.t) (d : AST.declaration) =
+    match d with
+    | Decl_Var (i, ty, _)
+    | Decl_Const (i, Some ty, _, _) -> Bindings.add i ty map
+    | _ -> map
+  in
+  List.fold_left add_type_info Bindings.empty ds
+
 let monomorphize (ds : AST.declaration list) : AST.declaration list =
   let genv = Eval.build_constant_environment ds in
-  let mono = new monoClass genv ds in
+  let global_type_info = build_global_type_info ds in
+  let mono = new monoClass genv global_type_info ds in
   let ds' = List.map (visit_decl (mono :> aslVisitor)) ds in
   ds' @ mono#getInstances
 
