@@ -13,9 +13,9 @@ module PP = Format
 module V = Value
 open Asl_utils
 open Format_utils
-open Utils
 open Builtin_idents
 
+exception InternalError of (AST.l * string * (PP.formatter -> unit) * string)
 exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
 
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
@@ -407,12 +407,12 @@ let bits (fmt : PP.formatter) (width : int) : unit =
 
 (* Similar to width_of_type except that it also handles integers and new
    types *)
-let size_of_type (ty : AST.ty) : AST.expr option =
+let size_of_type (loc : AST.l) (ty : AST.ty) : AST.expr option =
   match ty with
   (* TODO For now assume the new type takes 64 bits *)
   | Type_Constructor _ -> Some (Asl_utils.mk_litint 64)
   | Type_Integer _ ->
-      raise (InternalError (__LOC__ ^ ": bitslicing an integer not expected"))
+      raise (InternalError (loc, "bitslicing an integer not expected", (fun fmt -> FMTAST.ty fmt ty), __LOC__))
   | _ -> Asl_utils.width_of_type ty
 
 let rethrow_stmt (fmt : PP.formatter) : unit =
@@ -474,7 +474,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
 
 and varoty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option) : unit =
   match ot with
-  | None -> raise (InternalError (__LOC__ ^ ": Expected identifier to have a type"))
+  | None -> raise (InternalError (loc, "expected identifier to have a type", (fun fmt -> FMTAST.varname fmt v), __LOC__))
   | Some t -> varty loc fmt v t
 
 and apply (loc : AST.l) (fmt : PP.formatter) (f : unit -> unit) (args : AST.expr list) :
@@ -736,17 +736,16 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
 
 and slice (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
     (s : AST.slice) : unit =
-  let ew = Option.get (size_of_type t) in
+  let ew = Option.get (size_of_type loc t) in
   match s with
   | Slice_LoWd (lo, wd) ->
       apply_bits_builtin loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wd ] [ e; lo; wd ]
   | Slice_Single _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
+      raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
   | Slice_HiLo _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+      raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
   | Slice_Element _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
-
+      raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
 
 and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
     (s : AST.slice) : unit =
@@ -759,16 +758,16 @@ and lslice (loc : AST.l) (fmt : PP.formatter) (v : AST.expr) (e : AST.expr)
   | Slice_LoWd (lo, wd) ->
       apply loc fmt (fun _ -> fn_slice_lowd_w fmt) [ v; e; lo; wd ]
   | Slice_Single _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
+      raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
   | Slice_HiLo _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+      raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
   | Slice_Element _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
+      raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_Concat _ ->
-      raise (InternalError (__LOC__ ^ ": Expr_Concat not expected"))
+      raise (InternalError (loc, "Expr_Concat not expected", (fun fmt -> FMTAST.expr fmt x), __LOC__))
   | Expr_Field (e, f) ->
       expr loc fmt e;
       dot fmt;
