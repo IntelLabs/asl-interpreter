@@ -327,8 +327,7 @@ let main () =
     |> transform "keep_exports" (xform_reachable exports)
     |> transform "desugar" Xform_desugar.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
-    |> transform "lower" Xform_lower.xform_decls
-    |> transform "case" Xform_case.xform_decls in
+    |> transform "lower" Xform_lower.xform_decls in
 
     let genv = Eval.build_constant_environment ds in
     let ds = transform "constprop" (CP.xform_decls genv) ds
@@ -338,6 +337,7 @@ let main () =
     |> transform "bitslices" Xform_bitslices.xform_decls
     |> transform "tuples" Xform_tuples.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
+    |> transform "case" Xform_case.xform_decls
     |> transform "getset" Xform_getset.xform_decls
     |> transform "rmw" Xform_rmw.xform_decls
     |> transform "int_bitslices" Xform_int_bitslices.xform_decls
