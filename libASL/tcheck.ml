@@ -1159,6 +1159,8 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       Env.nest (fun env' ->
           let t' = tc_type env' loc t in
           let e' = check_expr env' loc t' e in
+          if t' = type_integer then
+            Env.addConstraint env loc (mk_eq_int (Expr_Var v) e');
           Env.addLocalVar env' {name=v; loc; ty=t'; is_local=true; is_constant=true};
           let (b', bty') = tc_expr env' loc b in
           (Expr_Let (v, t', e', b'), bty')
