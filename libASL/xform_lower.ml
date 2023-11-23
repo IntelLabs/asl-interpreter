@@ -76,7 +76,8 @@ class lower_class =
       | Expr_Slices (ty, expr, [Slice_Single s]) ->
           let lo_wd = transform_single s in
           Visitor.ChangeDoChildrenPost ((Expr_Slices (ty, expr, [lo_wd])), Fun.id)
-      | Expr_Slices (ty, e, slices) -> ChangeTo (xform_expr_slices ty e slices)
+      | Expr_Slices (ty, e, slices) ->
+          Visitor.ChangeDoChildrenPost ((xform_expr_slices ty e slices), Fun.id)
       | _ -> DoChildren
 
     method! vlexpr l =
