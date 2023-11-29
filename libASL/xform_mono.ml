@@ -48,7 +48,7 @@ class param_collector =
       | _ -> DoChildren
 
     method get_params =
-      params |> IdentSet.to_list
+      IdentSet.elements params
   end
 
 class monoClass
