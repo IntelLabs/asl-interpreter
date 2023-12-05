@@ -322,7 +322,7 @@ let main () =
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
     let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
-    let ds = Global_checks.check_decls t @ ts
+    let ds = Global_checks.check_decls (t @ ts)
     |> transform "init0" Fun.id
     |> transform "keep_exports" (xform_reachable exports)
     |> transform "desugar" Xform_desugar.xform_decls
