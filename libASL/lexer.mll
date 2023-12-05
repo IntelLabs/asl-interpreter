@@ -154,7 +154,6 @@ rule token = parse
     | '.'            { DOT        }
     | '.' '.'        { DOT_DOT    }
     | '/'            { SLASH      }
-    | ':' ':'        { COLON_COLON }
     | ':'            { COLON      }
     | ';'            { SEMICOLON  }
     | '<'            { LT         }

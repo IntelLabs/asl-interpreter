@@ -34,7 +34,6 @@ let string_of_token (t : Asl_parser.token) : string =
   | CASE -> "case"
   | CATCH -> "catch"
   | COLON -> "colon"
-  | COLON_COLON -> "coloncolon"
   | COMMA -> "comma"
   | CONFIG -> "config"
   | CONSTANT -> "constant"
