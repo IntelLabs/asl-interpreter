@@ -54,7 +54,9 @@ let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.
   | _ -> transform_non_slices n w i x
   )
 
-let transform_assignment (lident : Ident.t)
+let transform_assignment
+    (le : AST.lexpr)
+    (e : AST.expr)
     (width : AST.expr)
     (slice_width : AST.expr)
     (shift : AST.expr)
@@ -69,10 +71,17 @@ let transform_assignment (lident : Ident.t)
   let rhs' = transform_non_slices width slice_width shift rhs in
 
   (* lhs = (lhs & ~slice_mask) | rhs' *)
-  let or_op1 = mk_and_bits width (AST.Expr_Var lident) slice_not_mask in
+  let or_op1 = mk_and_bits width e slice_not_mask in
   let rhs'' = mk_or_bits width or_op1 rhs' in
 
-  Visitor.ChangeDoChildrenPost ([AST.Stmt_Assign (LExpr_Var lident, rhs'', l)], Fun.id)
+  Visitor.ChangeDoChildrenPost ([AST.Stmt_Assign (le, rhs'', l)], Fun.id)
+
+let rec mk_expr_from_lexpr_opt (le : AST.lexpr) : AST.expr option =
+  match le with
+  | LExpr_Var i -> Some (Expr_Var i)
+  | LExpr_Field (le', i) ->
+      Option.bind (mk_expr_from_lexpr_opt le') (fun e -> Some (AST.Expr_Field (e, i)))
+  | _ -> None
 
 class bitsliceClass =
   object
@@ -114,11 +123,13 @@ class bitsliceClass =
       | Stmt_Assign (
           LExpr_Slices (
             ( Type_Bits (Expr_LitInt _ as w) | Type_Register ((Expr_LitInt _ as w), _) ),
-            LExpr_Var lident,
+            le,
             [Slice_LoWd (lo, sw)]),
           rhs,
           l) ->
-        transform_assignment lident w sw lo rhs l
+        Option.fold (mk_expr_from_lexpr_opt le)
+          ~some:(fun e -> transform_assignment le e w sw lo rhs l)
+          ~none:Visitor.DoChildren
       | _ -> DoChildren
   end
 
