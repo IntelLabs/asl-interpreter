@@ -48,6 +48,7 @@
    xform_int_bitslices
    xform_lower
    xform_mono
+   xform_named_type
    xform_rmw
    xform_simplify_expr
    xform_tuples)

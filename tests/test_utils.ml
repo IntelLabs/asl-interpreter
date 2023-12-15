@@ -54,11 +54,18 @@ let declarations =
  * Support code for parsing, typechecking and building environments
  ****************************************************************)
 
-let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) : (TC.Env.t * AST.declaration list) =
+let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) :
+    TC.Env.t * AST.declaration list =
   let globals = TC.GlobalEnv.clone globals in
   let tcenv = TC.Env.mkEnv globals in
   let ds = LoadASL.read_declarations globals declarations in
   (tcenv, ds)
+
+let extend_global_tcenv (globals : TC.GlobalEnv.t) (declarations : string) :
+    TC.GlobalEnv.t * AST.declaration list =
+  let globals = TC.GlobalEnv.clone globals in
+  let ds = LoadASL.read_declarations globals declarations in
+  (globals, ds)
 
 let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
   : (TC.Env.t * Eval.Env.t) =
@@ -88,8 +95,6 @@ let test_xform_expr
     Error.print_exception e;
     Alcotest.fail "exception during test"
 
-
-
 (** Test statement transforms *)
 let test_xform_stmts
     (f : (AST.stmt list) xform)
@@ -102,6 +107,19 @@ let test_xform_stmts
     let x = f l' in
     let what = l ^ "\n==>\n" ^ r in
     Alcotest.check stmts what r' x
+  with e ->
+    Error.print_exception e;
+    Alcotest.fail "exception during test"
+
+let test_xform_decls (f : AST.declaration list xform) (globals : TC.GlobalEnv.t)
+    (prelude : AST.declaration list) (decls : string) (l : string) (r : string)
+    () : unit =
+  try
+    let env, _ = extend_global_tcenv globals decls in
+    let l_env, l' = extend_global_tcenv env l in
+    let r_env, r' = extend_global_tcenv env r in
+    let what = l ^ "\n==>\n" ^ r in
+    Alcotest.check declarations what r' (f l')
   with e ->
     Error.print_exception e;
     Alcotest.fail "exception during test"
@@ -151,7 +169,6 @@ let test_xform_decl
   with e ->
     Error.print_exception e;
     Alcotest.fail "exception during test"
-
 
 (****************************************************************
  * End
