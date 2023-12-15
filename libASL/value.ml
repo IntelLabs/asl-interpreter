@@ -595,7 +595,7 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       prim_print_int_hex x;    Some (VTuple [])
   | [],  [ VInt x ]          when Ident.equal f print_int_dec ->
       prim_print_int_dec x;    Some (VTuple [])
-  | [_], [ VInt n; VBits x ] when Ident.equal f print_bits_hex ->
+  | [VInt n], [ VBits x ] when Ident.equal f print_bits_hex ->
       prim_print_bits_hex n x; Some (VTuple [])
   | _, [ VInt a; VInt n; VRAM ram; VBits i ] when Ident.equal f ram_init ->
       Some
