@@ -232,11 +232,11 @@ and slice (loc : AST.l) (fmt : PP.formatter) (x : AST.slice) : unit =
       nbsp fmt;
       expr loc fmt wd
   | Slice_Single _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
+      raise (InternalError (loc, "Slice_Single not expected", (fun _ -> ()), __LOC__))
   | Slice_HiLo _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+      raise (InternalError (loc, "Slice_HiLo not expected", (fun _ -> ()), __LOC__))
   | Slice_Element _ ->
-      raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
+      raise (InternalError (loc, "Slice_Element not expected", (fun _ -> ()), __LOC__))
 
 and ixtype (loc : AST.l) (fmt : PP.formatter) (x : AST.ixtype) : unit =
   match x with

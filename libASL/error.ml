@@ -38,7 +38,7 @@ let print_exception (e : exn) : unit =
     Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg
   | Value.Throw (loc, exc, fs) ->
     Printf.printf "Exception taken\n";
-  | Backend_c.InternalError (loc, s, pp, ml_loc) ->
+  | Utils.InternalError (loc, s, pp, ml_loc) ->
       let fmt = Format.std_formatter in
       Format.fprintf fmt "@.%a: internal compiler error: %s" ASL_FMT.loc loc s;
       FMT_Utils.indented fmt (fun _ -> pp fmt);

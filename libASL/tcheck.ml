@@ -350,7 +350,8 @@ let rec derefType (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.ty =
 let width_of_type (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.expr =
   let ty' = derefType env loc ty in
   Utils.from_option (Asl_utils.width_of_type ty')
-    (fun _ -> raise (InternalError ("width_of_type " ^ (pp_type ty'))))
+    (fun _ -> raise (InternalError
+      (loc, "width_of_type", (fun fmt -> FMT.ty fmt ty'), __LOC__)))
 
 
 (****************************************************************)
@@ -380,8 +381,8 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
       | _ -> raise (IsNotA (loc, "record or exception", Ident.pprint tc)))
   | Type_Register (wd, fs) -> FT_Register fs
   | Type_OfExpr e ->
-      raise
-        (InternalError ("typeFields: Type_OfExpr " ^ pp_expr e))
+      raise (InternalError
+        (loc, "typeFields: Type_OfExpr", (fun fmt -> FMT.expr fmt e), __LOC__))
   | _ -> raise (IsNotA (loc, "record/register", pp_type x))
 
 (** Get fieldtype information for a named field of a record *)
@@ -487,7 +488,9 @@ end = struct
       (search_var env.globals env.locals v.name);
     (match env.locals with
     | bs :: bss -> env.locals <- Bindings.add v.name v bs :: bss
-    | [] -> raise (InternalError "addLocalVar")
+    | [] ->
+        raise (InternalError
+          (v.loc, "addLocalVar", (fun fmt -> FMT.varname fmt v.name), __LOC__))
     );
     if not v.is_constant then env.modified <- IdentSet.add v.name env.modified
 
@@ -705,7 +708,9 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
   | Type_Constructor (tc1, es1), Type_Constructor (tc2, es2) when tc1 = tc2 ->
       assert (List.length es1 = List.length es2);
       List.iter2 (check_equality env loc) es1 es2
-  | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError "check_subtype_satisfies: typeof")
+  | Type_OfExpr e1, Type_OfExpr e2 ->
+      raise (InternalError
+        (loc, "check_subtype_satisfies: typeof", (fun fmt -> FMT.ty fmt ty1), __LOC__))
   | Type_Array (ixty1, elty1), Type_Array (ixty2, elty2) ->
       ( match (ixty1, ixty2) with
       | Index_Enum tc1, Index_Enum tc2 -> ()
@@ -881,7 +886,8 @@ let rec eq_structural (env : GlobalEnv.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AS
   | Type_Integer _, Type_Integer _ -> true
   | Type_Bits e1, Type_Bits e2 -> true
   | Type_Constructor (c1, es1), Type_Constructor (c2, es2) -> c1 = c2
-  | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError "eq_structural: typeof")
+  | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError
+      (loc, "eq_structural: typeof", (fun fmt -> FMT.ty fmt ty1), __LOC__))
   | Type_Bits e1, Type_Register (w2, _) -> true
   | Type_Register (w1, _), Type_Bits e2 -> true
   | Type_Register (w1, _), Type_Register (w2, _) -> true
@@ -1230,7 +1236,8 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
                 List.map
                   (function
                     | Slice_Single a, _ -> a
-                    | _ -> raise (InternalError "Expr_Slices"))
+                    | _ -> raise (InternalError
+                      (loc, "Expr_Slices", (fun fmt -> FMT.expr fmt x), __LOC__)))
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
@@ -1347,7 +1354,8 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       (* todo: this case only exists because of the (bad) sugar of
        * writing "x == '0x'" instead of "x IN '0x'"
        *)
-      raise (InternalError "tc_expr: litmask")
+      raise (InternalError
+        (loc, "tc_expr: litmask", (fun fmt -> FMT.expr fmt x), __LOC__))
   | Expr_LitString s -> (Expr_LitString s, type_string)
   | Expr_AsConstraint (e, c) ->
       let e', ty = tc_expr env loc e in
@@ -1557,7 +1565,8 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
                 List.map
                   (function
                     | Slice_Single a, _ -> a
-                    | _ -> raise (InternalError "Expr_Slices"))
+                    | _ -> raise (InternalError
+                      (loc, "Expr_Slices", (fun fmt -> FMT.lexpr fmt e), __LOC__)))
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
@@ -1584,7 +1593,7 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
           let e' = check_expr env loc (ixtype_basetype ixty) e in
           (LExpr_Array (a', e'), elty)
       | _ -> raise (TypeError (loc, "subscript of non-array")))
-  | _ -> raise (InternalError "tc_lexpr2")
+  | _ -> raise (InternalError (loc, "tc_lexpr2", (fun fmt -> FMT.lexpr fmt x), __LOC__))
 
 (****************************************************************)
 (** {2 Typecheck statements}                                    *)
@@ -1624,7 +1633,8 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
           match osetter with
           | Some gty ->
               let gty' = instantiate_fun env loc gty [] [] in
-              let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Var")) in
+              let vty = from_option gty'.ovty (fun _ -> raise (InternalError
+                (loc, "tc_lexpr LExpr_Var", (fun fmt -> FMT.lexpr fmt x), __LOC__))) in
               check_subtype_satisfies env loc ty vty;
               let throws = false in
               LExpr_Write (gty'.name, gty'.parameters, [], throws)
@@ -1686,11 +1696,13 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                   List.map
                     (function
                       | Slice_Single a, _ -> a
-                      | _ -> raise (InternalError "Expr_Slices1"))
+                      | _ -> raise (InternalError
+                        (loc, "Expr_Slices1", (fun fmt -> FMT.lexpr fmt e), __LOC__)))
                     ss'
                 in
                 let gty' = instantiate_fun env loc gty es tys in
-                let vty = from_option gty'.ovty (fun _ -> raise (InternalError "tc_lexpr LExpr_Slices")) in
+                let vty = from_option gty'.ovty (fun _ -> raise (InternalError
+                  (loc, "tc_lexpr LExpr_Slices", (fun fmt -> FMT.lexpr fmt e), __LOC__))) in
                 check_subtype_satisfies env loc ty vty;
                 let throws = false in
                 (LExpr_Write (gty'.name, gty'.parameters, es, throws), ty)
@@ -1751,7 +1763,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
           check_subtype_satisfies env loc ety (ixtype_basetype ixty);
           LExpr_Array (a', e')
       | _ -> raise (TypeError (loc, "subscript of non-array")))
-  | _ -> raise (InternalError "tc_lexpr")
+  | _ -> raise (InternalError (loc, "tc_lexpr", (fun fmt -> FMT.lexpr fmt x), __LOC__))
 
 let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x : AST.decl_item) : unit =
   match x with
@@ -1769,7 +1781,8 @@ let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x :
   | DeclItem_Wildcard oty ->
       ()
   | DeclItem_Var (v, None) ->
-      raise (InternalError "visit_declitem")
+      raise (InternalError
+        (loc, "visit_declitem", (fun fmt -> FMT.decl_item fmt x), __LOC__))
 
 let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (Ident.t option * AST.ty)) : (Ident.t option * AST.ty) =
   let (ov, ty) = x in
@@ -1890,7 +1903,8 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let rty =
         match Env.getReturnType env with
         | Some ty -> ty
-        | None -> raise (InternalError "Stmt_FunReturn")
+        | None -> raise (InternalError
+          (loc, "Stmt_FunReturn", (fun fmt -> FMT.stmt fmt x), __LOC__))
       in
       let e' = check_expr env loc rty e in
       Stmt_FunReturn (e', loc)
@@ -1898,7 +1912,8 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       (match Env.getReturnType env with
       | None -> ()
       | Some (Type_Tuple []) -> ()
-      | _ -> raise (InternalError "return type should be None"));
+      | _ -> raise (InternalError
+        (loc, "return type should be None", (fun fmt -> FMT.stmt fmt x), __LOC__)));
       Stmt_ProcReturn loc
   | Stmt_Assert (e, loc) ->
       let e' = check_expr env loc type_bool e in

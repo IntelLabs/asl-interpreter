@@ -14,8 +14,8 @@ module V = Value
 open Asl_utils
 open Format_utils
 open Builtin_idents
+open Utils
 
-exception InternalError of (AST.l * string * (PP.formatter -> unit) * string)
 exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
 
 let drop_spaces (x : string) : string = Value.drop_chars x ' '

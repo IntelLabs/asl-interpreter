@@ -54,7 +54,7 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
       | TC.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (AST.pp_loc loc) what x
       | TC.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (AST.pp_loc loc) what x
       | TC.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (AST.pp_loc loc) msg
-      | InternalError(msg) -> Printf.sprintf "InternalError(%s)" msg
+      | InternalError(loc, msg, _, _) -> Printf.sprintf "InternalError(%s,%s)" (AST.pp_loc loc) msg
       | Value.Return(_) -> Printf.sprintf "Return(_)"
       | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (AST.pp_loc loc) err
       | Value.Throw(loc, _, _) -> Printf.sprintf "Throw(%s,_,_)" (AST.pp_loc loc)

@@ -39,12 +39,15 @@ let transform_non_slices (n : AST.expr) (w : AST.expr) (i : AST.expr)
  * This function will be extended with additional special cases in
  * the future.
  *)
-let transform (n : AST.expr) (w : AST.expr) (i : AST.expr) (x : AST.expr) : AST.expr =
+let transform (loc : AST.l) (n : AST.expr) (w : AST.expr) (i : AST.expr)
+    (x : AST.expr) : AST.expr =
   ( match x with
   | Expr_Slices (_, _, [Slice_HiLo _]) ->
-    raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+    raise (InternalError
+      (loc, "Slice_HiLo not expected", (fun fmt -> Asl_fmt.expr fmt x), __LOC__))
   | Expr_Slices (_, _, [Slice_Single _]) ->
-    raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
+    raise (InternalError
+      (loc, "Slice_Single not expected", (fun fmt -> Asl_fmt.expr fmt x), __LOC__))
   | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_LoWd (lo, wd)]) ->
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let e1 = mk_zero_extend_bits we n e in
@@ -86,6 +89,7 @@ let rec mk_expr_from_lexpr_opt (le : AST.lexpr) : AST.expr option =
 class bitsliceClass =
   object
     inherit Asl_visitor.nopAslVisitor
+    val mutable loc = AST.Unknown
 
     method! vexpr x =
       ( match x with
@@ -97,7 +101,7 @@ class bitsliceClass =
          *     ei' == zero_extend_bits(ei, total_width) << wi'
          *)
         let (_, x') = List.fold_right2 (fun w e (i, e0) ->
-            let e' = transform total_width w i e in
+            let e' = transform loc total_width w i e in
             let i' = Xform_simplify_expr.mk_add_int w i in
             let e0' = mk_or_bits total_width e' e0 in
             (i', e0')
@@ -106,11 +110,13 @@ class bitsliceClass =
         in
         ChangeDoChildrenPost (x', Fun.id)
       | Expr_TApply (f, [w; n], [e; _], _) when Ident.equal f zero_extend ->
-        ChangeDoChildrenPost (transform n w zero e, Fun.id)
+        ChangeDoChildrenPost (transform loc n w zero e, Fun.id)
       | _ -> DoChildren
       )
 
     method! vstmt s =
+      loc <- stmt_loc s;
+
       match s with
       | Stmt_Assign (
           LExpr_Slices (
@@ -119,18 +125,23 @@ class bitsliceClass =
             [Slice_HiLo _]),
           _,
           _) ->
-        raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+        raise (InternalError
+          (loc, "Slice_HiLo not expected", (fun fmt -> Asl_fmt.stmt fmt s), __LOC__))
       | Stmt_Assign (
           LExpr_Slices (
             ( Type_Bits (Expr_LitInt _ as w) | Type_Register ((Expr_LitInt _ as w), _) ),
             le,
             [Slice_LoWd (lo, sw)]),
           rhs,
-          l) ->
+          _) ->
         Option.fold (mk_expr_from_lexpr_opt le)
-          ~some:(fun e -> transform_assignment le e w sw lo rhs l)
+          ~some:(fun e -> transform_assignment le e w sw lo rhs loc)
           ~none:Visitor.DoChildren
       | _ -> DoChildren
+
+    method! vdecl d =
+      loc <- decl_loc d;
+      DoChildren
   end
 
 let xform_expr (x : AST.expr) : AST.expr =

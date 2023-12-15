@@ -5,7 +5,10 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-exception InternalError of string (* internal invariants have been broken *)
+(** Exceptions *)
+
+(* Internal invariants have been broken *)
+exception InternalError of (Asl_ast.l * string * (Format.formatter -> unit) * string)
 
 (** Generic utility functions *)
 

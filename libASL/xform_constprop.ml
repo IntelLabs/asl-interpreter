@@ -288,28 +288,28 @@ let xform_ty (env : Env.t) (x : AST.ty) : AST.ty =
   let ce = new constEvalClass env in
   Asl_visitor.visit_type (ce :> Asl_visitor.aslVisitor) x
 
-let xform_slice (env : Env.t) (x : AST.slice) : AST.slice =
+let xform_slice (env : Env.t) (loc : AST.l) (x : AST.slice) : AST.slice =
   match x with
   | Slice_LoWd (lo, wd) -> Slice_LoWd (xform_expr env lo, xform_expr env wd)
   | Slice_Single _ ->
-    raise (InternalError (__LOC__ ^ ": Slice_Single not expected"))
+    raise (InternalError (loc, "Slice_Single not expected", (fun _ -> ()), __LOC__))
   | Slice_HiLo _ ->
-    raise (InternalError (__LOC__ ^ ": Slice_HiLo not expected"))
+    raise (InternalError (loc, "Slice_HiLo not expected", (fun _ -> ()), __LOC__))
   | Slice_Element _ ->
-    raise (InternalError (__LOC__ ^ ": Slice_Element not expected"))
+    raise (InternalError (loc, "Slice_Element not expected", (fun _ -> ()), __LOC__))
 
 (* todo: this combines abstract interpretation with transformation
  * would it be cleaner to just use a visitior to perform the transformation
  * and then this bit just updates environments?
  *)
-let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
+let rec xform_lexpr (env : Env.t) (loc : AST.l) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
   match x with
   | LExpr_Wildcard -> x
   | LExpr_Var v ->
       Env.setVar env v r;
       x
   | LExpr_Field(l, f) ->
-      let l' = xform_lexpr env l Values.bottom in
+      let l' = xform_lexpr env loc l Values.bottom in
       LExpr_Field(l', f)
   (*
     | LExpr_Fields(l, fs) ->
@@ -328,19 +328,19 @@ let rec xform_lexpr (env : Env.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
     *)
   | LExpr_Slices (t, l, ss) ->
       let t' = xform_ty env t in
-      let l' = xform_lexpr env l Values.bottom in
-      let ss' = List.map (xform_slice env) ss in
+      let l' = xform_lexpr env loc l Values.bottom in
+      let ss' = List.map (xform_slice env loc) ss in
       LExpr_Slices (t', l', ss')
   | LExpr_BitTuple (ws, ls) ->
       let ws' = xform_exprs env ws in
-      let ls' = List.map (fun l -> xform_lexpr env l Values.bottom) ls in
+      let ls' = List.map (fun l -> xform_lexpr env loc l Values.bottom) ls in
       LExpr_BitTuple(ws', ls')
   | LExpr_Tuple(ls) ->
-      let ls' = List.map (fun l -> xform_lexpr env l Values.bottom) ls in
+      let ls' = List.map (fun l -> xform_lexpr env loc l Values.bottom) ls in
       LExpr_Tuple(ls')
   | LExpr_Array (l, i) ->
       let i' = xform_expr env i in
-      let l' = xform_lexpr env l Values.bottom in
+      let l' = xform_lexpr env loc l Values.bottom in
       LExpr_Array (l', i')
   | LExpr_Write (setter, tes, es, throws) ->
       let tes' = xform_exprs env tes in
@@ -439,7 +439,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       [ Stmt_ConstDecl (di', i', loc) ]
   | Stmt_Assign (l, r, loc) ->
       let r' = xform_expr env r in
-      let l' = xform_lexpr env l (expr_value env r') in
+      let l' = xform_lexpr env loc l (expr_value env r') in
       (* todo: delete assignment if possible *)
       [ Stmt_Assign (l', r', loc) ]
   | Stmt_TCall (f, tes, es, throws, loc) ->
