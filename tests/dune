@@ -9,6 +9,7 @@
   xform_bittuples_test
   xform_case_test
   xform_constprop_test
+  xform_getset_test
   xform_int_bitslices_test
   xform_lower_test
   xform_mono_test

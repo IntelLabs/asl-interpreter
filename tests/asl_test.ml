@@ -297,20 +297,6 @@ let tests : unit Alcotest.test_case list =
       "func F() => (integer, integer) begin return (1,2); end
        getter T => integer begin let (x, y) = F(); return x + y; end"
       "T == 3");
-    ("getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
-      "var i : integer;
-       getter G => integer begin return i; end
-       setter S = value : integer begin i = value; end
-       func P() begin S = G + 1; end
-       func T() => integer begin i = 1; P(); S = G + 1; return i; end"
-      "T() == 3");
-    ("array getter & setter transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
-      "var i : array [2] of integer;
-       getter G{N}[x : bits(N)] => integer begin return i[UInt(x)]; end
-       setter S{N}[x : bits(N)] = value : integer begin i[UInt(x)] = value; end
-       func P() begin S['0'] = G['0'] + 1; end
-       func T() => integer begin i[0] = 1; P(); S['0'] = G['0'] + 1; return i[0]; end"
-      "T() == 3");
     ("read-modify-write transform", `Quick, test_xform globals prelude Xform_rmw.xform_decls
       "var i : array [2] of bits(3);
        getter I{N}[x : bits(N)] => bits(3) begin return i[UInt(x)]; end
