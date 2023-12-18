@@ -1387,7 +1387,7 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
         raise (IsNotA (loc, "type constructor", Ident.pprint tc))
       end;
-      derefType (Env.globals env) loc (Type_Constructor (tc, es'))
+      Type_Constructor (tc, es')
   | Type_OfExpr e ->
       let (_, ty) = tc_expr env loc e in
       ty
