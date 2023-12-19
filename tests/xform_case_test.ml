@@ -33,8 +33,8 @@ let case_tests : unit Alcotest.test_case list =
        "var x : bits(4);
         var z : integer;"
        "case x of
-            when '11xx': z = 1;
-            otherwise: z = 2;
+            when '11xx' => z = 1;
+            otherwise => z = 2;
         end"
        "if x IN '11xx' then
             z = 1;
@@ -46,8 +46,8 @@ let case_tests : unit Alcotest.test_case list =
        "var x : integer;
         var z : integer;"
        "case x of
-            when 1, 2: z = 1;
-            otherwise: z = 2;
+            when 1, 2 => z = 1;
+            otherwise => z = 2;
         end"
        "if x == 1 || x == 2 then
             z = 1;
@@ -60,8 +60,8 @@ let case_tests : unit Alcotest.test_case list =
         var y : integer;
         var z : integer;"
        "case (x, y) of
-            when (1, 2): z = 1;
-            otherwise: z = 2;
+            when (1, 2) => z = 1;
+            otherwise => z = 2;
         end"
        "if x == 1 && y == 2 then
             z = 1;
@@ -74,8 +74,8 @@ let case_tests : unit Alcotest.test_case list =
         var y : integer;
         var z : integer;"
        "case x of
-            when 1 where y < 3 : z = 1;
-            otherwise: z = 2;
+            when 1 where y < 3 => z = 1;
+            otherwise => z = 2;
         end"
        "if x == 1 && y < 3 then
             z = 1;

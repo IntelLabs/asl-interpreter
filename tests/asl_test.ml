@@ -197,12 +197,12 @@ let tests : unit Alcotest.test_case list =
       "func F(x : bits(3), y : boolean) => integer
        begin
            case x of
-               when '000': return 0;
-               when '001': return 0;
-               when '01x': return 2;
-               when '100', '111': return 4;
-               when '101' where y: return 5;
-               otherwise: return 6;
+               when '000' => return 0;
+               when '001' => return 0;
+               when '01x' => return 2;
+               when '100', '111' => return 4;
+               when '101' where y => return 5;
+               otherwise => return 6;
            end
        end" "1";
     ("operators (implies)",    `Quick, test_bool globals prelude "" "FALSE --> FALSE" true);

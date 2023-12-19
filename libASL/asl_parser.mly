@@ -412,8 +412,6 @@ optional_else:
 | { ([], Range($symbolstartpos, $endpos)) }
 
 alt:
-| WHEN ps = separated_nonempty_list(COMMA, pattern) oalt = opt_altcond COLON b = block
-    { Alt_Alt(ps, oalt, b, Range($symbolstartpos, $endpos)) }
 | WHEN ps = separated_nonempty_list(COMMA, pattern) oalt = opt_altcond EQ_GT b = block
     { Alt_Alt(ps, oalt, b, Range($symbolstartpos, $endpos)) }
 
