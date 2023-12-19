@@ -16,8 +16,6 @@ open Format_utils
 open Builtin_idents
 open Utils
 
-exception Unimplemented of (AST.l * string * (PP.formatter -> unit))
-
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
 let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
@@ -380,7 +378,7 @@ let const_expr (loc : AST.l) (x : AST.expr) : V.value =
   | Expr_LitString s -> V.from_stringLit s
   | _ ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            ( loc,
              "const_expr: not literal constant '" ^ Asl_utils.pp_expr x ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
@@ -391,7 +389,7 @@ let const_int_expr (loc : AST.l) (x : AST.expr) : int =
   | VInt i -> Z.to_int i
   | _ ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            ( loc,
              "const_int_expr: integer expected '" ^ V.string_of_value v ^ "'",
              fun fmt -> FMTAST.expr fmt x ))
@@ -467,7 +465,7 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
   | Type_Constructor (_, _)
   | Type_OfExpr _
   | Type_Tuple _ ->
-      raise (Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
+      raise (Error.Unimplemented (loc, "type", fun fmt -> FMTAST.ty fmt x))
   )
 
 and varoty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option) : unit =
@@ -519,12 +517,12 @@ and binop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list
         (fun _ -> delimiter fmt op)
         (fun _ -> expr loc fmt x)
         (fun _ -> expr loc fmt y)
-  | _ -> raise (Unimplemented (loc, "binop: " ^ op, fun fmt -> ()))
+  | _ -> raise (Error.Unimplemented (loc, "binop: " ^ op, fun fmt -> ()))
 
 and unop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with
   | [ x ] -> make_unop fmt (fun _ -> delimiter fmt op) (fun _ -> expr loc fmt x)
-  | _ -> raise (Unimplemented (loc, "unop: " ^ op, fun fmt -> ()))
+  | _ -> raise (Error.Unimplemented (loc, "unop: " ^ op, fun fmt -> ()))
 
 and cond_cont (loc : AST.l) (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
     (y : unit -> unit) : unit =
@@ -630,7 +628,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
     sqrt_real;
     sub_real] ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            ( loc,
              "real builtin function",
              fun fmt -> FMTAST.funname fmt f ))
@@ -664,7 +662,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] [ w ]
   | _ when Ident.in_list f [ frem_bits_int; in_mask; notin_mask ] ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            (loc, "bitvector builtin function", fun fmt -> FMTAST.funname fmt f))
   | _ when Ident.in_list f [ lsl_bits; lsr_bits; mul_bits; ne_bits; not_bits ] ->
       let n = List.hd tes in
@@ -707,7 +705,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       dquote fmt
   | _ when Ident.in_list f [ eq_str; ne_str ] ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            (loc, "string builtin function", fun fmt -> FMTAST.funname fmt f))
   | _ when Ident.in_list f [
       print_int_hex;
@@ -725,7 +723,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   (* File builtin functions *)
   | _ when Ident.in_list f [ asl_file_getc; asl_file_open; asl_file_write ] ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            (loc, "file builtin function", fun fmt -> FMTAST.funname fmt f))
   (* Helper functions with ASL_ prefix *)
   | _ when String.starts_with ~prefix:"ASL_" (Ident.name f) ->
@@ -845,7 +843,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Unknown _
   | Expr_Unop _ ->
       raise
-        (Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
+        (Error.Unimplemented (loc, "expression", fun fmt -> FMTAST.expr fmt x))
 
 and exprs (loc : AST.l) (fmt : PP.formatter) (es : AST.expr list) : unit =
   commasep fmt (expr loc fmt) es
@@ -862,7 +860,7 @@ let pattern (loc : AST.l) (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
   | Pat_Tuple _ | Pat_Wildcard ->
       raise
-        (Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
+        (Error.Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
 
 let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) : unit =
   l ();
@@ -890,7 +888,7 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   | LExpr_Tuple _
   | LExpr_Write _ ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            (loc, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
 
 let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
@@ -898,7 +896,7 @@ let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.exp
   | LExpr_Slices (_, l, [ s ]) ->
       let e = match Asl_utils.lexpr_to_expr l with
               | Some e -> e
-              | None -> raise (Unimplemented (loc, "lexpr_assign", fun fmt -> Asl_fmt.lexpr fmt x))
+              | None -> raise (Error.Unimplemented (loc, "lexpr_assign", fun fmt -> Asl_fmt.lexpr fmt x))
       in
       lslice loc fmt r e s;
       semicolon fmt
@@ -918,10 +916,10 @@ let rec declitem (loc : AST.l) (fmt : PP.formatter) (x : AST.decl_item) =
       cut fmt
   | DeclItem_BitTuple dbs ->
       let pp fmt = FMTAST.decl_item fmt x in
-      raise (Unimplemented (loc, "declitem: bittuple", pp))
+      raise (Error.Unimplemented (loc, "declitem: bittuple", pp))
   | DeclItem_Var (v, None) ->
       raise
-        (Unimplemented
+        (Error.Unimplemented
            ( loc,
              "decl: type of variable unknown",
              fun fmt -> FMTAST.varname fmt v ))
@@ -981,7 +979,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                     (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
                       if Option.is_some oc then
                         raise
-                          (Unimplemented (loc, "pattern_guard", fun fmt -> ()));
+                          (Error.Unimplemented (loc, "pattern_guard", fun fmt -> ()));
                       List.iter (PP.fprintf fmt "case %a:@," (pattern loc)) ps;
                       braces fmt (fun _ ->
                           indented_block fmt ss;
@@ -1137,7 +1135,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_ConstDecl _
     ->
       raise
-        (Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
+        (Error.Unimplemented (AST.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
 
 and indented_block (fmt : PP.formatter) (xs : AST.stmt list) : unit =
   if xs <> [] then
@@ -1215,7 +1213,7 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
             ] -> ()
           | _ ->
               raise
-                (Unimplemented
+                (Error.Unimplemented
                    (AST.Unknown, "builtin type", fun fmt -> FMTAST.tycon fmt tc))
           )
       | Decl_Const (v, oty, e, loc) ->
@@ -1300,7 +1298,7 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
       | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
       | _ ->
           raise
-            (Unimplemented
+            (Error.Unimplemented
                (AST.Unknown, "declaration", fun fmt -> FMTAST.declaration fmt x)))
 
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =

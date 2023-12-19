@@ -7,8 +7,6 @@
 
 module AST = Asl_ast
 
-exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
-
 let mkReturnTypeName (f : Ident.t) : Ident.t =
   Ident.add_prefix f ~prefix:"__Return"
 
@@ -74,7 +72,7 @@ class replaceTupleClass (tc : Ident.t option) =
                 let s2 = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), Expr_Var v', loc) in
                 (AST.LExpr_Var v', s1, s2)
             | _ ->
-                raise (Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
+                raise (Error.Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
             )
           )
           dis

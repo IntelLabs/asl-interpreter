@@ -12,8 +12,6 @@ module AST = Asl_ast
 open Asl_utils
 open Builtin_idents
 
-exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
-
 let mk_elsif (x : (AST.expr * AST.stmt list * AST.l)) : AST.s_elsif =
   let (e, b, loc) = x in
   AST.S_Elsif_Cond (e, b, loc)
@@ -43,7 +41,7 @@ let rec match_pattern (loc : AST.l) (e : AST.expr) (p : AST.pattern) : AST.expr 
   | (Pat_Single e', _) -> mk_eq_int e e'
   | (Pat_Range (lo, hi), _) -> mk_and (mk_le_int lo e) (mk_le_int e hi)
   | (Pat_Tuple ps, Expr_Tuple es) -> mk_ands (List.map2 (match_pattern loc) es ps)
-  | _ ->  raise (Unimplemented (loc, "match_pattern", fun fmt -> Asl_fmt.pattern fmt p))
+  | _ ->  raise (Error.Unimplemented (loc, "match_pattern", fun fmt -> Asl_fmt.pattern fmt p))
   )
 
 and match_any_pattern (loc : AST.l) (e : AST.expr) (ps : AST.pattern list) : AST.expr =

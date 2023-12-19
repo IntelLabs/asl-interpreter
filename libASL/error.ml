@@ -11,6 +11,8 @@ module FMT_Utils = Format_utils
 module ASL_FMT = Asl_fmt
 open Asl_utils
 
+exception Unimplemented of (AST.l * string * (Format.formatter -> unit))
+
 let print_exception (e : exn) : unit =
   match e with
   | Parse_error_locn (l, s) ->
@@ -44,8 +46,7 @@ let print_exception (e : exn) : unit =
       FMT_Utils.indented fmt (fun _ -> pp fmt);
       FMT_Utils.cut fmt;
       Format.fprintf fmt "Please submit a bug report. %s@," ml_loc
-  | Backend_c.Unimplemented (loc, what, pp)
-  | Backend_verilog.Unimplemented (loc, what, pp) ->
+  | Unimplemented (loc, what, pp) ->
       let fmt = Format.std_formatter in
       Format.pp_print_newline fmt ();
       FMT_Utils.vbox fmt (fun _ ->
