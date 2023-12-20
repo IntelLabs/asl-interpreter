@@ -59,7 +59,7 @@ ASL_print_int_hex(ASL_int_t x)
 {
         printf("0x");
 #ifdef ASL_INT128
-        printf("%llx_", (long long)(x >> 64));
+        printf("0x%08llx_%08llx", (long long)(x >> 64), (long long)x);
 #endif
         printf("%llx", (long long)x);
 }
@@ -69,7 +69,7 @@ ASL_print_int_dec(ASL_int_t x)
 {
 #ifdef ASL_INT128
         // print in hex for simplicity
-        printf("0x%llx_%llx", (long long)(x >> 64), (long long)x);
+        printf("0x%08llx_%08llx", (long long)(x >> 64), (long long)x);
 #else
         printf("%lld", (long long)x);
 #endif
