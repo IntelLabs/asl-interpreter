@@ -148,23 +148,9 @@ let load_Phdr (write : uint64 -> char -> unit) (buffer : bytes) (offset : int) :
       Printf.printf "Loading program header %Lx %Lx %Lx\n" paddr fsz memsz;
     load_block write buffer (Int64.to_int o) paddr fsz memsz)
 
-(** load a file into a buffer *)
-let read_file (name : string) : bytes =
-  let c = open_in_bin name in
-  let inc = 1000000 in
-  let b = ref (Bytes.create inc) in
-  let rec read (pos : int) : unit =
-    b := Bytes.extend !b 0 (pos + inc - Bytes.length !b);
-    let r = input c !b pos inc in
-    if r <> 0 then read (pos + r)
-  in
-  read 0;
-  close_in c;
-  !b
-
 (** load ELF file, returning entry address *)
 let load_file (name : string) (write : uint64 -> char -> unit) : uint64 =
-  let buffer = read_file name in
+  let buffer = Utils.read_file name in
   let elf64 = byte buffer (e_ident + 4) = elfCLASS64 in
   let le = byte buffer (e_ident + 5) = elfDATA2LSB in
   assert elf64;

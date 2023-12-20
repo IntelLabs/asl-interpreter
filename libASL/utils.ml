@@ -181,5 +181,23 @@ let string_drop (n : int) (s : string) : string =
 let ( <?> ) c (cmp, x, y) = if c = 0 then cmp x y else c
 
 (****************************************************************
+ * File related
+ ****************************************************************)
+
+(** load a file into a buffer *)
+let read_file (name : string) : bytes =
+  let c = open_in_bin name in
+  let inc = 1000000 in
+  let b = ref (Bytes.create inc) in
+  let rec read (pos : int) : unit =
+    b := Bytes.extend !b 0 (pos + inc - Bytes.length !b);
+    let r = input c !b pos inc in
+    if r <> 0 then read (pos + r)
+  in
+  read 0;
+  close_in c;
+  !b
+
+(****************************************************************
  * End
  ****************************************************************)

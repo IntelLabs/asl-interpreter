@@ -59,6 +59,7 @@ let help_msg =
     {|:callgraph <file>              Generate json file containing callgraph|};
     {|:elf <file>                    Load an ELF file|};
     {|:obj <file>                    Load an OBJ file|};
+    {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
     {|:run                           Execute instructions|};
@@ -98,6 +99,10 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
   | [ ":obj"; file ] ->
       Printf.printf "Loading OBJ32 file %s.\n" file;
       Obj32.load_file file cpu.elfwrite32
+  | [ ":bin" ; file ; address ]  ->
+      let ram_address = Int64.of_string address in
+      Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
+      Bin_file.load_file file cpu.elfwrite8 ram_address
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       print_endline "\nFlags:";
