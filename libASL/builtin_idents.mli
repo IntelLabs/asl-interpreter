@@ -110,6 +110,7 @@ val asl_extract_int : Ident.t
 val asl_file_open : Ident.t
 val asl_file_write : Ident.t
 val asl_file_getc : Ident.t
+val asl_fuzz : Ident.t
 val trace_next : Ident.t
 val trace_physical_memory : Ident.t
 val trace_virtual_memory : Ident.t

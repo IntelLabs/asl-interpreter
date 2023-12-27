@@ -209,17 +209,23 @@ let get_entry (key : string) (tree : Safe.t) : Safe.t option =
   | _ -> None
   )
 
-(* Read list of identifiers from Json *)
-let get_idents (key : string) (transforms : Safe.t list) : Ident.t list =
-  let nms = List.concat_map (fun json ->
+(* Read list of strings from Json files by key *)
+let get_list_by_key (key : string) (files : Safe.t list) : string list =
+  List.concat_map
+    (fun json ->
       Option.bind (get_entry key json) (fun e ->
-      Option.bind (get_list e) (fun es ->
-      Some (List.filter_map get_string es)
-      ))
-      |> Option.value ~default:[]
-    )
-    transforms
-  in
+          Option.bind (get_list e) (fun es ->
+              Some (List.filter_map get_string es)))
+      |> Option.value ~default:[])
+    files
+
+(* Read list of variable/type identifiers from Json files *)
+let get_idents (key : string) (transforms : Safe.t list) : Ident.t list =
+  Ident.mk_idents (get_list_by_key key transforms)
+
+(* Read list of identifiers of all kinds from Json files *)
+let get_all_idents (key : string) (transforms : Safe.t list) : Ident.t list =
+  let nms = get_list_by_key key transforms in
   (* The names could be either functions or variables/types
    * so treat them as both.
    *)
@@ -257,6 +263,7 @@ let opt_filenames : string list ref = ref []
 let opt_verbose = ref false
 let opt_backend = ref Backend_Verilog
 let opt_num_c_files = ref 1
+let opt_calls_to_track_valid = ref false
 let transforms : Yojson.Safe.t list ref = ref []
 let output_file : string ref = ref ""
 let backend_pairs = [ ("c", Backend_C); ("verilog", Backend_Verilog) ]
@@ -285,6 +292,8 @@ let options =
         "       Number of .c files created (default: 1)");
       ("--line-info", Arg.Set Backend_c.include_line_info,
         "       Include line number information");
+      ("--calls-to-track-valid", Arg.Set opt_calls_to_track_valid,
+        "       Insert function calls to track valid bits");
     ]
 
 let version = "ASL 0.2.0 alpha"
@@ -316,8 +325,9 @@ let main () =
   if !output_file = "" then
     failwith "Output file not specified (use -o foo to specify)";
 
-  let imports = get_idents "imports" !transforms in
-  let exports = get_idents "exports" !transforms in
+  let imports = get_all_idents "imports" !transforms in
+  let exports = get_all_idents "exports" !transforms in
+  let track_valid = get_idents "track-valid" !transforms in
 
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
@@ -328,7 +338,10 @@ let main () =
     |> transform "named_type" Xform_named_type.xform_decls
     |> transform "desugar" Xform_desugar.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
-    |> transform "lower" Xform_lower.xform_decls in
+    |> transform "lower" Xform_lower.xform_decls
+    |> (if !opt_calls_to_track_valid
+        then transform "valid" (Xform_valid.xform_decls track_valid)
+        else Fun.id) in
 
     let genv = Eval.build_constant_environment ds in
     let ds = transform "constprop" (CP.xform_decls genv) ds

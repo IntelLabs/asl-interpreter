@@ -17,6 +17,7 @@
 #include "asl/integer.h"
 #include "asl/print.h"
 #include "asl/ram.h"
+#include "asl/track_valid.h"
 
 #endif  // ASL_RUNTIME_H
 

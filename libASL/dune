@@ -50,5 +50,6 @@
    xform_mono
    xform_named_type
    xform_simplify_expr
-   xform_tuples)
+   xform_tuples
+   xform_valid)
  (libraries ocolor yojson zarith z3))

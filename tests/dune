@@ -15,7 +15,8 @@
   xform_mono_test
   xform_named_type_test
   xform_simplify_expr_test
-  xform_tuples_test)
+  xform_tuples_test
+  xform_valid_test)
  (modes exe)
  (flags
   (-cclib -lstdc++))

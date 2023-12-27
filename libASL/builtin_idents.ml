@@ -113,6 +113,7 @@ let asl_extract_int          = Ident.mk_fident "asl_extract_int"
 let asl_file_open            = Ident.mk_fident "asl_file_open"
 let asl_file_write           = Ident.mk_fident "asl_file_write"
 let asl_file_getc            = Ident.mk_fident "asl_file_getc"
+let asl_fuzz                 = Ident.mk_fident "ASL_fuzz"
 
 let trace_next            = Ident.mk_fident "__TraceNext"
 let trace_physical_memory = Ident.mk_fident "__TracePhysicalMemory"
