@@ -445,6 +445,10 @@ let test_cases_var_decl : test_case list  =
     ( "const (integer)",
       [ Backend_C ],
       "let x : integer = 0;" );
+
+    ( "config (integer)",
+      [ Backend_C ],
+      "config x : integer = 0;" );
   ]
 
 let make_tests (b : backend) (test_fun : string -> string -> unit)

@@ -1236,6 +1236,15 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           semicolon fmt;
           cut fmt;
           cut fmt
+      | Decl_Config (v, ty, i, loc) ->
+          varty loc fmt v ty;
+          if not is_extern_val then (
+            PP.fprintf fmt " = ";
+            expr loc fmt i
+          );
+          semicolon fmt;
+          cut fmt;
+          cut fmt
       | Decl_Enum (tc, es, loc) ->
           if Ident.equal tc boolean_ident then (* is in C99 stdbool.h *) ()
           else (

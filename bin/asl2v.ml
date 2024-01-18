@@ -64,6 +64,7 @@ let rec var_decls (xs : AST.declaration list) : AST.declaration list =
   let is_var_decl (x : AST.declaration) : bool =
     ( match x with
     | Decl_Const _
+    | Decl_Config _
     | Decl_Var _
       -> true
 
@@ -88,7 +89,6 @@ let rec var_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
-    | Decl_Config _
       -> false
     )
   in
