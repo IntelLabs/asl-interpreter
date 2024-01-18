@@ -787,13 +787,8 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
           let tvs = List.map fst ps in
           let args = List.map fst atys in
           GlobalEnv.addFun loc genv f (tvs, args @ [ v ], loc, body)
-      | Decl_Config (v, ty, i, loc) ->
-          (* todo: config constants need to be lazily evaluated or need to be
-           * sorted by dependencies
-           *)
-          let init = eval_expr loc (Env.newEnv genv) i in
-          GlobalEnv.addGlobalConst genv v init
       (* The following declarations are part of the mutable global state *)
+      | Decl_Config (ty, v, _, loc)
       | Decl_Var (ty, v, loc) -> ()
       (* The following declarations have no impact on execution *)
       | Decl_BuiltinType (_, _)
@@ -818,6 +813,12 @@ let build_evaluation_environment (ds : AST.declaration list) : Env.t =
   List.iter
     (fun d ->
       match d with
+      | Decl_Config (v, ty, i, loc) ->
+          (* todo: config constants need to be lazily evaluated or need to be
+           * sorted by dependencies
+           *)
+          let init = eval_expr loc (Env.newEnv genv) i in
+          Env.addGlobalVar env v init
       | Decl_Var (v, ty, loc) ->
           let init = eval_uninitialized loc (Env.newEnv genv) ty in
           Env.addGlobalVar env v init
