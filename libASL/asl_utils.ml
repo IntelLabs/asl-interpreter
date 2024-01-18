@@ -1108,8 +1108,8 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   else
     Expr_TApply (Builtin_idents.mk_mask, [n], [w; n], false)
 
-let mk_not_mask(m : AST.expr) (n : AST.expr) =
-  Expr_TApply (not_bits, [n], [m], false)
+let mk_not_bits (m : AST.expr) (n : AST.expr) : AST.expr =
+  Expr_TApply (not_bits, [m], [n], false)
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =

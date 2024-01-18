@@ -3,6 +3,8 @@ val neg_int : Ident.t
 val not_bits : Ident.t
 val zeros_bits : Ident.t
 val ones_bits : Ident.t
+val is_zero : Ident.t
+val is_ones : Ident.t
 val and_bool : Ident.t
 val or_bool : Ident.t
 val implies_bool : Ident.t

@@ -96,6 +96,8 @@ let mask_int          = Ident.mk_fident "mask_int"
 let zero_extend       = Ident.mk_fident "ZeroExtend"
 let ones              = Ident.mk_fident "Ones"
 let zeros             = Ident.mk_fident "Zeros"
+let is_ones           = Ident.mk_fident "IsOnes"
+let is_zero           = Ident.mk_fident "IsZero"
 
 let take_cold_reset     = Ident.mk_fident "__TakeColdReset"
 let instruction_execute = Ident.mk_fident "__InstructionExecute"

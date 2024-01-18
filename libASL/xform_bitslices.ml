@@ -9,6 +9,11 @@
  *    wi' = sum of [wi .. wn]
  *    ei' == zero_extend_bits(ei, total_width) << wi'
  *
+ * 3) Transforms some standard library calls
+ *
+ *    IsZero(e[lo +: wd]) ==> ((e >> lo) AND mask) == Zeros()
+ *    IsOnes(e[lo +: wd]) ==> ((NOT e >> lo) AND mask) == Zeros()
+ *
  * Copyright Intel Inc (c) 2022
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
@@ -67,7 +72,7 @@ let transform_assignment
     (l : AST.l) =
   (* Generate masks for clearing affected bits in slice *)
   let slice_mask = mk_lsl_bits width (Asl_utils.mk_mask slice_width width) shift in
-  let slice_not_mask = mk_not_mask slice_mask width in
+  let slice_not_mask = mk_not_bits width slice_mask in
 
   (* Transform the rhs. The transformed rhs should already be correctly shifted
    * and masked *)
@@ -109,8 +114,38 @@ class bitsliceClass =
           ws es (zero, mk_zero_bits total_width)
         in
         ChangeDoChildrenPost (x', Fun.id)
+
       | Expr_TApply (f, [w; n], [e; _], _) when Ident.equal f zero_extend ->
         ChangeDoChildrenPost (transform loc n w zero e, Fun.id)
+
+      (* IsZero(e[lo +: wd]) ==> ((e >> lo) AND mask) == Zeros() *)
+      | Expr_TApply (f, [w], [Expr_Slices (ty, e, [Slice_LoWd (lo, wd)])], _)
+        when Ident.equal f is_zero && not (is_literal_constant wd)
+        ->
+          ( match width_of_type ty with
+          | Some n ->
+              let mask = Asl_utils.mk_mask wd n in
+              let e' = mk_and_bits n (mk_lsr_bits n e lo) mask in
+              let e'' = mk_eq_bits n e' (mk_zero_bits n) in
+              ChangeDoChildrenPost (e'', Fun.id)
+          | _ ->
+              DoChildren
+          )
+
+      (* IsOnes(e[lo +: wd]) ==> ((NOT e >> lo) AND mask) == Zeros() *)
+      | Expr_TApply (f, [w], [Expr_Slices (ty, e, [Slice_LoWd (lo, wd)])], _)
+        when Ident.equal f is_ones && not (is_literal_constant wd)
+        ->
+          ( match width_of_type ty with
+          | Some n ->
+              let mask = Asl_utils.mk_mask wd n in
+              let e' = mk_and_bits n (mk_lsr_bits n (mk_not_bits n e) lo) mask in
+              let e'' = mk_eq_bits n e' (mk_zero_bits n) in
+              ChangeDoChildrenPost (e'', Fun.id)
+          | _ ->
+              DoChildren
+          )
+
       | _ -> DoChildren
       )
 

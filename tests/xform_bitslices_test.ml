@@ -94,6 +94,14 @@ let bitslice_tests : unit Alcotest.test_case list =
        "var i : integer;"
        "[Ones(i), Zeros(64-i)]"
        "lsl_bits(mk_mask(i, 64), add_int(64, -i))");
+    ("IsZero(e[i +: w])", `Quick, expr
+       "var x : bits(32); var w : integer;"
+       "IsZero(x[0 +: w])"
+       "and_bits(x, mk_mask(w, 32)) == zeros_bits(32)");
+    ("IsOnes(e[i +: w])", `Quick, expr
+       "var x : bits(32); var w : integer;"
+       "IsOnes(x[0 +: w])"
+       "and_bits(NOT x, mk_mask(w, 32)) == zeros_bits(32)");
   ]
 
 (****************************************************************
