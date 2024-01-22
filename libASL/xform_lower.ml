@@ -6,96 +6,137 @@
  * - Slice_Single to Slice_LoWd
  * - Slice_Element to Slice_LoWd
  *
- * Copyright Intel Inc (c) 2023
+ * Copyright Intel Inc (c) 2023-2024
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
 module AST = Asl_ast
 open Asl_utils
 
-let transform_hi_lo hi lo =
-  let wd = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo) one in
-  AST.Slice_LoWd (lo, wd)
-
-let transform_single s =
-  AST.Slice_LoWd (s, one)
-
 let assign_var = new Asl_utils.nameSupply "__l"
 
-let xform_expr_slices
-    (ty : AST.ty)
-    (e : AST.expr)
-    (slices : AST.slice list)
-    : AST.expr =
-  let rec xform' (slices : AST.slice list) (acc : AST.slice list) : AST.expr =
-  match slices with
-  | [] -> AST.Expr_Slices (ty, e, List.rev acc)
-  | Slice_Element (lo, wd) :: xs ->
-     let f e' = xform' xs (AST.Slice_LoWd (mk_mul_int lo e', e') :: acc) in
-     mk_expr_safe_to_replicate assign_var wd type_integer f
-  | x :: xs -> xform' xs (x :: acc)
-  in
-  xform' slices []
+(* Construct nested let-expressions from a list of bindings
+ *
+ *     mk_lets [(x, tx, ex); (y, ty, ey)] e
+ *   =
+ *     let x:tx = ex in (let y:ty = ey in e)
+ *)
+let rec mk_let_exprs (bindings : (Ident.t * AST.ty * AST.expr) list) (e : AST.expr) : AST.expr =
+  ( match bindings with
+  | [] -> e
+  | ((v, ty, e') :: bs) -> AST.Expr_Let(v, ty, e', mk_let_exprs bs e)
+  )
 
-let xform_lexpr_slices
-    (ty : AST.ty)
-    (lexpr : AST.lexpr)
-    (slices : AST.slice list)
-    (loc : AST.l)
-    : (AST.lexpr * AST.stmt list) =
-  let rec xform'
-      (slices : AST.slice list)
-      ((acc_slices, acc_stmts) : (AST.slice list * AST.stmt list))
-      : (AST.lexpr * AST.stmt list) =
-    match slices with
-    | [] ->
-      (AST.LExpr_Slices (ty, lexpr, List.rev acc_slices), List.rev acc_stmts)
-    | Slice_Element (lo, wd) :: xs ->
-      if is_safe_to_replicate wd then
-        let slice =  AST.Slice_LoWd ((mk_mul_int lo wd), wd) in
-        xform' xs (slice :: acc_slices, acc_stmts)
-      else
-        let v = assign_var#fresh in
-        let decl_item = AST.DeclItem_Var (v, Some type_integer) in
-        let stmt = AST.Stmt_ConstDecl (decl_item, wd, loc) in
-        let slice = AST.Slice_LoWd (mk_mul_int lo (Expr_Var v), (Expr_Var v)) in
-        xform' xs (slice :: acc_slices, stmt :: acc_stmts)
-    | x :: xs -> xform' xs (x :: acc_slices, acc_stmts)
-  in
-  xform' slices ([], [])
-
-class lower_class =
-  object
+class lower_class = object (self)
     inherit Asl_visitor.nopAslVisitor
 
-    method! vexpr x =
-      match x with
-      | Expr_Slices (ty, expr, [Slice_HiLo (hi, lo)]) ->
-          let lo_wd = transform_hi_lo hi lo in
-          Visitor.ChangeDoChildrenPost ((Expr_Slices (ty, expr, [lo_wd])), Fun.id)
-      | Expr_Slices (ty, expr, [Slice_Single s]) ->
-          let lo_wd = transform_single s in
-          Visitor.ChangeDoChildrenPost ((Expr_Slices (ty, expr, [lo_wd])), Fun.id)
-      | Expr_Slices (ty, e, slices) ->
-          Visitor.ChangeDoChildrenPost ((xform_expr_slices ty e slices), Fun.id)
-      | _ -> DoChildren
+    (* The main complications in this transformation are
+     * 1) Not duplicating the expressions inside slices
+     *
+     *    We handle this by assigning complex expressions to
+     *    new variables (from the assign_var supply).
+     *    These assignmens are collected in "pre" and
+     *    generate either let-expressions if we are inside
+     *    an expression or let-statements if we are inside
+     *    a statement.
+     *
+     * 2) Handling L-expressions of the form l[...][...]
+     *
+     *    We handle this by lifting "l[...]" out like this
+     *
+     *      var tmp : ty = l[...];
+     *      tmp[...] = ...;
+     *      l[...] = tmp;
+     *
+     *    The variable, type and l[...] are collected in "lifted"
+     *)
+    val mutable pre : (Ident.t * AST.ty * AST.expr) list = []
+    val mutable lifted : (Ident.t * AST.ty * AST.lexpr) list = []
 
-    method! vlexpr l =
-      match l with
-      | LExpr_Slices (ty, lexpr, [Slice_HiLo (hi, lo)]) ->
-          let lo_wd = transform_hi_lo hi lo in
-          Visitor.ChangeDoChildrenPost ((LExpr_Slices (ty, lexpr, [lo_wd])), Fun.id)
-      | LExpr_Slices (ty, lexpr, [Slice_Single s]) ->
-          let lo_wd = transform_single s in
-          Visitor.ChangeDoChildrenPost ((LExpr_Slices (ty, lexpr, [lo_wd])), Fun.id)
+    method mk_intexpr_safe_to_replicate (e : AST.expr) : AST.expr =
+      if is_safe_to_replicate e then
+        e
+      else
+        let v = assign_var#fresh in
+        pre <- (v, type_integer, e) :: pre;
+        Expr_Var v
+
+    (* lower a slice when used as part LExpr_Slices *)
+    method! vslice (x : AST.slice) : AST.slice Visitor.visitAction =
+      ( match x with
+      | Slice_Element (lo, wd) ->
+          let wd' = self#mk_intexpr_safe_to_replicate wd in
+          let lo' = Xform_simplify_expr.simplify (mk_mul_int lo wd') in
+          ChangeDoChildrenPost (AST.Slice_LoWd (lo', wd'), Fun.id)
+      | Slice_HiLo (hi, lo) ->
+          let lo' = self#mk_intexpr_safe_to_replicate lo in
+          let wd = Xform_simplify_expr.mk_add_int (mk_sub_int hi lo') one in
+          ChangeDoChildrenPost (AST.Slice_LoWd (lo', wd), Fun.id)
+      | Slice_Single i ->
+          ChangeDoChildrenPost (AST.Slice_LoWd (i, one), Fun.id)
+      | Slice_LoWd _ ->
+          DoChildren
+      )
+
+    method! vexpr (x : AST.expr) : AST.expr Visitor.visitAction =
+      ( match x with
+      | Expr_Slices (ty, e, slices) ->
+          let e' = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) e in
+          let old_pre = pre in (* save previous value of pre *)
+          pre <- [];
+          let slices' = Visitor.mapNoCopy (Asl_visitor.visit_slice (self :> Asl_visitor.aslVisitor)) slices in
+          let r = mk_let_exprs (List.rev pre) (Expr_Slices (ty, e', slices')) in
+          pre <- old_pre;
+          ChangeDoChildrenPost (r, Fun.id)
       | _ -> DoChildren
+      )
+
+    method! vlexpr x =
+      ( match x with
+      | LExpr_Slices (ty, (LExpr_Slices _ as l), slices) ->
+          (* l[slice1][slice2] = r; --> var t = l[slice1]; t[slice2] = r; l[slice1] = t; *)
+          let l' = Asl_visitor.visit_lexpr (self :> Asl_visitor.aslVisitor) l in
+          let slices' = Visitor.mapNoCopy (Asl_visitor.visit_slice (self :> Asl_visitor.aslVisitor)) slices in
+
+          let tmp = assign_var#fresh in
+          lifted <- (tmp, ty, l') :: lifted;
+          ChangeTo (LExpr_Slices (ty, LExpr_Var tmp, slices'))
+      | _ ->
+          DoChildren
+      )
 
     method! vstmt s =
-      match s with
-      | Stmt_Assign ((LExpr_Slices (ty, l, slices)), e, loc) ->
-          let (l', let_stmts) = xform_lexpr_slices ty l slices loc in
-          ChangeDoChildrenPost (let_stmts @ [Stmt_Assign (l', e, loc) ], Fun.id)
+      ( match s with
+      | Stmt_Assign (l, r, loc) ->
+          assert (Utils.is_empty pre);
+          assert (Utils.is_empty lifted);
+          let l' = Asl_visitor.visit_lexpr (self :> Asl_visitor.aslVisitor) l in
+
+          (* Lets from any R-expressions that were lifted out *)
+          let pre_lets = List.map (fun (v, ty, e) ->
+                                      let decl_item = AST.DeclItem_Var (v, Some ty) in
+                                      AST.Stmt_ConstDecl (decl_item, e, loc)) pre
+          in
+
+          (* Vars from any L-expressions that were lifted out *)
+          let pre_vars = List.map (fun (v, ty, l) ->
+              let e = match Asl_utils.lexpr_to_expr l with
+                      | Some e -> e
+                      | None -> raise (Error.Unimplemented (loc, "lower_class", fun fmt -> Asl_fmt.lexpr fmt l))
+              in
+              let decl_item = AST.DeclItem_Var (v, Some ty) in
+              AST.Stmt_VarDecl (decl_item, e, loc)
+            )
+            (List.rev lifted)
+          in
+          let post_assigns = List.map (fun (v, ty, l) -> AST.Stmt_Assign (l, Expr_Var v, loc)) lifted in
+
+          pre <- [];
+          lifted <- [];
+          let r' = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) r in
+          ChangeTo (pre_lets @ pre_vars @ [AST.Stmt_Assign (l', r', loc)] @ post_assigns)
       | _ -> DoChildren
+      )
 
   end
 

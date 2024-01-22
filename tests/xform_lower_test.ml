@@ -35,7 +35,9 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
     ("lower x[2:0][1:0] = y[2:0][1:0] where x and y are bitvectors", `Quick, stmts
        "var x : bits(8); var y : bits(8);"
        "x[2:0][1:0] = y[2:0][1:0];"
-       "x[0 +: 3][0 +: 2] = y[0 +: 3][0 +: 2];");
+       "var __l0 = x[0 +: 3];
+        __l0[0 +: 2] = y[0 +: 3][0 +: 2];
+        x[0 +: 3] = __l0;");
     ("lower x[hi:lo] = y[hi:lo] where x and y are bitvectors", `Quick, stmts
        "var x : bits(8); var y : bits(8); var hi : integer; var lo : integer;"
        "x[hi:lo] = y[hi:lo];"
@@ -47,7 +49,17 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
     ("lower x[2:0][0] = y[2:0][0] where x and y are bitvectors", `Quick, stmts
        "var x : bits(8); var y : bits(8);"
        "x[2:0][0] = y[2:0][0];"
-       "x[0 +: 3][0 +: 1] = y[0 +: 3][0 +: 1];");
+       "var __l1 = x[0 +: 3];
+        __l1[0 +: 1] = y[0 +: 3][0 +: 1];
+        x[0 +: 3] = __l1;");
+    ("lower x[7:0][3:0][1:0] = y[7:0][3:0][1:0] where x and y are bitvectors", `Quick, stmts
+       "var x : bits(8); var y : bits(8);"
+       "x[7:0][3:0][1:0] = y[7:0][3:0][1:0];"
+       "var __l2 = x[0 +: 8];
+        var __l3 = __l2[0 +: 4];
+        __l3[0 +: 2] = y[0 +: 8][0 +: 4][0 +: 2];
+        __l2[0 +: 4] = __l3;
+        x[0 +: 8] = __l2;");
     ("lower x[i] = y[i] where x and y are bitvectors", `Quick, stmts
        "var x : bits(8); var y : bits(8); var i : integer;"
        "x[i] = y[i];"
@@ -63,7 +75,9 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
     ("element slice 2", `Quick, expr
        "var r : bits(16);"
        "r[0 *: 1 + 3, 5, 1 *: 1 + 2]"
-       "__let __l0 : integer = 1 + 3 __in __let __l1 : integer = 1 + 2 __in r[0 * __l0 +: __l0, 5, __l1 +: __l1]");
+       "__let __l4 : integer = 1 + 3 __in
+        __let __l5 : integer = 1 + 2 __in
+        r[0 * __l4 +: __l4, 5 +: 1, __l5 +: __l5]");
     ("element slice 3, l-expr 1", `Quick, stmts
        "var r : bits(16); var x : bits(7);"
        "r[1 *: 7] = x;"
@@ -71,8 +85,9 @@ let bitslices_hilo_tests : unit Alcotest.test_case list =
     ("element slice 4, l-expr 2", `Quick, stmts
        "var r : bits(16); var x : bits(32);"
        "r[0 *: 1 + 7] = x[0 *: 4 + 4];"
-       "let __l2 = 1 + 7;
-        r[0 * __l2 +: __l2] = __let __l3 : integer = 4 + 4 __in x[0 * __l3 +: __l3];");
+       "let __l6 = 1 + 7;
+        r[0 * __l6 +: __l6] = __let __l7 : integer = 4 + 4 __in
+                              x[0 * __l7 +: __l7];");
   ]
 
 (****************************************************************
