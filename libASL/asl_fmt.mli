@@ -17,17 +17,28 @@ val varname : formatter -> Ident.t -> unit
 val funname : formatter -> Ident.t -> unit
 val fieldname : formatter -> Ident.t -> unit
 val varnames : formatter -> Ident.t list -> unit
+val funnames : formatter -> Ident.t list -> unit
 val unop : formatter -> AST.unop -> unit
 val binop : formatter -> AST.binop -> unit
+val intLit : formatter -> AST.intLit -> unit
+val bitsLit : formatter -> AST.intLit -> unit
+val maskLit : formatter -> AST.intLit -> unit
+val realLit : formatter -> AST.intLit -> unit
+val strLit : formatter -> AST.intLit -> unit
 val ty : formatter -> AST.ty -> unit
+val types : formatter -> AST.ty list -> unit
 val constraint_range : formatter -> AST.constraint_range -> unit
 val constraints : formatter -> AST.constraint_range list -> unit
+val slice : formatter -> AST.slice -> unit
+val slices : formatter -> AST.slice list -> unit
 val ixtype : formatter -> AST.ixtype -> unit
 val expr : formatter -> AST.expr -> unit
 val exprs : formatter -> AST.expr list -> unit
 val pattern : formatter -> AST.pattern -> unit
 val patterns : formatter -> AST.pattern list -> unit
 val lexpr : formatter -> AST.lexpr -> unit
+val lexprs : formatter -> AST.lexpr list -> unit
+val varty : formatter -> Ident.t -> AST.ty -> unit
 val decl_item : formatter -> AST.decl_item -> unit
 val stmt : formatter -> AST.stmt -> unit
 val indented_block : formatter -> AST.stmt list -> unit
