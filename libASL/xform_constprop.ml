@@ -1,7 +1,7 @@
 (****************************************************************
  * ASL constant propagation transform
  *
- * Copyright Intel Inc (c) 2022
+ * Copyright Intel Inc (c) 2022-2024
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -292,11 +292,11 @@ let xform_slice (env : Env.t) (loc : AST.l) (x : AST.slice) : AST.slice =
   match x with
   | Slice_LoWd (lo, wd) -> Slice_LoWd (xform_expr env lo, xform_expr env wd)
   | Slice_Single _ ->
-    raise (InternalError (loc, "Slice_Single not expected", (fun _ -> ()), __LOC__))
+    raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> Asl_fmt.slice fmt x), __LOC__))
   | Slice_HiLo _ ->
-    raise (InternalError (loc, "Slice_HiLo not expected", (fun _ -> ()), __LOC__))
+    raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> Asl_fmt.slice fmt x), __LOC__))
   | Slice_Element _ ->
-    raise (InternalError (loc, "Slice_Element not expected", (fun _ -> ()), __LOC__))
+    raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> Asl_fmt.slice fmt x), __LOC__))
 
 (* todo: this combines abstract interpretation with transformation
  * would it be cleaner to just use a visitior to perform the transformation
