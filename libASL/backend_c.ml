@@ -893,21 +893,14 @@ let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
         (Unimplemented
            (loc, "l-expression", fun fmt -> FMTAST.lexpr fmt x))
 
-let rec lexpr_to_expr (loc : AST.l) (x : AST.lexpr) : AST.expr =
-  ( match x with
-  | LExpr_Var v -> Expr_Var v
-  | LExpr_Field (l, f) -> Expr_Field (lexpr_to_expr loc l, f)
-  | LExpr_Array (l, e) -> Expr_Array (lexpr_to_expr loc l, e)
-  | _ ->
-      raise
-        (Unimplemented
-           (loc, "lexpr_to_expr", fun fmt -> FMTAST.lexpr fmt x))
-  )
-
 let lexpr_assign (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) (r : AST.expr) : unit =
   match x with
   | LExpr_Slices (_, l, [ s ]) ->
-      lslice loc fmt r (lexpr_to_expr loc l) s;
+      let e = match Asl_utils.lexpr_to_expr l with
+              | Some e -> e
+              | None -> raise (Unimplemented (loc, "lexpr_assign", fun fmt -> Asl_fmt.lexpr fmt x))
+      in
+      lslice loc fmt r e s;
       semicolon fmt
   | LExpr_Wildcard ->
       make_cast fmt (fun _ -> kw_void fmt) (fun _ -> expr loc fmt r);

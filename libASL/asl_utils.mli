@@ -465,6 +465,9 @@ val tupleTypes : AST.ty -> AST.ty list
 (** Bitwidth of type (which is expected to be a bitvector) *)
 val width_of_type : AST.ty -> AST.expr option
 
+(** Convert an L-expression to an expression *)
+val lexpr_to_expr : AST.lexpr -> AST.expr option
+
 (****************************************************************
  * End
  ****************************************************************)

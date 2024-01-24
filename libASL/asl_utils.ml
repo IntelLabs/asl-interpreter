@@ -1240,6 +1240,40 @@ let is_literal_constant (x : expr) : bool =
   | _ -> false
   )
 
+(** Convert an L-expression to an expression *)
+let rec lexpr_to_expr (x : AST.lexpr) : AST.expr option =
+  ( match x with
+  | LExpr_Var v ->
+    Some (Expr_Var v)
+  | LExpr_Field (l, f) ->
+    Option.bind (lexpr_to_expr l) (fun e ->
+    Some (Expr_Field (e, f)))
+  | LExpr_Fields (l, fs) ->
+    Option.bind (lexpr_to_expr l) (fun e ->
+    Some (Expr_Fields (e, fs)))
+  | LExpr_Slices (t, l, ss) ->
+    Option.bind (lexpr_to_expr l) (fun e ->
+    Some (Expr_Slices (t, e, ss)))
+  | LExpr_BitTuple (ws, ls) ->
+    Option.bind (lexprs_to_exprs ls) (fun es ->
+    Some (Expr_Concat (ws, es)))
+  | LExpr_Tuple ls ->
+    Option.bind (lexprs_to_exprs ls) (fun es ->
+    Some (Expr_Tuple es))
+  | LExpr_Array (l, ix) ->
+    Option.bind (lexpr_to_expr l) (fun e ->
+    Some (Expr_Array (e, ix)))
+  | LExpr_ReadWrite (getter, setter, tes, es, throws) ->
+    Some (Expr_TApply (getter, tes, es, throws))
+
+  | LExpr_Wildcard
+  | LExpr_Write _
+    -> None
+  )
+
+and lexprs_to_exprs (xs : AST.lexpr list) : AST.expr list option =
+  Utils.flatten_map_option (lexpr_to_expr) xs
+
 (****************************************************************
  * End
  ****************************************************************)
