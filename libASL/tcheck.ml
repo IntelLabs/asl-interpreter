@@ -1729,7 +1729,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
                     (* todo: check slices are integer *)
                     (* todo: check rty is bits(_) *)
                     let ss'' = List.map fst ss' in
-                    (LExpr_Slices (ty, wr, ss''), type_bits (slices_width ss''))
+                    (LExpr_Slices (fty.rty, wr, ss''), type_bits (slices_width ss''))
                 | None, Some _ ->
                     raise
                       (UnknownObject (loc, "var getter function", Ident.pprint a))
