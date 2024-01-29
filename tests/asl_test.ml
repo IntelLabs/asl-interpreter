@@ -297,7 +297,7 @@ let tests : unit Alcotest.test_case list =
       "func F() => (integer, integer) begin return (1,2); end
        getter T => integer begin let (x, y) = F(); return x + y; end"
       "T == 3");
-    ("read-modify-write transform", `Quick, test_xform globals prelude Xform_rmw.xform_decls
+    ("read-modify-write transform", `Quick, test_xform globals prelude Xform_getset.xform_decls
       "var i : array [2] of bits(3);
        getter I{N}[x : bits(N)] => bits(3) begin return i[UInt(x)]; end
        setter I{N}[x : bits(N)] = value : bits(3) begin i[UInt(x)] = value; end

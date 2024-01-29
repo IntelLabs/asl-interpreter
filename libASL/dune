@@ -49,7 +49,6 @@
    xform_lower
    xform_mono
    xform_named_type
-   xform_rmw
    xform_simplify_expr
    xform_tuples)
  (libraries ocolor yojson zarith z3))
