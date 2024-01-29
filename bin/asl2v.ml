@@ -335,9 +335,9 @@ let main () =
     |> transform "mono" Xform_mono.monomorphize
     |> transform "keep_mono" (xform_reachable exports)
     |> transform "mono2" Xform_mono.monomorphize
+    |> transform "tuples" Xform_tuples.xform_decls
     |> transform "getset" Xform_getset.xform_decls
     |> transform "bitslices" Xform_bitslices.xform_decls
-    |> transform "tuples" Xform_tuples.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
     |> transform "case" Xform_case.xform_decls
     |> transform "int_bitslices" Xform_int_bitslices.xform_decls
