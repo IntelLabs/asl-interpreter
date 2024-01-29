@@ -63,6 +63,11 @@ let bitslice_tests : unit Alcotest.test_case list =
        "x[1 +: 7] = y;"
        "x = and_bits(x, NOT lsl_bits(mk_mask(7, 8), 1))
             OR lsl_bits(zero_extend_bits(y, 8), 1);");
+    ("assignment to array element bitslice", `Quick, stmts
+       "var x : array [1] of array [1] of bits(8); var y : bits(7);"
+       "x[0][0][1 +: 7] = y;"
+       "x[0][0] = and_bits(x[0][0], NOT lsl_bits(mk_mask(7, 8), 1))
+                  OR lsl_bits(zero_extend_bits(y, 8), 1);");
     ("assignment to field bitslice", `Quick, stmts
        "record J { j : bits(8); }; record I { i : J; }; var x : I; var y : bits(7);"
        "x.i.j[1 +: 7] = y;"

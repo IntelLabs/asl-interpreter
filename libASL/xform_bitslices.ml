@@ -84,12 +84,9 @@ let transform_assignment
 
   Visitor.ChangeDoChildrenPost ([AST.Stmt_Assign (le, rhs'', l)], Fun.id)
 
-let rec mk_expr_from_lexpr_opt (le : AST.lexpr) : AST.expr option =
-  match le with
-  | LExpr_Var i -> Some (Expr_Var i)
-  | LExpr_Field (le', i) ->
-      Option.bind (mk_expr_from_lexpr_opt le') (fun e -> Some (AST.Expr_Field (e, i)))
-  | _ -> None
+let lexpr_to_expr_safe_to_replicate_opt (le : AST.lexpr) : AST.expr option =
+  let e_opt = lexpr_to_expr le in
+  Option.bind e_opt (fun e -> if is_safe_to_replicate e then Some e else None)
 
 class bitsliceClass =
   object
@@ -169,7 +166,7 @@ class bitsliceClass =
             [Slice_LoWd (lo, sw)]),
           rhs,
           _) ->
-        Option.fold (mk_expr_from_lexpr_opt le)
+        Option.fold (lexpr_to_expr_safe_to_replicate_opt le)
           ~some:(fun e -> transform_assignment le e w sw lo rhs loc)
           ~none:Visitor.DoChildren
       | _ -> DoChildren
