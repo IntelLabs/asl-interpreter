@@ -57,11 +57,11 @@ ASL_print_char(ASL_int_t x)
 static inline void
 ASL_print_int_hex(ASL_int_t x)
 {
-        printf("0x");
 #ifdef ASL_INT128
         printf("0x%08llx_%08llx", (long long)(x >> 64), (long long)x);
+#else
+        printf("0x%llx", (long long)x);
 #endif
-        printf("%llx", (long long)x);
 }
 
 static inline void
