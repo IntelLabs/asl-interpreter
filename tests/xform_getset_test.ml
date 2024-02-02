@@ -59,18 +59,13 @@ let getset_tests : unit Alcotest.test_case list =
       "setter S[i : integer] = val : integer begin x[i] = val; end"
       "func S_set(i : integer, val : integer) begin x[i] = val; end");
 
-    ("setter call in procedure", `Quick, decl
+    ("__write l-expr", `Quick, decl
       "var x : integer;"
       "setter S = val : integer begin x = val; end
-       func F() begin S = 0; end"
-      "func S_write(val : integer) begin x = val; end
-       func F() begin S_write(0); end");
-
-    ("setter call in function", `Quick, decl
-      "var x : integer;"
-      "setter S = val : integer begin x = val; end
+       func P() begin S = 0; end
        func F() => integer begin S = 0; return 0; end"
       "func S_write(val : integer) begin x = val; end
+       func P() begin S_write(0); end
        func F() => integer begin S_write(0); return 0; end");
 
     ("__readwrite l-expr", `Quick, decl
