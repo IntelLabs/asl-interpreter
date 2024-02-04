@@ -339,6 +339,7 @@ let main () =
     |> transform "getset" Xform_getset.xform_decls
     |> transform "bitslices" Xform_bitslices.xform_decls
     |> transform "bittuples" Xform_bittuples.xform_decls
+    |> transform "bitslices" Xform_bitslices.xform_decls
     |> transform "case" Xform_case.xform_decls
     |> transform "int_bitslices" Xform_int_bitslices.xform_decls
     |> transform "delete_imports" (delete_functions imports)
