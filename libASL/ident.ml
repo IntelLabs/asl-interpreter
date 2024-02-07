@@ -81,9 +81,15 @@ let mk_ident (name : string) : t =
   let info : IdentInfo.t = { name; opt_tag = None } in
   add_ident' info None
 
+let mk_idents (names : string list) : t list =
+  List.map mk_ident names
+
 let mk_fident (name : string) : t =
   let info : IdentInfo.t = { name; opt_tag = Some 0 } in
   add_ident' info None
+
+let mk_fidents (names : string list) : t list =
+  List.map mk_fident names
 
 let mk_fident_with_tag (i : t) ~(tag : int) : t =
   if i.info.opt_tag = Some tag then i

@@ -173,7 +173,7 @@ let reserved_cpp = [
 
 let reserved_idents =
   reserved_c @ reserved_cpp
-  |> List.map Ident.mk_ident
+  |> Ident.mk_idents
   |> IdentSet.of_list
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =

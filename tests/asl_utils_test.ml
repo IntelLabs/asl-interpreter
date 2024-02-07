@@ -23,10 +23,10 @@ let format_identSet (fmt : Format.formatter) (s : IdentSet.t) : unit =
 let identSet = Alcotest.testable format_identSet IdentSet.equal
 
 let varNames_to_identSet (vs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> Ident.mk_ident f) vs)
+  IdentSet.of_list (Ident.mk_idents vs)
 
 let funNames_to_identSet (fs : string list) : IdentSet.t =
-  IdentSet.of_list (List.map (fun f -> Ident.mk_fident f) fs)
+  IdentSet.of_list (Ident.mk_fidents fs)
 
 let in_identSet (s : IdentSet.t) (f : string) : bool =
   IdentSet.mem (Ident.mk_fident f) s
@@ -214,7 +214,7 @@ let toposort_tests : unit Alcotest.test_case list =
 let test_reachable_decls (globals : TC.GlobalEnv.t)
     (prelude : AST.declaration list) (decls : string) (roots : string list)
     (expected : string list) () : unit =
-  let roots = List.map (fun f -> Ident.mk_fident f) roots in
+  let roots = Ident.mk_fidents roots in
   let tcenv, ds = extend_tcenv globals decls in
   let ds = List.append prelude ds in
   let reachable : AST.declaration list = reachable_decls roots ds in

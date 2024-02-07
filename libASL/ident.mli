@@ -24,9 +24,13 @@ val mk_ident : string -> t
 (** Make an identifier with name. If it already exists, the existing identifier
   * is returned *)
 
+val mk_idents : string list -> t list
+
 val mk_fident : string -> t
 (** Make a function identifier with a name. If it already exists, the existing
   * identifier is returned *)
+
+val mk_fidents : string list -> t list
 
 val mk_fident_with_tag : t -> tag:int -> t
 (** Make a new function identifier based on a previous identfier *)

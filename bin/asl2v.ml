@@ -223,8 +223,8 @@ let get_idents (key : string) (transforms : Safe.t list) : Ident.t list =
   (* The names could be either functions or variables/types
    * so treat them as both.
    *)
-  let xs = List.map (fun f -> Ident.mk_fident f) nms in
-  let ys = List.map (fun f -> Ident.mk_ident f) nms in
+  let xs = Ident.mk_fidents nms in
+  let ys = Ident.mk_idents nms in
   xs @ ys
 
 (****************************************************************
