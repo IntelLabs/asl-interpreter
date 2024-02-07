@@ -197,6 +197,10 @@ let test_cases_expr : test_case list =
     ( "array",
       [ Backend_C; Backend_Verilog ],
       "func F() => bits(1) begin var x : array [1] of bits(1); return x[0]; end" );
+
+    ( "let",
+      [ Backend_C ],
+      "func F(x : integer) => integer begin return __let r : integer = x*x __in r+r; end" );
   ]
 
 let test_cases_fun_decl : test_case list  =

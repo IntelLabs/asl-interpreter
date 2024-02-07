@@ -774,7 +774,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Let (v, t, e, b) ->
       Format.fprintf fmt "({ const ";
       varty loc fmt v t;
-      Format.fprintf fmt " = %a; %a })"
+      Format.fprintf fmt " = %a; %a; })"
         (expr loc) e
         (expr loc) b
   | Expr_LitBits l -> bitsLit fmt l
