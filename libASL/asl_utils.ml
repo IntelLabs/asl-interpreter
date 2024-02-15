@@ -945,6 +945,7 @@ let asl_true = AST.Expr_Var true_ident
 
 let mk_litint (x : int) : AST.expr = Expr_LitInt (string_of_int x)
 let mk_litbigint (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x)
+let mk_litstr (x : string) : AST.expr = Expr_LitString x
 
 let minus_one = Expr_LitInt "-1"
 let zero = Expr_LitInt "0"

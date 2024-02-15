@@ -21,10 +21,10 @@ let valid_tests : unit Alcotest.test_case list =
   [
     ("record", `Quick, stmt
       "var x : bits(3) { [0] F0 [1 +: 2] F1 };
-       func ASL_fuzz(var_id : integer, low : integer, width : integer) => ();"
+       func ASL_fuzz(var_name : string, low : integer, width : integer) => ();"
       "x.F1 = UNKNOWN : bits(2);"
       "x.F1 = UNKNOWN : bits(2);
-       ASL_fuzz(0, 1, 2);");
+       ASL_fuzz(\"x\", 1, 2);");
   ]
 
 (****************************************************************

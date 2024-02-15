@@ -311,6 +311,7 @@ val asl_true : AST.expr
 
 val mk_litint : int -> AST.expr
 val mk_litbigint : Z.t -> AST.expr
+val mk_litstr : string -> AST.expr
 
 val zero : AST.expr
 val one : AST.expr

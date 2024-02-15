@@ -17,14 +17,14 @@ extern "C" {
    Function for tracking validity mask of variables of bitvector
    type.
 
-   var_id is unique sequential number of the variable, starting
-   from 0, in the "track-valid" section of the input .json file.
+   var_name is the variable name, listed in the "track-valid" section
+   of the input .json file.
 
    low and width denote bitvector field/slice that has an arbitrary
    (invalid) value. low is the number of the least significant bit
    in the slice and width is the width of the slice.
 */
-void ASL_fuzz(int var_id, int low, int width);
+void ASL_fuzz(const char *var_name, int low, int width);
 
 #ifdef __cplusplus
 }
