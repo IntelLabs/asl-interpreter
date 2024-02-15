@@ -26,6 +26,15 @@ class tracker (vars : Ident.t list) =
              && List.mem v vars ->
           let call = mk_call [ mk_litstr (Ident.name v); lo; wd ] loc in
           ChangeTo (s :: [ call ])
+      | Stmt_Assign
+          ( LExpr_Var v,
+            Expr_Unknown (Type_Bits wd),
+            loc)
+        when is_safe_to_replicate wd && List.mem v vars ->
+          let call =
+            mk_call [ mk_litstr (Ident.name v); mk_litint 0; wd ] loc
+          in
+          ChangeTo (s :: [ call ])
       | _ -> DoChildren
   end
 
