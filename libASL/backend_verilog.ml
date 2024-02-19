@@ -308,7 +308,7 @@ and binop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list
           delimiter fmt op;
           nbsp fmt;
           expr loc fmt y)
-  | _ -> failwith ("binop: " ^ op)
+  | _ -> raise (Error.Unimplemented (loc, "binop: " ^ op, fun fmt -> ()))
 
 and unop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list) : unit =
   match args with
@@ -317,7 +317,7 @@ and unop (loc : AST.l) (fmt : PP.formatter) (op : string) (args : AST.expr list)
           delimiter fmt op;
           nbsp fmt;
           expr loc fmt x)
-  | _ -> failwith "unop"
+  | _ -> raise (Error.Unimplemented (loc, "unop: " ^ op, fun fmt -> ()))
 
 and cond_cont (loc : AST.l) (fmt : PP.formatter) (c : AST.expr) (x : AST.expr)
     (y : unit -> unit) : unit =

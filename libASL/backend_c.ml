@@ -639,7 +639,10 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       let m, n =
         match tes with
         | [ m; n ] -> (m, n)
-        | _ -> failwith "wrong number of type parameters"
+        | _ ->
+            raise
+              (InternalError
+                 ( loc, "wrong number of type parameters", (fun fmt -> FMTAST.funname fmt f), __LOC__ ))
       in
       let nm = Asl_utils.mk_litint (const_int_expr loc n + const_int_expr loc m) in
       apply_bits_builtin loc fmt
@@ -688,7 +691,10 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       let m, n =
         match tes with
         | [ m; n ] -> (m, n)
-        | _ -> failwith "wrong number of type parameters"
+        | _ ->
+            raise
+              (InternalError
+                 ( loc, "wrong number of type parameters", (fun fmt -> FMTAST.funname fmt f), __LOC__ ))
       in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ m; n ] (m :: args)
   (* String builtin functions *)
