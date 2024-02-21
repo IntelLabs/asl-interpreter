@@ -17,6 +17,9 @@ extern "C" {
 typedef int64_t ASL_int64_t;
 typedef __int128 ASL_int128_t;
 
+#define INT128_MAX ASL_int_128(INT64_MAX, UINT64_MAX)
+#define INT128_MIN (-INT128_MAX - 1)
+
 #define ASL_INT128
 
 #ifdef ASL_INT128

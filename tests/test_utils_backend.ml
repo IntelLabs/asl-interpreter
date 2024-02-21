@@ -46,13 +46,45 @@ let test_cases_expr : test_case list =
       [ Backend_C ],
       "func F(x : bits(4)) => boolean begin return x IN '11xx'; end" );
 
-    ( "literal integer",
+    ( "literal int",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return 01_000; end" );
 
-    ( "literal hexadecimal",
+    ( "literal int (negative)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return -01_000; end" );
+
+    ( "literal int (int64 max)",
+      [ Backend_C ],
+      "func F() => integer begin return 9223372036854775807; end" );
+
+    ( "literal int (int64 max + 1)",
+      [ Backend_C ],
+      "func F() => integer begin return 9223372036854775808; end" );
+
+    ( "literal int (int64 min)",
+      [ Backend_C ],
+      "func F() => integer begin return -9223372036854775808; end" );
+
+    ( "literal int (int64 min - 1)",
+      [ Backend_C ],
+      "func F() => integer begin return -9223372036854775809; end" );
+
+    ( "literal int (int128 max)",
+      [ Backend_C ],
+      "func F() => integer begin return 170141183460469231731687303715884105727; end" );
+
+    ( "literal int (int128 min)",
+      [ Backend_C ],
+      "func F() => integer begin return -170141183460469231731687303715884105728; end" );
+
+    ( "literal hex",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return 0x01_0; end" );
+
+    ( "literal hex (negative)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return -0x01_0; end" );
 
     ( "literal bitvector",
       [ Backend_C; Backend_Verilog ],

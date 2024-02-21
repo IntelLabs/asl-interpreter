@@ -314,6 +314,37 @@ let round_up_to_pow2 (x : int) : int =
   let x = Z.log2up (Z.of_int x) in
   Z.to_int (Z.shift_left Z.one x)
 
+let min_int (num_bits : int) : Z.t = Z.shift_left Z.minus_one (num_bits - 1)
+let max_int (num_bits : int) : Z.t = Z.lognot (min_int num_bits)
+
+(* Return the number of bits necessary to represent an integer in binary,
+   including the sign bit *)
+let bit_length (x : Z.t) : int =
+  let x' = if Z.sign x = -1 then Z.succ x else x in
+  (* +1 for sign bit, not taken into account by Z.numbits *)
+  Z.numbits x' + 1
+
+(* Generate INT<n>_MIN macro constant *)
+let minint_constant (fmt : PP.formatter) (n : int) : unit =
+  constant fmt ("INT" ^ string_of_int n ^ "_MIN")
+
+(* Generate INT<n>_MAX macro constant *)
+let maxint_constant (fmt : PP.formatter) (n : int) : unit =
+  constant fmt ("INT" ^ string_of_int n ^ "_MAX")
+
+(* Try generating min/max macro constants *)
+let int_constant (fmt : PP.formatter) (n : int) (x : Z.t)
+    (f : PP.formatter -> Z.t -> unit) : unit =
+  if Z.equal x (min_int n) then
+    minint_constant fmt n
+  else if Z.equal x (max_int n) then
+    maxint_constant fmt n
+  else
+    f fmt x
+
+let int_literal_fit_int64 (fmt : PP.formatter) (x : Z.t) : unit =
+  int_constant fmt 64 x (fun fmt x -> constant fmt (Z.format "%d" x ^ "LL"))
+
 (* Integer literal which does not fit 64-bit integer.
  * Generates a function invocation of the form ASL_int_N(.., a1, a0)
  * where a0, a1, ... are 64-bit slices of the literal with a0 as the least
@@ -321,27 +352,52 @@ let round_up_to_pow2 (x : int) : int =
  * width rounded to the power of 2. e.g. 128, 256, ...
  *)
 let int_literal_not_fit_int64 (fmt : PP.formatter) (x : Z.t) : unit =
-  (* + 1 for sign bit, not taken into account by Z.numbits *)
-  let num_bits = round_up_to_pow2 (Z.numbits x + 1) in
-  let hex_string = Z.format ("%0" ^ string_of_int (num_bits / 4) ^ "x") x in
-  let num_limbs = num_bits / 64 in
-  let limbs =
-    List.init num_limbs (fun i ->
-        let pos = i * 16 in
-        "0x" ^ String.sub hex_string pos 16 ^ "ULL")
-  in
-  asl_keyword fmt ("int_" ^ string_of_int num_bits);
-  parens fmt (fun _ -> commasep fmt (PP.pp_print_string fmt) limbs)
+  let num_bits = round_up_to_pow2 (bit_length x) in
+  int_constant fmt num_bits x (fun fmt x ->
+      let hex_string =
+        Z.format
+          ("%0" ^ string_of_int (num_bits / 4) ^ "x")
+          (Z.extract x 0 num_bits)
+      in
+      let num_limbs = num_bits / 64 in
+      let limbs =
+        List.init num_limbs (fun i ->
+            let pos = i * 16 in
+            "0x" ^ String.sub hex_string pos 16 ^ "ULL")
+      in
+      asl_keyword fmt ("int_" ^ string_of_int num_bits);
+      parens fmt (fun _ -> commasep fmt (PP.pp_print_string fmt) limbs)
+  )
+
+let int_literal (fmt : PP.formatter) (x : Z.t) : unit =
+  if Z.fits_int64 x then
+    int_literal_fit_int64 fmt x
+  else
+    int_literal_not_fit_int64 fmt x
+
+let hex_literal (fmt : PP.formatter) (x : Z.t) : unit =
+  if Z.fits_int64 x then
+    constant fmt (Z.format "%#x" x ^ "LL")
+  else
+    int_literal_not_fit_int64 fmt x
+
+let z_of_intLit (x : AST.intLit) : Z.t =
+  Z.of_string_base 10 (drop_underscores x)
+
+let z_of_hexLit (x : AST.hexLit) : Z.t =
+  Z.of_string_base 16 (drop_underscores x)
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit =
-  let (x : Z.t) = Z.of_string_base 10 (drop_underscores x) in
-  if Z.fits_int64 x then constant fmt (Z.format "%d" x ^ "LL")
-  else int_literal_not_fit_int64 fmt x
+  int_literal fmt (z_of_intLit x)
+
+let negIntLit (fmt : PP.formatter) (x : AST.intLit) : unit =
+  int_literal fmt (Z.neg (z_of_intLit x))
 
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
-  let (x : Z.t) = Z.of_string_base 16 (drop_underscores x) in
-  if Z.fits_int64 x then constant fmt (Z.format "%#x" x ^ "LL")
-  else int_literal_not_fit_int64 fmt x
+  hex_literal fmt (z_of_hexLit x)
+
+let negHexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
+  hex_literal fmt (Z.neg (z_of_hexLit x))
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let (x : string) = drop_spaces x in
@@ -601,7 +657,12 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
         (fun _ -> mask_int loc fmt y)
   | _ when Ident.equal f mul_int -> binop loc fmt "*" args
   | _ when Ident.equal f ne_int -> binop loc fmt "!=" args
-  | _ when Ident.equal f neg_int -> unop loc fmt "-" args
+  | _ when Ident.equal f neg_int ->
+      ( match args with
+      | [ Expr_LitInt l ] -> negIntLit fmt l
+      | [ Expr_LitHex l ] -> negHexLit fmt l
+      | _ -> unop loc fmt "-" args
+      )
   | [ x ] when Ident.equal f Builtin_idents.pow2_int -> pow2_int loc fmt x
   | _ when Ident.equal f shl_int -> binop loc fmt "<<" args
   | _ when Ident.equal f shr_int -> binop loc fmt ">>" args
