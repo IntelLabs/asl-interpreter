@@ -1,0 +1,38 @@
+name: pull-request
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  OPAMROOT: ${{ github.workspace }}/.opam
+
+jobs:
+  test:
+    runs-on: [intellabs-generic-runners, linux]
+    container:
+      image: amr-registry.caas.intel.com/owr/idf2/abi/lnx/tools/ubuntu22.04.03:latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y libgmp-dev opam verilator
+          pip3 install filecheck lit
+          opam init --no-setup --disable-sandboxing --compiler=4.14.0
+          opam install . --deps-only --with-test --with-doc --yes
+
+      - name: Build
+        run: |
+          eval $(opam env)
+          make build
+
+      - name: Test
+        run: |
+          eval $(opam env)
+          make test
