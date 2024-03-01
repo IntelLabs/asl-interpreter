@@ -1,3 +1,10 @@
+(****************************************************************
+ * Identifiers of builtin function, types, etc.
+ *
+ * Copyright (C) 2022-2024 Intel Corporation
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 val not_bool : Ident.t
 val neg_int : Ident.t
 val not_bits : Ident.t
@@ -131,3 +138,6 @@ val ram : Ident.t
 val true_ident : Ident.t
 val false_ident : Ident.t
 
+(****************************************************************
+ * End
+ ****************************************************************)

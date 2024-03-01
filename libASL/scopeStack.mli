@@ -1,7 +1,8 @@
 (****************************************************************
  * ScopeStack
  *
- * Copyright Intel Inc (c) 2022-2023
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -71,3 +72,6 @@ val bindings : 'a t -> (Ident.t * 'a) list list
 
 val pp : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 
+(****************************************************************
+ * End
+ ****************************************************************)

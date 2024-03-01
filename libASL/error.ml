@@ -1,9 +1,10 @@
 (****************************************************************
  * Error
  *
- * Copyright Intel Inc (c) 2021-2022
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
+
 open Asl_ast
 module TC = Tcheck
 module Parser = Asl_parser
@@ -57,3 +58,7 @@ let print_exception (e : exn) : unit =
   | _ ->
     Printf.printf "  Error %s\n" (Printexc.to_string e);
     Printexc.print_backtrace stdout;
+
+(****************************************************************
+ * End
+ ****************************************************************)

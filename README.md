@@ -172,12 +172,12 @@ statements and expressions.
 
 ```
     $ asli
-                _____  _       _    ___________________________________
+                _____  _       _
         /\     / ____|| |     (_)   ASL interpreter
        /  \   | (___  | |      _    Copyright Arm Limited (c) 2017-2019
-      / /\ \   \___ \ | |     | |   Copyright Intel Inc (c) 2022-2024
-     / ____ \  ____) || |____ | |   Version 0.2.0 alpha
-    /_/    \_\|_____/ |______||_|   ___________________________________
+      / /\ \   \___ \ | |     | |   Copyright (C) 2022-2024 Intel Corporation
+     / ____ \  ____) || |____ | |
+    /_/    \_\|_____/ |______||_|   Asli 0.2.0 alpha
 
     Type :? for help
     ASLi> 1+1

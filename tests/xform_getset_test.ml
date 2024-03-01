@@ -1,7 +1,7 @@
 (****************************************************************
  * Test getters and setters elimination transform
  *
- * Copyright Intel Inc (c) 2024
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

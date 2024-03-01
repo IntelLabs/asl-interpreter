@@ -1,3 +1,11 @@
+(****************************************************************
+ * Identifier support
+ *
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 module IdentInfo = struct
   type t = {
     name : string;
@@ -103,3 +111,6 @@ let add_prefix (t : t) ~(prefix : string) : t =
   let name' = prefix ^ "_" ^ t.info.name in
   add_ident' { t.info with name = name' } None
 
+(****************************************************************
+ * End
+ ****************************************************************)

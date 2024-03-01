@@ -4,6 +4,10 @@
 (name asli)
 (version 0.2.0)
 
+; Copyright Arm Limited (c) 2017-2019
+; Copyright (C) 2022-2024 Intel Corporation
+; SPDX-Licence-Identifier: BSD-3-Clause
+
 (using menhir 2.0)
 
 (package

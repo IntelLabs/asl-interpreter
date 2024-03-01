@@ -1,3 +1,10 @@
+################################################################
+# ASL runtime tests Makefile
+#
+# Copyright (C) 2023-2024 Intel Corporation
+# SPDX-Licence-Identifier: BSD-3-Clause
+################################################################
+
 .PHONY: default gtest
 
 CMAKE = cmake

@@ -4,7 +4,7 @@
  * This converts case statements to if statements if they contain
  * complex pattern matches or guards.
  *
- * Copyright Intel Inc (c) 2022
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

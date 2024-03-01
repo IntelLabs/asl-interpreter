@@ -1,7 +1,8 @@
 (****************************************************************
  * ASL AST definitions
  *
- * Copyright Intel Inc (c) 2022
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

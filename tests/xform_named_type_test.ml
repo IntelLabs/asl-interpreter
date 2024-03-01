@@ -1,7 +1,7 @@
 (****************************************************************
  * Test named type transform
  *
- * Copyright Intel Inc (c) 2023
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

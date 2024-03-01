@@ -1,3 +1,10 @@
+(****************************************************************
+ * Identifiers of builtin function, types, etc.
+ *
+ * Copyright (C) 2022-2024 Intel Corporation
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 (* Functions *)
 let not_bool          = Ident.mk_fident "not_bool"
 let neg_int           = Ident.mk_fident "neg_int"
@@ -122,7 +129,7 @@ let trace_page_table_walk = Ident.mk_fident "__TracePageTableWalk"
 let trace_error           = Ident.mk_fident "__TraceError"
 let trace_event           = Ident.mk_fident "__TraceEvent"
 
-(* Identifiers *)
+(* Other identifiers *)
 let boolean_ident   = Ident.mk_ident "boolean"
 let integer_ident   = Ident.mk_ident "integer"
 let string_ident    = Ident.mk_ident "string"
@@ -137,3 +144,6 @@ let ram             = Ident.mk_ident "__RAM"
 let true_ident      = Ident.mk_ident "TRUE"
 let false_ident     = Ident.mk_ident "FALSE"
 
+(****************************************************************
+ * End
+ ****************************************************************)

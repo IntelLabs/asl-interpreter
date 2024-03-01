@@ -7,7 +7,7 @@
  * 2) sub_bits_int{N}(x, y) -> sub_bits(x, y[0 +: N])
  * 3) mul_bits_int{N}(x, y) -> mul_bits(x, y[0 +: N])
  *
- * Copyright Intel Inc (c) 2023
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

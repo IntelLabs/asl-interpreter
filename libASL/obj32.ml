@@ -3,7 +3,7 @@
  *
  * Currently limited to well-formatted OBJ32 files
  *
- * Copyright Intel (c) 2022
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

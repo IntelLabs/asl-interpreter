@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////
+// Runtime bitvector support library for ASL's C backend
+//
+// Copyright (C) 2023-2024 Intel Corporation
+// SPDX-Licence-Identifier: BSD-3-Clause
+////////////////////////////////////////////////////////////////
+
 #define ASL_BITS_TYPE ASL_CC_INDIR(ASL_CC_INDIR(ASL_bits, N), _t)
 
 ASL_BITS_TYPE ASL_add_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);

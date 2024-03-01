@@ -1,7 +1,8 @@
 (****************************************************************
  * ScopeStack
  *
- * Copyright Intel Inc (c) 2022-2023
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -63,3 +64,6 @@ let bindings (ss : 'a t) : (Ident.t * 'a) list list =
 let equal (eq : 'a -> 'a -> bool) (ss1 : 'a t) (ss2 : 'a t) : bool =
   List.equal (Scope.equal eq) ss1 ss2
 
+(****************************************************************
+ * End
+ ****************************************************************)

@@ -1,7 +1,7 @@
 (****************************************************************
  * Lattices: abstract interpretation support
  *
- * Copyright Intel Inc (c) 2022
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

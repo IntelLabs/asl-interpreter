@@ -2,7 +2,8 @@
  * A Scope is a collection of identifiers where each identifier binds to some
  * value.
  *
- * Copyright Intel Inc (c) 2022-2023
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -49,3 +50,7 @@ let merge_inplace (f : 'a -> 'b -> 'a) (s1 : 'a t) (s2 : 'b t) : unit =
   s1.bs <- Bindings.merge merge s1.bs s2.bs
 
 let bindings (s : 'a t) : (Ident.t * 'a) list = Bindings.bindings s.bs
+
+(****************************************************************
+ * End
+ ****************************************************************)

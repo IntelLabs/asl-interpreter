@@ -11,7 +11,7 @@
  * - Does the meaning of an expression depend on evaluation order?
  * - Are calls to functions that can throw exceptions marked as rethrowing?
  *
- * Copyright Intel Inc (c) 2023
+ * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 

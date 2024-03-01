@@ -1,4 +1,5 @@
 // RUN: %asli --nobanner %s
+// Copyright (C) 2023-2024 Intel Corporation
 
 type TwoHalves of bits(16) {
     [7:0]   LO

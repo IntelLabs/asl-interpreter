@@ -1,3 +1,11 @@
+(****************************************************************
+ * Identifier support
+ *
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
 type t
 
 val hash : t -> int
@@ -39,3 +47,6 @@ val add_suffix : t -> suffix:string -> t
 
 val add_prefix : t -> prefix:string -> t
 
+(****************************************************************
+ * End
+ ****************************************************************)

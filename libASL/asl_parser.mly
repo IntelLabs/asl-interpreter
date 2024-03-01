@@ -1,7 +1,8 @@
 (****************************************************************
  * ASL grammar file
  *
- * Copyright Intel Inc (c) 2022
+ * Copyright Arm Limited (c) 2017-2019
+ * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
@@ -628,3 +629,7 @@ impdef_command:
     { [ x1; x2 ] }
 | x = X; separator; xs = separated_nonempty2_list(separator, X)
     { x :: xs }
+
+(****************************************************************
+ * End
+ ****************************************************************)
