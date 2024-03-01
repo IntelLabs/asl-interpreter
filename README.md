@@ -9,15 +9,12 @@ understand and make use of Arm's architecture specifications.
 It consists of lexer, parser, typechecker and interpreter for the ASL language
 and an interactive interface for evaluating ASL statements and expressions.
 
-There is a [blog post](https://alastairreid.github.io/using-asli/)
-describing how to use ASLi with Arm's v8.6-A ISA specification.
-
 ## Requirements
 
 To build and run the ASL interpreter, you will need:
 
-  * OCaml version 4.11 or later
-  * OPAM OCaml version 2.0.5 (other versions may work)
+  * OCaml version 4.14.1 (older versions may work, 5.x untested)
+  * OPAM OCaml version 2.1.2 (other versions may work)
   * The following OPAM packages
       * ocaml     - OCaml compiler
       * ocolor    - adds color support to formatted output
@@ -26,10 +23,11 @@ To build and run the ASL interpreter, you will need:
       * menhir    - parser generator tool
       * linenoise - OCaml line editing library
       * yojson    - OCaml JSON library
-      * z3.4.7.1  - OCaml bindings for the Z3 SMT solver (exactly this version is required)
+      * z3        - OCaml bindings for the Z3 SMT solver
       * zarith    - OCaml multiprecision arithmetic library
 
-To develop the ASL interpreter, you will also need the LLVM lit and filecheck testing tools.
+To develop the ASL interpreter, you will also need the LLVM lit and filecheck testing tools
+and googletest (git submodule dependency).
 
 ## License and contribution
 
@@ -54,7 +52,9 @@ This software includes code from one other open source projects
 
 Since the repository contains submodules, be sure to recursively clone it:
 
-git clone --recursive https://github.com/intel-innersource/libraries.isa.asl.asl-interpreter
+```
+    git clone --recursive https://github.com/intel-innersource/libraries.isa.asl.asl-interpreter
+```
 
 ### Directory structure
 
@@ -103,13 +103,13 @@ Platform specific instructions:
 Platform independent instructions:
 
 ```
-    opam install ocaml.4.14.0
+    opam install ocaml.4.14.1
+    opam install ocolor
     opam install dune
     opam install menhir
     opam install linenoise
-    opam install ocolor
     opam install yojson
-    opam install z3.4.7.1
+    opam install z3
     opam install zarith
 
     # the following are optional and only needed if modifying asli code
@@ -156,8 +156,7 @@ automatically use this for all asl files.
 
 ### Using ASL lexer
 
-This displays a list of tokens in an ASL file including the indent
-and dedent tokens used to support indentation-based parsing.
+This displays a list of tokens in an ASL file.
 
 ```
     $ dune exec bin/testlexer.exe prelude.asl
@@ -174,63 +173,24 @@ statements and expressions.
                 _____  _       _    ___________________________________
         /\     / ____|| |     (_)   ASL interpreter
        /  \   | (___  | |      _    Copyright Arm Limited (c) 2017-2019
-      / /\ \   \___ \ | |     | |
-     / ____ \  ____) || |____ | |   Version 0.1.1 alpha
+      / /\ \   \___ \ | |     | |   Copyright Intel Inc (c) 2022-2024
+     / ____ \  ____) || |____ | |   Version 0.2.0 alpha
     /_/    \_\|_____/ |______||_|   ___________________________________
 
     Type :? for help
     ASLi> 1+1
     2
     ASLi> ZeroExtend('11', 32)
-    '00000000000000000000000000000011'
-    ASLi> bits(32) x = ZeroExtend('11', 32);
+    32'x3
+    ASLi> let x : bits(32) = ZeroExtend('11', 32);
     ASLi> x
-    '00000000000000000000000000000011'
+    32'x3
     ASLi> :quit
 ```
 
 The ASL interpreter needs `prelude.asl` which is part of this repository. You
 either run the ASL interpreter from a directory containing `prelude.asl` or run
-the ASL interpreter from anywhere by simply setting `ASL_PATH` to point to a
+the ASL interpreter from anywhere by setting `ASL_PATH` to point to a
 directory containing `prelude.asl`.
-
-### Using ASL interpreter with Arm's public specifications
-
-You can download Arm's v8-A architecture specification at
-[https://developer.arm.com/architectures/cpu-architecture/a-profile/exploration-tools](https://developer.arm.com/architectures/cpu-architecture/a-profile/exploration-tools).
-Historically, these are updated every 6 months with the latest "8.x" release
-released in December.
-You can download tools to unpack Arm's specification from
-[https://github.com/alastairreid/mra_tools](https://github.com/alastairreid/mra_tools).
-
-Clone the MRA tools release and follow the instructions to unpack Arm's
-specification.
-In the following, I will assume that this is in directory "../mra_tools".
-
-```
-    # follow the instructions in ../mra_tools/README.md for downloading the Arm specs
-    make -C ../mra_tools clean
-    make -C ../mra_tools
-    make install
-    asli prelude.asl ../mra_tools/arch/regs.asl ../mra_tools/types.asl ../mra_tools/arch/arch.asl ../mra_tools/arch/arch_instrs.asl ../mra_tools/arch/arch_decode.asl ../mra_tools/support/aes.asl ../mra_tools/support/barriers.asl ../mra_tools/support/debug.asl ../mra_tools/support/feature.asl ../mra_tools/support/hints.asl ../mra_tools/support/interrupts.asl ../mra_tools/support/memory.asl ../mra_tools/support/stubs.asl ../mra_tools/support/fetchdecode.asl
-```
-
-After loading the v8.6-A architecture spec, you can configure the
-implementation defined behaviour, load an ELF file and run the
-program as follows.
-```
-    :project tests/test.prj
-    :quit
-```
-The test program prints the line "Test" so you should see output like this
-```
-ASLi> :project tests/test.prj
-Loading ELF file tests/test_O2.elf.
-Entry point = 0x400168
-Test
-Program exited by writing ^D to TUBE
-Exception taken
-```
-
 
 Enjoy!
