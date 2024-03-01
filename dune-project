@@ -18,13 +18,14 @@
                "\| that can be used as a reference model for hardware verification.
   )
   (depends
-    ("ocaml"     (>= "4.11"))
-    ("menhir"    :build)
-    "linenoise"
-    ("ocolor"    (>= "1.2.2"))
-    "zarith"
-    ("z3"        (>= "4.8.7"))
     ("alcotest"  :with-test)
+    "linenoise"
+    ("menhir"    :build)
+    ("ocaml"     (>= "4.11"))
+    ("ocolor"    (>= "1.2.2"))
+    "yojson"
+    ("z3"        (>= "4.8.7"))
+    "zarith"
   )
 )
 
