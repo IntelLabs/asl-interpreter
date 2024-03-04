@@ -359,49 +359,49 @@ val mk_max_int : AST.expr -> AST.expr -> AST.expr
 (** Construct "Min(x, y)" *)
 val mk_min_int : AST.expr -> AST.expr -> AST.expr
 
-(** Construct "eq_bits{w}(x, y)" *)
+(** Construct "eq_bits\{w\}(x, y)" *)
 val mk_eq_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "in_mask{w}(x, y)" *)
+(** Construct "in_mask\{w\}(x, y)" *)
 val mk_in_mask : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "add_bits{N}(x, y)" *)
+(** Construct "add_bits\{N\}(x, y)" *)
 val mk_add_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "sub_bits{N}(x, y)" *)
+(** Construct "sub_bits\{N\}(x, y)" *)
 val mk_sub_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "mul_bits{N}(x, y)" *)
+(** Construct "mul_bits\{N\}(x, y)" *)
 val mk_mul_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "and_bits{N}(x, y)" *)
+(** Construct "and_bits\{N\}(x, y)" *)
 val mk_and_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "or_bits{N}(x, y)" *)
+(** Construct "or_bits\{N\}(x, y)" *)
 val mk_or_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "lsr_bits{N}(x, y)" *)
+(** Construct "lsr_bits\{N\}(x, y)" *)
 val mk_lsr_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "lsl_bits{N}(x, y)" *)
+(** Construct "lsl_bits\{N\}(x, y)" *)
 val mk_lsl_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "zero_bits{N}(N)" *)
+(** Construct "zero_bits\{N\}(N)" *)
 val mk_zero_bits : AST.expr -> AST.expr
 
-(** Construct "ones_bits{N}(N)" *)
+(** Construct "ones_bits\{N\}(N)" *)
 val mk_ones_bits : AST.expr -> AST.expr
 
-(** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
+(** Construct "asl_extract_bits\{w,n\}(x, lo, w)" *)
 val mk_bits_select : AST.expr -> AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "zero_extend_bits{w, n}(x, w)" *)
+(** Construct "zero_extend_bits\{w, n\}(x, w)" *)
 val mk_zero_extend_bits : AST.expr -> AST.expr -> AST.expr -> AST.expr
 
-(** Construct "not_bits{m}(n)" *)
+(** Construct "not_bits\{m\}(n)" *)
 val mk_not_bits : AST.expr -> AST.expr -> AST.expr
 
-(** Construct "mk_mask{n}()" which is equivalent to "zero_extend_bits{w, n}(Ones(w), n)" *)
+(** Construct "mk_mask\{n\}()" which is equivalent to "zero_extend_bits\{w, n\}(Ones(w), n)" *)
 val mk_mask : AST.expr -> AST.expr -> AST.expr
 
 (** Construct "(0 + x1) + ... + xn" *)
@@ -416,7 +416,7 @@ val mk_ands : AST.expr list -> AST.expr
 (** Construct "(FALSE || x1) || ... || xn" *)
 val mk_ors : AST.expr list -> AST.expr
 
-(** Construct "cvt_int_bits{n}(x, n)" *)
+(** Construct "cvt_int_bits\{n\}(x, n)" *)
 val mk_cvt_int_bits : AST.expr -> AST.expr -> AST.expr
 
 (****************************************************************)
