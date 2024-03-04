@@ -903,21 +903,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
             (Error.Unimplemented
                (AST.Unknown, "declaration", fun fmt -> FMTAST.declaration fmt x)))
 
-let decl_integer (fmt : PP.formatter) : unit =
-  typedef fmt (fun _ ->
-      kw_bit fmt;
-      nbsp fmt;
-      kw_signed fmt;
-      brackets fmt (fun _ ->
-          constant fmt (string_of_int (!int_width - 1));
-          colon fmt;
-          constant fmt "0");
-      nbsp fmt;
-      tycon fmt asl_integer
-    )
-
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
-  decl_integer fmt;
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
 
 (****************************************************************

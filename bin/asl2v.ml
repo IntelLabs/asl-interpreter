@@ -16,9 +16,9 @@ module PP = Format
 open Yojson
 
 (****************************************************************
- * C backend support
+ * C and Verilog backend support
  *
- * The C backend generates separate files containing
+ * The C and Verilog backends generate separate files containing
  * - types, constants and function prototypes
  * - variable definitions
  * - function definitions
@@ -127,6 +127,10 @@ let rec fun_decls (xs : AST.declaration list) : AST.declaration list =
     )
   in
   List.filter is_fun_decl xs
+
+(****************************************************************
+ * C backend support
+ ****************************************************************)
 
 let fprinf_sys_includes (fmt : PP.formatter) (filenames : string list) : unit =
   List.iter (PP.fprintf fmt "#include <%s>@.") filenames;
@@ -408,8 +412,24 @@ let main () =
           in
           emit_funs_by_chunk 1 [] ds
     | Backend_Verilog ->
-        Utils.to_file !output_file (fun fmt ->
-            Backend_verilog.declarations fmt (List.rev ds))
+        Utils.to_file (!output_file ^ "_types.svh") (fun fmt ->
+            Format.fprintf fmt "typedef bit signed[%d : 0] asl_integer;" (!Backend_verilog.int_width - 1);
+
+            type_decls ds
+            |> Asl_utils.topological_sort |> List.rev
+            |> Backend_verilog.declarations fmt
+        );
+
+        Utils.to_file (!output_file ^ "_vars.svh") (fun fmt ->
+            var_decls ds
+            |> Backend_verilog.declarations fmt
+        );
+
+        Utils.to_file (!output_file ^ "_funs.sv") (fun fmt ->
+            fun_decls ds
+            |> Backend_verilog.declarations fmt
+        )
+
   with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())

@@ -15,12 +15,14 @@ let check_syntax (name : string) (code : string) : unit =
   let lints = [
     "/* verilator lint_off WIDTH */";
     "/* verilator lint_off UNPACKED */";
+    "typedef bit [65:0] asl_integer;";
     "typedef bit boolean;";
+    ""
     ]
   in
   let header = String.concat "\n" lints in
   let args = [ "--cc" ] in
-  check_compiler "System Verilog" ".v" prog args name header code
+  check_compiler "System Verilog" ".sv" prog args name header code
 
 let test_declaration (name : string) (s : string) : unit =
   let fmt = Format.str_formatter in
