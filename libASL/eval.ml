@@ -53,7 +53,7 @@ module GlobalEnv = struct
     mutable enums : value list Bindings.t;
     mutable records : (Ident.t list * (Ident.t * AST.ty) list) Bindings.t;
     mutable typedefs : (Ident.t list * AST.ty) Bindings.t;
-    mutable constants : value Scope.t;
+    constants : value Scope.t;
     mutable impdefs : value ImpDefs.t;
   }
 
@@ -132,8 +132,8 @@ end
 module Env = struct
   type t = {
     globalConsts : GlobalEnv.t;
-    mutable globalVars : value Scope.t;
-    mutable locals : value ScopeStack.t;
+    globalVars : value Scope.t;
+    locals : value ScopeStack.t;
   }
 
   let mkEnv (genv : GlobalEnv.t) (env : value ScopeStack.t) =

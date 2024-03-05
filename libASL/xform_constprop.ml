@@ -24,7 +24,7 @@ end)
 module Env = struct
   type t = {
     globalConsts : Eval.GlobalEnv.t;
-    mutable locals : Values.t ScopeStack.t;
+    locals : Values.t ScopeStack.t;
   }
 
   let pp (fmt : Format.formatter) (env : t) : unit =
