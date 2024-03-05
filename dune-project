@@ -21,7 +21,7 @@
     ("alcotest"  :with-test)
     "linenoise"
     ("menhir"    :build)
-    ("ocaml"     (>= "4.11"))
+    ("ocaml"     (>= "4.14"))
     ("ocolor"    (>= "1.2.2"))
     "yojson"
     ("z3"        (>= "4.8.7"))
