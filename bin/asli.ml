@@ -65,7 +65,6 @@ let help_msg =
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
-    {|:step [<count>]                Execute <count> instructions|};
     {|:chekhov <trc> <cfg> [<ami>]   Enable chekhov tracing|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
     {|:set +<flag>                   Set flag|};
@@ -135,23 +134,6 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
         done
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
-  | ":step" :: args ->
-      let n = match args with
-        | [n] -> int_of_string n
-        | _ -> 1
-      in
-      ( try
-          for i = 1 to n do
-            cpu.step ();
-          done
-      with
-      | Value.Throw (_, _, _) ->
-        Printf.printf "Exception taken\n";
-        error ()
-      | Value.EvalError (loc, msg) ->
-        Printf.printf "  %s: Evaluation error: %s\n" (pp_loc loc) msg;
-        error ()
-      )
   | ":chekhov" :: trace_file :: regmap_file :: rest ->
     let trace_chan = open_out trace_file in
     let o_ami = match rest with [ami] -> Some ami; | _ -> None in
@@ -226,6 +208,26 @@ let cmd_run (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
   true
 
 let _ = Commands.registerCommand "run" "" "Execute instructions" cmd_run
+
+(****************************************************************
+ * Command: :step
+ ****************************************************************)
+
+let cmd_step (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  let n = match args with
+    | [n] -> int_of_string n
+    | _ -> 1
+  in
+  ( try
+      for i = 1 to n do
+        cpu.step ();
+      done
+  with
+  | e -> Error.print_exception e; error ()
+  );
+  true
+
+let _ = Commands.registerCommand "step" "[<count>]" "Execute <count> instructions" cmd_step
 
 (****************************************************************
  * Main program and command line options
