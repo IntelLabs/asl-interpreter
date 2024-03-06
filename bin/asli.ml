@@ -40,7 +40,6 @@ let add_project (prj : string): unit =
 let help_msg =
   [
     {|:? :help                       Show this help message|};
-    {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
@@ -69,10 +68,6 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
   match String.split_on_char ' ' input with
   | [ "" ] -> ()
   | ("//"::_) -> () (* comment *)
-  | [ ":bin" ; file ; address ]  ->
-      let ram_address = Int64.of_string address in
-      Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
-      Bin_file.load_file file cpu.elfwrite8 ram_address
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       Commands.CommandMap.iter
@@ -140,6 +135,23 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
         error ();
       );
       repl tcenv cpu
+
+(****************************************************************
+ * Command: :bin
+ ****************************************************************)
+
+let cmd_bin (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ; address ]  ->
+    let ram_address = Int64.of_string address in
+    Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
+    Bin_file.load_file file cpu.elfwrite8 ram_address;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "bin" "<file> <address>" "Load a BIN <file> to <address>" cmd_bin
 
 (****************************************************************
  * Command: :callgraph
