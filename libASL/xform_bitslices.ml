@@ -189,5 +189,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.map (Asl_visitor.visit_decl (simplify :> Asl_visitor.aslVisitor)) ds
 
 (****************************************************************
+ * Command: :xform_bitslices
+ ****************************************************************)
+
+let cmd_xform_bitslices (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_bitslices" "" "Transform bitslice operations" cmd_xform_bitslices
+
+(****************************************************************
  * End
  ****************************************************************)
