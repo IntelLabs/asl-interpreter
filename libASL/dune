@@ -21,7 +21,6 @@
    asl_visitor
    backend_c
    backend_verilog
-   bin_file
    builtin_idents
    commands
    cpu
@@ -61,6 +60,18 @@
 
 
 (env (_ (odoc (warnings fatal))))
+
+(library
+  (public_name asli.bin_file)
+  (name bin_file)
+  (flags (:standard -w -27))
+  (modules bin_file)
+  (libraries asli.libASL))
+
+(plugin
+  (name asli.bin_file)
+  (libraries asli.bin_file)
+  (site (asli plugins)))
 
 (library
   (public_name asli.chekhov)

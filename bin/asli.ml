@@ -148,23 +148,6 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
       repl tcenv cpu
 
 (****************************************************************
- * Command: :bin
- ****************************************************************)
-
-let cmd_bin (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ; address ]  ->
-    let ram_address = Int64.of_string address in
-    Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
-    Bin_file.load_file file cpu.elfwrite8 ram_address;
-    true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "bin" "<file> <address>" "Load a BIN <file> to <address>" cmd_bin
-
-(****************************************************************
  * Command: :callgraph
  ****************************************************************)
 

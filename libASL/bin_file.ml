@@ -7,6 +7,8 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
+open LibASL
+
  let byte (b : bytes) (o : int) : char = Bytes.get b o
 
 (****************************************************************)
@@ -29,7 +31,24 @@ let load_file (name : string) (write : Int64.t -> char -> unit) (address : Int64
       copy (Int64.succ i)
     end
   in
-  copy (Int64.of_int 0);
+  copy (Int64.of_int 0)
+
+(****************************************************************
+ * Command: :bin
+ ****************************************************************)
+
+let cmd_bin (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ; address ]  ->
+    let ram_address = Int64.of_string address in
+    Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
+    load_file file cpu.elfwrite8 ram_address;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "bin" "<file> <address>" "Load a BIN <file> to <address>" cmd_bin
 
 (****************************************************************
  * End
