@@ -124,5 +124,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.flatten (List.map xform_decl ds)
 
 (****************************************************************
+ * Command: :xform_tuples
+ ****************************************************************)
+
+let cmd_xform_tuples (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_tuples" "" "Eliminate anonymous tuples" cmd_xform_tuples
+
+(****************************************************************
  * End
  ****************************************************************)
