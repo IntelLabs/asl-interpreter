@@ -41,5 +41,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.map (Asl_visitor.visit_decl (replacer :> Asl_visitor.aslVisitor)) ds
 
 (****************************************************************
+ * Command: :xform_named_type
+ ****************************************************************)
+
+let cmd_xform_named_type (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_named_type" "" "Eliminate typedefs" cmd_xform_named_type
+
+(****************************************************************
  * End
  ****************************************************************)
