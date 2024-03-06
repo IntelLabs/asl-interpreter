@@ -61,7 +61,6 @@ let help_msg =
   [
     {|:? :help                       Show this help message|};
     {|:callgraph <file>              Generate json file containing callgraph|};
-    {|:elf <file>                    Load an ELF file|};
     {|:obj <file>                    Load an OBJ file|};
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
@@ -99,11 +98,6 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
   | [ ":callgraph"; file ] ->
       Printf.printf "Generating callgraph metadata file %s.\n" file;
       generate_callgraph file ds
-  | [ ":elf"; file ] ->
-      Printf.printf "Loading ELF file %s.\n" file;
-      let entry = Elf.load_file file cpu.elfwrite8 in
-      Printf.printf "Entry point = 0x%Lx\n" entry;
-      cpu.setPC (Z.of_int64 entry)
   | [ ":obj"; file ] ->
       Printf.printf "Loading OBJ32 file %s.\n" file;
       Obj32.load_file file cpu.elfwrite32
@@ -205,6 +199,28 @@ let rec repl (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cpu.cpu) : un
         error ();
       );
       repl ds tcenv cpu
+
+(****************************************************************
+ * Command: :elf
+ ****************************************************************)
+
+let cmd_elf (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ] ->
+    Printf.printf "Loading ELF file %s.\n" file;
+    let entry = Elf.load_file file cpu.elfwrite8 in
+    Printf.printf "Entry point = 0x%Lx\n" entry;
+    cpu.setPC (Z.of_int64 entry);
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
+
+(****************************************************************
+ * Main program and command line options
+ ****************************************************************)
 
 let options =
   Arg.align
