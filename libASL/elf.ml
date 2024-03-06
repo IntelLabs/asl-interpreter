@@ -8,6 +8,8 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
+open LibASL
+
 (****************************************************************)
 (** {2 ELF-independent helper types and functions}              *)
 (****************************************************************)
@@ -168,6 +170,24 @@ let load_file (name : string) (write : uint64 -> char -> unit) : uint64 =
   in
   loadPHs 0;
   addr buffer e_entry
+
+(****************************************************************
+ * Command: :elf
+ ****************************************************************)
+
+let cmd_elf (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ] ->
+    Printf.printf "Loading ELF file %s.\n" file;
+    let entry = load_file file cpu.elfwrite8 in
+    Printf.printf "Entry point = 0x%Lx\n" entry;
+    cpu.setPC (Z.of_int64 entry);
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
 
 (****************************************************************
  * End

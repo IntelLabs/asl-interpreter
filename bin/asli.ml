@@ -184,24 +184,6 @@ let cmd_callgraph (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool
 let _ = Commands.registerCommand "callgraph" "<json file>" "Generate json file containing callgraph" cmd_callgraph
 
 (****************************************************************
- * Command: :elf
- ****************************************************************)
-
-let cmd_elf (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Loading ELF file %s.\n" file;
-    let entry = Elf.load_file file cpu.elfwrite8 in
-    Printf.printf "Entry point = 0x%Lx\n" entry;
-    cpu.setPC (Z.of_int64 entry);
-    true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
-
-(****************************************************************
  * Command: :obj
  ****************************************************************)
 

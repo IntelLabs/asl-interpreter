@@ -24,7 +24,6 @@
    builtin_idents
    commands
    cpu
-   elf
    error
    eval
    flags
@@ -83,4 +82,16 @@
 (plugin
   (name asli.chekhov)
   (libraries asli.chekhov)
+  (site (asli plugins)))
+
+(library
+  (public_name asli.elf)
+  (name elf)
+  (flags (:standard -w -27 -w -32 -w -34))
+  (modules elf)
+  (libraries asli.libASL))
+
+(plugin
+  (name asli.elf)
+  (libraries asli.elf)
   (site (asli plugins)))
