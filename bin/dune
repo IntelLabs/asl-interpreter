@@ -9,7 +9,7 @@
  (modules asli sites)
  (flags
   (-cclib -lstdc++))
- (libraries libASL linenoise dune-site))
+ (libraries libASL linenoise dune-site dune-site.plugins))
 
 (executable
  (name asl2v)
@@ -22,7 +22,8 @@
 
 (generate_sites_module
   (module sites)
-  (sites asli))
+  (sites asli)
+  (plugins (asli plugins)))
 
 (executable
  (name testlexer)

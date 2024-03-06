@@ -389,6 +389,7 @@ let main () =
       print_endline "\nType :? for help"
     end;
     try (
+      Sites.Plugins.Plugins.load_all ();
       let stdlibdirs : string list = Sites.Sites.stdlib @ paths in
       let t = LoadASL.read_file stdlibdirs "prelude.asl" true !opt_verbose in
       let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in

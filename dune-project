@@ -23,7 +23,8 @@
                "\| Experimentally includes partial support for generating Verilog
                "\| that can be used as a reference model for hardware verification.
   )
-  (sites (lib runtime)
+  (sites (lib plugins)
+         (lib runtime)
          (lib runtime_include)
          (share stdlib))
   (depends
