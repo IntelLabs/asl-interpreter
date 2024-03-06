@@ -153,5 +153,15 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
   Asl_visitor.visit_stmts (simplify :> Asl_visitor.aslVisitor) ss
 
 (****************************************************************
+ * Command: :xform_lower
+ ****************************************************************)
+
+let cmd_xform_lower (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_lower" "" "Normalize bitslice operations" cmd_xform_lower
+
+(****************************************************************
  * End
  ****************************************************************)
