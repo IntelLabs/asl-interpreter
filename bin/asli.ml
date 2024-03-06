@@ -64,7 +64,6 @@ let help_msg =
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
-    {|:chekhov <trc> <cfg> [<ami>]   Enable chekhov tracing|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
     {|:set +<flag>                   Set flag|};
     {|:set -<flag>                   Clear flag|};
@@ -130,10 +129,6 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
         done
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
-  | ":chekhov" :: trace_file :: regmap_file :: rest ->
-    let trace_chan = open_out trace_file in
-    let o_ami = match rest with [ami] -> Some ami; | _ -> None in
-    Value.tracer := Chekhov.chekhovTextTracer [] regmap_file o_ami trace_chan
   | (cmd :: args) when String.starts_with ~prefix:":" cmd ->
      ( match Commands.CommandMap.find_opt (Utils.string_drop 1 cmd) !Commands.commands with
      | None -> Printf.printf "Unknown command %s\n" cmd
@@ -170,6 +165,23 @@ let rec repl (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cpu.cpu) : un
         error ();
       );
       repl ds tcenv cpu
+
+(****************************************************************
+ * Command: :chekhov
+ ****************************************************************)
+
+let cmd_chekhov (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | ( trace_file :: regmap_file :: rest) ->
+    let trace_chan = open_out trace_file in
+    let o_ami = match rest with [ami] -> Some ami; | _ -> None in
+    Value.tracer := Chekhov.chekhovTextTracer [] regmap_file o_ami trace_chan;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "chekhov" "<trc> <cfg> [<ami>]" "Enable chekhov tracing" cmd_chekhov
 
 (****************************************************************
  * Command: :elf
