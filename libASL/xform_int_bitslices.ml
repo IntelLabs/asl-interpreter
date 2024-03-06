@@ -35,5 +35,15 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
   Asl_visitor.visit_stmts (simplify :> Asl_visitor.aslVisitor) ss
 
 (****************************************************************
+ * Command: :xform_int_bitslice
+ ****************************************************************)
+
+let cmd_xform_int_bitslices (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_int_bitslices" "" "Simplify x[lo +: wd] when x : integer" cmd_xform_int_bitslices
+
+(****************************************************************
  * End
  ****************************************************************)
