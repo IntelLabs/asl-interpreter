@@ -20,6 +20,7 @@
    bin_file
    builtin_idents
    chekhov
+   commands
    cpu
    elf
    error

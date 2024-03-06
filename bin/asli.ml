@@ -53,6 +53,10 @@ let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
   let chan = open_out filename in
   Yojson.pretty_to_channel chan t
 
+(****************************************************************
+ * Interactive command support
+ ****************************************************************)
+
 let help_msg =
   [
     {|:? :help                       Show this help message|};
@@ -71,6 +75,10 @@ let help_msg =
     {|<expr>                         Execute ASL expression|};
     {|<stmt> ;                       Execute ASL statement|};
   ]
+
+(****************************************************************
+ * Read Eval Print Loop
+ ****************************************************************)
 
 let mkLoc (fname : string) (input : string) : AST.l =
   let len = String.length input in
@@ -105,6 +113,9 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
       Bin_file.load_file file cpu.elfwrite8 ram_address
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
+      Commands.CommandMap.iter
+        (fun nm (fn, args, desc) -> Printf.printf ":%-30s%s\n" (nm^" "^args) desc)
+        !Commands.commands;
       print_endline "\nFlags:";
       Flags.FlagMap.iter
         (fun nm (v, desc) -> Printf.printf "  %s%-27s %s\n" (if !v then "+" else "-") nm desc)
@@ -158,6 +169,11 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
     let trace_chan = open_out trace_file in
     let o_ami = match rest with [ami] -> Some ami; | _ -> None in
     Value.tracer := Chekhov.chekhovTextTracer [] regmap_file o_ami trace_chan
+  | (cmd :: args) when String.starts_with ~prefix:":" cmd ->
+     ( match Commands.CommandMap.find_opt (Utils.string_drop 1 cmd) !Commands.commands with
+     | None -> Printf.printf "Unknown command %s\n" cmd
+     | Some (cmd, _, _) -> ignore (cmd tcenv cpu args); () (* todo: use the bool *)
+     )
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
