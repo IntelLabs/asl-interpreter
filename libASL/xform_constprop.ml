@@ -649,5 +649,26 @@ let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :
   List.map (xform_decl genv) ds
 
 (****************************************************************
+ * Command: :xform_constprop
+ ****************************************************************)
+
+let cmd_xform_constprop (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  let xform (unroll : bool) : unit =
+    unroll_loops := unroll;
+    let genv = Eval.build_constant_environment !Commands.declarations in
+    Commands.declarations := xform_decls genv !Commands.declarations
+  in
+  ( match args with
+  | ["--nounroll"] -> xform false; true
+  | ["--unroll"] -> xform true; true
+  | [] -> xform true; true
+  | _ ->
+    Printf.printf "Unrecognized arguments to xform_constprop: %s\n" (String.concat " " args);
+    false
+  )
+
+let _ = Commands.registerCommand "xform_constprop" "[--nounroll]" "Perform constant propagation" cmd_xform_constprop
+
+(****************************************************************
  * End
  ****************************************************************)
