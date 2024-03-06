@@ -65,7 +65,6 @@ let help_msg =
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
-    {|:run                           Execute instructions|};
     {|:step [<count>]                Execute <count> instructions|};
     {|:chekhov <trc> <cfg> [<ami>]   Enable chekhov tracing|};
     {|:set impdef <string> = <expr>  Define implementation defined behavior|};
@@ -136,12 +135,6 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
         done
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
-  | [ ":run" ] ->
-      ( try
-        while true do
-          cpu.step ()
-        done
-      with e -> Error.print_exception e; error ())
   | ":step" :: args ->
       let n = match args with
         | [n] -> int_of_string n
@@ -217,6 +210,22 @@ let cmd_elf (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
   )
 
 let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
+
+(****************************************************************
+ * Command: :run
+ ****************************************************************)
+
+let cmd_run (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( try
+      while true do
+        cpu.step ()
+      done
+  with
+  | e -> Error.print_exception e; error ()
+  );
+  true
+
+let _ = Commands.registerCommand "run" "" "Execute instructions" cmd_run
 
 (****************************************************************
  * Main program and command line options
