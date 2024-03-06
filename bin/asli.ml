@@ -61,7 +61,6 @@ let help_msg =
   [
     {|:? :help                       Show this help message|};
     {|:callgraph <file>              Generate json file containing callgraph|};
-    {|:obj <file>                    Load an OBJ file|};
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
@@ -96,9 +95,6 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
   | [ ":callgraph"; file ] ->
       Printf.printf "Generating callgraph metadata file %s.\n" file;
       generate_callgraph file ds
-  | [ ":obj"; file ] ->
-      Printf.printf "Loading OBJ32 file %s.\n" file;
-      Obj32.load_file file cpu.elfwrite32
   | [ ":bin" ; file ; address ]  ->
       let ram_address = Int64.of_string address in
       Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
@@ -192,6 +188,22 @@ let cmd_elf (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
   )
 
 let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
+
+(****************************************************************
+ * Command: :obj
+ ****************************************************************)
+
+let cmd_obj (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ] ->
+    Printf.printf "Loading OBJ32 file %s.\n" file;
+    Obj32.load_file file cpu.elfwrite32;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "obj" "<file>" "Load an OBJ32 file" cmd_obj
 
 (****************************************************************
  * Command: :run
