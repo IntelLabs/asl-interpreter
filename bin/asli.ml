@@ -184,22 +184,6 @@ let cmd_callgraph (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool
 let _ = Commands.registerCommand "callgraph" "<json file>" "Generate json file containing callgraph" cmd_callgraph
 
 (****************************************************************
- * Command: :obj
- ****************************************************************)
-
-let cmd_obj (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Loading OBJ32 file %s.\n" file;
-    Obj32.load_file file cpu.elfwrite32;
-    true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "obj" "<file>" "Load an OBJ32 file" cmd_obj
-
-(****************************************************************
  * Command: :run
  ****************************************************************)
 

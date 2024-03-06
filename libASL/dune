@@ -34,7 +34,7 @@
    lexer
    lexersupport
    loadASL
-   obj32
+   metadata
    primops
    scope
    scopeStack
@@ -94,4 +94,28 @@
 (plugin
   (name asli.elf)
   (libraries asli.elf)
+  (site (asli plugins)))
+
+(library
+  (public_name asli.callgraph)
+  (name callgraph)
+  (flags (:standard -w -27))
+  (modules callgraph)
+  (libraries asli.libASL))
+
+(plugin
+  (name asli.callgraph)
+  (libraries asli.callgraph)
+  (site (asli plugins)))
+
+(library
+  (public_name asli.obj32)
+  (name obj32)
+  (flags (:standard -w -27))
+  (modules obj32)
+  (libraries asli.libASL))
+
+(plugin
+  (name asli.obj32)
+  (libraries asli.obj32)
   (site (asli plugins)))
