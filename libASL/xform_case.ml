@@ -147,5 +147,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.map xform_decl ds
 
 (****************************************************************
+ * Command: :xform_case
+ ****************************************************************)
+
+let cmd_xform_case (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_case" "" "Simplify complex case statements" cmd_xform_case
+
+(****************************************************************
  * End
  ****************************************************************)
