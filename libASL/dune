@@ -23,7 +23,6 @@
    backend_verilog
    bin_file
    builtin_idents
-   chekhov
    commands
    cpu
    elf
@@ -60,4 +59,17 @@
    xform_valid)
  (libraries ocolor yojson zarith z3))
 
+
 (env (_ (odoc (warnings fatal))))
+
+(library
+  (public_name asli.chekhov)
+  (name chekhov)
+  (flags (:standard -w -27))
+  (modules chekhov)
+  (libraries asli.libASL))
+
+(plugin
+  (name asli.chekhov)
+  (libraries asli.chekhov)
+  (site (asli plugins)))

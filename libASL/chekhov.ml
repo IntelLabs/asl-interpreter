@@ -5,6 +5,7 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
+open LibASL
 module AST = Asl_ast
 module RegMap = Map.Make(String)
 
@@ -230,6 +231,22 @@ let chekhovTextTracer (env : (string * string) list) (regfile : string) (o_ami :
   let si = chekhovText trace_chan in
   chekhovTracer env regmap si o_ami
 
+(****************************************************************
+ * Command: :chekhov
+ ****************************************************************)
+
+let cmd_chekhov (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | ( trace_file :: regmap_file :: rest) ->
+    let trace_chan = open_out trace_file in
+    let o_ami = match rest with [ami] -> Some ami; | _ -> None in
+    Value.tracer := chekhovTextTracer [] regmap_file o_ami trace_chan;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "chekhov" "<trc> <cfg> [<ami>]" "Enable chekhov tracing" cmd_chekhov
 
 (*****************************************
  * End

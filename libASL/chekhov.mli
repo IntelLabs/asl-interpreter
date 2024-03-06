@@ -6,7 +6,7 @@
  ****************************************************************)
 
 (** Create Tracer module that produces Chekhov trace to file *)
-val chekhovTextTracer : (string * string) list -> string -> string option -> out_channel -> (module Value.Tracer)
+val chekhovTextTracer : (string * string) list -> string -> string option -> out_channel -> (module LibASL.Value.Tracer)
 
 (*****************************************
  * End
