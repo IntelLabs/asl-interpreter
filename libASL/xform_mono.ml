@@ -434,5 +434,15 @@ let monomorphize (ds : AST.declaration list) : AST.declaration list =
   ds' @ mono#getInstances
 
 (****************************************************************
+ * Command: :xform_monomorphize
+ ****************************************************************)
+
+let cmd_xform_monomorphize (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := monomorphize !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_monomorphize" "" "Monomorphize function calls" cmd_xform_monomorphize
+
+(****************************************************************
  * End
  ****************************************************************)
