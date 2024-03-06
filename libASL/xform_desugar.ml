@@ -54,5 +54,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.map (Asl_visitor.visit_decl (xform :> Asl_visitor.aslVisitor)) ds
 
 (****************************************************************
+ * Command: :xform_desugar
+ ****************************************************************)
+
+let cmd_xform_desugar (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_desugar" "" "Remove syntactic sugar" cmd_xform_desugar
+
+(****************************************************************
  * End
  ****************************************************************)
