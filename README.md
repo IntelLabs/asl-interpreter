@@ -20,6 +20,7 @@ To build and run the ASL interpreter, you will need:
       * ocolor    - adds color support to formatted output
       * odoc      - OCaml documentation generator (optional)
       * dune      - OCaml build system
+      * dune-site - OCaml plugin support
       * menhir    - parser generator tool
       * linenoise - OCaml line editing library
       * yojson    - OCaml JSON library
@@ -106,6 +107,7 @@ Platform independent instructions:
     opam install ocaml.4.14.1
     opam install ocolor
     opam install dune
+    opam install dune-site
     opam install menhir
     opam install linenoise
     opam install yojson

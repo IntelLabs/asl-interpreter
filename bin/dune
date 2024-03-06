@@ -2,10 +2,10 @@
  (name asli)
  (public_name asli)
  (modes exe)
- (modules asli)
+ (modules asli sites)
  (flags
   (-cclib -lstdc++))
- (libraries libASL linenoise))
+ (libraries libASL linenoise dune-site))
 
 (executable
  (name asl2v)
@@ -16,6 +16,10 @@
   (-cclib -lstdc++))
  (libraries libASL linenoise))
 
+(generate_sites_module
+  (module sites)
+  (sites asli))
+
 (executable
  (name testlexer)
  (modes exe)
@@ -24,3 +28,8 @@
  (flags
   (-cclib -lstdc++))
  (libraries libASL))
+
+(install
+ (section (site (asli stdlib)))
+ (files
+  (../prelude.asl as prelude.asl)))

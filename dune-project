@@ -1,4 +1,6 @@
-(lang dune 2.5)
+(lang dune 3.11)
+(using dune_site 0.1)
+
 (name asli)
 (version 0.2.0)
 
@@ -17,8 +19,12 @@
                "\| Experimentally includes partial support for generating Verilog
                "\| that can be used as a reference model for hardware verification.
   )
+  (sites (lib runtime)
+         (lib runtime_include)
+         (share stdlib))
   (depends
     ("alcotest"  :with-test)
+    "dune-site"
     "linenoise"
     ("menhir"    :build)
     ("ocaml"     (>= "4.14"))

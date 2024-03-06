@@ -20,6 +20,11 @@ open Asl_utils
 let opt_filenames : string list ref = ref []
 let opt_print_version = ref false
 let opt_print_spec = ref false
+let opt_print_cflags = ref false
+let opt_print_ldflags = ref false
+let opt_print_includedir = ref false
+let opt_print_runtimedir = ref false
+let opt_print_stdlibdir = ref false
 let opt_verbose = ref false
 let opt_batchmode = ref false
 let opt_show_banner = ref true
@@ -101,8 +106,8 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
   | [ ":q" ] | [ ":quit" ] -> exit 0
   | (cmd :: args) when String.starts_with ~prefix:":" cmd ->
      ( match Commands.CommandMap.find_opt (Utils.string_drop 1 cmd) !Commands.commands with
-     | None -> Printf.printf "Unknown command %s\n" cmd
-     | Some (cmd, _, _) -> ignore (cmd tcenv cpu args); () (* todo: use the bool *)
+     | None -> Printf.printf "Unknown command %s\n" cmd; error ()
+     | Some (cmd, _, _) -> if not (cmd tcenv cpu args) then error()
      )
   | _ ->
       if ';' = String.get input (String.length input - 1) then
@@ -286,6 +291,11 @@ let options =
       ("--print_spec", Arg.Set opt_print_spec, "       Print ASL spec");
       ("-v", Arg.Set opt_verbose, "       Verbose output");
       ("--version", Arg.Set opt_print_version, "       Print version");
+      ("--print-c-flags",     Arg.Set opt_print_cflags,     "       Print the C flags needed to use the ASL C runtime");
+      ("--print-ld-flags",    Arg.Set opt_print_ldflags,    "       Print the flags needed to link against the ASL C runtime");
+      ("--print-lib-dir",     Arg.Set opt_print_stdlibdir,  "       Print the installation directory for ASL standard library");
+      ("--print-runtime-dir", Arg.Set opt_print_runtimedir, "       Print the installation directory for ASL C runtime");
+      ("--print-include-dir", Arg.Set opt_print_includedir, "       Print the installation directory for ASL C runtime include headers");
       ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
       ("--batchmode", Arg.Set opt_batchmode,  "       Fail on error");
       ("--project", Arg.String add_project,     "       Execute project file");
@@ -314,12 +324,23 @@ let main () =
   let paths = Option.value (Sys.getenv_opt "ASL_PATH") ~default:"."
     |> String.split_on_char ':' in
   if !opt_print_version then Printf.printf "%s\n" version
-  else
-    if !opt_show_banner then (
+  else if !opt_print_cflags then begin
+    List.iter (Printf.printf "-I%s ") Sites.Sites.runtime_include;
+    print_newline ()
+  end else if !opt_print_ldflags then begin
+    List.iter (Printf.printf "-L%s ") Sites.Sites.runtime;
+    Printf.printf "-lASL\n"
+  end else if !opt_print_includedir then print_endline (String.concat ":" Sites.Sites.runtime_include)
+  else if !opt_print_runtimedir then print_endline (String.concat ":" Sites.Sites.runtime)
+  else if !opt_print_stdlibdir then print_endline (String.concat ":" Sites.Sites.stdlib)
+  else begin
+    if !opt_show_banner then begin
       List.iter print_endline banner;
-      print_endline "\nType :? for help");
+      print_endline "\nType :? for help"
+    end;
     try (
-      let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
+      let stdlibdirs : string list = Sites.Sites.stdlib @ paths in
+      let t = LoadASL.read_file stdlibdirs "prelude.asl" true !opt_verbose in
       let ts = LoadASL.read_files paths !opt_filenames !opt_verbose in
       let ds = t @ ts in
       if !opt_verbose then Printf.printf "Performing global checks\n%!";
@@ -343,7 +364,11 @@ let main () =
       LNoise.history_load ~filename:"asl_history" |> ignore;
       LNoise.history_set ~max_length:100 |> ignore;
       repl tcenv cpu
-    ) with e -> Error.print_exception e; exit 1
+    ) with e -> begin
+      Error.print_exception e;
+      exit 1
+    end
+  end
 
 let _ = ignore (main ())
 
