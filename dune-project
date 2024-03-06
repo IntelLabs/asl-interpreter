@@ -12,16 +12,17 @@
 
 (package
   (name asli)
-  (synopsis "Interpreter for Arm's Architecture Specification Language (ASL)")
-  (description "\| Interpreter for the language ASL that Arm uses to write their ISA specifications.
+  (synopsis "Interpreter for Architecture Specification Language (ASL)")
+  (description "\| Interpreter for the language ASL that Arm and Intel use to write their ISA specifications.
                "\|
                "\| Currently supports reading/typechecking the specification,
                "\| interactive execution of ASL statements and expressions,
                "\| executing opcodes one at a time,
-               "\| loading ELF files and executing Arm binaries.
+               "\| loading ELF files and executing binaries.
                "\|
-               "\| Experimentally includes partial support for generating Verilog
-               "\| that can be used as a reference model for hardware verification.
+               "\| Experimentally includes support for generating C code
+               "\| that can be used to execute binaries faster and can be
+               "\| linked with other C/C++ libraries.
   )
   (sites (lib plugins)
          (lib runtime)
