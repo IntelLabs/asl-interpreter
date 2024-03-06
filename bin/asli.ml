@@ -15,7 +15,6 @@ module TC = Tcheck
 module AST = Asl_ast
 module FMT = Asl_fmt
 
-open Yojson
 open Asl_utils
 
 let opt_filenames : string list ref = ref []
@@ -146,42 +145,6 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
         error ();
       );
       repl tcenv cpu
-
-(****************************************************************
- * Command: :callgraph
- ****************************************************************)
-
-let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
-  let cg = ref Bindings.empty in
-  List.iter (fun d ->
-      ( match decl_name d with
-      | None -> ()
-      | Some nm ->
-          let callees = calls_of_decl d in
-          let old = Bindings.find_opt nm !cg |> Option.value ~default:IdentSet.empty in
-          cg := Bindings.add nm (IdentSet.union callees old) !cg
-      ))
-      ds;
-  let t = Bindings.bindings !cg
-        |> List.map (fun (caller, callees) ->
-              let callee_names = IdentSet.elements callees |> List.map Ident.pprint in
-              (Ident.pprint caller, `List (List.map (fun s -> `String(s)) callee_names)))
-        |> (fun xs -> `Assoc xs)
-  in
-  let chan = open_out filename in
-  Yojson.pretty_to_channel chan t
-
-let cmd_callgraph (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Generating callgraph metadata file %s.\n" file;
-    generate_callgraph file !Commands.declarations;
-    true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "callgraph" "<json file>" "Generate json file containing callgraph" cmd_callgraph
 
 (****************************************************************
  * Command: :run

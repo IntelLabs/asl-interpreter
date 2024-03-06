@@ -34,7 +34,6 @@
    lexer
    lexersupport
    loadASL
-   metadata
    primops
    scope
    scopeStack
@@ -97,15 +96,15 @@
   (site (asli plugins)))
 
 (library
-  (public_name asli.callgraph)
-  (name callgraph)
+  (public_name asli.metadata)
+  (name metadata)
   (flags (:standard -w -27))
-  (modules callgraph)
+  (modules metadata)
   (libraries asli.libASL))
 
 (plugin
-  (name asli.callgraph)
-  (libraries asli.callgraph)
+  (name asli.metadata)
+  (libraries asli.metadata)
   (site (asli plugins)))
 
 (library
