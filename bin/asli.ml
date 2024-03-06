@@ -33,26 +33,6 @@ let projects : string list ref = ref []
 let add_project (prj : string): unit =
   projects := List.append !projects [prj]
 
-let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
-  let cg = ref Bindings.empty in
-  List.iter (fun d ->
-      ( match decl_name d with
-      | None -> ()
-      | Some nm ->
-          let callees = calls_of_decl d in
-          let old = Bindings.find_opt nm !cg |> Option.value ~default:IdentSet.empty in
-          cg := Bindings.add nm (IdentSet.union callees old) !cg
-      ))
-      ds;
-  let t = Bindings.bindings !cg
-        |> List.map (fun (caller, callees) ->
-              let callee_names = IdentSet.elements callees |> List.map Ident.pprint in
-              (Ident.pprint caller, `List (List.map (fun s -> `String(s)) callee_names)))
-        |> (fun xs -> `Assoc xs)
-  in
-  let chan = open_out filename in
-  Yojson.pretty_to_channel chan t
-
 (****************************************************************
  * Interactive command support
  ****************************************************************)
@@ -60,7 +40,6 @@ let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
 let help_msg =
   [
     {|:? :help                       Show this help message|};
-    {|:callgraph <file>              Generate json file containing callgraph|};
     {|:bin <file> <address>          Load a BIN <file> to <address>|};
     {|:project <file>                Execute ASLi commands in <file>|};
     {|:q :quit                       Exit the interpreter|};
@@ -85,15 +64,11 @@ let mkLoc (fname : string) (input : string) : AST.l =
   in
   AST.Range (start, finish)
 
-let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cpu.cpu)
-    (fname : string) (input0 : string) : unit =
+let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (input0 : string) : unit =
   let input = String.trim input0 in
   match String.split_on_char ' ' input with
   | [ "" ] -> ()
   | ("//"::_) -> () (* comment *)
-  | [ ":callgraph"; file ] ->
-      Printf.printf "Generating callgraph metadata file %s.\n" file;
-      generate_callgraph file ds
   | [ ":bin" ; file ; address ]  ->
       let ram_address = Int64.of_string address in
       Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
@@ -125,7 +100,7 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
       let inchan = open_in prj in
       try
         while true do
-          process_command ds tcenv cpu prj (input_line inchan)
+          process_command tcenv cpu prj (input_line inchan)
         done
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
@@ -144,27 +119,63 @@ let rec process_command (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cp
         let v = Eval.eval_expr loc cpu.env e in
         print_endline (Value.string_of_value v)
 
-and load_project (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cpu.cpu) (prj : string) : unit =
+and load_project (tcenv : TC.Env.t) (cpu : Cpu.cpu) (prj : string) : unit =
   let inchan = open_in prj in
   try
     while true do
-      process_command ds tcenv cpu prj (input_line inchan)
+      process_command tcenv cpu prj (input_line inchan)
     done
   with End_of_file -> close_in inchan
 
-let rec repl (ds : AST.declaration list) (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
+let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
   flush stdout;
   match LNoise.linenoise "ASLi> " with
   | None -> ()
   | Some input ->
       LNoise.history_add input |> ignore;
       (try
-        process_command ds tcenv cpu "<stdin>" input
+        process_command tcenv cpu "<stdin>" input
       with e ->
         Error.print_exception e;
         error ();
       );
-      repl ds tcenv cpu
+      repl tcenv cpu
+
+(****************************************************************
+ * Command: :callgraph
+ ****************************************************************)
+
+let generate_callgraph (filename : string) (ds : AST.declaration list): unit =
+  let cg = ref Bindings.empty in
+  List.iter (fun d ->
+      ( match decl_name d with
+      | None -> ()
+      | Some nm ->
+          let callees = calls_of_decl d in
+          let old = Bindings.find_opt nm !cg |> Option.value ~default:IdentSet.empty in
+          cg := Bindings.add nm (IdentSet.union callees old) !cg
+      ))
+      ds;
+  let t = Bindings.bindings !cg
+        |> List.map (fun (caller, callees) ->
+              let callee_names = IdentSet.elements callees |> List.map Ident.pprint in
+              (Ident.pprint caller, `List (List.map (fun s -> `String(s)) callee_names)))
+        |> (fun xs -> `Assoc xs)
+  in
+  let chan = open_out filename in
+  Yojson.pretty_to_channel chan t
+
+let cmd_callgraph (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [ file ] ->
+    Printf.printf "Generating callgraph metadata file %s.\n" file;
+    generate_callgraph file !Commands.declarations;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "callgraph" "<json file>" "Generate json file containing callgraph" cmd_callgraph
 
 (****************************************************************
  * Command: :chekhov
@@ -311,14 +322,15 @@ let main () =
       let env = Eval.build_evaluation_environment ds in
       if !opt_verbose then Printf.printf "Built evaluation environment\n";
 
+      Commands.declarations := ds;
       let tcenv = TC.Env.mkEnv TC.env0 in
       let cpu = Cpu.mkCPU env in
 
-      List.iter (load_project ds tcenv cpu) !projects;
+      List.iter (load_project tcenv cpu) !projects;
 
       LNoise.history_load ~filename:"asl_history" |> ignore;
       LNoise.history_set ~max_length:100 |> ignore;
-      repl ds tcenv cpu
+      repl tcenv cpu
     ) with e -> Error.print_exception e; exit 1
 
 let _ = ignore (main ())

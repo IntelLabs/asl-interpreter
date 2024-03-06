@@ -19,6 +19,11 @@ val commands : (command * string * string) CommandMap.t ref
  *)
 val registerCommand : string -> string -> string -> command -> unit
 
+(** List of all declarations.
+ *  This list can be accessed and updated by commands
+ *)
+val declarations : Asl_ast.declaration list ref
+
 (****************************************************************
  * End
  ****************************************************************)

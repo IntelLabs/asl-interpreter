@@ -12,7 +12,9 @@ module CommandMap = Map.Make(String)
 let commands : (command * string * string) CommandMap.t ref = ref CommandMap.empty
 
 let registerCommand (name : string) (args : string) (description : string) (cmd : command) : unit =
-   commands := CommandMap.add name (cmd, args, description) !commands
+  commands := CommandMap.add name (cmd, args, description) !commands
+
+let declarations : Asl_ast.declaration list ref = ref []
 
 (****************************************************************
  * End
