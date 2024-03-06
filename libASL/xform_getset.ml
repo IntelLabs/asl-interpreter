@@ -122,5 +122,15 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
   List.flatten (List.map (xform_decl replacer) ds)
 
 (****************************************************************
+ * Command: :xform_getset
+ ****************************************************************)
+
+let cmd_xform_getset (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  Commands.declarations := xform_decls !Commands.declarations;
+  true
+
+let _ = Commands.registerCommand "xform_getset" "" "Introduce calls to getter/setter functions" cmd_xform_getset
+
+(****************************************************************
  * End
  ****************************************************************)
