@@ -50,14 +50,14 @@ let add_exec (cmd : string): unit =
 
 let help_msg =
   [
-    {|:? :help                       Show this help message|};
-    {|:project <file>                Execute ASLi commands in <file>|};
-    {|:q :quit                       Exit the interpreter|};
-    {|:set impdef <string> = <expr>  Define implementation defined behavior|};
-    {|:set +<flag>                   Set flag|};
-    {|:set -<flag>                   Clear flag|};
-    {|<expr>                         Execute ASL expression|};
-    {|<stmt> ;                       Execute ASL statement|};
+    {|:? :help                            Show this help message|};
+    {|:project <file>                     Execute ASLi commands in <file>|};
+    {|:q :quit                            Exit the interpreter|};
+    {|:set impdef <string> = <expr>       Define implementation defined behavior|};
+    {|:set +<flag>                        Set flag|};
+    {|:set -<flag>                        Clear flag|};
+    {|<expr>                              Execute ASL expression|};
+    {|<stmt> ;                            Execute ASL statement|};
   ]
 
 (****************************************************************
@@ -82,7 +82,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
       Commands.CommandMap.iter
-        (fun nm (fn, args, desc) -> Printf.printf ":%-30s%s\n" (nm^" "^args) desc)
+        (fun nm (fn, args, desc) -> Printf.printf ":%-35s%s\n" (nm^" "^args) desc)
         !Commands.commands;
       print_endline "\nFlags:";
       Flags.FlagMap.iter
@@ -266,6 +266,49 @@ let cmd_run (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
   true
 
 let _ = Commands.registerCommand "run" "" "Execute instructions" cmd_run
+
+(****************************************************************
+ * Command: :show
+ ****************************************************************)
+
+let cmd_show (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  (* 'glob' matching against a pattern *)
+  let pattern_match (x : string) (pattern : string) : bool =
+    let n = String.length pattern in
+    if String.get pattern (n-1) = '*' then
+      String.starts_with ~prefix:(String.sub pattern 0 (n-1)) x
+    else
+      String.equal pattern x
+  in
+  (* declarations whose name matches pattern *)
+  let decl_match (d : AST.declaration) (pattern : string) : bool =
+    ( match Asl_utils.decl_name d with
+    | Some nm -> pattern_match (Ident.name nm) pattern
+    | None -> false
+    )
+  in
+  let (ds, output) = match args with
+    | ("--output" :: filename :: ds) -> (ds, Some filename)
+    | ds -> (ds, None)
+  in
+  let ds = match ds with
+    | [] -> !Commands.declarations
+    | patterns -> List.filter (fun d -> List.exists (decl_match d) patterns) !Commands.declarations
+  in
+  ( match output with
+  | Some filename ->
+      Utils.to_file filename (fun fmt ->
+        List.iter (Format.fprintf fmt "%a@,@." FMT.declaration) ds;
+      )
+  | None ->
+      if Utils.is_empty ds then
+        Format.printf "No function selected: try ':show A*'@."
+      else
+        List.iter (Format.printf "%a@,@." FMT.declaration) ds;
+  );
+  true
+
+let _ = Commands.registerCommand "show" "[--output <file>] <patterns>*" "Show matching definitions" cmd_show
 
 (****************************************************************
  * Command: :step
