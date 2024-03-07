@@ -189,47 +189,16 @@ let xform_reachable (roots : Ident.t list) (ds : AST.declaration list) : AST.dec
   ds'
 
 (****************************************************************
- * JSON file reading support
+ * Configuration file reading support
  ****************************************************************)
 
-(* Attempt to get a Json string *)
-let get_string (tree : Safe.t) : string option =
-  ( match tree with
-  | `String s -> Some s
-  | _ -> None
-  )
-
-(* Attempt to get a Json list *)
-let get_list (tree : Safe.t) : Safe.t list option =
-  ( match tree with
-  | `List s -> Some s
-  | _ -> None
-  )
-
-(* Attempt to get a Json association list entry by key *)
-let get_entry (key : string) (tree : Safe.t) : Safe.t option =
-  ( match tree with
-  | `Assoc kvs -> List.assoc_opt key kvs
-  | _ -> None
-  )
-
-(* Read list of strings from Json files by key *)
-let get_list_by_key (key : string) (files : Safe.t list) : string list =
-  List.concat_map
-    (fun json ->
-      Option.bind (get_entry key json) (fun e ->
-          Option.bind (get_list e) (fun es ->
-              Some (List.filter_map get_string es)))
-      |> Option.value ~default:[])
-    files
-
 (* Read list of variable/type identifiers from Json files *)
-let get_idents (key : string) (transforms : Safe.t list) : Ident.t list =
-  Ident.mk_idents (get_list_by_key key transforms)
+let get_idents (key : string) : Ident.t list =
+  Ident.mk_idents (Configuration.get_strings key)
 
 (* Read list of identifiers of all kinds from Json files *)
-let get_all_idents (key : string) (transforms : Safe.t list) : Ident.t list =
-  let nms = get_list_by_key key transforms in
+let get_all_idents (key : string) : Ident.t list =
+  let nms = Configuration.get_strings key in
   (* The names could be either functions or variables/types
    * so treat them as both.
    *)
@@ -296,11 +265,10 @@ let options =
       ( "--backend",
         Arg.Symbol (backend_symbols, match_backend),
         "       Backend type (default: verilog)" );
-      ( "--transforms",
-        Arg.String (fun s ->
-            let ops = Yojson.Safe.from_file s in
-            transforms := !transforms @ [ops]),
-        "       Apply transformations");
+      ("--configuration", Arg.String Configuration.read_configuration_file,
+                                                "       Load JSON configuration file");
+      ("--transforms", Arg.String Configuration.read_configuration_file,
+                                                "       Load JSON configuration file");
       ("-o", Arg.Set_string output_file, "       Output file");
       ("--no-unroll", Arg.Clear CP.unroll_loops, "       Do not unroll loops");
       ("--max-verilog-width", Arg.Set_int Backend_verilog.int_width,
@@ -344,10 +312,10 @@ let main () =
   if !output_file = "" then
     failwith "Output file not specified (use -o foo to specify)";
 
-  let imports = get_all_idents "imports" !transforms in
-  let exports = get_all_idents "exports" !transforms in
-  let track_valid = get_idents "track-valid" !transforms in
-  Backend_c.pointer_accessed := get_idents "pointer-accessed" !transforms;
+  let imports = get_all_idents "imports" in
+  let exports = get_all_idents "exports" in
+  let track_valid = get_idents "track-valid" in
+  Backend_c.pointer_accessed := get_idents "pointer-accessed";
 
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in

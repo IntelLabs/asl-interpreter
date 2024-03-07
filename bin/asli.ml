@@ -242,6 +242,8 @@ let options =
       ("--print-include-dir", Arg.Set opt_print_includedir, "       Print the installation directory for ASL C runtime include headers");
       ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
       ("--batchmode", Arg.Set opt_batchmode,  "       Fail on error");
+      ("--configuration", Arg.String Configuration.read_configuration_file,
+                                                "       Load JSON configuration file");
       ("--exec",    Arg.String add_exec,        "       Execute command");
       ("--project", Arg.String add_project,     "       Execute project file");
     ]

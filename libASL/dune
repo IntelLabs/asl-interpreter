@@ -23,6 +23,7 @@
    backend_verilog
    builtin_idents
    commands
+   configuration
    cpu
    error
    eval
