@@ -37,8 +37,8 @@ publish::
 	$(OPAM) publish https://github.com/alastairreid/asl-interpreter/archive/$(VERSION).tar.gz
 
 doc::
-	$(DUNE) build @doc-private
-	@echo Documentation is in _build/default/_doc/_html/libASL*/LibASL/index.html
+	$(DUNE) build @doc
+	@echo Documentation is in _build/default/_doc/_html/index.html
 
 clean::
 	$(RM) *~
