@@ -147,6 +147,51 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
       repl tcenv cpu
 
 (****************************************************************
+ * Command: :filter
+ ****************************************************************)
+
+(* Replace a function definition with a function declaration
+ * (i.e., delete the function body) if it occurs in the list
+ * of functions to be deleted.
+ *)
+let delete_function (discard : Ident.t list) (x : AST.declaration) =
+  ( match x with
+  | AST.Decl_FunDefn (f, ps, args, ty, b, loc) when List.mem f discard ->
+    AST.Decl_FunType (f, ps, args, ty, loc)
+  | AST.Decl_ProcDefn (f, ps, args, b, loc) when List.mem f discard ->
+    AST.Decl_ProcType (f, ps, args, loc)
+  | _ -> x
+  )
+
+let cmd_filter (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  let read_group_idents (group : string) : Ident.t list =
+    let nms = Configuration.get_strings group in
+    let xs = Ident.mk_fidents nms in
+    let ys = Ident.mk_idents nms in
+    xs @ ys
+  in
+  (match args with
+  | ["--reachable-from"; group] ->
+    let roots = read_group_idents group in
+    if Utils.is_empty roots then (
+      Printf.printf "Group '%s' is empty in :filter --reachable-from %s\n" group group;
+      false
+    ) else (
+      Commands.declarations := Asl_utils.reachable_decls roots !Commands.declarations;
+      true
+    )
+  | ["--not-function-in"; group] ->
+    let functions = read_group_idents group in
+    Commands.declarations := List.map (delete_function functions) !Commands.declarations;
+    true
+  | _ ->
+    Printf.printf "Unrecognized argument to :filter %s\n" (String.concat " " args);
+    false
+  )
+
+let _ = Commands.registerCommand "filter" "--reachable_from|--not_function_in <group>" "Discard non-matching definitions" cmd_filter
+
+(****************************************************************
  * Command: :run
  ****************************************************************)
 
