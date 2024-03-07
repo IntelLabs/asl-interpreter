@@ -23,6 +23,7 @@
     ("menhir"    :build)
     ("ocaml"     (>= "4.14"))
     ("ocolor"    (>= "1.2.2"))
+    "odoc"
     "yojson"
     ("z3"        (>= "4.8.7"))
     "zarith"
