@@ -48,5 +48,21 @@ let xform_decls (vars : Ident.t list) (ds : AST.declaration list) :
   List.map (Asl_visitor.visit_decl (xform :> Asl_visitor.aslVisitor)) ds
 
 (****************************************************************
+ * Command: :xform_valid
+ ****************************************************************)
+
+let cmd_xform_valid (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  ( match args with
+  | [group] ->
+    let targets = Ident.mk_idents (Configuration.get_strings group) in
+    Commands.declarations := xform_decls targets !Commands.declarations;
+    true
+  | _ ->
+    false
+  )
+
+let _ = Commands.registerCommand "xform_valid" "<configuration group>" "Instrument UNKNOWN assignments" cmd_xform_valid
+
+(****************************************************************
  * End
  ****************************************************************)
