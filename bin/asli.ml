@@ -39,6 +39,11 @@ let projects : string list ref = ref []
 let add_project (prj : string): unit =
   projects := List.append !projects [prj]
 
+let execs : string list ref = ref []
+
+let add_exec (cmd : string): unit =
+  execs := List.append !execs [cmd]
+
 (****************************************************************
  * Interactive command support
  ****************************************************************)
@@ -299,6 +304,7 @@ let options =
       ("--print-include-dir", Arg.Set opt_print_includedir, "       Print the installation directory for ASL C runtime include headers");
       ("--nobanner", Arg.Clear opt_show_banner, "       Suppress banner");
       ("--batchmode", Arg.Set opt_batchmode,  "       Fail on error");
+      ("--exec",    Arg.String add_exec,        "       Execute command");
       ("--project", Arg.String add_project,     "       Execute project file");
     ]
 
@@ -361,10 +367,13 @@ let main () =
       let cpu = Cpu.mkCPU env in
 
       List.iter (load_project tcenv cpu) !projects;
+      List.iter (process_command tcenv cpu "<argv>") !execs;
 
-      LNoise.history_load ~filename:"asl_history" |> ignore;
-      LNoise.history_set ~max_length:100 |> ignore;
-      repl tcenv cpu
+      if not !opt_batchmode then begin
+        LNoise.history_load ~filename:"asl_history" |> ignore;
+        LNoise.history_set ~max_length:100 |> ignore;
+        repl tcenv cpu
+      end
     ) with e -> begin
       Error.print_exception e;
       exit 1
