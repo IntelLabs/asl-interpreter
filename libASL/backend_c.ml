@@ -1413,5 +1413,244 @@ let exceptions_init (fmt : PP.formatter) : unit =
   )
 
 (****************************************************************
+ * Generating files
+ *
+ * Generate separate files containing
+ * - types, constants and function prototypes
+ * - variable definitions
+ * - function definitions
+ ****************************************************************)
+
+let type_decls (xs : AST.declaration list) : AST.declaration list =
+  let mk_type_decl (x : AST.declaration) : AST.declaration option =
+    ( match x with
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+      -> Some x
+
+    | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
+    | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+    | Decl_Const _
+    | Decl_Exception _
+    | Decl_Var _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_Config _
+      -> None
+    )
+  in
+  List.filter_map mk_type_decl xs
+
+let var_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_var_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_Const _
+    | Decl_Config _
+    | Decl_Var _
+      -> true
+
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Exception _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+      -> false
+    )
+  in
+  List.filter is_var_decl xs
+
+let fun_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_fun_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+      -> true
+
+    | Decl_Var _
+    | Decl_Const _
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Exception _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_Config _
+      -> false
+    )
+  in
+  List.filter is_fun_decl xs
+
+(****************************************************************
+ * File writing support
+ ****************************************************************)
+
+let fprinf_sys_includes (fmt : PP.formatter) (filenames : string list) : unit =
+  List.iter (PP.fprintf fmt "#include <%s>@.") filenames;
+  PP.pp_print_newline fmt ()
+
+let fprinf_includes (fmt : PP.formatter) (filenames : string list) : unit =
+  List.iter (PP.fprintf fmt "#include \"%s\"@.") filenames;
+  PP.pp_print_newline fmt ()
+
+let emit_c_header (filename : string) (sys_h_filenames : string list)
+    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
+  let filename = filename ^ ".h" in
+  let macro =
+    String.uppercase_ascii filename
+    |> String.map (fun c -> if List.mem c [ '.'; '/'; '-' ] then '_' else c)
+  in
+  Utils.to_file filename (fun fmt ->
+      PP.fprintf fmt "#ifndef %s@." macro;
+      PP.fprintf fmt "#define %s@,@." macro;
+
+      fprinf_sys_includes fmt sys_h_filenames;
+      fprinf_includes fmt h_filenames;
+
+      PP.fprintf fmt "#ifdef __cplusplus@.";
+      PP.fprintf fmt "extern \"C\" {@.";
+      PP.fprintf fmt "#endif@,@.";
+
+      f fmt;
+
+      PP.fprintf fmt "#ifdef __cplusplus@.";
+      PP.fprintf fmt "}@.";
+      PP.fprintf fmt "#endif@,@.";
+
+      PP.fprintf fmt "#endif  // %s@." macro
+  )
+
+let emit_c_source (filename : string) ?(index : int option)
+    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
+  let suffix = function None -> "" | Some i -> "_" ^ string_of_int i in
+  let filename = filename ^ suffix index ^ ".c" in
+  Utils.to_file filename (fun fmt ->
+      fprinf_includes fmt h_filenames;
+      f fmt
+  )
+
+let generate_files (num_c_files : int) (basename : string) (ds : AST.declaration list) : unit =
+  let sys_h_filenames = [ "stdbool.h" ] in
+  let h_filenames = [ "asl/runtime.h" ] in
+
+  let filename_t = basename ^ "_types" in
+  emit_c_header filename_t sys_h_filenames h_filenames (fun fmt ->
+      type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt
+  );
+  let filename_e = basename ^ "_exceptions" in
+  emit_c_header filename_e sys_h_filenames h_filenames (fun fmt ->
+      exceptions fmt ds
+  );
+  let filename_v = basename ^ "_vars" in
+  emit_c_header filename_v sys_h_filenames h_filenames (fun fmt ->
+      extern_declarations fmt (var_decls ds)
+  );
+
+  let gen_h_filenames =
+    List.map (fun s -> s ^ ".h") [ filename_t; filename_e; filename_v ]
+  in
+
+  emit_c_source filename_e gen_h_filenames (fun fmt ->
+      exceptions_init fmt);
+
+  emit_c_source filename_v gen_h_filenames (fun fmt ->
+      declarations fmt (var_decls ds));
+
+  let ds = fun_decls ds in
+  let emit_funs ?(index : int option) (ds : AST.declaration list) : unit =
+    emit_c_source (basename ^ "_funs") ?index gen_h_filenames (fun fmt ->
+        declarations fmt ds)
+  in
+  if num_c_files = 1 then
+    emit_funs ds
+  else
+    let threshold = List.length ds / num_c_files in
+    let rec emit_funs_by_chunk (i : int) (acc : AST.declaration list) = function
+      (* last chunk *)
+      | l when i = num_c_files ->
+          emit_funs ~index:i (List.rev acc @ l)
+      | h :: t when List.length acc < threshold ->
+          emit_funs_by_chunk i (h :: acc) t
+      | h :: t ->
+          emit_funs ~index:i (List.rev acc);
+          emit_funs_by_chunk (i + 1) [ h ] t
+      | [] -> emit_funs ~index:i (List.rev acc)
+    in
+    emit_funs_by_chunk 1 [] ds
+
+(****************************************************************
+ * Command: :generate_c
+ ****************************************************************)
+
+let opt_num_c_files = ref 1
+let opt_basename : string ref = ref "asl2c"
+
+let options =
+  Arg.align
+    [
+      ("--basename",     Arg.Set_string opt_basename, "       Basename of output files");
+      ("--num-c-files",  Arg.Set_int opt_num_c_files, "       Number of .c files created (default: 1)");
+      ("--line-info",    Arg.Set include_line_info,   "       Insert line number information");
+      ("--no-line-info", Arg.Clear include_line_info, "       Do not insert line number information");
+    ]
+
+let usage_msg = "Usage: :generate_c <options> --basename=<basename>\n"
+
+let cmd_generate_c (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+  let ok = ref true in
+  let anonymous_arg (arg : string) : unit =
+    Printf.printf "Unrecognized argument of generate_c: %s\n" arg;
+    ok := false
+  in
+  let argv = Array.of_list (":generate_c"::args) in
+  Stdlib.Arg.parse_argv ~current:(ref 0) argv options anonymous_arg usage_msg;
+  if !ok then generate_files !opt_num_c_files !opt_basename !Commands.declarations;
+  !ok
+
+let _ = Commands.registerCommand "generate_c" "" "Generate C" cmd_generate_c
+
+(****************************************************************
  * End
  ****************************************************************)
