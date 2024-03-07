@@ -50,6 +50,9 @@ let varnames (fmt : PP.formatter) (xs : Ident.t list) : unit =
  *)
 let int_width = ref 66
 
+(* Include `line directives in generated code *)
+let include_line_info : bool ref = ref false
+
 (* Verilog delimiters *)
 
 let amp_amp (fmt : PP.formatter) : unit = delimiter fmt "&&"
@@ -659,7 +662,19 @@ let decl (fmt : PP.formatter) (x : AST.stmt) : unit =
       cut fmt
   | _ -> ()
 
+let stmt_line_info (fmt : PP.formatter) (x : AST.stmt) : unit =
+  if !include_line_info then
+    ( match Asl_utils.stmt_loc x with
+    | Range (p, _) ->
+        let fname = p.Lexing.pos_fname in
+        let line = p.Lexing.pos_lnum in
+        PP.fprintf fmt "`line %d \"%s\" 0@," line fname
+    | _ -> ()
+    )
+
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
+  stmt_line_info fmt x;
+
   match x with
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
@@ -905,6 +920,158 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
 
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
+
+(****************************************************************
+ * Generating files
+ *
+ * Generate separate files containing
+ * - types, constants and function prototypes
+ * - variable definitions
+ * - function definitions
+ ****************************************************************)
+
+let type_decls (xs : AST.declaration list) : AST.declaration list =
+  let mk_type_decl (x : AST.declaration) : AST.declaration option =
+    ( match x with
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+      -> Some x
+
+    | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
+    | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+    | Decl_Const _
+    | Decl_Exception _
+    | Decl_Var _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_Config _
+      -> None
+    )
+  in
+  List.filter_map mk_type_decl xs
+
+let var_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_var_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_Const _
+    | Decl_Config _
+    | Decl_Var _
+      -> true
+
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Exception _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+      -> false
+    )
+  in
+  List.filter is_var_decl xs
+
+let fun_decls (xs : AST.declaration list) : AST.declaration list =
+  let is_fun_decl (x : AST.declaration) : bool =
+    ( match x with
+    | Decl_FunDefn _
+    | Decl_ProcDefn _
+      -> true
+
+    | Decl_Var _
+    | Decl_Const _
+    | Decl_Enum _
+    | Decl_Record _
+    | Decl_Exception _
+    | Decl_Typedef _
+    | Decl_FunType _
+    | Decl_ProcType _
+    | Decl_BuiltinType _
+    | Decl_Forward _
+    | Decl_BuiltinFunction _
+    | Decl_VarGetterType _
+    | Decl_VarGetterDefn _
+    | Decl_ArrayGetterType _
+    | Decl_ArrayGetterDefn _
+    | Decl_VarSetterType _
+    | Decl_VarSetterDefn _
+    | Decl_ArraySetterType _
+    | Decl_ArraySetterDefn _
+    | Decl_Operator1 _
+    | Decl_Operator2 _
+    | Decl_Config _
+      -> false
+    )
+  in
+  List.filter is_fun_decl xs
+
+let generate_files (dirname : string) (basename : string) (ds : AST.declaration list) : unit =
+  let basename = Filename.concat dirname basename in
+  Utils.to_file (basename ^ "_types.svh") (fun fmt ->
+      Format.fprintf fmt "typedef bit signed[%d : 0] asl_integer;@," (!int_width - 1);
+
+      type_decls ds
+      |> Asl_utils.topological_sort |> List.rev
+      |> declarations fmt
+  );
+
+  Utils.to_file (basename ^ "_vars.svh") (fun fmt ->
+      var_decls ds
+      |> declarations fmt
+  );
+
+  Utils.to_file (basename ^ "_funs.sv") (fun fmt ->
+      fun_decls ds
+      |> declarations fmt
+  )
+
+(****************************************************************
+ * Command: :generate_verilog
+ ****************************************************************)
+
+let _ =
+  let opt_dirname = ref "" in
+  let opt_basename : string ref = ref "asl2v" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    generate_files !opt_dirname !opt_basename !Commands.declarations;
+    true
+  in
+  let flags = Arg.align [
+        ("--output-dir",   Arg.Set_string opt_dirname,  "<dirname>  Directory for output files");
+        ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
+        ("--intwidth",     Arg.Set_int    int_width,    "<num>      Maximum integer width");
+        ("--line-info",    Arg.Set include_line_info,   " Insert line number information");
+        ("--no-line-info", Arg.Clear include_line_info, " Do not insert line number information");
+      ]
+  in
+  Commands.registerCommand "generate_verilog" flags [] [] "Generate SystemVerilog" cmd
 
 (****************************************************************
  * End
