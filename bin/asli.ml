@@ -291,16 +291,16 @@ let options =
       ("--project", Arg.String add_project,     "       Execute project file");
     ]
 
-let version = "ASL 0.2.0 alpha"
+let version = "ASLi 0.2.0 alpha"
 
 let banner =
   [
-    {|            _____  _       _    ___________________________________|};
+    {|            _____  _       _                                       |};
     {|    /\     / ____|| |     (_)   ASL interpreter                    |};
     {|   /  \   | (___  | |      _    Copyright Arm Limited (c) 2017-2019|};
     {|  / /\ \   \___ \ | |     | |   Copyright Intel Inc (c) 2022-2024  |};
-    {| / ____ \  ____) || |____ | |   |} ^ version;
-    {|/_/    \_\|_____/ |______||_|   ___________________________________|};
+    {| / ____ \  ____) || |____ | |                                      |};
+    {|/_/    \_\|_____/ |______||_|   |} ^ version;
   ]
 
 let usage_msg = version ^ "\nusage: asli <options> <file1> ... <fileN>\n"
