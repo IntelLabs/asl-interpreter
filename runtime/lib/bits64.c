@@ -54,19 +54,19 @@ ASL_cvt_bits_sint_64(int width, ASL_bits64_t x)
 #endif
         /* If the sign bit is 1 then, after XOR-ing,
            the subtraction borrows from higher bits making them 111..1 */
-        return (x ^ mask) - mask;
+        return (ASL_int_t)((x ^ mask) - mask);
 }
 
 ASL_int_t
 ASL_cvt_bits_uint_64(int width, ASL_bits64_t x)
 {
-        return x;
+        return (ASL_int_t)x;
 }
 
 ASL_bits64_t
 ASL_cvt_int_bits_64(int width, ASL_int_t x)
 {
-        return x & ASL_mk_mask_64(width);
+        return (ASL_bits64_t)x & ASL_mk_mask_64(width);
 }
 
 ASL_bits64_t

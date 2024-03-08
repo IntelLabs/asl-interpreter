@@ -53,7 +53,7 @@ ASL_cvt_bits_sint(N, int width, ASL_BITS_TYPE x)
 #ifdef ASL_INT128
         return ASL_int_128(x.u64[1], x.u64[0]);
 #else
-        return x.u64[0];
+        return (ASL_int_t)x.u64[0];
 #endif
 }
 
@@ -63,7 +63,7 @@ ASL_cvt_bits_uint(N, int width, ASL_BITS_TYPE x)
 #ifdef ASL_INT128
         return ASL_int_128(x.u64[1], x.u64[0]);
 #else
-        return x.u64[0];
+        return (ASL_int_t)x.u64[0];
 #endif
 }
 
@@ -71,17 +71,17 @@ ASL_BITS_TYPE
 ASL_cvt_int_bits(N, int width, ASL_int_t x)
 {
         ASL_BITS_TYPE r;
-        r.u64[0] = x;
+        r.u64[0] = (uint64_t)x;
 #ifdef ASL_INT128
-        r.u64[1] = x >> 64;
+        r.u64[1] = (uint64_t)(x >> 64);
         if (x < 0) {
                 for (int i = 2; i < ASL_BITS_LIMBS_64; ++i)
-                        r.u64[i] = -1LL;
+                        r.u64[i] = -1ULL;
         }
 #else
         if (x < 0) {
                 for (int i = 1; i < ASL_BITS_LIMBS_64; ++i)
-                        r.u64[i] = -1LL;
+                        r.u64[i] = -1ULL;
         }
 #endif
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));
@@ -122,7 +122,7 @@ ASL_mul_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y)
                                      + (uint64_t)x.u32[i] * (uint64_t)y.u32[j]
                                      + carry;
                         carry = p >> 32;
-                        r.u32[i + j] = p;
+                        r.u32[i + j] = (uint32_t)p;
                 }
         }
         return ASL_and_bits(N, width, r, ASL_mk_mask(N, width));

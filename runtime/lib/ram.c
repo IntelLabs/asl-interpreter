@@ -136,7 +136,7 @@ ASL_ram_read(int64_t address_size, int64_t size, ASL_ram_t ram,
         runtime_error_if(size > 8, "unsupported read access size");
 
         uint64_t val = 0;
-        for (int i = 0; i < size; ++i) {
+        for (uint64_t i = 0; i < size; ++i) {
                 uint8_t *page = page_lookup(ram, address + i);
                 *((uint8_t *)&val + i) = *(page + page_offset(address + i));
         }
@@ -150,7 +150,7 @@ ASL_ram_write(int64_t address_size, int64_t size, ASL_ram_t ram,
         runtime_error_if(!ram, "cannot write RAM");
         runtime_error_if(size > 8, "unsupported write access size");
 
-        for (int i = 0; i < size; ++i) {
+        for (uint64_t i = 0; i < size; ++i) {
                 uint8_t *page = page_lookup(ram, address + i);
                 *(page + page_offset(address + i)) = *((uint8_t *)&val + i);
         }
