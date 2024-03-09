@@ -1,0 +1,13 @@
+name: McAfee Virus Scan
+on:
+  workflow_dispatch:
+  
+jobs:
+  virus:
+    name: McAfee Virus Scan
+    runs-on: [self-hosted, Linux, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Execute Scan
+        uses: intel-innersource/frameworks.devops.github.actions.mcafee@main
+
