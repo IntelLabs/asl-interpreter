@@ -73,7 +73,6 @@ binop =
  | Binop_Multiply
  | Binop_Divide
  | Binop_Power
- | Binop_Rem
  | Binop_Div
  | Binop_Mod
  | Binop_ShiftL
@@ -285,7 +284,6 @@ let miscOperators: binop list =
     ; Binop_Multiply
     ; Binop_Divide
     ; Binop_Power
-    ; Binop_Rem
     ; Binop_Div
     ; Binop_Mod
     ; Binop_ShiftL

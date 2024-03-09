@@ -49,7 +49,6 @@ val pow2_int : Ident.t
 val pow_int_int : Ident.t
 val shl_int : Ident.t
 val shr_int : Ident.t
-val zrem_int : Ident.t
 val add_real : Ident.t
 val cvt_int_real : Ident.t
 val divide_real : Ident.t
