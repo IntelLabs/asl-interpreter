@@ -20,7 +20,6 @@ let keywords : (string * Asl_parser.token) list = [
     ("MOD",                    MOD);
     ("NOT",                    NOT);
     ("OR",                     OR);
-    ("QUOT",                   QUOT);
     ("REM",                    REM);
     ("UNKNOWN",                UNKNOWN);
     ("XOR",                    EOR);

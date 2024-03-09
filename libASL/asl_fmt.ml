@@ -108,7 +108,6 @@ let kw_in (fmt : PP.formatter) : unit = delimiter fmt "IN"
 let kw_mod (fmt : PP.formatter) : unit = delimiter fmt "MOD"
 let kw_not (fmt : PP.formatter) : unit = delimiter fmt "NOT"
 let kw_or (fmt : PP.formatter) : unit = delimiter fmt "OR"
-let kw_quot (fmt : PP.formatter) : unit = delimiter fmt "QUOT"
 let kw_rem (fmt : PP.formatter) : unit = delimiter fmt "REM"
 let kw_array (fmt : PP.formatter) : unit = keyword fmt "array"
 let kw_as (fmt : PP.formatter) : unit = delimiter fmt "as"
@@ -268,7 +267,6 @@ let binop (fmt : PP.formatter) (x : AST.binop) : unit =
   | Binop_Multiply -> star fmt
   | Binop_Divide -> slash fmt
   | Binop_Power -> caret fmt
-  | Binop_Quot -> kw_quot fmt
   | Binop_Rem -> kw_rem fmt
   | Binop_Div -> kw_div fmt
   | Binop_Mod -> kw_mod fmt

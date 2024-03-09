@@ -697,7 +697,6 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | _ when Ident.equal f shl_int -> binop loc fmt "<<" args
   | _ when Ident.equal f shr_int -> binop loc fmt ">>" args
   | _ when Ident.equal f sub_int -> binop loc fmt "-" args
-  | _ when Ident.equal f zdiv_int -> binop loc fmt "/" args
   | _ when Ident.equal f zrem_int -> binop loc fmt "%" args
   (* Real builtin functions *)
   | _ when Ident.in_list f [add_real;
