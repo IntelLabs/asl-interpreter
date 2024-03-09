@@ -55,7 +55,7 @@ open Builtin_idents
  *
  *   `Right (c, [x, y, z])` represents "c * x * y * z"
  *
- *   (The list of variables is sorted to make comparision simpler)
+ *   (The list of variables is sorted to make comparison simpler)
  *
  * - or an expression (if the expression could not be converted to a polynomial)
  *

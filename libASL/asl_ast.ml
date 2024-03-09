@@ -267,8 +267,8 @@ let booleanOperators: binop list =
     ; Binop_BoolImplies
     ]
 
-(* comparision operators bind less tightly than arithmetic, etc. *)
-let comparisionOperators: binop list =
+(* comparison operators bind less tightly than arithmetic, etc. *)
+let comparisonOperators: binop list =
     [ Binop_Eq
     ; Binop_NtEq
     ; Binop_Gt
@@ -277,7 +277,7 @@ let comparisionOperators: binop list =
     ; Binop_LtEq
     ]
 
-(* arithmetic and similar operations bind more tightly than comparisions and &&/|| *)
+(* arithmetic and similar operations bind more tightly than comparisons and &&/|| *)
 let miscOperators: binop list =
     [ Binop_Plus
     ; Binop_Minus
@@ -297,7 +297,7 @@ let miscOperators: binop list =
 
 let isAssociative (x: binop): bool = List.mem x associativeOperators
 let isBoolean     (x: binop): bool = List.mem x booleanOperators
-let isComparision (x: binop): bool = List.mem x comparisionOperators
+let isComparison  (x: binop): bool = List.mem x comparisonOperators
 let isMisc        (x: binop): bool = List.mem x miscOperators
 
 (* Is operator x higher priority than y
@@ -313,8 +313,8 @@ let higherPriorityThan (x: binop) (y: binop): bool option =
     else if x = Binop_Multiply && y = Binop_Minus    then Some(true)
     else if x = Binop_Plus     && y = Binop_Minus    then Some(true)
     else if isMisc x           && isBoolean y        then Some(true)
-    else if isMisc x           && isComparision y    then Some(true)
-    else if isComparision x    && isBoolean y        then Some(true)
+    else if isMisc x           && isComparison y     then Some(true)
+    else if isComparison x     && isBoolean y        then Some(true)
 
     else if                       x = Binop_DUMMY    then Some(false)
     else if y = Binop_Power    && x = Binop_Multiply then Some(false)
@@ -324,8 +324,8 @@ let higherPriorityThan (x: binop) (y: binop): bool option =
     else if y = Binop_Multiply && x = Binop_Plus     then Some(false)
     else if y = Binop_Multiply && x = Binop_Minus    then Some(false)
     else if isMisc y           && isBoolean x        then Some(false)
-    else if isMisc y           && isComparision x    then Some(false)
-    else if isComparision y    && isBoolean x        then Some(false)
+    else if isMisc y           && isComparison x     then Some(false)
+    else if isComparison y     && isBoolean x        then Some(false)
 
     (* The following rules might be a mistake - though they do seem
      * to match common usage.
