@@ -36,3 +36,8 @@ jobs:
         run: |
           eval $(opam env)
           make test
+
+      - name: Build documentation
+        run: |
+          eval $(opam env)
+          make doc
