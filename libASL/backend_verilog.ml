@@ -53,6 +53,16 @@ let int_width = ref 66
 (* Include `line directives in generated code *)
 let include_line_info : bool ref = ref false
 
+(* list of all exception tycons - used to decide whether to insert a tag in
+ * Expr_RecordInit
+ *)
+let exception_tcs : Ident.t list ref = ref []
+
+(** Current function that we are generating code for.
+ *  This is used when throwing exceptions.
+ *)
+let current_function : (Ident.t * AST.ty option) option ref = ref None
+
 (* Verilog delimiters *)
 
 let amp_amp (fmt : PP.formatter) : unit = delimiter fmt "&&"
@@ -184,6 +194,19 @@ let ones (fmt : PP.formatter) (x : int) : unit =
   braces fmt (fun _ ->
       intLit fmt (string_of_int x);
       braces fmt (fun _ -> bitsLit fmt "1"))
+
+let rethrow_stmt (loc : AST.l) (fmt : PP.formatter) : unit =
+  ( match !current_function with
+  | None ->
+      raise (Error.Unimplemented (loc, "exception rethrow outside a function", fun fmt -> ()))
+  | Some (f, None) ->
+      PP.fprintf fmt
+        "if (ASL_exception._exc.ASL_tag != ASL_no_exception) return;"
+  | Some (f, oty) ->
+      PP.fprintf fmt
+        "if (ASL_exception._exc.ASL_tag != ASL_no_exception) return %a;"
+        varname f
+  )
 
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
@@ -532,15 +555,21 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
   | Expr_RecordInit (tc, [], fas) ->
-      delimiter fmt "'";
-      braces fmt (fun _ ->
-        commasep fmt
-          (fun (f, e) ->
-            varname fmt f;
-            colon fmt;
-            nbsp fmt;
-            expr loc fmt e)
-          fas)
+      if List.mem tc !exception_tcs then begin
+        PP.fprintf fmt "'{ _%a: '{ ASL_tag: tag_%a" tycon tc tycon tc;
+        List.iter (fun (f, e) -> PP.fprintf fmt ", %a: %a" varname f (expr loc) e) fas;
+        PP.fprintf fmt " }}"
+      end else begin
+        delimiter fmt "'";
+        braces fmt (fun _ ->
+          commasep fmt
+            (fun (f, e) ->
+              varname fmt f;
+              colon fmt;
+              nbsp fmt;
+              expr loc fmt e)
+            fas)
+      end
   | Expr_AsConstraint (e, _)
   | Expr_AsType (e, _) ->
       expr loc fmt e
@@ -676,6 +705,12 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   stmt_line_info fmt x;
 
   match x with
+  | Stmt_ConstDecl (DeclItem_Var (v, _), Expr_TApply (f, tes, es, true), loc) ->
+      (* special case for functions that throw exceptions *)
+      PP.fprintf fmt "%a = %a;"
+        varname v
+        (fun fmt _ -> funcall fmt f tes es loc) ();
+      rethrow_stmt loc fmt
   | Stmt_VarDeclsNoInit (vs, t, loc) ->
       (* handled by decl *)
       ()
@@ -683,9 +718,10 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
       assign loc fmt (fun _ -> varname fmt v) i
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
-  | Stmt_TCall (f, tes, args, false, loc) ->
+  | Stmt_TCall (f, tes, args, throws, loc) ->
       funcall fmt f tes args loc;
-      semicolon fmt
+      semicolon fmt;
+      if (throws) then rethrow_stmt loc fmt
   | Stmt_FunReturn (e, loc) ->
       kw_return fmt;
       nbsp fmt;
@@ -769,14 +805,26 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                 fmt ob);
           cut fmt;
           kw_endcase fmt)
+  | Stmt_Throw (e, loc) ->
+      PP.fprintf fmt "ASL_exception = %a;@," (expr loc) e;
+      ( match !current_function with
+      | None ->
+          raise (Error.Unimplemented (loc, "exception throw outside a function", fun fmt -> ()))
+      | Some (f, None) ->
+          PP.fprintf fmt
+            "return;"
+      | Some (f, oty) ->
+          PP.fprintf fmt
+            "return %a;"
+            varname f
+      )
+
   (* unimplemented *)
   | Stmt_VarDecl (_, _, loc)
   | Stmt_ConstDecl (_, _, loc)
-  | Stmt_Throw (_, loc)
   | Stmt_For (_, _, _, _, _, loc)
   | Stmt_While (_, _, loc)
   | Stmt_Repeat (_, _, _, loc)
-  | Stmt_TCall (_, _, _, _, loc)
   | Stmt_Try (_, _, _, _, loc) ->
       raise
         (Error.Unimplemented (loc, "statement", fun fmt -> FMTAST.stmt fmt x))
@@ -859,6 +907,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
       | Decl_FunType (f, ps, args, t, loc) ->
           ()
       | Decl_FunDefn (f, ps, args, t, b, loc) ->
+          current_function := Some (f, Some t);
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
@@ -867,11 +916,13 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           colon fmt;
           nbsp fmt;
           funname fmt f;
+          current_function := None;
           cut fmt;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
           ()
       | Decl_ProcDefn (f, ps, args, b, loc) ->
+          current_function := Some (f, None);
           function_header loc fmt None f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
@@ -880,6 +931,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           colon fmt;
           nbsp fmt;
           funname fmt f;
+          current_function := None;
           cut fmt;
           cut fmt
       | Decl_Var (v, ty, loc) ->
@@ -888,6 +940,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           cut fmt;
           cut fmt
       | Decl_ArrayGetterDefn (f, ps, args, t, b, loc) ->
+          current_function := Some (f, Some t);
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           indented_block fmt b;
           cut fmt;
@@ -896,9 +949,11 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           colon fmt;
           nbsp fmt;
           funname fmt f;
+          current_function := None;
           cut fmt;
           cut fmt
       | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
+          current_function := Some (f, None);
           function_header loc fmt None f (fun _ -> formals loc fmt (args @ [ (v, t) ]));
           indented_block fmt b;
           cut fmt;
@@ -907,6 +962,7 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           colon fmt;
           nbsp fmt;
           funname fmt f;
+          current_function := None;
           cut fmt;
           cut fmt
       (* ignored *)
@@ -920,6 +976,49 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
 
 let declarations (fmt : PP.formatter) (xs : AST.declaration list) : unit =
   vbox fmt (fun _ -> map fmt (declaration fmt) xs)
+
+let exceptions (fmt : PP.formatter) (xs : AST.declaration list) : unit =
+  vbox fmt (fun _ ->
+    let excs = List.filter_map
+        ( function
+        | AST.Decl_Exception (tc, fs, loc) -> Some (tc, fs, loc)
+        | _ -> None
+        )
+        xs
+    in
+    exception_tcs := List.map (fun (tc, _, _) -> tc) excs;
+    PP.fprintf fmt "typedef enum { ASL_no_exception %a } ASL_exception_tag_t;@,@,"
+      (fun fmt -> cutsep fmt (fun (tc, _, _) -> PP.fprintf fmt ", tag_%a" tycon tc)) excs;
+    List.iter (fun (tc, fs, loc) ->
+      typedef fmt (fun _ ->
+          kw_struct fmt;
+          nbsp fmt;
+          braces fmt (fun _ ->
+              indented fmt (fun _ ->
+                  PP.fprintf fmt "ASL_exception_tag_t ASL_tag;@,";
+                  cutsep fmt
+                    (fun (f, t) ->
+                      varty loc fmt f t;
+                      semicolon fmt)
+                    fs);
+              cut fmt);
+          nbsp fmt;
+          tycon fmt tc);
+      cut fmt)
+      excs;
+    PP.fprintf fmt "typedef union {\n    %s\n%a\n} ASL_exception_t;@,"
+      "struct { ASL_exception_tag_t ASL_tag; } _exc;"
+      (PP.pp_print_list
+         (fun fmt (tc, _, _) -> PP.fprintf fmt "    %a _%a;"
+             tycon tc
+             tycon tc))
+      excs
+  )
+
+let exceptions_init (fmt : PP.formatter) : unit =
+  vbox fmt (fun _ ->
+    PP.fprintf fmt "ASL_exception_t ASL_exception = '{ _exc: '{ ASL_tag: ASL_no_exception } };@,"
+  )
 
 (****************************************************************
  * Generating files
@@ -1044,19 +1143,19 @@ let generate_files (dirname : string) (basename : string) (ds : AST.declaration 
   Utils.to_file (basename ^ "_types.svh") (fun fmt ->
       Format.fprintf fmt "typedef bit signed[%d : 0] asl_integer;@," (!int_width - 1);
 
-      type_decls ds
-      |> Asl_utils.topological_sort |> List.rev
-      |> declarations fmt
+      type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt;
+
+      exceptions fmt ds
   );
 
   Utils.to_file (basename ^ "_vars.svh") (fun fmt ->
-      var_decls ds
-      |> declarations fmt
+      var_decls ds |> declarations fmt
   );
 
   Utils.to_file (basename ^ "_funs.sv") (fun fmt ->
-      fun_decls ds
-      |> declarations fmt
+      fun_decls ds |> declarations fmt;
+
+      exceptions_init fmt
   )
 
 (****************************************************************
