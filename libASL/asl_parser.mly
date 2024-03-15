@@ -194,7 +194,7 @@ type_declaration:
     { Decl_Record(v, ps, fs, Range($symbolstartpos, $endpos)) }
 | TYPE v = ident OF EXCEPTION SEMICOLON
     { Decl_Exception(v, [], Range($symbolstartpos, $endpos)) }
-| TYPE v = ident OF EXCEPTION LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
+| TYPE v = ident OF EXCEPTION LBRACE fs = separated_nonempty_list(COMMA, field_asl1) RBRACE SEMICOLON
     { Decl_Exception(v, fs, Range($symbolstartpos, $endpos)) }
 | TYPE v = ident OF ty = ty SEMICOLON
     { Decl_Typedef(v, [], ty, Range($symbolstartpos, $endpos)) }
@@ -208,6 +208,13 @@ ty_params:
 
 field:
 | ident = ident COLON ty = ty SEMICOLON { (ident, ty) }
+
+(* To provide a period of backwards compatibility, we support fields that
+ * (1) end with a semicolon (deprecated),
+ * (2) do not end with a semicolon but separated in a list by a colon.
+ *)
+field_asl1:
+| ident = ident COLON ty = ty { (ident, ty) }
 
 variable_declaration:
 | VAR v = ident COLON ty = ty SEMICOLON
