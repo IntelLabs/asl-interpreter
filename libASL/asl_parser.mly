@@ -192,6 +192,10 @@ type_declaration:
     { Decl_Record(v, [], fs, Range($symbolstartpos, $endpos)) }
 | RECORD v = ident ps = ty_params LBRACE fs = nonempty_list(field) RBRACE SEMICOLON
     { Decl_Record(v, ps, fs, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident OF RECORD LBRACE fs = separated_nonempty_list(COMMA, field_asl1) RBRACE SEMICOLON
+    { Decl_Record(v, [], fs, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident ps = ty_params OF RECORD LBRACE fs = separated_nonempty_list(COMMA, field_asl1) RBRACE SEMICOLON
+    { Decl_Record(v, ps, fs, Range($symbolstartpos, $endpos)) }
 | TYPE v = ident OF EXCEPTION SEMICOLON
     { Decl_Exception(v, [], Range($symbolstartpos, $endpos)) }
 | TYPE v = ident OF EXCEPTION LBRACE fs = separated_nonempty_list(COMMA, field_asl1) RBRACE SEMICOLON
