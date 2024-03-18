@@ -206,6 +206,8 @@ type_declaration:
     { Decl_Typedef(v, ps, ty, Range($symbolstartpos, $endpos)) }
 | ENUMERATION v = ident LBRACE es = separated_list(COMMA, ident) RBRACE SEMICOLON
     { Decl_Enum(v, es, Range($symbolstartpos, $endpos)) }
+| TYPE v = ident OF ENUMERATION LBRACE es = separated_list(COMMA, ident) RBRACE SEMICOLON
+    { Decl_Enum(v, es, Range($symbolstartpos, $endpos)) }
 
 ty_params:
 | LPAREN ps = separated_nonempty_list(COMMA, ident) RPAREN { ps }
