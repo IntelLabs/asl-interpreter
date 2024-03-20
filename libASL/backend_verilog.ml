@@ -517,7 +517,7 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
       zero_extend_bits loc fmt (const_int_expr loc n) x
   | i, _ when Ident.equal i print_str ->
       apply loc fmt (fun _ -> fn_write fmt) args
-  | i, _ when Ident.equal i print_bits ->
+  | i, _ when Ident.equal i print_bits_hex ->
       apply loc fmt (fun _ -> fn_write fmt) args
   | i, [ c ] when Ident.equal i print_char ->
       fn_write fmt;
