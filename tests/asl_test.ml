@@ -41,7 +41,7 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
     let lexbuf = Lexing.from_string declarations in
     let msg = try
         let t = Asl_parser.declarations_start Lexer.token lexbuf in
-        let ds = TC.tc_declarations globals false t in
+        let ds = TC.tc_declarations globals ~isPrelude:false ~sort_decls:false t in
         ignore ds;
         Alcotest.fail "error was not detected"
       with

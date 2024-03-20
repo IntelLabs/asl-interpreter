@@ -2348,7 +2348,7 @@ let genPrototypes (ds : AST.declaration list) :
 let env0 = GlobalEnv.mkempty ()
 
 (** Typecheck a list of declarations - main entrypoint into typechecker *)
-let tc_declarations (env : GlobalEnv.t) (isPrelude : bool)
+let tc_declarations (env : GlobalEnv.t) ~(isPrelude : bool) ~(sort_decls : bool)
     (ds : AST.declaration list) : AST.declaration list =
   if verbose then Format.fprintf fmt "  - Using Z3 %s\n" Z3.Version.to_string;
   (* Process declarations, starting by moving all function definitions to the
@@ -2360,6 +2360,7 @@ let tc_declarations (env : GlobalEnv.t) (isPrelude : bool)
    * but that they share the same global environment
    *)
   let pre, post = if isPrelude then (ds, []) else genPrototypes ds in
+  let pre = if sort_decls then List.rev (Asl_utils.topological_sort pre) else pre in
   if verbose then
     Format.fprintf fmt "  - Typechecking %d phase 1 declarations\n"
       (List.length pre);

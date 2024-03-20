@@ -57,7 +57,8 @@ let read_file (paths : string list) (filename : string) (isPrelude : bool)
     Printf.printf "- Typechecking %s\n%!" filename;
   );
 
-  let t' = TC.tc_declarations TC.env0 isPrelude t in
+  let sort_decls = not isPrelude in (* sort everything but the Prelude *)
+  let t' = TC.tc_declarations TC.env0 ~isPrelude ~sort_decls t in
 
   if false then FMT.declarations Format.std_formatter t';
   if verbose then (
@@ -104,11 +105,14 @@ let read_stmts (tcenv : TC.Env.t) (s : string) : AST.stmt list =
   let s = Parser.stmts_command_start Lexer.token lexbuf in
   TC.tc_stmts tcenv AST.Unknown s
 
-let read_declarations (tcenv : TC.GlobalEnv.t) (s : string) :
+(* This entrypoint is used for testing so it does not sort its inputs to make
+ * the output easier to predict/control
+ *)
+let read_declarations_unsorted (tcenv : TC.GlobalEnv.t) (s : string) :
     AST.declaration list =
   let lexbuf = Lexing.from_string s in
   let s = Parser.declarations_start Lexer.token lexbuf in
-  TC.tc_declarations tcenv false s
+  TC.tc_declarations tcenv ~isPrelude:false ~sort_decls:false s
 
 let read_files (paths : string list) (filenames : string list) (verbose : bool)
     : AST.declaration list =
@@ -127,7 +131,7 @@ let read_files (paths : string list) (filenames : string list) (verbose : bool)
     Printf.printf "- Typechecking\n%!"
   );
 
-  let ds' = TC.tc_declarations TC.env0 false ds in
+  let ds' = TC.tc_declarations TC.env0 ~isPrelude:false ~sort_decls:true ds in
 
   if verbose then (
     Printf.printf "  - Got %d typechecked declarations\n" (List.length ds');

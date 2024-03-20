@@ -58,13 +58,13 @@ let extend_tcenv (globals : TC.GlobalEnv.t) (declarations : string) :
     TC.Env.t * AST.declaration list =
   let globals = TC.GlobalEnv.clone globals in
   let tcenv = TC.Env.mkEnv globals in
-  let ds = LoadASL.read_declarations globals declarations in
+  let ds = LoadASL.read_declarations_unsorted globals declarations in
   (tcenv, ds)
 
 let extend_global_tcenv (globals : TC.GlobalEnv.t) (declarations : string) :
     TC.GlobalEnv.t * AST.declaration list =
   let globals = TC.GlobalEnv.clone globals in
-  let ds = LoadASL.read_declarations globals declarations in
+  let ds = LoadASL.read_declarations_unsorted globals declarations in
   (globals, ds)
 
 let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
@@ -142,15 +142,15 @@ let test_xform_decl
 
     (* Handle decls *)
     let decls_env = TC.GlobalEnv.clone globals in
-    let decls = LoadASL.read_declarations decls_env decls in
+    let decls = LoadASL.read_declarations_unsorted decls_env decls in
 
     (* Handle mono decls *)
     let decls_mono_env = TC.GlobalEnv.clone globals in
-    let _ = LoadASL.read_declarations decls_mono_env decls_mono in
+    let _ = LoadASL.read_declarations_unsorted decls_mono_env decls_mono in
 
     (* Handle left side, actual result *)
     let l_env = TC.GlobalEnv.clone decls_env in
-    let ls = LoadASL.read_declarations l_env l in
+    let ls = LoadASL.read_declarations_unsorted l_env l in
     let genv = Eval.build_constant_environment (decls @ ls) in
     let ls = Xform_constprop.xform_decls genv (decls @ ls) in (* Adding decls *)
     let ls = f ls in
@@ -159,7 +159,7 @@ let test_xform_decl
 
     (* Handle right side, expected result *)
     let r_env = TC.GlobalEnv.clone decls_mono_env in
-    let rs = LoadASL.read_declarations r_env r in
+    let rs = LoadASL.read_declarations_unsorted r_env r in
     (* Retrieve expected fun/proc def of decl_name *)
     let r' = List.find (find_decl decl_name) rs in
 

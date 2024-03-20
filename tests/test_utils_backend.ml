@@ -493,7 +493,7 @@ let check_declaration (tcenv : TC.GlobalEnv.t)
     (check_ext : string -> string -> unit) (name : string) (s : string) : unit =
   try
     let tcenv = TC.GlobalEnv.clone tcenv in
-    let ds = LoadASL.read_declarations tcenv s in
+    let ds = LoadASL.read_declarations_unsorted tcenv s in
     Alcotest.(check pass) name () (decls ds);
 
     let s = Format.flush_str_formatter () in
