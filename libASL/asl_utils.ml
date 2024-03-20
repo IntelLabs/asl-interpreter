@@ -36,6 +36,21 @@ let mk_bindings (xs : (Ident.t * 'a) list) : 'a Bindings.t =
 let pp_bindings (f : Format.formatter -> 'a -> unit) (fmt : Format.formatter) (bs : 'a Bindings.t) : unit =
   Bindings.iter (fun k v -> Format.fprintf fmt "%a: %a\n" Asl_fmt.varname k f v) bs
 
+(** convert a list to bindings *)
+let list_to_bindings (merge : 'a -> 'a -> 'a) (null : 'a) (xs : (Ident.t * 'a) list) : 'a Bindings.t =
+  let bs : 'a Bindings.t ref = ref Bindings.empty in
+  List.iter (fun (k, v) ->
+      bs :=
+        Bindings.update k
+          (fun oprev -> Some (merge v (Option.value oprev ~default:null)))
+          !bs
+    ) xs;
+  !bs
+
+(** keys of bindings - for some reason, this is not a standard function *)
+let keys_of_bindings (bs : 'a Bindings.t) : Ident.t list =
+  List.map fst (Bindings.bindings bs)
+
 module IdentSet = Set.Make (Ident)
 (** {2 Sets of identifiers} *)
 
@@ -587,16 +602,16 @@ let monomorphizable_decl_name (d : AST.declaration) : Ident.t option =
 let monomorphizable_decl_to_ident_and_decl (d : AST.declaration) : (Ident.t * AST.declaration) option =
   monomorphizable_decl_name d |> Option.map (fun i -> (i, d))
 
-let decl_map_of (ds : declaration list) : declaration Bindings.t =
-  (* Map of declarations *)
-  let decls : declaration Bindings.t ref = ref Bindings.empty in
-  List.iter
-    (fun d ->
-      match decl_name d with
-      | Some nm -> decls := Bindings.add nm d !decls
-      | None -> ())
-    ds;
-  !decls
+(** Create mapping from identifiers to all declarations with that name.
+ *
+ * There can be multiple declarations with the same name so construct a map
+ * from names to a list of declarations.
+ *)
+let decls_map_of (ds : declaration list) : (declaration list) Bindings.t =
+  let decls_assoc : (Ident.t * declaration list) list =
+    List.filter_map (fun d -> Option.map (fun nm -> (nm, [d])) (decl_name d)) ds
+  in
+  list_to_bindings List.append [] decls_assoc
 
 (* construct map of Union { x -> f x | for x in xs } *)
 let memoize (xs : Ident.t list) (f : Ident.t -> IdentSet.t) : IdentSet.t Bindings.t
@@ -647,12 +662,11 @@ let reach (next : Ident.t -> IdentSet.t) (roots : Ident.t list) : Ident.t list =
   List.iter dfs roots;
   !result
 
-(* f (find x bs) if x in bs, empty otherwise *)
-let bindings_to_function (bs : 'a Bindings.t) (f : 'a -> IdentSet.t) (x : Ident.t)
-    : IdentSet.t =
+(* Convert bindings to a function (using a default value for absent values *)
+let bindings_to_function (bs : 'a Bindings.t) (default : 'a) (x : Ident.t) : 'a =
   Option.value
-    (Option.map f (Bindings.find_opt x bs))
-    ~default:IdentSet.empty
+    (Bindings.find_opt x bs)
+    ~default:default
 
 (* Generate list of declarations reachable from roots
  *
@@ -675,9 +689,19 @@ let reachable_decls (roots : Ident.t list) (ds : declaration list) :
     refs
   in
 
-  let decls = decl_map_of ds in
-  let reachable = reach (bindings_to_function decls next) roots in
-  List.filter_map (fun x -> Bindings.find_opt x decls) reachable
+  (* Map from identifiers to declarations *)
+  let decls : (AST.declaration list) Bindings.t = decls_map_of ds in
+
+  (* Construct map from identifier to dependencies. *)
+  let next_map = Bindings.map (fun xs -> unionSets (List.map next xs)) decls in
+  let get_next (x : Ident.t) : IdentSet.t =
+    Option.value (Bindings.find_opt x next_map) ~default:IdentSet.empty
+  in
+
+  (* Make a sorted list of all identifiers reachable from the roots *)
+  let reachable : Ident.t list = reach get_next roots in
+
+  List.concat_map (fun x -> Option.value (Bindings.find_opt x decls) ~default:[]) reachable
 
 (* Topological sort of declarations
  *
@@ -694,10 +718,13 @@ let callers (leaves : Ident.t list) (ds : declaration list) : IdentSet.t =
     fvs#funs
   in
 
-  let decls = decl_map_of ds in
-  let fs = List.filter Ident.is_function (List.map fst (Bindings.bindings decls)) in
-  let rev_next = rev_memoize fs (bindings_to_function decls next) in
-  IdentSet.of_list (reach (bindings_to_function rev_next Fun.id) leaves)
+  let decls = decls_map_of ds in
+  let fs = List.filter Ident.is_function (keys_of_bindings decls) in
+  let callees : IdentSet.t Bindings.t =
+    Bindings.map (fun ds -> unionSets (List.map next ds)) decls in
+  let callers : IdentSet.t Bindings.t =
+    rev_memoize fs (bindings_to_function callees IdentSet.empty) in
+  IdentSet.of_list (reach (bindings_to_function callers IdentSet.empty) leaves)
 
 (****************************************************************)
 (** {2 Side effect detection}                                   *)

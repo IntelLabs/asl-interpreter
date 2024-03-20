@@ -100,19 +100,20 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
 
 let xform_decl (d : AST.declaration) : AST.declaration list =
   match d with
-  | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
-
-      let (tydecls, tyname, rty') = if Asl_utils.isTupleType rty then
-          let tyname = mkReturnTypeName f in
-          let tydecl = mkReturnRecord tyname (Asl_utils.tupleTypes rty) loc in
-          ([tydecl], Some tyname, AST.Type_Constructor (tyname, []))
-        else
-          ([], None, rty)
-      in
-      let replacer = new replaceTupleClass tyname in
+  | Decl_FunDefn (f, ps, atys, rty, body, loc) when Asl_utils.isTupleType rty ->
+      let tyname = mkReturnTypeName f in
+      let tydecl = mkReturnRecord tyname (Asl_utils.tupleTypes rty) loc in
+      let rty' = AST.Type_Constructor (tyname, []) in
+      let replacer = new replaceTupleClass (Some tyname) in
       let body' = Asl_visitor.visit_stmts (replacer :> Asl_visitor.aslVisitor) body in
       let d' = AST.Decl_FunDefn (f, ps, atys, rty', body', loc) in
-      List.append tydecls [d']
+      [tydecl; d']
+
+  | Decl_FunType (f, ps, atys, rty, loc) when Asl_utils.isTupleType rty ->
+      let tyname = mkReturnTypeName f in
+      let rty' = AST.Type_Constructor (tyname, []) in
+      let d' = AST.Decl_FunType (f, ps, atys, rty', loc) in
+      [d']
 
   | _ ->
       let replacer = new replaceTupleClass None in

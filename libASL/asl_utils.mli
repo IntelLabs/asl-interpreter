@@ -169,8 +169,12 @@ val decl_name : AST.declaration -> Ident.t option
 
 val monomorphizable_decl_to_ident_and_decl : AST.declaration -> (Ident.t * AST.declaration) option
 
-(* Map of declarations *)
-val decl_map_of : AST.declaration list -> AST.declaration Bindings.t
+(** Create mapping from identifiers to all declarations with that name.
+ *
+ * There can be multiple definitions with the same name so construct a map
+ * from names to a list of definitionsw
+ *)
+val decls_map_of : AST.declaration list -> (AST.declaration list) Bindings.t
 
 (* construct map of Union { x -> f x | for x in xs } *)
 val memoize : Ident.t list -> (Ident.t -> IdentSet.t) -> IdentSet.t Bindings.t
@@ -190,8 +194,8 @@ val rev_memoize : Ident.t list -> (Ident.t -> IdentSet.t) -> IdentSet.t Bindings
  *)
 val reach : (Ident.t -> IdentSet.t) -> Ident.t list -> Ident.t list
 
-(* f (find x bs) if x in bs, empty otherwise *)
-val bindings_to_function : 'a Bindings.t -> ('a -> IdentSet.t) -> Ident.t -> IdentSet.t
+(* Convert bindings to a function (using a default value for absent values *)
+val bindings_to_function : 'a Bindings.t -> 'a -> Ident.t -> 'a
 
 (* Generate list of declarations reachable from roots
  *
