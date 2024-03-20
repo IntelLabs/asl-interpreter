@@ -158,7 +158,7 @@ type funtype =
   }
 
 let pp_funtype (fmt : formatter) (fty : funtype) : unit =
-  Format.fprintf fmt "%a%s : {%a}(%a)%a => %a @ %a"
+  Format.fprintf fmt "@[<v>%a%s : {%a}(%a)%a => %a@,  at %a@,@]"
     FMT.varname fty.funname
     (if fty.isArray then "[]" else "")
     FMT.parameters fty.params
@@ -917,8 +917,8 @@ let reportChoices (loc : AST.l) (what : string) (nm : string)
   Format.pp_print_string fmt error_message;
   FMTUtils.cut fmt;
   FMTUtils.vbox fmt (fun _ ->
-      List.iter (fun ty -> Format.fprintf fmt "  Arg : %a\n" FMT.ty ty) tys;
-      List.iter (fun fty -> pp_funtype fmt fty; FMTUtils.cut fmt) funs
+      Format.fprintf fmt "Function arguments with types (%a) do not match@," FMT.types tys;
+      List.iter (Format.fprintf fmt "  %a@," pp_funtype) funs
     );
   FMTUtils.flush fmt
 
