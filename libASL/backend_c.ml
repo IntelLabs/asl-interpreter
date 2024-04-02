@@ -1006,15 +1006,18 @@ let direction (x : AST.direction) (up : unit -> unit) (down : unit -> unit) :
     unit =
   match x with Direction_Up -> up () | Direction_Down -> down ()
 
+let stmt_line_info (fmt : PP.formatter) (x : AST.stmt) : unit =
+  if !include_line_info then
+    match Asl_utils.stmt_loc x with
+    | Range (p, _) ->
+        let fname = p.Lexing.pos_fname in
+        let line = p.Lexing.pos_lnum in
+        PP.fprintf fmt "#line %d \"%s\"@," line fname
+    | _ -> ()
+
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
-  (if !include_line_info then
-     match Asl_utils.stmt_loc x with
-     | Range (p, _) ->
-         let fname = p.Lexing.pos_fname in
-         let line = p.Lexing.pos_lnum in
-         PP.fprintf fmt "#line %d \"%s\"@," line fname
-     | _ -> ()
-  );
+  stmt_line_info fmt x;
+
   match x with
   | Stmt_Assert (e, loc) ->
       let expr_string = AST.Expr_LitString (Utils.to_string2 (Fun.flip FMTAST.expr e)) in
