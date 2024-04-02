@@ -21,6 +21,13 @@ let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
 let include_line_info : bool ref = ref false
 
+let opt_global_pointer : string option ref = ref None
+let pointer_accessed : Ident.t list ref = ref []
+
+let pointer (fmt : PP.formatter) (x : Ident.t) : unit =
+  if Option.is_some !opt_global_pointer && List.mem x !pointer_accessed then
+    PP.fprintf fmt "%s->" (Option.get !opt_global_pointer)
+
 (* list of all exception tycons - used to decide whether to insert a tag in
  * Expr_RecordInit
  *)
@@ -854,7 +861,10 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Var v ->
       if Ident.equal v true_ident then kw_true fmt
       else if Ident.equal v false_ident then kw_false fmt
-      else varname fmt v
+      else begin
+        pointer fmt v;
+        varname fmt v
+      end
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
@@ -921,7 +931,9 @@ let assign (loc : AST.l) (fmt : PP.formatter) (l : unit -> unit) (r : AST.expr) 
 
 let rec lexpr (loc : AST.l) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   match x with
-  | LExpr_Var v -> varname fmt v
+  | LExpr_Var v ->
+    pointer fmt v;
+    varname fmt v
   | LExpr_Array (a, i) ->
     lexpr loc fmt a;
     brackets fmt (fun _ -> expr loc fmt i)

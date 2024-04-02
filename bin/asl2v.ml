@@ -257,6 +257,19 @@ let delete_function (discard : Ident.t list) (x : AST.declaration) =
 let delete_functions (discard : Ident.t list) (ds : AST.declaration list) : AST.declaration list =
   List.map (delete_function discard) ds
 
+(* Delete a variable declaration if it occurs in the list
+ * of variables to be deleted.
+ *)
+let delete_variable_opt (discard : Ident.t list) (x : AST.declaration) :
+    AST.declaration option =
+  match x with
+  | Decl_Var (v, ty, loc) when List.mem v discard -> None
+  | _ -> Some x
+
+let delete_variables (discard : Ident.t list) (ds : AST.declaration list) :
+    AST.declaration list =
+  List.filter_map (delete_variable_opt discard) ds
+
 (****************************************************************
  * Application
  ****************************************************************)
@@ -298,6 +311,8 @@ let options =
         "       Include line number information");
       ("--calls-to-track-valid", Arg.Set opt_calls_to_track_valid,
         "       Insert function calls to track valid bits");
+      ("--global-pointer", Arg.String (fun s -> Backend_c.opt_global_pointer := Some s),
+        "       Global pointer to access variables");
     ]
 
 let version = "ASL 0.2.0 alpha"
@@ -332,6 +347,7 @@ let main () =
   let imports = get_all_idents "imports" !transforms in
   let exports = get_all_idents "exports" !transforms in
   let track_valid = get_idents "track-valid" !transforms in
+  Backend_c.pointer_accessed := get_idents "pointer-accessed" !transforms;
 
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
@@ -359,6 +375,9 @@ let main () =
     |> transform "case" Xform_case.xform_decls
     |> transform "int_bitslices" Xform_int_bitslices.xform_decls
     |> transform "delete_imports" (delete_functions imports)
+    |> (if Option.is_some !Backend_c.opt_global_pointer
+        then transform "delete_variables" (delete_variables !Backend_c.pointer_accessed)
+        else Fun.id)
     |> transform "keep_exports2" (xform_reachable exports)
     in
 
