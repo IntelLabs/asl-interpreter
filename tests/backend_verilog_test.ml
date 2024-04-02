@@ -7,6 +7,7 @@
 
 open LibASL
 open Test_utils_backend
+module Test_cases = Test_cases_backend
 module BE = Backend_verilog
 module TC = Tcheck
 
@@ -29,19 +30,25 @@ let test_declaration (name : string) (s : string) : unit =
   let tcenv = TC.env0 in
   check_declaration tcenv (BE.declarations fmt) check_syntax name s
 
-let make_tests (cases : test_case list) : unit Alcotest.test_case list =
-  make_tests Backend_Verilog test_declaration cases
+let make_cases (cases : Test_cases.test_case list) :
+    unit Alcotest.test_case list =
+  List.filter_map
+    (fun (name, bs, s) ->
+      if List.mem Test_cases.Backend_Verilog bs then
+        Some (name, `Quick, fun _ -> test_declaration name s)
+      else None)
+    cases
 
 let () =
   ignore (Test_utils.load_test_libraries ());
   Alcotest.run "backend_verilog"
     [
-      ("expression", make_tests test_cases_expr);
-      ("function_decl", make_tests test_cases_fun_decl);
-      ("procedure_decl", make_tests test_cases_proc_decl);
-      ("statement", make_tests test_cases_stmt);
-      ("type_decl", make_tests test_cases_type_decl);
-      ("variable_decl", make_tests test_cases_var_decl);
+      ("expression",        make_cases Test_cases.expr);
+      ("function_decl",     make_cases Test_cases.fun_decl);
+      ("procedure_decl",    make_cases Test_cases.proc_decl);
+      ("statement",         make_cases Test_cases.stmt);
+      ("type_decl",         make_cases Test_cases.type_decl);
+      ("variable_decl",     make_cases Test_cases.var_decl);
     ]
 
 (****************************************************************
