@@ -351,7 +351,10 @@ let rec xform_lexpr (env : Env.t) (loc : AST.l) (x : AST.lexpr) (r : Values.t) :
       let tes' = xform_exprs env tes in
       let es' = xform_exprs env es in
       LExpr_ReadWrite (getter, setter, tes', es', throws)
-  | _ -> failwith ("xform_lexpr: " ^ pp_lexpr x)
+  | _ ->
+      let msg = "unexpected lexpr" in
+      raise
+        (InternalError (loc, msg, (fun fmt -> Asl_fmt.lexpr fmt x), __LOC__))
 
 (** Evaluate pattern match *)
 let rec xform_pattern (env : Env.t) (x : AST.pattern) : AST.pattern =
@@ -618,13 +621,16 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           [ Stmt_Try(tb', pos, catchers', odefault', loc) ]
 
 (** Create local environment and add parameters and arguments *)
-let mk_fun_env (env : Eval.GlobalEnv.t) (f : Ident.t) : Env.t =
+let mk_fun_env (env : Eval.GlobalEnv.t) (loc : AST.l) (f : Ident.t) : Env.t =
   let fun_env = Env.newEnv env in
   ( match Eval.GlobalEnv.get_function env f with
   | Some (tvs, args, _, _) ->
       List.iter (fun tv -> Env.addLocalConst fun_env tv Values.bottom) tvs;
       List.iter (fun v -> Env.addLocalConst fun_env v Values.bottom) args
-  | _ -> failwith "constprop:mk_local_env"
+  | _ ->
+      let msg = "undeclared function" in
+      raise
+        (InternalError (loc, msg, (fun fmt -> Asl_fmt.funname fmt f), __LOC__))
   );
   fun_env
 
@@ -640,27 +646,27 @@ let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
       let e' = xform_expr env e in
       Decl_Config (v, ty, e', loc)
   | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_FunDefn (f, ps, atys, rty, body', loc)
   | Decl_ProcDefn (f, ps, atys, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_ProcDefn (f, ps, atys, body', loc)
   | Decl_VarGetterDefn (f, ps, ty, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_VarGetterDefn (f, ps, ty, body', loc)
   | Decl_ArrayGetterDefn (f, ps, args, ty, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_ArrayGetterDefn (f, ps, args, ty, body', loc)
   | Decl_VarSetterDefn (f, ps, v, ty, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_VarSetterDefn (f, ps, v, ty, body', loc)
   | Decl_ArraySetterDefn (f, ps, args, v, ty, body, loc) ->
-      let env = mk_fun_env genv f in
+      let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
       Decl_ArraySetterDefn (f, ps, args, v, ty, body', loc)
   | _ -> d

@@ -2079,8 +2079,9 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
         fty
       end
   | ftys ->
-      (* internal error: multiple definitions *)
-      failwith "addFunction"
+      let msg = "multiple function definitions" in
+      raise
+        (InternalError (loc, msg, (fun fmt -> FMT.funname fmt qid), __LOC__))
 
 let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
     (isArr : bool) (ps : (Ident.t * AST.ty option) list)
@@ -2105,8 +2106,9 @@ let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
       (* already defined *)
       fty
   | ftys ->
-      (* internal error: multiple definitions *)
-      failwith "addFunction"
+      let msg = "multiple setter function definitions" in
+      raise
+        (InternalError (loc, msg, (fun fmt -> FMT.funname fmt qid), __LOC__))
 
 (****************************************************************)
 (** {2 Typecheck global declaration}                            *)
