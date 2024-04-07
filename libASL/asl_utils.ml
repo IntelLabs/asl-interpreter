@@ -680,6 +680,17 @@ let bindings_to_function (bs : 'a Bindings.t) (default : 'a) (x : Ident.t) : 'a 
  *)
 let reachable_decls (roots : Ident.t list) (ds : declaration list) :
     declaration list =
+  (* Map of enumeration constants to the type that defines them *)
+  let enums = ref Bindings.empty in
+  List.iter (fun d ->
+      ( match d with
+      | Decl_Enum (v, es, _) ->
+        List.iter (fun e -> enums := Bindings.add e v !enums) es
+      | _ ->
+        ()
+      ))
+      ds;
+
   let next (d : declaration) : IdentSet.t =
     let fvs = new freevarClass in
     ignore (visit_decl (fvs :> aslVisitor) d);
@@ -695,7 +706,9 @@ let reachable_decls (roots : Ident.t list) (ds : declaration list) :
   (* Construct map from identifier to dependencies. *)
   let next_map = Bindings.map (fun xs -> unionSets (List.map next xs)) decls in
   let get_next (x : Ident.t) : IdentSet.t =
-    Option.value (Bindings.find_opt x next_map) ~default:IdentSet.empty
+    let ds1 = Option.value (Bindings.find_opt x next_map) ~default:IdentSet.empty in
+    let ds2 = Option.fold ~none:IdentSet.empty ~some:IdentSet.singleton (Bindings.find_opt x !enums) in
+    IdentSet.union ds1 ds2
   in
 
   (* Make a sorted list of all identifiers reachable from the roots *)
