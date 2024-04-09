@@ -57,11 +57,12 @@ let xform_decls (ds : AST.declaration list) : AST.declaration list =
  * Command: :xform_desugar
  ****************************************************************)
 
-let cmd_xform_desugar (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  Commands.declarations := xform_decls !Commands.declarations;
-  true
-
-let _ = Commands.registerCommand "xform_desugar" "" "Remove syntactic sugar" cmd_xform_desugar
+let _ =
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    Commands.declarations := xform_decls !Commands.declarations;
+    true
+  in
+  Commands.registerCommand "xform_desugar" [] [] [] "Remove syntactic sugar" cmd
 
 (****************************************************************
  * End

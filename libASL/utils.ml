@@ -66,6 +66,25 @@ let rec last (xs : 'a list) : 'a =
   | [] -> failwith "last []"
   )
 
+(** drop_left m [x1; ... xn] = [xm+1; ... xn] *)
+let rec drop_left m (xs : 'a list) : 'a list =
+  ( match xs with
+  | [] -> []
+  | (x :: xs') when m > 0 -> drop_left (m-1) xs'
+  | _ -> xs
+  )
+
+(** drop_right m [x1; ... xn] = [x1; ... xn-m] *)
+let drop_right m (xs : 'a list) : 'a list =
+  (* tail recursive helper function *)
+  let rec aux r xs =
+    ( match xs with
+    | [] -> List.rev (drop_left m r)
+    | (x :: xs') -> aux (x :: r) xs'
+    )
+  in
+  aux [] xs
+
 (** split3 [(x1, y1, z1); ... (xn, yn, zn)] = ([x1; ... xn], [y1; ... yn], [z1; ... zn]) *)
 let split3 (xyzs : ('x * 'y * 'z) list) : ('x list * 'y list * 'z list) =
   List.fold_right

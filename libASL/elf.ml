@@ -175,19 +175,20 @@ let load_file (name : string) (write : uint64 -> char -> unit) : uint64 =
  * Command: :elf
  ****************************************************************)
 
-let cmd_elf (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Loading ELF file %s.\n" file;
-    let entry = load_file file cpu.elfwrite8 in
+let _ =
+  let file = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    Printf.printf "Loading ELF file %s.\n" !file;
+    let entry = load_file !file cpu.elfwrite8 in
     Printf.printf "Entry point = 0x%Lx\n" entry;
     cpu.setPC (Z.of_int64 entry);
     true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "elf" "<file>" "Load an ELF file" cmd_elf
+  in
+  let args = [
+    (file, "file");
+  ]
+  in
+  Commands.registerCommand "elf" [] args [] "Load an ELF file" cmd
 
 (****************************************************************
  * End

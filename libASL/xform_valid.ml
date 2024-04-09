@@ -51,17 +51,18 @@ let xform_decls (vars : Ident.t list) (ds : AST.declaration list) :
  * Command: :xform_valid
  ****************************************************************)
 
-let cmd_xform_valid (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [group] ->
-    let targets = Ident.mk_idents (Configuration.get_strings group) in
+let _ =
+  let group = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let targets = Ident.mk_idents (Configuration.get_strings !group) in
     Commands.declarations := xform_decls targets !Commands.declarations;
     true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "xform_valid" "<configuration group>" "Instrument UNKNOWN assignments" cmd_xform_valid
+  in
+  let args = [
+    (group, "config group");
+  ]
+  in
+  Commands.registerCommand "xform_valid" [] args [] "Instrument UNKNOWN assignments" cmd
 
 (****************************************************************
  * End

@@ -235,18 +235,27 @@ let chekhovTextTracer (env : (string * string) list) (regfile : string) (o_ami :
  * Command: :chekhov
  ****************************************************************)
 
-let cmd_chekhov (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | ( trace_file :: regmap_file :: rest) ->
-    let trace_chan = open_out trace_file in
-    let o_ami = match rest with [ami] -> Some ami; | _ -> None in
-    Value.tracer := chekhovTextTracer [] regmap_file o_ami trace_chan;
-    true
-  | _ ->
-    false
-  )
 
-let _ = Commands.registerCommand "chekhov" "<trc> <cfg> [<ami>]" "Enable chekhov tracing" cmd_chekhov
+let _ =
+  let trace_file = ref "" in
+  let regmap_file = ref "" in
+  let ami = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let trace_chan = open_out !trace_file in
+    let o_ami = if !ami == "" then None else Some !ami in
+    Value.tracer := chekhovTextTracer [] !regmap_file o_ami trace_chan;
+    true
+  in
+  let args = [
+    (trace_file,  "trace filename");
+    (regmap_file, "cfg");
+  ]
+  in
+  let opt_args = [
+    (ami, "ami");
+  ]
+  in
+  Commands.registerCommand "chekhov" [] args opt_args "Enable chekhov tracing" cmd
 
 (*****************************************
  * End

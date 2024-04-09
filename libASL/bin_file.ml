@@ -37,18 +37,21 @@ let load_file (name : string) (write : Int64.t -> char -> unit) (address : Int64
  * Command: :bin
  ****************************************************************)
 
-let cmd_bin (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ; address ]  ->
-    let ram_address = Int64.of_string address in
-    Printf.printf "Loading BIN file %s to 0x%Lx.\n" file ram_address;
-    load_file file cpu.elfwrite8 ram_address;
+let _ =
+  let file = ref "" in
+  let address = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let ram_address = Int64.of_string !address in
+    Printf.printf "Loading BIN file %s to 0x%Lx.\n" !file ram_address;
+    load_file !file cpu.elfwrite8 ram_address;
     true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "bin" "<file> <address>" "Load a BIN <file> to <address>" cmd_bin
+  in
+  let args = [
+    (file,    "json file");
+    (address, "address file");
+  ]
+  in
+  Commands.registerCommand "bin" [] args [] "Load a BIN <file> to <address>" cmd
 
 (****************************************************************
  * End

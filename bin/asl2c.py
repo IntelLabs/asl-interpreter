@@ -41,7 +41,7 @@ base_script = """
 // Multiple configuration files can be loaded if you want to group the set of
 // exports into multiple logical interfaces.
 //
-:filter --reachable-from exports
+:filter_reachable_from exports
 
 // A series of 'desugaring' passes eliminate features that complicate later transformations.
 // Later transformations will fail if these features have not been removed.
@@ -78,7 +78,7 @@ base_script = """
 // Discard any code not reachable from the list of exported functions.
 // This step is repeated because it deletes any bitwidth-polymorphic functions
 // that have been completely replaced by specialized versions of the functions.
-:filter --reachable-from exports
+:filter_reachable_from exports
 
 // todo: explain why this needs to be repeated
 :xform_monomorphize
@@ -137,12 +137,12 @@ base_script = """
 // If you have defined the behavior of these functions in ASL (e.g., for use in
 // the ASL interpreter), you need to delete the ASL definitions of these
 // functions.
-:filter --not-function-in imports
+:filter_unlisted_functions imports
 
 // Deleting the ASL definitions of any functions on the import list may
 // result in additional dead code (i.e., functions that are only used by
 // those functions) so delete any unreachable functions
-:filter --reachable-from exports
+:filter_reachable_from exports
 
 // Generate C code from the remaining definitions
 //

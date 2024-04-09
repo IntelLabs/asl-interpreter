@@ -38,11 +38,12 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
  * Command: :xform_int_bitslice
  ****************************************************************)
 
-let cmd_xform_int_bitslices (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  Commands.declarations := xform_decls !Commands.declarations;
-  true
-
-let _ = Commands.registerCommand "xform_int_bitslices" "" "Simplify x[lo +: wd] when x : integer" cmd_xform_int_bitslices
+let _ =
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    Commands.declarations := xform_decls !Commands.declarations;
+    true
+  in
+  Commands.registerCommand "xform_int_bitslices" [] [] [] "Simplify x[lo +: wd] when x : integer" cmd
 
 (****************************************************************
  * End

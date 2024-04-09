@@ -49,14 +49,14 @@ let add_exec (cmd : string): unit =
 
 let help_msg =
   [
-    {|:? :help                            Show this help message|};
-    {|:project <file>                     Execute ASLi commands in <file>|};
-    {|:q :quit                            Exit the interpreter|};
-    {|:set impdef <string> = <expr>       Define implementation defined behavior|};
-    {|:set +<flag>                        Set flag|};
-    {|:set -<flag>                        Clear flag|};
-    {|<expr>                              Execute ASL expression|};
-    {|<stmt> ;                            Execute ASL statement|};
+    {|:? :help                                 Show this help message|};
+    {|:project <file>                          Execute ASLi commands in <file>|};
+    {|:q :quit                                 Exit the interpreter|};
+    {|:set impdef <string> = <expr>            Define implementation defined behavior|};
+    {|:set +<flag>                             Set flag|};
+    {|:set -<flag>                             Clear flag|};
+    {|<expr>                                   Execute ASL expression|};
+    {|<stmt> ;                                 Execute ASL statement|};
   ]
 
 (****************************************************************
@@ -80,9 +80,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
   | ("//"::_) -> () (* comment *)
   | [ ":help" ] | [ ":?" ] ->
       List.iter print_endline help_msg;
-      Commands.CommandMap.iter
-        (fun nm (fn, args, desc) -> Printf.printf ":%-35s%s\n" (nm^" "^args) desc)
-        !Commands.commands;
+      Commands.print_help ();
       print_endline "\nFlags:";
       Flags.FlagMap.iter
         (fun nm (v, desc) -> Printf.printf "  %s%-27s %s\n" (if !v then "+" else "-") nm desc)
@@ -110,10 +108,7 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
   | (cmd :: args) when String.starts_with ~prefix:":" cmd ->
-     ( match Commands.CommandMap.find_opt (Utils.string_drop 1 cmd) !Commands.commands with
-     | None -> Printf.printf "Unknown command %s\n" cmd; error ()
-     | Some (cmd, _, _) -> if not (cmd tcenv cpu args) then error()
-     )
+     if not (Commands.execute_command cmd args tcenv cpu) then error()
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
@@ -147,7 +142,7 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
       repl tcenv cpu
 
 (****************************************************************
- * Command: :filter
+ * Command: :filter_unlisted_functions
  ****************************************************************)
 
 (* Replace a function definition with a function declaration
@@ -163,55 +158,95 @@ let delete_function (discard : Ident.t list) (x : AST.declaration) =
   | _ -> x
   )
 
-let cmd_filter (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  let read_group_idents (group : string) : Ident.t list =
-    let nms = Configuration.get_strings group in
-    let xs = Ident.mk_fidents nms in
-    let ys = Ident.mk_idents nms in
-    xs @ ys
+let read_group_idents (group : string) : Ident.t list =
+  let nms = Configuration.get_strings group in
+  let xs = Ident.mk_fidents nms in
+  let ys = Ident.mk_idents nms in
+  xs @ ys
+
+let _ =
+  let group = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let functions = read_group_idents !group in
+    Commands.declarations := List.map (delete_function functions) !Commands.declarations;
+    true
   in
-  (match args with
-  | ["--reachable-from"; group] ->
-    let roots = read_group_idents group in
+  let args = [
+    (group, "config group");
+  ]
+  in
+  Commands.registerCommand "filter_unlisted_functions" [] args [] "Discard listed functions" cmd
+
+(****************************************************************
+ * Command: :filter_unlisted_variables
+ ****************************************************************)
+
+(* Delete a variable declaration if it occurs in the list
+ * of variables to be deleted.
+ *)
+let delete_variables_opt (discard : Ident.t list) (x : AST.declaration) :
+    AST.declaration option =
+  match x with
+  | Decl_Var (v, ty, loc) when List.mem v discard -> None
+  | _ -> Some x
+
+let _ =
+  let group = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let discard = read_group_idents !group in
+    Commands.declarations := List.filter_map (delete_variables_opt discard) !Commands.declarations;
+    true
+  in
+  let args = [
+    (group, "config group");
+  ]
+  in
+  Commands.registerCommand "filter_unlisted_variables" [] args [] "Discard listed variables" cmd
+
+(****************************************************************
+ * Command: :filter_reachable_from
+ ****************************************************************)
+
+let _ =
+  let group = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let roots = read_group_idents !group in
     if Utils.is_empty roots then (
-      Printf.printf "Group '%s' is empty in :filter --reachable-from %s\n" group group;
+      Printf.printf "Group '%s' is empty in :filter --reachable-from %s\n" !group !group;
       false
     ) else (
       Commands.declarations := Asl_utils.reachable_decls roots !Commands.declarations;
       true
     )
-  | ["--not-function-in"; group] ->
-    let functions = read_group_idents group in
-    Commands.declarations := List.map (delete_function functions) !Commands.declarations;
-    true
-  | _ ->
-    Printf.printf "Unrecognized argument to :filter %s\n" (String.concat " " args);
-    false
-  )
-
-let _ = Commands.registerCommand "filter" "--reachable_from|--not_function_in <group>" "Discard non-matching definitions" cmd_filter
+  in
+  let args = [
+    (group, "config group");
+  ]
+  in
+  Commands.registerCommand "filter_reachable_from" [] args [] "Discard unreachable definitions" cmd
 
 (****************************************************************
  * Command: :run
  ****************************************************************)
 
-let cmd_run (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( try
-      while true do
-        cpu.step ()
-      done
-  with
-  | e -> Error.print_exception e; error ()
-  );
-  true
-
-let _ = Commands.registerCommand "run" "" "Execute instructions" cmd_run
+let _ =
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    ( try
+        while true do
+          cpu.step ()
+        done
+    with
+    | e -> Error.print_exception e; error ()
+    );
+    true
+  in
+  Commands.registerCommand "run" [] [] [] "Execute instructions" cmd
 
 (****************************************************************
  * Command: :show
  ****************************************************************)
 
-let cmd_show (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
+let _ =
   (* 'glob' matching against a pattern *)
   let pattern_match (x : string) (pattern : string) : bool =
     let n = String.length pattern in
@@ -220,6 +255,7 @@ let cmd_show (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
     else
       String.equal pattern x
   in
+
   (* declarations whose name matches pattern *)
   let decl_match (d : AST.declaration) (pattern : string) : bool =
     ( match Asl_utils.decl_name d with
@@ -227,48 +263,62 @@ let cmd_show (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
     | None -> false
     )
   in
-  let (ds, output) = match args with
-    | ("--output" :: filename :: ds) -> (ds, Some filename)
-    | ds -> (ds, None)
-  in
-  let ds = match ds with
-    | [] -> !Commands.declarations
-    | patterns -> List.filter (fun d -> List.exists (decl_match d) patterns) !Commands.declarations
-  in
-  ( match output with
-  | Some filename ->
-      Utils.to_file filename (fun fmt ->
-        List.iter (Format.fprintf fmt "%a@,@." FMT.declaration) ds;
-      )
-  | None ->
-      if Utils.is_empty ds then
-        Format.printf "No function selected: try ':show A*'@."
-      else
-        List.iter (Format.printf "%a@,@." FMT.declaration) ds;
-  );
-  true
 
-let _ = Commands.registerCommand "show" "[--output <file>] <patterns>*" "Show matching definitions" cmd_show
+  let output = ref "" in
+  let pattern = ref "" in
+
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    let ds = match !pattern with
+      | "" -> !Commands.declarations
+      | pat -> List.filter (fun d -> decl_match d pat) !Commands.declarations
+    in
+
+    ( match !output with
+    | "" ->
+        if Utils.is_empty ds then
+          Format.printf "No function selected: try ':show A*'@."
+        else
+          List.iter (Format.printf "%a@,@." FMT.declaration) ds;
+    | filename ->
+        Utils.to_file filename (fun fmt ->
+          List.iter (Format.fprintf fmt "%a@,@." FMT.declaration) ds;
+        )
+    );
+    true
+  in
+  let flags = Arg.align [
+    ("--output", Arg.Set_string output, "Output file");
+  ]
+  in
+  let opt_args = [
+    (pattern, "pattern")
+  ]
+  in
+  Commands.registerCommand "show" flags [] opt_args "Show matching definitions" cmd
 
 (****************************************************************
  * Command: :step
  ****************************************************************)
 
-let cmd_step (tcenv : TC.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  let n = match args with
-    | [n] -> int_of_string n
-    | _ -> 1
+let _ =
+  let steps = ref "1"
   in
-  ( try
-      for i = 1 to n do
-        cpu.step ();
-      done
-  with
-  | e -> Error.print_exception e; error ()
-  );
-  true
-
-let _ = Commands.registerCommand "step" "[<count>]" "Execute <count> instructions" cmd_step
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    ( try
+        let n = int_of_string !steps in
+        for i = 1 to n do
+          cpu.step ();
+        done
+      with
+      | e -> Error.print_exception e; error ()
+    );
+    true
+  in
+  let opt_args = [
+    (steps, "count");
+  ]
+  in
+  Commands.registerCommand "step" [] [] opt_args "Execute <count> instructions" cmd
 
 (****************************************************************
  * Main program and command line options

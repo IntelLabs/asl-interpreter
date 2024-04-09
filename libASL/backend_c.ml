@@ -1624,32 +1624,22 @@ let generate_files (num_c_files : int) (basename : string) (ds : AST.declaration
  * Command: :generate_c
  ****************************************************************)
 
-let opt_num_c_files = ref 1
-let opt_basename : string ref = ref "asl2c"
-
-let options =
-  Arg.align
-    [
-      ("--basename",     Arg.Set_string opt_basename, "       Basename of output files");
-      ("--num-c-files",  Arg.Set_int opt_num_c_files, "       Number of .c files created (default: 1)");
-      ("--line-info",    Arg.Set include_line_info,   "       Insert line number information");
-      ("--no-line-info", Arg.Clear include_line_info, "       Do not insert line number information");
-    ]
-
-let usage_msg = "Usage: :generate_c <options> --basename=<basename>\n"
-
-let cmd_generate_c (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  let ok = ref true in
-  let anonymous_arg (arg : string) : unit =
-    Printf.printf "Unrecognized argument of generate_c: %s\n" arg;
-    ok := false
+let _ =
+  let opt_num_c_files = ref 1 in
+  let opt_basename = ref "asl2c" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    generate_files !opt_num_c_files !opt_basename !Commands.declarations;
+    true
   in
-  let argv = Array.of_list (":generate_c"::args) in
-  Stdlib.Arg.parse_argv ~current:(ref 0) argv options anonymous_arg usage_msg;
-  if !ok then generate_files !opt_num_c_files !opt_basename !Commands.declarations;
-  !ok
-
-let _ = Commands.registerCommand "generate_c" "" "Generate C" cmd_generate_c
+  let flags = Arg.align [
+        ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
+        ("--num-c-files",  Arg.Set_int opt_num_c_files, "<num>      Number of .c files created (default: 1)");
+        ("--line-info",    Arg.Set include_line_info,   " Insert line number information");
+        ("--no-line-info", Arg.Clear include_line_info, " Do not insert line number information");
+        ("--global-pointer", Arg.String (fun s -> opt_global_pointer := Some s), "<varname> Access all variables through a global pointer");
+      ]
+  in
+  Commands.registerCommand "generate_c" flags [] [] "Generate C" cmd
 
 (****************************************************************
  * End

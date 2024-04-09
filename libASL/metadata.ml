@@ -32,17 +32,18 @@ let generate_callgraph (filename : string) (ds : Asl_ast.declaration list): unit
  * Command: :callgraph
  ****************************************************************)
 
-let cmd_callgraph (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Generating callgraph metadata file %s.\n" file;
-    generate_callgraph file !Commands.declarations;
+let _ =
+  let file = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    Printf.printf "Generating callgraph metadata file %s.\n" !file;
+    generate_callgraph !file !Commands.declarations;
     true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "callgraph" "<json file>" "Generate json file containing callgraph" cmd_callgraph
+  in
+  let args = [
+    (file, "json file");
+  ]
+  in
+  Commands.registerCommand "callgraph" [] args [] "Generate json file containing callgraph" cmd
 
 (****************************************************************
  * End

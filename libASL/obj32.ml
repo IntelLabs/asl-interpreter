@@ -43,17 +43,18 @@ let load_file (name : string) (write : Int64.t -> Int32.t -> unit) : unit =
  * Command: :obj
  ****************************************************************)
 
-let cmd_obj (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) (args : string list) : bool =
-  ( match args with
-  | [ file ] ->
-    Printf.printf "Loading OBJ32 file %s.\n" file;
-    load_file file cpu.elfwrite32;
+let _ =
+  let file = ref "" in
+  let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
+    Printf.printf "Loading OBJ32 file %s.\n" !file;
+    load_file !file cpu.elfwrite32;
     true
-  | _ ->
-    false
-  )
-
-let _ = Commands.registerCommand "obj" "<file>" "Load an OBJ32 file" cmd_obj
+  in
+  let args = [
+    (file, "file");
+  ]
+  in
+  Commands.registerCommand "obj" [] args [] "Load an OBJ32 file" cmd
 
 (****************************************************************
  * End
