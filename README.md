@@ -105,20 +105,10 @@ Platform independent instructions:
 
 ```
     opam install ocaml.4.14.1
-    opam install ocolor
-    opam install dune
-    opam install dune-site
-    opam install menhir
-    opam install linenoise
-    opam install yojson
-    opam install z3
-    opam install zarith
+    opam install . --yes --deps-only
 
-    # the following are optional and only needed if modifying asli code
-    opam install odoc
-    opam install ocamlformat
-
-    opam install alcotest # only needed for testing
+    # use this command if you are modifying ASLi
+    # opam install . --yes --deps-only --with-doc --with-test
 
     # On OSX, you may need to use this command to install zarith
     env CFLAGS="-I$HOME/homebrew/include/" LDFLAGS="-L$HOME/homebrew/lib/" opam install zarith
