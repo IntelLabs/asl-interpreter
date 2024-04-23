@@ -682,13 +682,13 @@ let reachable_decls (roots : Ident.t list) (ds : declaration list) :
     declaration list =
   (* Map of enumeration constants to the type that defines them *)
   let enums = ref Bindings.empty in
-  List.iter (fun d ->
-      ( match d with
+  List.iter
+      ( function
       | Decl_Enum (v, es, _) ->
         List.iter (fun e -> enums := Bindings.add e v !enums) es
       | _ ->
         ()
-      ))
+      )
       ds;
 
   let next (d : declaration) : IdentSet.t =
