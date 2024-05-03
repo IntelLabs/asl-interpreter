@@ -17,12 +17,22 @@ open Asl_utils
 
 exception ParseError of string
 
-let rec find_file (paths : string list) (filename : string) : string =
-  match paths with
-  | [] -> failwith ("Can't find file '" ^ filename ^ "' on path")
-  | f :: paths' ->
-      let fname = Filename.concat f filename in
-      if Sys.file_exists fname then fname else find_file paths' filename
+let find_file (search_path : string list) (filename : string) : string =
+  if Filename.is_relative filename then (
+    let rec find (paths : string list) : string =
+      ( match paths with
+      | [] -> failwith ("Can't find file '" ^ filename ^ "' on path '" ^ String.concat ":" search_path)
+      | path :: paths' ->
+          let fname = Filename.concat path filename in
+          if Sys.file_exists fname then fname else find paths'
+      )
+    in find search_path
+  ) else (
+    if Sys.file_exists filename then
+      filename
+    else
+      failwith ("Can't find file '" ^ filename ^ "'")
+  )
 
 let parse_file (paths : string list) (filename : string) (isPrelude : bool)
     (verbose : bool) : AST.declaration list =
