@@ -331,13 +331,13 @@ let bit_length (x : Z.t) : int =
   (* +1 for sign bit, not taken into account by Z.numbits *)
   Z.numbits x' + 1
 
-(* Generate INT<n>_MIN macro constant *)
+(* Generate ASL_INT<n>_MIN macro constant *)
 let minint_constant (fmt : PP.formatter) (n : int) : unit =
-  constant fmt ("INT" ^ string_of_int n ^ "_MIN")
+  constant fmt ("ASL_INT" ^ string_of_int n ^ "_MIN")
 
-(* Generate INT<n>_MAX macro constant *)
+(* Generate ASL_INT<n>_MAX macro constant *)
 let maxint_constant (fmt : PP.formatter) (n : int) : unit =
-  constant fmt ("INT" ^ string_of_int n ^ "_MAX")
+  constant fmt ("ASL_INT" ^ string_of_int n ^ "_MAX")
 
 (* Try generating min/max macro constants *)
 let int_constant (fmt : PP.formatter) (n : int) (x : Z.t)
