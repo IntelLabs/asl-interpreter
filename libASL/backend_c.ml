@@ -1538,11 +1538,13 @@ let fprinf_includes (fmt : PP.formatter) (filenames : string list) : unit =
   List.iter (PP.fprintf fmt "#include \"%s\"@.") filenames;
   PP.pp_print_newline fmt ()
 
-let emit_c_header (filename : string) (sys_h_filenames : string list)
-    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
-  let filename = filename ^ ".h" in
+let emit_c_header (dirname : string) (basename : string)
+    (sys_h_filenames : string list) (h_filenames : string list)
+    (f : PP.formatter -> unit) : unit =
+  let basename = basename ^ ".h" in
+  let filename = Filename.concat dirname basename in
   let macro =
-    String.uppercase_ascii filename
+    String.uppercase_ascii basename
     |> String.map (fun c -> if List.mem c [ '.'; '/'; '-' ] then '_' else c)
   in
   Utils.to_file filename (fun fmt ->
@@ -1574,36 +1576,40 @@ let emit_c_source (filename : string) ?(index : int option)
       f fmt
   )
 
-let generate_files (num_c_files : int) (basename : string) (ds : AST.declaration list) : unit =
+let generate_files (num_c_files : int) (dirname : string) (basename : string)
+    (ds : AST.declaration list) : unit =
   let sys_h_filenames = [ "stdbool.h" ] in
   let h_filenames = [ "asl/runtime.h" ] in
 
-  let filename_t = basename ^ "_types" in
-  emit_c_header filename_t sys_h_filenames h_filenames (fun fmt ->
+  let basename_t = basename ^ "_types" in
+  emit_c_header dirname basename_t sys_h_filenames h_filenames (fun fmt ->
       type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt
   );
-  let filename_e = basename ^ "_exceptions" in
-  emit_c_header filename_e sys_h_filenames h_filenames (fun fmt ->
+  let basename_e = basename ^ "_exceptions" in
+  emit_c_header dirname basename_e sys_h_filenames h_filenames (fun fmt ->
       exceptions fmt ds
   );
-  let filename_v = basename ^ "_vars" in
-  emit_c_header filename_v sys_h_filenames h_filenames (fun fmt ->
+  let basename_v = basename ^ "_vars" in
+  emit_c_header dirname basename_v sys_h_filenames h_filenames (fun fmt ->
       extern_declarations fmt (var_decls ds)
   );
 
   let gen_h_filenames =
-    List.map (fun s -> s ^ ".h") [ filename_t; filename_e; filename_v ]
+    List.map (fun s -> s ^ ".h") [ basename_t; basename_e; basename_v ]
   in
 
+  let filename_e = Filename.concat dirname basename_e in
   emit_c_source filename_e gen_h_filenames (fun fmt ->
       exceptions_init fmt);
 
+  let filename_v = Filename.concat dirname basename_v in
   emit_c_source filename_v gen_h_filenames (fun fmt ->
       declarations fmt (var_decls ds));
 
   let ds = fun_decls ds in
+  let filename_f = Filename.concat dirname (basename ^ "_funs") in
   let emit_funs ?(index : int option) (ds : AST.declaration list) : unit =
-    emit_c_source (basename ^ "_funs") ?index gen_h_filenames (fun fmt ->
+    emit_c_source filename_f ?index gen_h_filenames (fun fmt ->
         declarations fmt ds)
   in
   if num_c_files = 1 then
@@ -1628,13 +1634,15 @@ let generate_files (num_c_files : int) (basename : string) (ds : AST.declaration
  ****************************************************************)
 
 let _ =
+  let opt_dirname = ref "" in
   let opt_num_c_files = ref 1 in
   let opt_basename = ref "asl2c" in
   let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
-    generate_files !opt_num_c_files !opt_basename !Commands.declarations;
+    generate_files !opt_num_c_files !opt_dirname !opt_basename !Commands.declarations;
     true
   in
   let flags = Arg.align [
+        ("--output-dir",   Arg.Set_string opt_dirname,  "<dirname> Directory for output files");
         ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
         ("--num-c-files",  Arg.Set_int opt_num_c_files, "<num>      Number of .c files created (default: 1)");
         ("--line-info",    Arg.Set include_line_info,   " Insert line number information");

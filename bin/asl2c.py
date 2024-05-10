@@ -6,7 +6,7 @@ Generate asli script to generate C code from ASL
 Typical usage:
 
     mkdir genc
-    bin/asl2c.py --basename=genc/sim --intermediates=genc/log --line-info --num-c-files=8 > genc/asl2c.prj
+    bin/asl2c.py --output-dir=genc --basename=sim --intermediates=genc/log --line-info --num-c-files=8 > genc/asl2c.prj
     asli --batchmode --nobanner --project=genc/asl2c.prj --configuration=imports.json --configuration=exports.json spec.asl
 """
 
@@ -146,7 +146,8 @@ base_script = """
 
 // Generate C code from the remaining definitions
 //
-// This produces multiple files that will be prefixed by the basename.
+// This produces multiple files that will be prefixed by the basename and saved
+// into the output-dir directory.
 //
 // Compilation of all the functions can be parallelized by splitting the
 // file containing the functions into smaller files (using --num-c-files=<N>)
@@ -155,7 +156,7 @@ base_script = """
 // Optionally, the C code can use #line directives so that profiling, debuggers,
 // etc. know what file/line in the ASL file produced each line of C code.
 // Use --line-info or --no-line-info to control this.
-:generate_c --basename={basename} --num-c-files={num_c_files} {line_info}
+:generate_c --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info}
 """.strip()
 
 def main() -> int:
@@ -165,6 +166,7 @@ def main() -> int:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             )
     parser.add_argument("--intermediates", help="generate intermediate files with prefix", metavar="log_prefix")
+    parser.add_argument("--output-dir", help="output directory for generated files", metavar="output_dir", default="")
     parser.add_argument("--basename", help="basename of generated C files", metavar="output_prefix", required=True)
     parser.add_argument("--num-c-files", help="write functions to N files", metavar="N", type=int, default=1)
     parser.add_argument("--line-info", help="insert line directives into C code", action=argparse.BooleanOptionalAction)
@@ -176,6 +178,7 @@ def main() -> int:
         'basename':    args.basename,
         'line_info':   "",
         'num_c_files': args.num_c_files,
+        'output_dir':  args.output_dir,
         'track_valid': "",
     }
     if args.instrument_unknown: substitutions['track_valid'] = ":xform_valid track-valid"
