@@ -33,19 +33,31 @@ let pointer (fmt : PP.formatter) (x : Ident.t) : unit =
  *)
 let exception_tcs : Ident.t list ref = ref []
 
-(** supply of goto labels for exception implementation *)
+(** Supply of goto labels for exception implementation *)
 let catch_labels = new Asl_utils.nameSupply "catch"
 
-let catch_stack : Ident.t list ref = ref []
+module Catcher = struct
+  type t = { mutable label : Ident.t option }
 
-let with_catch_label (f : Ident.t -> unit) : unit =
-  let prev = !catch_stack in
-  let catch_label = catch_labels#fresh in
-  catch_stack := catch_label :: prev;
-  f catch_label;
-  catch_stack := prev
+  let create (_ : unit) : t = { label = Some catch_labels#fresh }
+  let get_label (x : t) : Ident.t = Option.get x.label
+end
 
-let current_catcher (_ : unit) : Ident.t = List.hd !catch_stack
+let catcher_stack : Catcher.t list ref = ref []
+
+let current_catch_label (_ : unit) : Ident.t =
+  match !catcher_stack with
+  | c :: _ -> Catcher.get_label c
+  | [] ->
+      raise
+        (InternalError (Unknown, "No topmost catcher", (fun _ -> ()), __LOC__))
+
+let with_catch_label (f : Catcher.t -> unit) : unit =
+  let prev = !catcher_stack in
+  let catcher = Catcher.create () in
+  catcher_stack := catcher :: prev;
+  f catcher;
+  catcher_stack := prev
 
 (** List of all the reserved words in C *)
 let reserved_c = [
@@ -474,7 +486,7 @@ let width_of_type (loc : AST.l) (ty : AST.ty) : AST.expr option =
 
 let rethrow_stmt (fmt : PP.formatter) : unit =
   PP.fprintf fmt "if (ASL_exception._exc.ASL_tag != ASL_no_exception) goto %a;"
-    varname (current_catcher ())
+    varname (current_catch_label ())
 
 let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
   PP.fprintf fmt "({ __auto_type __r = ";
@@ -1160,11 +1172,11 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       ()
   | Stmt_Throw (e, loc) ->
       PP.fprintf fmt "ASL_exception = %a;@," (expr loc) e;
-      PP.fprintf fmt "goto %a;" varname (current_catcher ())
+      PP.fprintf fmt "goto %a;" varname (current_catch_label ())
   | Stmt_Try (tb, pos, catchers, odefault, loc) ->
-      with_catch_label (fun catch_label ->
+      with_catch_label (fun catcher ->
         brace_enclosed_block fmt tb;
-        PP.fprintf fmt "@,%a:@," varname catch_label;
+        PP.fprintf fmt "@,%a:@," varname (Catcher.get_label catcher);
         );
       PP.fprintf fmt "if (ASL_exception._exc.ASL_tag == ASL_no_exception) {@,";
       List.iter (function AST.Catcher_Guarded (v, tc, b, loc) ->
@@ -1183,7 +1195,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       PP.fprintf fmt "} else {";
       indented fmt (fun _ ->
         ( match odefault with
-        | None -> PP.fprintf fmt "goto %a;@," varname (current_catcher ())
+        | None -> PP.fprintf fmt "goto %a;@," varname (current_catch_label ())
         | Some (s, _) ->
             PP.fprintf fmt "ASL_exception._exc.ASL_tag = ASL_no_exception;@,";
             brace_enclosed_block fmt s
@@ -1221,12 +1233,12 @@ let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f :
   parens fmt args
 
 let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option) : unit =
-  with_catch_label (fun catch_label ->
+  with_catch_label (fun catcher ->
     braces fmt
       (fun _ ->
          indented_block fmt b;
          cut fmt;
-         PP.fprintf fmt "%a:" varname catch_label;
+         PP.fprintf fmt "%a:" varname (Catcher.get_label catcher);
          (* When throwing an exception, we need to return a value with
           * the correct type. This value will never be used so the easy way
           * to create it is to declare a variable, not initialize it and
