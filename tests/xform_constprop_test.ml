@@ -306,17 +306,22 @@ let constprop_tests : unit Alcotest.test_case list =
       "constant a : boolean = TRUE;
        constant b : integer = 1;
        constant c : bits(1) = '1';
-       enumeration T { E1, E2 }; constant d : T = E2;"
+       enumeration T { E1, E2 }; constant d : T = E2;
+       var va : boolean;
+       var vb : integer;
+       var vc : bits(1);
+       var vd : T;
+      "
 
-      "case FALSE of when a => return; end
-       case 0 of when b => return; end
-       case '0' of when c => return; end
-       case E1 of when d => return; end"
+      "case va of when a => return; end
+       case vb of when b => return; end
+       case vc of when c => return; end
+       case vd of when d => return; end"
 
-      "case FALSE of when TRUE => return; end
-       case 0 of when 1 => return; end
-       case '0' of when '1' => return; end
-       case E1 of when E2 => return; end");
+      "case va of when TRUE => return; end
+       case vb of when 1 => return; end
+       case vc of when '1' => return; end
+       case vd of when E2 => return; end");
 
     ("case stmt integers", `Quick, test_cp_stmts
      "var i : integer; func Foo(x : integer) begin end"
@@ -438,6 +443,32 @@ let constprop_tests : unit Alcotest.test_case list =
          when 24 => x = 5;
       end
       y = x;");
+    ("if stmt dead code (then)", `Quick, test_cp_stmts
+     "var x : integer;"
+     "if 1 < 2 then x = 1; else x = 2; end"
+     "x = 1;");
+    ("if stmt dead code (else)", `Quick, test_cp_stmts
+     "var x : integer;"
+     "if 1 > 2 then x = 1; else x = 2; end"
+     "x = 2;");
+    ("case stmt dead code (single)", `Quick, test_cp_stmts
+     "var x : integer;"
+     "case 3 of when 1,5 => x = 0; when 2 => x =  1; when 3 => x =  2; when 4 => x =  3; end"
+     "x = 2;");
+    ("case stmt dead code (multi)", `Quick, test_cp_stmts
+     "var x : integer;"
+     "case 5 of when 1,5 => x = 0; when 2 => x =  1; when 3 => x =  2; when 4 => x =  3; end"
+     "x = 0;");
+    ("case stmt dead code (if 1)", `Quick, test_cp_stmts
+     "var x : integer;
+      var y : integer;"
+     "case 3 of when 1 => x = 0; when 2 where y < 0 => x =  1; when 3 where y > 0 => x =  2; when 4 => x =  3; end"
+     "case 3 of when - where y > 0 => x = 2; end");
+    ("case stmt dead code (if 2)", `Quick, test_cp_stmts
+     "var x : integer;
+      var y : integer;"
+     "case 3 of when 1 => x = 0; when 3 where y < 0 => x =  1; when 3 where y > 0 => x =  2; when 4 => x =  3; end"
+     "case 3 of when - where y < 0 => x = 1; when - where y > 0 => x = 2; end");
   ]
 
 (****************************************************************

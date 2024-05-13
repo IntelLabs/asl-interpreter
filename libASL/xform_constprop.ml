@@ -108,7 +108,7 @@ let isConstant (env : Env.t) (x : expr) : bool =
   | Expr_Var v -> Option.is_some (Eval.GlobalEnv.get_global_constant (Env.globals env) v)
   | _ -> Asl_utils.is_literal_constant x
 
-let value_of_constant (x : expr) : Value.value option =
+let value_of_constant (env : Env.t) (x : expr) : Value.value option =
   match x with
   | Expr_LitInt i -> Some (Value.from_intLit i)
   | Expr_LitHex i -> Some (Value.from_hexLit i)
@@ -116,6 +116,7 @@ let value_of_constant (x : expr) : Value.value option =
   | Expr_LitBits b -> Some (Value.from_bitsLit b)
   | Expr_LitMask b -> Some (Value.from_maskLit b)
   | Expr_LitString s -> Some (Value.from_stringLit s)
+  | Expr_Var v -> Eval.GlobalEnv.get_global_constant (Env.globals env) v
   | _ -> None
 
 let expr_value (env : Env.t) (x : AST.expr) : Values.t =
@@ -513,12 +514,39 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
               in
               (Alt_Alt (ps', oc', s', loc) :: alts'', odefault'))
       in
-      let alts', odefault' = xform env alts in
-      [ Stmt_Case (e', alts', odefault', loc) ]
+      let (alts', odefault') = xform env alts in
+
+      (* perform dead code elimination when the discriminant is a constant *)
+      ( match value_of_constant env e' with
+      | Some v ->
+        (* simplify an alternative based on whether it matches the constant *)
+        let env0 = Env.to_concrete env in
+        let simplify_alt alt =
+          ( match alt with
+          | Alt_Alt (ps, oc, s, loc) ->
+              let matches = List.exists (Eval.eval_pattern loc env0 v) ps in
+              if oc = Some asl_false || not matches then (
+                None
+              ) else (
+                let ps' = if matches then [Pat_Wildcard] else ps in
+                let oc' = if oc = Some asl_true then None else oc in
+                Some (Alt_Alt (ps', oc', s, loc))
+              )
+          )
+        in
+        let alts'' = List.filter_map simplify_alt alts' in
+
+        (* If the first match is a guaranteed match, eliminate all the other (dead) branches *)
+        ( match alts'' with
+        | [Alt_Alt ([Pat_Wildcard], None, s, loc)] -> s
+        | _ -> [ Stmt_Case (e', alts'', odefault', loc) ]
+        )
+      | _ -> [ Stmt_Case (e', alts', odefault', loc) ]
+      )
   | Stmt_For (v, start, dir, stop, b, loc) -> (
       let start' = xform_expr env start in
       let stop' = xform_expr env stop in
-      match (value_of_constant start', value_of_constant stop') with
+      match (value_of_constant env start', value_of_constant env stop') with
       | Some x, Some y when !unroll_loops ->
           let rec eval (i : Value.value) =
             let c =

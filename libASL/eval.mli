@@ -37,6 +37,7 @@ module Env : sig
 end
 
 val eval_expr : AST.l -> Env.t -> AST.expr -> Value.value
+val eval_pattern : AST.l -> Env.t -> Value.value -> AST.pattern -> bool
 val eval_stmt : Env.t -> AST.stmt -> unit
 
 val eval_proccall :
