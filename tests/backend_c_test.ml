@@ -38,6 +38,7 @@ let check_syntax (name : string) (code : string) : unit =
 let test_declaration (name : string) (s : string) : unit =
   let fmt = Format.str_formatter in
   let tcenv = TC.env0 in
+  let () = BE.catch_labels#reset in
   check_declaration tcenv (BE.declarations fmt) check_syntax name s
 
 let make_cases (cases : Test_cases.test_case list) :

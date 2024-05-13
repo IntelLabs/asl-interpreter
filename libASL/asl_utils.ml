@@ -100,6 +100,9 @@ class nameSupply (prefix : string) =
       let v = Ident.mk_ident (prefix ^ string_of_int vnum) in
       vnum <- vnum + 1;
       v
+
+    method reset : unit =
+      vnum <- 0
   end
 
 (****************************************************************)

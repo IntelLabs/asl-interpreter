@@ -60,6 +60,7 @@ val to_sorted_list : IdentSet.t -> Ident.t list
 class nameSupply : string ->
   object
     method fresh : Ident.t
+    method reset : unit
   end
 
 (****************************************************************)
