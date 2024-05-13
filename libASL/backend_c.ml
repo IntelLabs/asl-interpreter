@@ -39,15 +39,19 @@ let catch_labels = new Asl_utils.nameSupply "catch"
 module Catcher = struct
   type t = { mutable label : Ident.t option }
 
-  let create (_ : unit) : t = { label = Some catch_labels#fresh }
+  let create (_ : unit) : t = { label = None }
   let get_label (x : t) : Ident.t = Option.get x.label
+  let is_active (x : t) : bool = Option.is_some x.label
+  let activate (x : t) : unit = x.label <- Some catch_labels#fresh
 end
 
 let catcher_stack : Catcher.t list ref = ref []
 
 let current_catch_label (_ : unit) : Ident.t =
   match !catcher_stack with
-  | c :: _ -> Catcher.get_label c
+  | c :: _ ->
+      if not (Catcher.is_active c) then Catcher.activate c;
+      Catcher.get_label c
   | [] ->
       raise
         (InternalError (Unknown, "No topmost catcher", (fun _ -> ()), __LOC__))
@@ -1176,8 +1180,10 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_Try (tb, pos, catchers, odefault, loc) ->
       with_catch_label (fun catcher ->
         brace_enclosed_block fmt tb;
-        PP.fprintf fmt "@,%a:@," varname (Catcher.get_label catcher);
-        );
+        if Catcher.is_active catcher then
+          PP.fprintf fmt "@,%a:" varname (Catcher.get_label catcher);
+        cut fmt
+      );
       PP.fprintf fmt "if (ASL_exception._exc.ASL_tag == ASL_no_exception) {@,";
       List.iter (function AST.Catcher_Guarded (v, tc, b, loc) ->
           PP.fprintf fmt "} else if (ASL_exception._exc.ASL_tag == tag_%a) {" tycon tc;
@@ -1238,26 +1244,29 @@ let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option
       (fun _ ->
          indented_block fmt b;
          cut fmt;
-         PP.fprintf fmt "%a:" varname (Catcher.get_label catcher);
-         (* When throwing an exception, we need to return a value with
-          * the correct type. This value will never be used so the easy way
-          * to create it is to declare a variable, not initialize it and
-          * return the variables. This will make the C compiler emit a warning.
-          * *)
-         indented fmt (fun _ ->
-           ( match orty  with
-           | None -> PP.fprintf fmt "return;"
-           | Some rty ->
-             braces fmt (fun _ ->
-               indented fmt (fun _ ->
-                 let v = asl_fake_return_value in
-                 varty AST.Unknown fmt v rty;
-                 PP.fprintf fmt ";@,return %a;" varname v
-               );
-               cut fmt
-             )
-           ));
-         cut fmt
+
+         if Catcher.is_active catcher then (
+           PP.fprintf fmt "%a:" varname (Catcher.get_label catcher);
+           (* When throwing an exception, we need to return a value with
+            * the correct type. This value will never be used so the easy way
+            * to create it is to declare a variable, not initialize it and
+            * return the variables. This will make the C compiler emit a warning.
+            * *)
+           indented fmt (fun _ ->
+             match orty with
+             | None -> PP.fprintf fmt "return;"
+             | Some rty ->
+               braces fmt (fun _ ->
+                 indented fmt (fun _ ->
+                   let v = asl_fake_return_value in
+                   varty AST.Unknown fmt v rty;
+                   PP.fprintf fmt ";@,return %a;" varname v
+                 );
+                 cut fmt
+               )
+             );
+           cut fmt
+         )
       )
     )
 
