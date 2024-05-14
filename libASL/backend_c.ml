@@ -38,13 +38,12 @@ let catch_labels = new Asl_utils.nameSupply "catch"
 
 let catch_stack : Ident.t list ref = ref []
 
-let with_catch_label (f : Ident.t -> 'a) : 'a =
+let with_catch_label (f : Ident.t -> unit) : unit =
   let prev = !catch_stack in
   let catch_label = catch_labels#fresh in
   catch_stack := catch_label :: prev;
-  let r = f catch_label in
-  catch_stack := prev;
-  r
+  f catch_label;
+  catch_stack := prev
 
 let current_catcher (_ : unit) : Ident.t = List.hd !catch_stack
 
