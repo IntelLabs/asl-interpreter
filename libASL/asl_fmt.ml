@@ -147,6 +147,7 @@ let kw_unknown (fmt : PP.formatter) : unit = keyword fmt "UNKNOWN"
 let kw_until (fmt : PP.formatter) : unit = keyword fmt "until"
 let kw_var (fmt : PP.formatter) : unit = keyword fmt "var"
 let kw_when (fmt : PP.formatter) : unit = keyword fmt "when"
+let kw_where (fmt : PP.formatter) : unit = keyword fmt "where"
 let kw_while (fmt : PP.formatter) : unit = keyword fmt "while"
 
 type comment = Lexing.position * Lexing.position * string
@@ -719,7 +720,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                   PP.pp_print_option
                     (fun _ c ->
                       nbsp fmt;
-                      amp_amp fmt;
+                      kw_where fmt;
                       nbsp fmt;
                       expr fmt c)
                     fmt oc;
