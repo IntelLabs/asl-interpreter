@@ -154,7 +154,10 @@ let kw_true = "1'b1"
 
 (* Verilog system functions *)
 
-let fn_write (fmt : PP.formatter) : unit = keyword fmt "$write"
+let fn_writeb (fmt : PP.formatter) : unit = keyword fmt "$writeb"
+let fn_writed (fmt : PP.formatter) : unit = keyword fmt "$write"
+let fn_writeh (fmt : PP.formatter) : unit = keyword fmt "$writeh"
+let fn_writes (fmt : PP.formatter) : unit = keyword fmt "$write"
 let fn_typeof (fmt : PP.formatter) : unit = keyword fmt "$typeof"
 let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 
@@ -445,25 +448,31 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
       PP.fprintf fmt "(%a ** %a)"
         (expr loc) x
         (expr loc) y
-  (* todo: real is not supported at the moment
-     | (FIdent ("cvt_int_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("eq_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("ne_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("le_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("lt_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("gt_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("ge_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("add_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("neg_real", _), _) -> unop loc fmt "" args
-     | (FIdent ("sub_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("mul_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("divide_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("pow2_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("round_tozero_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("round_down_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("round_up_real", _), _) -> binop loc fmt "" args
-     | (FIdent ("sqrt_real", _), _) -> binop loc fmt "" args
-  *)
+  (* Real builtin functions *)
+  | _ when Ident.in_list f
+        [ add_real
+        ; cvt_int_real
+        ; divide_real
+        ; eq_real
+        ; ge_real
+        ; gt_real
+        ; le_real
+        ; lt_real
+        ; mul_real
+        ; ne_real
+        ; neg_real
+        ; pow2_real
+        ; round_down_real
+        ; round_tozero_real
+        ; round_up_real
+        ; sqrt_real
+        ; sub_real
+        ] ->
+      raise
+        (Error.Unimplemented
+           ( loc,
+             "real builtin function",
+             fun fmt -> FMTAST.funname fmt f ))
   | i, [ x; n ] when Ident.equal i cvt_int_bits ->
       expr loc fmt x;
       brackets fmt (fun _ ->
@@ -484,8 +493,6 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
   | i, _ when Ident.equal i add_bits -> binop loc fmt "+" args
   | i, _ when Ident.equal i sub_bits -> binop loc fmt "-" args
   | i, _ when Ident.equal i mul_bits -> binop loc fmt "*" args
-  | i, _ when Ident.equal i lsl_bits -> binop loc fmt "<<" args
-  | i, _ when Ident.equal i lsr_bits -> binop loc fmt ">>" args
   | i, _ when Ident.equal i frem_bits_int ->
       binop loc fmt "/" args (* todo: check behaviour on -ve values *)
   | i, _ when Ident.equal i and_bits -> binop loc fmt "&" args
@@ -498,10 +505,9 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
   | i, [_] when Ident.equal i ones_bits ->
       let x = List.hd tes in
       bitsLit fmt (String.make (const_int_expr loc x) '1')
-  | i, [ x; y ] when Ident.equal i replicate_bits ->
-      braces fmt (fun _ ->
-          valueLit loc fmt (const_expr loc y);
-          braces fmt (fun _ -> expr loc fmt x))
+  | i, _ when Ident.equal i lsl_bits -> binop loc fmt "<<" args
+  | i, _ when Ident.equal i lsr_bits -> binop loc fmt ">>" args
+  | i, _ when Ident.equal i asr_bits -> binop loc fmt ">>>" args
   | i, [ w; _ ] when Ident.equal i mk_mask ->
       let n = List.hd tes in
       PP.fprintf fmt "(";
@@ -509,24 +515,39 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
       PP.fprintf fmt " >> (%a - %a))"
         (expr loc) n
         (expr loc) w
-  (* todo: string operations not supported at the moment
-     | (FIdent ("cvt_int_hexstr", _), _) -> ...
-     | (FIdent ("cvt_int_decstr", _), _) -> ...
-     | (FIdent ("cvt_bool_str", _), _) -> ...
-     | (FIdent ("cvt_bits_str", _), _) -> ...
-     | (FIdent ("cvt_real_str", _), _) -> ...
-     | (FIdent ("append_str_str", _), _) -> ...
-     | (FIdent ("eq_str", _), _) -> ...
-     | (FIdent ("ne_str", _), _) -> ...
-  *)
+  | i, [ x; y ] when Ident.equal i replicate_bits ->
+      braces fmt (fun _ ->
+          valueLit loc fmt (const_expr loc y);
+          braces fmt (fun _ -> expr loc fmt x))
+  | i, [ x; y ] when Ident.equal i append_bits ->
+      PP.fprintf fmt "{ %a, %a }"
+        (expr loc) x
+        (expr loc) y
   | i, [ x; n ] when Ident.equal i Builtin_idents.zero_extend_bits ->
       zero_extend_bits loc fmt (const_int_expr loc n) x
+  | _ when Ident.in_list f
+        [ append_str_str
+        ; cvt_bits_str
+        ; cvt_bool_str
+        ; cvt_int_decstr
+        ; cvt_int_hexstr
+        ; cvt_real_str
+        ; eq_str
+        ; ne_str
+        ] ->
+      raise
+        (Error.Unimplemented
+           (loc, "string builtin function", fun fmt -> FMTAST.funname fmt f))
   | i, _ when Ident.equal i print_str ->
-      apply loc fmt (fun _ -> fn_write fmt) args
+      apply loc fmt (fun _ -> fn_writes fmt) args
+  | i, _ when Ident.equal i print_int_dec ->
+      apply loc fmt (fun _ -> fn_writed fmt) args
+  | i, _ when Ident.equal i print_int_hex ->
+      apply loc fmt (fun _ -> fn_writeh fmt) args
   | i, _ when Ident.equal i print_bits_hex ->
-      apply loc fmt (fun _ -> fn_write fmt) args
+      apply loc fmt (fun _ -> fn_writeh fmt) args
   | i, [ c ] when Ident.equal i print_char ->
-      fn_write fmt;
+      fn_writes fmt;
       parens fmt (fun _ ->
           constant fmt "\"%c\"";
           comma fmt;
