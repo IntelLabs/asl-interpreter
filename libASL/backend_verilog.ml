@@ -441,6 +441,10 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
           delimiter fmt "<<";
           nbsp fmt;
           expr loc fmt x)
+  | i, [ x; y ] when Ident.equal i pow_int_int ->
+      PP.fprintf fmt "(%a ** %a)"
+        (expr loc) x
+        (expr loc) y
   (* todo: real is not supported at the moment
      | (FIdent ("cvt_int_real", _), _) -> binop loc fmt "" args
      | (FIdent ("eq_real", _), _) -> binop loc fmt "" args
