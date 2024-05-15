@@ -484,6 +484,8 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
   | i, _ when Ident.equal i add_bits -> binop loc fmt "+" args
   | i, _ when Ident.equal i sub_bits -> binop loc fmt "-" args
   | i, _ when Ident.equal i mul_bits -> binop loc fmt "*" args
+  | i, _ when Ident.equal i lsl_bits -> binop loc fmt "<<" args
+  | i, _ when Ident.equal i lsr_bits -> binop loc fmt ">>" args
   | i, _ when Ident.equal i frem_bits_int ->
       binop loc fmt "/" args (* todo: check behaviour on -ve values *)
   | i, _ when Ident.equal i and_bits -> binop loc fmt "&" args
