@@ -496,6 +496,13 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
       braces fmt (fun _ ->
           valueLit loc fmt (const_expr loc y);
           braces fmt (fun _ -> expr loc fmt x))
+  | i, [ w; _ ] when Ident.equal i mk_mask ->
+      let n = List.hd tes in
+      PP.fprintf fmt "(";
+      bitsLit fmt (String.make (const_int_expr loc n) '1');
+      PP.fprintf fmt " >> (%a - %a))"
+        (expr loc) n
+        (expr loc) w
   (* todo: string operations not supported at the moment
      | (FIdent ("cvt_int_hexstr", _), _) -> ...
      | (FIdent ("cvt_int_decstr", _), _) -> ...
