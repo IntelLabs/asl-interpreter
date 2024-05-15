@@ -584,6 +584,10 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_ArrayInit es ->
       PP.fprintf fmt "{ %a }"
         (exprs loc) es
+  | Expr_In (e, Pat_LitMask x) ->
+      PP.fprintf fmt "(%a ==? %a)"
+        (expr loc) e
+        bitsLit x
   | Expr_AsConstraint (e, _)
   | Expr_AsType (e, _) ->
       expr loc fmt e
