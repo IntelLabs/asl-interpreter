@@ -11,15 +11,6 @@
   (-cclib -lstdc++))
  (libraries libASL linenoise dune-site dune-site.plugins))
 
-(executable
- (name asl2v)
- (public_name asl2v)
- (modes exe)
- (modules asl2v)
- (flags
-  (-cclib -lstdc++))
- (libraries libASL linenoise))
-
 (generate_sites_module
   (module sites)
   (sites asli)
@@ -42,4 +33,5 @@
 (install
  (section bin)
  (files
-  (asl2c.py as asl2c)))
+  (asl2c.py as asl2c)
+  (asl2v.py as asl2v)))
