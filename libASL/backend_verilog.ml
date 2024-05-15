@@ -38,7 +38,11 @@ let ident_str (fmt : PP.formatter) (x : string) : unit =
 let ident (fmt : PP.formatter) (x : Ident.t) : unit =
   ident_str fmt (mangle (Ident.name_with_tag x))
 
-let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
+let tycon (fmt : PP.formatter) (x : Ident.t) : unit =
+  if Ident.equal x boolean_ident
+  then ident_str fmt "asl_boolean"
+  else ident fmt x
+
 let funname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
 let varname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
 let fieldname (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt x
@@ -1145,6 +1149,7 @@ let generate_files (dirname : string) (basename : string) (ds : AST.declaration 
   let basename = Filename.concat dirname basename in
   Utils.to_file (basename ^ "_types.svh") (fun fmt ->
       Format.fprintf fmt "typedef bit signed[%d : 0] asl_integer;@," (!int_width - 1);
+      Format.fprintf fmt "typedef bit asl_boolean;@,";
 
       type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt;
 
