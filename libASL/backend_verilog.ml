@@ -145,9 +145,6 @@ let kw_var (fmt : PP.formatter) : unit = keyword fmt "var"
 let kw_void (fmt : PP.formatter) : unit = keyword fmt "void"
 let kw_with (fmt : PP.formatter) : unit = keyword fmt "with"
 
-(* Verilog types defined elsewhere *)
-let ty_ram (fmt : PP.formatter) : unit = keyword fmt "ASL_RAM_t"
-
 (* pseudo-keywords *)
 let kw_false = "1'b0"
 let kw_true = "1'b1"
@@ -230,10 +227,10 @@ let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
     tycon fmt tc;
     nbsp fmt;
     varname fmt v
-  | Type_Constructor (i, [_]) when Ident.equal i Builtin_idents.ram ->
-    ty_ram fmt;
-    nbsp fmt;
-    varname fmt v
+  | Type_Constructor (i, [a]) when Ident.equal i Builtin_idents.ram ->
+    PP.fprintf fmt "byte %a[%d]"
+      varname v
+      (Int.shift_left 1 (const_int_expr loc a))
   (* TODO implement integer range analysis to determine the correct type width. *)
   | Type_Integer _ ->
     kw_integer fmt;
@@ -552,6 +549,16 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
           constant fmt "\"%c\"";
           comma fmt;
           expr loc fmt c)
+  | i, [ a; n; ram; v ] when Ident.equal i ram_init -> ()
+  | i, [ a; n; ram; addr ] when Ident.equal i ram_read ->
+    PP.fprintf fmt "(%a[%a])"
+      (expr loc) ram
+      (expr loc) addr
+  | i, [ a; n; ram; addr; v ] when Ident.equal i ram_write ->
+    PP.fprintf fmt "%a[%a] = %a"
+      (expr loc) ram
+      (expr loc) addr
+      (expr loc) v
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
 and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
