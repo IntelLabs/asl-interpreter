@@ -1330,6 +1330,7 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
           nbsp fmt;
           function_body fmt b (Some t);
+          cut fmt;
           cut fmt
       | Decl_FunType (f, ps, args, t, loc) ->
           function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
@@ -1340,6 +1341,7 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           function_header loc fmt None f (fun _ -> formals loc fmt args);
           nbsp fmt;
           function_body fmt b None;
+          cut fmt;
           cut fmt
       | Decl_ProcType (f, ps, args, loc) ->
           function_header loc fmt None f (fun _ -> formals loc fmt args);
