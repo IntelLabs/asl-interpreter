@@ -1464,8 +1464,15 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_ProcType _
       -> Some x
 
+    (* Add Fun/Proc-Type declarations for any functions that have been created
+     * after typechecking such as functions created during monomorphization.
+     * Since the typechecker creates Fun/Proc-Type declarations for all functions
+     * in the original spec, this will result in duplicate function prototypes
+     * for many functions.
+     *)
     | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
     | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+
     | Decl_Const _
     | Decl_Exception _
     | Decl_Var _
