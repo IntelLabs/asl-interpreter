@@ -178,7 +178,7 @@ let _ =
   Commands.registerCommand "filter_unlisted_functions" [] args [] "Discard listed functions" cmd
 
 (****************************************************************
- * Command: :filter_unlisted_variables
+ * Command: :filter_listed_variables
  ****************************************************************)
 
 (* Delete a variable declaration if it occurs in the list
@@ -201,7 +201,7 @@ let _ =
     (group, "config group");
   ]
   in
-  Commands.registerCommand "filter_unlisted_variables" [] args [] "Discard listed variables" cmd
+  Commands.registerCommand "filter_listed_variables" [] args [] "Discard listed variables" cmd
 
 (****************************************************************
  * Command: :filter_reachable_from
@@ -212,7 +212,7 @@ let _ =
   let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
     let roots = read_group_idents !group in
     if Utils.is_empty roots then (
-      Printf.printf "Group '%s' is empty in :filter --reachable-from %s\n" !group !group;
+      Printf.printf "Group '%s' is empty in :filter_reachable_from %s\n" !group !group;
       false
     ) else (
       Commands.declarations := Asl_utils.reachable_decls roots !Commands.declarations;

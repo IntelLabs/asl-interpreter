@@ -21,12 +21,20 @@ let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
 let include_line_info : bool ref = ref false
 
-let opt_global_pointer : string option ref = ref None
-let pointer_accessed : Ident.t list ref = ref []
+(* Support for packing thread-local state (e.g., registers) into a struct that is then
+ * accessed via the named pointer.
+ *
+ * todo: at present, all global variable are treated as thread-local.
+ * In the future shared state such as memory should be stored separately.
+ *)
+let opt_thread_local_pointer : string option ref = ref None
+let thread_local_variables : Ident.t list ref = ref []
 
 let pointer (fmt : PP.formatter) (x : Ident.t) : unit =
-  if Option.is_some !opt_global_pointer && List.mem x !pointer_accessed then
-    PP.fprintf fmt "%s->" (Option.get !opt_global_pointer)
+  ( match !opt_thread_local_pointer with
+  | Some ptr when List.mem x !thread_local_variables -> PP.fprintf fmt "%s->" ptr
+  | _ -> ()
+  )
 
 (* list of all exception tycons - used to decide whether to insert a tag in
  * Expr_RecordInit
@@ -1659,17 +1667,25 @@ let _ =
   let opt_dirname = ref "" in
   let opt_num_c_files = ref 1 in
   let opt_basename = ref "asl2c" in
+
+  let add_thread_local_variables (group : string) : unit =
+    let names = Configuration.get_strings group in
+    thread_local_variables := List.append !thread_local_variables (Ident.mk_idents names)
+  in
+
   let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
     generate_files !opt_num_c_files !opt_dirname !opt_basename !Commands.declarations;
     true
   in
+
   let flags = Arg.align [
         ("--output-dir",   Arg.Set_string opt_dirname,  "<dirname> Directory for output files");
         ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
         ("--num-c-files",  Arg.Set_int opt_num_c_files, "<num>      Number of .c files created (default: 1)");
         ("--line-info",    Arg.Set include_line_info,   " Insert line number information");
         ("--no-line-info", Arg.Clear include_line_info, " Do not insert line number information");
-        ("--global-pointer", Arg.String (fun s -> opt_global_pointer := Some s), "<varname> Access all variables through a global pointer");
+        ("--thread-local-pointer", Arg.String (fun s -> opt_thread_local_pointer := Some s), "<varname> Access all thread-local variables through named pointer");
+        ("--thread-local", Arg.String add_thread_local_variables, "<config name> Configuration file group of thread local variable names");
       ]
   in
   Commands.registerCommand "generate_c" flags [] [] "Generate C" cmd

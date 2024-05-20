@@ -139,6 +139,17 @@ base_script = """
 // functions.
 :filter_unlisted_functions imports
 
+// Remove global variables corresponding to thread-local variables
+// (Thread local variables are listed in a configuration file like this
+//
+//     {{
+//         "thread_local_state": [
+//             "GPR",
+//             "RFLAGS"
+//         ]
+//     }}
+:filter_listed_variables thread_local_state
+
 // Deleting the ASL definitions of any functions on the import list may
 // result in additional dead code (i.e., functions that are only used by
 // those functions) so delete any unreachable functions
@@ -156,7 +167,11 @@ base_script = """
 // Optionally, the C code can use #line directives so that profiling, debuggers,
 // etc. know what file/line in the ASL file produced each line of C code.
 // Use --line-info or --no-line-info to control this.
-:generate_c --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info}
+//
+// Optionally, references to thread-local processor state such as registers
+// can be accessed via a pointer.
+// (This can be useful when modelling multi-processor systems.)
+:generate_c --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info} {thread_local}
 """.strip()
 
 def main() -> int:
@@ -170,6 +185,7 @@ def main() -> int:
     parser.add_argument("--basename", help="basename of generated C files", metavar="output_prefix", required=True)
     parser.add_argument("--num-c-files", help="write functions to N files", metavar="N", type=int, default=1)
     parser.add_argument("--line-info", help="insert line directives into C code", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
@@ -186,6 +202,12 @@ def main() -> int:
         substitutions['line_info'] = '--no-line-info'
     else:
         substitutions['line_info'] = '--line-info'
+    if args.thread_local_pointer:
+        thread_local = f"--thread-local-pointer={args.thread_local_pointer}"
+        thread_local += f" --thread-local=thread_local_state"
+    else:
+        thread_local = ''
+    substitutions['thread_local'] = thread_local
 
     script = base_script.format(**substitutions)
 

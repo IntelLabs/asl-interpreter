@@ -279,7 +279,7 @@ let options =
         "       Include line number information");
       ("--calls-to-track-valid", Arg.Set opt_calls_to_track_valid,
         "       Insert function calls to track valid bits");
-      ("--global-pointer", Arg.String (fun s -> Backend_c.opt_global_pointer := Some s),
+      ("--global-pointer", Arg.String (fun s -> Backend_c.opt_thread_local_pointer := Some s),
         "       Global pointer to access variables");
     ]
 
@@ -315,7 +315,7 @@ let main () =
   let imports = get_all_idents "imports" in
   let exports = get_all_idents "exports" in
   let track_valid = get_idents "track-valid" in
-  Backend_c.pointer_accessed := get_idents "pointer-accessed";
+  Backend_c.thread_local_variables := get_idents "pointer-accessed";
 
   try
     let t = LoadASL.read_file paths "prelude.asl" true !opt_verbose in
@@ -343,8 +343,8 @@ let main () =
     |> transform "case" Xform_case.xform_decls
     |> transform "int_bitslices" Xform_int_bitslices.xform_decls
     |> transform "delete_imports" (delete_functions imports)
-    |> (if Option.is_some !Backend_c.opt_global_pointer
-        then transform "delete_variables" (delete_variables !Backend_c.pointer_accessed)
+    |> (if Option.is_some !Backend_c.opt_thread_local_pointer
+        then transform "delete_variables" (delete_variables !Backend_c.thread_local_variables)
         else Fun.id)
     |> transform "keep_exports2" (xform_reachable exports)
     in
