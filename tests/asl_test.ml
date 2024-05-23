@@ -290,6 +290,13 @@ let tests : unit Alcotest.test_case list =
     ("statements (repeat)",    `Quick, test_int globals prelude
       "func TestRepeat(x : integer) => integer begin var i : integer = 0; repeat i = i + 1; until i >= x; return i; end"
       "TestRepeat(3)" 3);
+    ("statements (array init)", `Quick, test_bits globals prelude
+      "func TestArrayInit(x : integer) => bits(3) begin
+          var a = array ('100', '101', '110', '111');
+          return a[x];
+       end
+      "
+      "TestArrayInit(2)" "110");
     ("tuple transform",        `Quick, test_xform globals prelude Xform_tuples.xform_decls
       "func F() => (integer, integer) begin return (1,2); end
        func T() => integer begin let (x, y) = F(); return x + y; end"

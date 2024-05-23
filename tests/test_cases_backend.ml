@@ -470,6 +470,10 @@ let var_decl : test_case list  =
       [ Backend_C ],
       "let x : integer = 0;" );
 
+    ( "const (array)",
+      [ Backend_C ],
+      "let x : array [3] of integer = array(3, 4, 5);" );
+
     ( "config (integer)",
       [ Backend_C ],
       "config x : integer = 0;" );

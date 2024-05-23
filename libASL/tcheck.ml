@@ -1274,7 +1274,20 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       in
 
       (Expr_RecordInit (tc, es', fas'), Type_Constructor (tc, es'))
-
+  | Expr_ArrayInit [] ->
+      raise (InternalError (loc, "expr ArrayInit is empty", (fun fmt -> FMT.expr fmt x), __LOC__))
+  | Expr_ArrayInit (e::es) ->
+      let (e', ty) = tc_expr env loc e in
+      let es' = List.map
+          (fun i ->
+            let (i', ity) = tc_expr env loc i in
+            check_subtype_satisfies env loc ity ty;
+            i')
+          es
+      in
+      let n = List.length (e::es) in
+      let ixty = Index_Int (Expr_LitInt (string_of_int n)) in
+      (Expr_ArrayInit (e'::es'), Type_Array (ixty, ty))
   | Expr_In (e, p) ->
       let (e', ety') = tc_expr env loc e in
       if verbose then

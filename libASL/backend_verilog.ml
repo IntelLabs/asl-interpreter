@@ -570,6 +570,9 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
               expr loc fmt e)
             fas)
       end
+  | Expr_ArrayInit es ->
+      PP.fprintf fmt "{ %a }"
+        (exprs loc) es
   | Expr_AsConstraint (e, _)
   | Expr_AsType (e, _) ->
       expr loc fmt e

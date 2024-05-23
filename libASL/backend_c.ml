@@ -913,6 +913,7 @@ and expr (loc : AST.l) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_AsConstraint (e, _)
   | Expr_AsType (e, _) ->
       expr loc fmt e
+  | Expr_ArrayInit _
   | Expr_Binop _
   | Expr_Fields _
   | Expr_ImpDef _
@@ -1309,7 +1310,10 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           varoty loc fmt v oty;
           if not is_extern_val then (
             PP.fprintf fmt " = ";
-            expr loc fmt e
+            ( match e with
+            | Expr_ArrayInit es -> PP.fprintf fmt "{ %a }" (exprs loc) es
+            | _ -> expr loc fmt e
+            )
           );
           semicolon fmt;
           cut fmt;

@@ -546,6 +546,8 @@ aexpr:
     { Expr_RecordInit(tc, es, fas) }
 | tc = ident LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
     { Expr_RecordInit(tc, [], fas) }
+| ARRAY LPAREN es = separated_nonempty_list(COMMA, expr) RPAREN
+    { Expr_ArrayInit(es) }
 | LPAREN e = expr RPAREN
     { Expr_Parens(e) }
 | LPAREN es = separated_nonempty2_list(COMMA, expr) RPAREN

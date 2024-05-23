@@ -323,6 +323,11 @@ module ImmutableArray = Map.Make (Index)
 
 let prim_empty_array : 'a ImmutableArray.t = ImmutableArray.empty
 
+let prim_init_array (inits : (int * 'a) list) : 'a ImmutableArray.t =
+  let r = ref ImmutableArray.empty in
+  List.iter (fun (i, v) -> r := ImmutableArray.add i v !r) inits;
+  !r
+
 let prim_read_array (x : 'a ImmutableArray.t) (i : int) (default : 'a) : 'a =
   match ImmutableArray.find_opt i x with Some r -> r | None -> default
 

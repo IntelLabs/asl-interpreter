@@ -51,6 +51,7 @@ val mkrecord : (Ident.t * value) list -> value
 val get_field : AST.l -> value -> Ident.t -> value
 val set_field : AST.l -> value -> Ident.t -> value -> value
 val empty_array : value -> value
+val init_array : (int * value) list -> value -> value
 val get_array : AST.l -> value -> value -> value
 val set_array : AST.l -> value -> value -> value -> value
 

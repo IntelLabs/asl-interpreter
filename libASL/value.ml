@@ -168,6 +168,9 @@ let set_field (loc : AST.l) (x : value) (f : Ident.t) (v : value) : value =
 
 let empty_array (d : value) : value = VArray (prim_empty_array, d)
 
+let init_array (inits : (int * value) list) (d : value) : value =
+  VArray (prim_init_array inits, d)
+
 let get_array (loc : AST.l) (a : value) (i : value) : value =
   match (a, i) with
   | VArray (x, d), VInt i' -> prim_read_array x (Z.to_int i') d
