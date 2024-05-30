@@ -31,7 +31,7 @@ let expr : test_case list =
       "func F(x : bits(16)) => bits(8) begin return x[4 +: 8]; end" );
 
     ( "bitslice lowd (> 64b)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F(x : bits(129)) => bits(65) begin return x[4 +: 65]; end" );
 
     ( "record initializer",
@@ -39,7 +39,7 @@ let expr : test_case list =
       "record X { i : integer; }; func F() => X begin return X { i = 1 }; end" );
 
     ( "pattern match (literal mask)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F(x : bits(4)) => boolean begin return x IN '11xx'; end" );
 
     ( "literal int",
@@ -51,27 +51,27 @@ let expr : test_case list =
       "func F() => integer begin return -01_000; end" );
 
     ( "literal int (int64 max)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return 9223372036854775807; end" );
 
     ( "literal int (int64 max + 1)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return 9223372036854775808; end" );
 
     ( "literal int (int64 min)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return -9223372036854775808; end" );
 
     ( "literal int (int64 min - 1)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return -9223372036854775809; end" );
 
     ( "literal int (int128 max)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return 170141183460469231731687303715884105727; end" );
 
     ( "literal int (int128 min)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return -170141183460469231731687303715884105728; end" );
 
     ( "literal hex",
@@ -87,7 +87,7 @@ let expr : test_case list =
       "func F() => bits(8) begin return '1111 0000'; end" );
 
     ( "literal bitvector (> 64b)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(65)
        begin
            return '1 0111111111111111111111111111111111111111111111111111111111110000';
@@ -127,11 +127,11 @@ let expr : test_case list =
       "func F() => bits(1) begin return '1' AND '0'; end" );
 
     ( "built-in fun call (append_bits)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(3) begin return append_bits('1', '11'); end" );
 
     ( "built-in fun call (asr_bits)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) begin return asr_bits('10', 1); end" );
 
     ( "built-in fun call (cvt_bits_sint)",
@@ -155,15 +155,15 @@ let expr : test_case list =
       "func F() => boolean begin return '1' == '0'; end" );
 
     ( "built-in fun call (lsl_bits)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) begin return lsl_bits('01', 1); end" );
 
     ( "built-in fun call (lsr_bits)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) begin return lsr_bits('10', 1); end" );
 
     ( "built-in fun call (mk_mask)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(2) begin return mk_mask(1, 2); end" );
 
     ( "built-in fun call (mul_bits)",
@@ -203,7 +203,7 @@ let expr : test_case list =
       "func F() => bits(2) begin return zeros_bits(2); end" );
 
     ( "built-in fun call (ram_read)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() => bits(8) begin var m : __RAM(12); return ram_read(12, 1, m, '100000000000'); end" );
 
     ( "parentheses",
@@ -276,7 +276,7 @@ let stmt : test_case list  =
       "func F() begin var x, y : integer; end" );
 
     ( "uninitialized variables (__RAM)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin var x, y : __RAM(8); end" );
 
     ( "variable",
@@ -288,7 +288,7 @@ let stmt : test_case list  =
       "func F() begin var - = 0; end" );
 
     ( "variable (__RAM)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin var x : __RAM(8); end" );
 
     ( "constant",
@@ -324,7 +324,7 @@ let stmt : test_case list  =
       "func B(x : integer) begin end func F() begin B(0); end" );
 
     ( "built-in procedure call (print_bits_hex)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin print_bits_hex('0'); end" );
 
     ( "built-in procedure call (print_char)",
@@ -332,11 +332,11 @@ let stmt : test_case list  =
       "func F() begin print_char(0); end" );
 
     ( "built-in procedure call (print_int_hex)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin print_int_hex(0); end" );
 
     ( "built-in procedure call (print_int_dec)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin print_int_dec(0); end" );
 
     ( "built-in procedure call (print_str)",
@@ -344,11 +344,11 @@ let stmt : test_case list  =
       "func F() begin print_str(\"a string\"); end" );
 
     ( "built-in procedure call (ram_init)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin var m : __RAM(12); ram_init(12, 1, m, '00000001'); end" );
 
     ( "built-in procedure call (ram_write)",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "func F() begin var m : __RAM(12); ram_write(12, 1, m, '100000000000', '00000001'); end" );
 
     ( "procedure return",
@@ -463,7 +463,7 @@ let var_decl : test_case list  =
       "var x : array [1] of array [2] of integer;" );
 
     ( "__RAM",
-      [ Backend_C ],
+      [ Backend_C; Backend_Verilog ],
       "var x : __RAM(8);" );
 
     ( "const (integer)",

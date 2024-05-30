@@ -16,8 +16,8 @@ let check_syntax (name : string) (code : string) : unit =
   let lints = [
     "/* verilator lint_off WIDTH */";
     "/* verilator lint_off UNPACKED */";
-    "typedef bit [65:0] asl_integer;";
-    "typedef bit boolean;";
+    "typedef bit [127:0] asl_integer;";
+    "typedef bit asl_boolean;";
     ""
     ]
   in
@@ -41,6 +41,7 @@ let make_cases (cases : Test_cases.test_case list) :
 
 let () =
   ignore (Test_utils.load_test_libraries ());
+  BE.int_width := 128;
   Alcotest.run "backend_verilog"
     [
       ("expression",        make_cases Test_cases.expr);
