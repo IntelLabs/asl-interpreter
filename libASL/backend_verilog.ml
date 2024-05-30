@@ -16,6 +16,7 @@ open Format_utils
 open Utils
 
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
+let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
 let mangle (s : string) : string =
   (* detect whether s is a reserved name in System Verilog and rename to avoid conflict *)
@@ -158,10 +159,11 @@ let fn_writes (fmt : PP.formatter) : unit = keyword fmt "$write"
 let fn_typeof (fmt : PP.formatter) : unit = keyword fmt "$typeof"
 let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 
-let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
+let intLit (fmt : PP.formatter) (x : AST.intLit) : unit =
+  constant fmt (string_of_int !int_width ^ "'sd" ^ drop_underscores x)
 
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
-  constant fmt (string_of_int !int_width ^ "'sh" ^ x)
+  constant fmt (string_of_int !int_width ^ "'sh" ^ drop_underscores x)
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let bits = drop_spaces x in
