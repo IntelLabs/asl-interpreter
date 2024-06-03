@@ -118,6 +118,8 @@ base_script = """
 // e.g., if "x : integer", then "x[1 +: 8]" to "cvt_int_bits(x, 9)[1 +: 8]"
 :xform_int_bitslices
 
+{wrap_variables}
+
 // To let the generated code call your own functions, you need to declare
 // the type of an ASL function with a matching type and provide a configuration
 // file containing a list of these external functions.
@@ -187,6 +189,7 @@ def main() -> int:
     parser.add_argument("--line-info", help="insert line directives into C code", action=argparse.BooleanOptionalAction)
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     substitutions = {
@@ -196,8 +199,10 @@ def main() -> int:
         'num_c_files': args.num_c_files,
         'output_dir':  args.output_dir,
         'track_valid': "",
+        'wrap_variables': "",
     }
     if args.instrument_unknown: substitutions['track_valid'] = ":xform_valid track-valid"
+    if args.wrap_variables: substitutions['wrap_variables'] = ":xform_wrap"
     if not args.line_info:
         substitutions['line_info'] = '--no-line-info'
     else:

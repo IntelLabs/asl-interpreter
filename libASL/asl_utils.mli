@@ -474,6 +474,13 @@ val width_of_type : AST.ty -> AST.expr option
 (** Convert an L-expression to an expression *)
 val lexpr_to_expr : AST.lexpr -> AST.expr option
 
+(** Get base type of index type *)
+val ixtype_basetype : AST.ixtype -> AST.ty
+
+(** Move function definitions to the end of the list. This is to allow
+    calling the functions before they are defined. *)
+val hoist_prototypes : AST.declaration list -> AST.declaration list
+
 (****************************************************************
  * End
  ****************************************************************)

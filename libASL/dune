@@ -54,7 +54,8 @@
    xform_named_type
    xform_simplify_expr
    xform_tuples
-   xform_valid)
+   xform_valid
+   xform_wrap)
  (libraries ocolor yojson zarith z3))
 
 

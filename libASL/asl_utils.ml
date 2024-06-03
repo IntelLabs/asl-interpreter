@@ -1319,6 +1319,38 @@ let rec lexpr_to_expr (x : AST.lexpr) : AST.expr option =
 and lexprs_to_exprs (xs : AST.lexpr list) : AST.expr list option =
   Utils.flatten_map_option (lexpr_to_expr) xs
 
+(** Get base type of index type *)
+let ixtype_basetype (ty : AST.ixtype) : AST.ty =
+  match ty with
+  | Index_Enum tc -> Type_Constructor (tc, [])
+  | Index_Int sz -> type_integer
+
+(** Move function definitions to the end of the list. This is to allow
+    calling the functions before they are defined. *)
+let hoist_prototypes (ds : AST.declaration list) : AST.declaration list =
+  let pre : AST.declaration list ref = ref [] in
+  let post : AST.declaration list ref = ref [] in
+  List.iter
+    (fun d ->
+      match d with
+      | AST.Decl_FunDefn _
+      | AST.Decl_ProcDefn _
+      | AST.Decl_VarGetterDefn _
+      | AST.Decl_ArrayGetterDefn _
+      | AST.Decl_VarSetterDefn _
+      | AST.Decl_ArraySetterDefn _ ->
+          post := d :: !post
+      | AST.Decl_FunType _
+      | AST.Decl_ProcType _
+      | AST.Decl_VarGetterType _
+      | AST.Decl_ArrayGetterType _
+      | AST.Decl_VarSetterType _
+      | AST.Decl_ArraySetterType _ ->
+          pre := d :: !pre
+      | _ -> pre := d :: !pre)
+    ds;
+  List.append (List.rev !pre) (List.rev !post)
+
 (****************************************************************
  * End
  ****************************************************************)
