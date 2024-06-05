@@ -536,7 +536,6 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       brackets fmt (fun _ -> lexprs fmt es)
   | LExpr_Tuple es -> parens fmt (fun _ -> lexprs fmt es)
   | LExpr_Array (a, e) ->
-      nbsp fmt;
       lexpr fmt a;
       brackets fmt (fun _ -> expr fmt e)
   | LExpr_Write (f, tes, es, throws) ->
