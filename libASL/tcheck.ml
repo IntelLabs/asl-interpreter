@@ -637,8 +637,13 @@ let check_constraints (bs : expr list) (cs : expr list) : bool =
   Z3.Solver.add solver [ Z3.Boolean.mk_not z3_ctx p ];
   let q = Z3.Solver.check solver [] in
   Z3.Solver.pop solver 1;
-  if verbose && q = SATISFIABLE then
+  if verbose && q <> UNSATISFIABLE then begin
     Format.fprintf fmt "Failed property %s\n" (Z3.Expr.to_string p);
+    ( match Z3.Solver.get_model solver with
+    | Some model -> Format.fprintf fmt "        - Fails for model '%s'\n" (Z3.Model.to_string model)
+    | None -> Format.fprintf fmt "        - Unable to extract counterexample"
+    )
+  end;
   q = UNSATISFIABLE
 
 (****************************************************************)
