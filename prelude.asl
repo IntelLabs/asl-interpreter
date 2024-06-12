@@ -656,6 +656,20 @@ begin
     print_str(x);
 end
 
+func print(x : boolean)
+begin
+    if x then
+        print("TRUE");
+    else
+        print("FALSE");
+    end
+end
+
+func print(x : integer)
+begin
+    print_int_hex(x);
+end
+
 func println()
 begin
     print_char(10);
