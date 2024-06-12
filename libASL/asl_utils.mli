@@ -271,23 +271,6 @@ val subst_fun_type : (Ident.t -> AST.expr option) -> AST.ty -> AST.ty
 class replaceExprClass : (AST.expr -> AST.expr option) -> Asl_visitor.aslVisitor
 
 (****************************************************************)
-(** {2 Resugaring}                                              *)
-(****************************************************************)
-
-(** Resugaring transform
-
-    The typechecker desugars infix syntax to make it absolutely explicit
-    what it means.  This is good for tools but bad for humans.
-
-    This transformation re-introduces the infix syntax - the intention
-    being that you might use this in error messages.
-    It also deletes type parameters - so this is (more or less)
-    the reverse of typechecking.                                *)
-
-val resugar_expr : AST.binop Bindings.t -> AST.expr -> AST.expr
-val resugar_type : AST.binop Bindings.t -> AST.ty -> AST.ty
-
-(****************************************************************)
 (** {2 Pretty printing wrappers}                                *)
 (****************************************************************)
 

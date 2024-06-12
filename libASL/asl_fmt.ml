@@ -13,7 +13,32 @@ module ColorT = Ocolor_types
 open Format_utils
 open Builtin_idents
 
-let show_tyargs = true
+(** Optionally show type parameters when printing ASL code *)
+let show_type_params = ref false
+
+(** The typechecker desugars infix syntax to make it absolutely explicit
+ *  what it means.  This is good for tools but bad for humans.
+ *
+ *  This flag causes expressions to be displayed with infix syntax.
+ *)
+let resugar_operators = ref true
+
+(** This definition of Bindings is repeated from asl_utils.ml to
+ *  avoid a circular dependency.
+ *)
+module Bindings = Map.Make (Ident)
+
+(** Table of binary operators used for resugaring operators *)
+let binop_table : AST.binop Bindings.t ref = ref Bindings.empty
+
+let add_binop (op : AST.binop) (x : Ident.t) : unit =
+  binop_table := Bindings.add x op !binop_table
+
+(** Table of unary operators used for resugaring operators *)
+let unop_table : AST.unop Bindings.t ref = ref Bindings.empty
+
+let add_unop (op : AST.unop) (x : Ident.t) : unit =
+  unop_table := Bindings.add x op !unop_table
 
 let loc (fmt : PP.formatter) (x : AST.l) : unit =
   PP.pp_print_string fmt (AST.pp_loc x)
@@ -415,7 +440,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       dot fmt;
       brackets fmt (fun _ -> commasep fmt (fieldname fmt) fs)
   | Expr_Slices (t, e, ss) ->
-      if show_tyargs then braces fmt (fun _ -> ty fmt t);
+      if !show_type_params then braces fmt (fun _ -> ty fmt t);
       expr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
   | Expr_RecordInit (tc, tes, fas) ->
@@ -433,14 +458,28 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       pattern fmt p
   | Expr_Var v -> varname fmt v
   | Expr_Parens e -> parens fmt (fun _ -> expr fmt e)
+  | Expr_TApply (f, tes, [a], throws) when !resugar_operators && Bindings.mem f !unop_table ->
+      let op = Bindings.find f !unop_table in
+      unop fmt op;
+      if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
+      nbsp fmt;
+      expr fmt a
+  | Expr_TApply (f, tes, [a; b], throws) when !resugar_operators && Bindings.mem f !binop_table ->
+      let op = Bindings.find f !binop_table in
+      expr fmt a;
+      nbsp fmt;
+      binop fmt op;
+      if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
+      nbsp fmt;
+      expr fmt b
   | Expr_TApply (f, tes, es, throws) ->
       funname fmt f;
-      if show_tyargs then braces fmt (fun _ -> exprs fmt tes);
+      if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
       parens fmt (fun _ -> exprs fmt es);
       if throws then query fmt
   | Expr_Tuple es -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat (ws, es) ->
-      if show_tyargs then braces fmt (fun _ -> exprs fmt ws);
+      if !show_type_params then braces fmt (fun _ -> exprs fmt ws);
       brackets fmt (fun _ -> exprs fmt es)
   | Expr_Unop (op, e) ->
       unop fmt op;
@@ -528,11 +567,11 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       dot fmt;
       brackets fmt (fun _ -> commasep fmt (fieldname fmt) fs)
   | LExpr_Slices (t, e, ss) ->
-      if show_tyargs then braces fmt (fun _ -> ty fmt t);
+      if !show_type_params then braces fmt (fun _ -> ty fmt t);
       lexpr fmt e;
       brackets fmt (fun _ -> slices fmt ss)
   | LExpr_BitTuple (ws, es) ->
-      if show_tyargs then braces fmt (fun _ -> exprs fmt ws);
+      if !show_type_params then braces fmt (fun _ -> exprs fmt ws);
       brackets fmt (fun _ -> lexprs fmt es)
   | LExpr_Tuple es -> parens fmt (fun _ -> lexprs fmt es)
   | LExpr_Array (a, e) ->
@@ -542,7 +581,7 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       kw_underscore_write fmt;
       nbsp fmt;
       funname fmt f;
-      if show_tyargs then (
+      if !show_type_params then (
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
@@ -554,7 +593,7 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
       funname fmt f;
       nbsp fmt;
       funname fmt g;
-      if show_tyargs then (
+      if !show_type_params then (
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
@@ -635,7 +674,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_TCall (f, tes, args, throws, loc) ->
       comments_before fmt loc;
       funname fmt f;
-      if show_tyargs then (
+      if !show_type_params then (
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);

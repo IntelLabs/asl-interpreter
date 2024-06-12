@@ -51,24 +51,6 @@ let ixtype_basetype (ty : AST.ixtype) : AST.ty =
   | Index_Int sz -> type_integer
 
 (****************************************************************)
-(** {3 Prettyprinting support}                                  *)
-(****************************************************************)
-
-(** Table of binary operators used for resugaring expressions when printing
-    error messages.
- *)
-let binop_table : AST.binop Bindings.t ref = ref Bindings.empty
-
-let add_binop (op : binop) (x : Ident.t) : unit =
-  binop_table := Bindings.add x op !binop_table
-
-(** Resugar expression *)
-let ppp_expr (x : AST.expr) : AST.expr = resugar_expr !binop_table x
-
-(** Very pretty print type (resugaring expressions) *)
-let ppp_type (x : AST.ty) : AST.ty = resugar_type !binop_table x
-
-(****************************************************************)
 (** {2 Environment representing global and local objects}       *)
 (****************************************************************)
 
@@ -284,6 +266,7 @@ end = struct
 
   let addOperators1 (env : t) (loc : AST.l) (op : AST.unop)
       (funs : funtype list) : unit =
+    List.iter (function fty -> FMT.add_unop op fty.funname) funs;
     env.operators1 <-
       Operators1.update op
         (fun ov ->
@@ -296,7 +279,7 @@ end = struct
 
   let addOperators2 (env : t) (loc : AST.l) (op : AST.binop)
       (funs : funtype list) : unit =
-    List.iter (function fty -> add_binop op fty.funname) funs;
+    List.iter (function fty -> FMT.add_binop op fty.funname) funs;
     env.operators2 <-
       Operators2.update op
         (fun ov ->

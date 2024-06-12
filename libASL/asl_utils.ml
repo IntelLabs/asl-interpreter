@@ -925,42 +925,6 @@ class replaceExprClass (replace : expr -> expr option) =
   end
 
 (****************************************************************)
-(** {2 Resugaring}                                              *)
-(****************************************************************)
-
-(** Resugaring transform
-
-    The typechecker desugars infix syntax to make it absolutely explicit
-    what it means.  This is good for tools but bad for humans.
-
-    This transformation re-introduces the infix syntax - the intention
-    being that you might use this in error messages.
-    It also deletes type parameters - so this is (more or less)
-    the reverse of typechecking.                                *)
-class resugarClass (ops : AST.binop Bindings.t) =
-  object (self)
-    inherit nopAslVisitor
-
-    method! vexpr x =
-      match x with
-      | Expr_TApply (f, tys, args, throws) -> (
-          let args' = List.map (visit_expr (self :> aslVisitor)) args in
-          match (Bindings.find_opt f ops, args') with
-          | Some op, [ a; b ] -> ChangeTo (Expr_Binop (a, op, b))
-          (* | (Some op, [a]) -> ChangeTo (Expr_Unop(op, a)) *)
-          | _ -> ChangeTo (Expr_TApply (f, [], args', throws)))
-      | _ -> DoChildren
-  end
-
-let resugar_expr (ops : AST.binop Bindings.t) (x : expr) : expr =
-  let resugar = new resugarClass ops in
-  visit_expr resugar x
-
-let resugar_type (ops : AST.binop Bindings.t) (x : AST.ty) : AST.ty =
-  let resugar = new resugarClass ops in
-  visit_type resugar x
-
-(****************************************************************)
 (** {2 Pretty printing wrappers}                                *)
 (****************************************************************)
 

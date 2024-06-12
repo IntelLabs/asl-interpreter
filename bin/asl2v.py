@@ -190,7 +190,7 @@ def main() -> int:
         for l in lines_in:
             if l.startswith(":"):
                 command = l.split()[0][1:]
-                lines_out.append(f":show --output {args.intermediates}.{i:02}.{command}.asl")
+                lines_out.append(f":show --format=raw --output {args.intermediates}.{i:02}.{command}.asl")
                 i = i + 1
             lines_out.append(l)
 

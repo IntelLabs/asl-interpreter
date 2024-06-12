@@ -8,9 +8,22 @@
 module AST = Asl_ast
 open Format
 
-type comment = Lexing.position * Lexing.position * string
+(** Optionally show type parameters when printing ASL code *)
+val show_type_params : bool ref
 
+(** The typechecker desugars infix syntax to make it absolutely explicit
+ *  what it means.  This is good for tools but bad for humans.
+ *
+ *  This flag causes expressions to be displayed with infix syntax.
+ *)
+val resugar_operators : bool ref
+
+val add_binop : AST.binop -> Ident.t -> unit
+val add_unop : AST.unop -> Ident.t -> unit
+
+type comment = Lexing.position * Lexing.position * string
 val comment_list : comment list ref
+
 val loc : formatter -> AST.l -> unit
 val tycon : formatter -> Ident.t -> unit
 val varname : formatter -> Ident.t -> unit

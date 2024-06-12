@@ -43,6 +43,21 @@ let execs : string list ref = ref []
 let add_exec (cmd : string): unit =
   execs := List.append !execs [cmd]
 
+(* verbosity control for :show and asli.exe *)
+let formats = [ "simple"; "typed"; "raw" ]
+
+let set_format (fmt : string) : unit =
+  let (show_params, resugar) =
+    ( match fmt with
+    | "simple" -> (false, true)
+    | "typed" -> (true, true)
+    | "raw" -> (true, false)
+    | _ -> (true, true)
+    )
+  in
+  FMT.show_type_params := show_params;
+  FMT.resugar_operators := resugar
+
 (****************************************************************
  * Interactive command support
  ****************************************************************)
@@ -108,7 +123,11 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
       with End_of_file -> close_in inchan)
   | [ ":q" ] | [ ":quit" ] -> exit 0
   | (cmd :: args) when String.starts_with ~prefix:":" cmd ->
-     if not (Commands.execute_command cmd args tcenv cpu) then error()
+     let old_show_params = !FMT.show_type_params in
+     let old_resugar = !FMT.resugar_operators in
+     if not (Commands.execute_command cmd args tcenv cpu) then error();
+     FMT.show_type_params := old_show_params;
+     FMT.resugar_operators := old_resugar
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
@@ -288,10 +307,11 @@ let _ =
   in
   let flags = Arg.align [
     ("--output", Arg.Set_string output, "Output file");
+    ("--format", Arg.Symbol (formats, set_format), "Control print format");
   ]
   in
   let opt_args = [
-    (pattern, "pattern")
+    (pattern, "pattern");
   ]
   in
   Commands.registerCommand "show" flags [] opt_args "Show matching definitions" cmd
@@ -341,6 +361,7 @@ let options =
                                                 "       Load JSON configuration file");
       ("--exec",    Arg.String add_exec,        "       Execute command");
       ("--project", Arg.String add_project,     "       Execute project file");
+      ("--format", Arg.Symbol (formats, set_format), "       Control print format");
     ]
 
 let version = "ASLi 0.2.0 alpha"
