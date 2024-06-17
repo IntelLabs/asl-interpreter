@@ -50,8 +50,8 @@ let set_format (fmt : string) : unit =
   let (show_params, resugar) =
     ( match fmt with
     | "simple" -> (false, true)
-    | "typed" -> (true, true)
     | "raw" -> (true, false)
+    | "typed"
     | _ -> (true, true)
     )
   in
