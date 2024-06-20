@@ -413,6 +413,7 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
   | i, _ when Ident.equal i shl_int -> binop loc fmt "<<" args
   | i, _ when Ident.equal i shr_int -> binop loc fmt ">>" args
   | i, _ when Ident.equal i mul_int -> binop loc fmt "*" args
+  | i, _ when Ident.equal i exact_div_int -> binop loc fmt "/" args
   | i, _ when Ident.equal i zdiv_int ->
       binop loc fmt "/" args (* todo: check behaviour on -ve values *)
   | i, _ when Ident.equal i zrem_int ->

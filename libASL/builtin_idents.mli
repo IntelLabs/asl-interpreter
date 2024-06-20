@@ -37,6 +37,7 @@ val equiv_bool : Ident.t
 val ne_bool : Ident.t
 val ne_enum : Ident.t
 val align_int : Ident.t
+val exact_div_int : Ident.t
 val fdiv_int : Ident.t
 val frem_int : Ident.t
 val ge_int : Ident.t

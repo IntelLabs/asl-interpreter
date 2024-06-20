@@ -557,7 +557,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
         [ Expr_TApply (j, [], [ a; b ], _); c ],
         _
       )
-    when Ident.equal i mul_int && Ident.equal j fdiv_int && b = c ->
+    when Ident.equal i mul_int && Ident.equal j exact_div_int && b = c ->
       z3_of_expr ctx ufs a
   | Expr_TApply
       ( i,
@@ -565,7 +565,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
         [ a; Expr_TApply (j, [], [ b; c ], _) ],
         _
       )
-    when Ident.equal i mul_int && Ident.equal j fdiv_int && a = c ->
+    when Ident.equal i mul_int && Ident.equal j exact_div_int && a = c ->
       z3_of_expr ctx ufs b
   | Expr_TApply
       ( i,
@@ -576,14 +576,14 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
         ],
         _
       )
-    when Ident.equal i add_int && Ident.equal j fdiv_int && Ident.equal k fdiv_int && a1 = a2 && b1 = b2 && b1 = two ->
+    when Ident.equal i add_int && Ident.equal j exact_div_int && Ident.equal k exact_div_int && a1 = a2 && b1 = b2 && b1 = two ->
       z3_of_expr ctx ufs a1
   | Expr_TApply
       ( i,
         [],
         [ a; Expr_TApply (j, [], [ b; c ], _) ],
         _
-      ) when Ident.equal i eq_int && Ident.equal j fdiv_int ->
+      ) when Ident.equal i eq_int && Ident.equal j exact_div_int ->
       Z3.Boolean.mk_eq ctx
         (Z3.Arithmetic.mk_mul ctx
            [ z3_of_expr ctx ufs c; z3_of_expr ctx ufs a ])
@@ -810,7 +810,6 @@ let synthesize_parameters (env : Env.t) (loc : AST.l)
   Scope.bindings s
     |> List.map check_parameter
     |> mk_bindings
-
 
 (****************************************************************)
 (** {3 Instantiating/typechecking application of functions/operators} *)

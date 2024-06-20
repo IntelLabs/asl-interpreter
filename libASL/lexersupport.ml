@@ -36,6 +36,7 @@ let string_of_token (t : Asl_parser.token) : string =
   | CONFIG -> "config"
   | CONSTANT -> "constant"
   | DIV -> "div"
+  | DIVRM -> "divrm"
   | DO -> "do"
   | DOT -> "dot"
   | DOT_DOT -> "dotdot"

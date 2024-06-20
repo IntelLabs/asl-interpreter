@@ -115,6 +115,7 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token BAR_BAR  (* || *)
 %token CARET  (* ^ *)
 %token DIV  (* DIV *)
+%token DIVRM  (* DIVRM *)
 %token EQ_EQ  (* == *)
 %token EOR  (* EOR *)
 %token GT  (* > *)
@@ -504,7 +505,8 @@ binop:
 | CARET { Binop_Power }
 | QUOT { Binop_Quot }
 | REM { Binop_Rem }
-| DIV { Binop_Div }
+| DIV { Binop_Div_exact }
+| DIVRM { Binop_Divrm }
 | MOD { Binop_Mod }
 | LT_LT { Binop_ShiftL }
 | GT_GT { Binop_ShiftR }

@@ -62,6 +62,9 @@ let prim_mul_int (x : bigint) (y : bigint) : bigint = Z.mul x y
 let prim_zdiv_int (x : bigint) (y : bigint) : bigint = Z.div x y
 let prim_zrem_int (x : bigint) (y : bigint) : bigint = Z.rem x y
 let prim_fdiv_int (x : bigint) (y : bigint) : bigint = Z.fdiv x y
+let prim_exact_div_int (x : bigint) (y : bigint) : bigint =
+  assert (Z.geq y Z.zero);
+  Z.fdiv x y
 
 let prim_frem_int (x : bigint) (y : bigint) : bigint =
   Z.sub x (Z.mul y (Z.fdiv x y))

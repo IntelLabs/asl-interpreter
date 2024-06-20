@@ -487,6 +487,8 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       Some (VInt (prim_zdiv_int x y))
   | [], [ VInt x; VInt y ] when Ident.equal f zrem_int ->
       Some (VInt (prim_zrem_int x y))
+  | [], [ VInt x; VInt y ] when Ident.equal f exact_div_int ->
+      Some (VInt (prim_exact_div_int x y))
   | [], [ VInt x; VInt y ] when Ident.equal f fdiv_int ->
       Some (VInt (prim_fdiv_int x y))
   | [], [ VInt x; VInt y ] when Ident.equal f frem_int ->

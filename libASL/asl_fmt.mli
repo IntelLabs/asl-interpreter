@@ -99,7 +99,8 @@ val kw_case : formatter -> unit
 val kw_catch : formatter -> unit
 val kw_config : formatter -> unit
 val kw_constant : formatter -> unit
-val kw_div : formatter -> unit
+val kw_div_exact : formatter -> unit
+val kw_divrm : formatter -> unit
 val kw_do : formatter -> unit
 val kw_downto : formatter -> unit
 val kw_else : formatter -> unit

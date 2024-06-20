@@ -672,7 +672,7 @@ and funcall (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
         (fun _ -> expr loc fmt x)
         (fun _ -> make_unop fmt (fun _ -> tilde fmt) (fun _ -> mask_int loc fmt y))
   | _ when Ident.equal f eq_int -> binop loc fmt "==" args
-  | _ when Ident.in_list f [fdiv_int; frem_int] ->
+  | _ when Ident.in_list f [exact_div_int; fdiv_int; frem_int] ->
       apply loc fmt (fun _ -> fn_extern fmt f) args
   | _ when Ident.equal f ge_int -> binop loc fmt ">=" args
   | _ when Ident.equal f gt_int -> binop loc fmt ">" args

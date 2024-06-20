@@ -102,7 +102,8 @@ let star (fmt : PP.formatter) : unit = delimiter fmt "*"
 
 (* keywords that are used as operators *)
 let kw_and (fmt : PP.formatter) : unit = delimiter fmt "AND"
-let kw_div (fmt : PP.formatter) : unit = delimiter fmt "DIV"
+let kw_div_exact (fmt : PP.formatter) : unit = delimiter fmt "DIV"
+let kw_divrm (fmt : PP.formatter) : unit = delimiter fmt "DIVRM"
 let kw_eor (fmt : PP.formatter) : unit = delimiter fmt "EOR"
 let kw_in (fmt : PP.formatter) : unit = delimiter fmt "IN"
 let kw_mod (fmt : PP.formatter) : unit = delimiter fmt "MOD"
@@ -270,7 +271,8 @@ let binop (fmt : PP.formatter) (x : AST.binop) : unit =
   | Binop_Power -> caret fmt
   | Binop_Quot -> kw_quot fmt
   | Binop_Rem -> kw_rem fmt
-  | Binop_Div -> kw_div fmt
+  | Binop_Div_exact -> kw_div_exact fmt
+  | Binop_Divrm -> kw_divrm fmt
   | Binop_Mod -> kw_mod fmt
   | Binop_ShiftL -> lt_lt fmt
   | Binop_ShiftR -> gt_gt fmt

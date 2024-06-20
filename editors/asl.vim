@@ -14,7 +14,7 @@ endif
 
 syn keyword aslType        array bit bits boolean enumeration integer real record signal string
 syn keyword aslType        __mask __RAM
-syn keyword aslExpr        AND DIV EOR IN MOD NOT OR QUOT REM UNKNOWN XOR as typeof
+syn keyword aslExpr        AND DIV DIVRM EOR IN MOD NOT OR QUOT REM UNKNOWN XOR as typeof
 syn keyword aslStmt        assert begin case catch do downto else elsif end for if of otherwise repeat return then throw to try until when where while break
 syn keyword aslDecl        config constant func getter let setter type var
 syn keyword aslDecl        __builtin __operator1 __operator2

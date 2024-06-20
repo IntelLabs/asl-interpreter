@@ -338,8 +338,8 @@ val mk_neg_int : AST.expr -> AST.expr
 (** Construct "mul_int(x, y)" *)
 val mk_mul_int : AST.expr -> AST.expr -> AST.expr
 
-(** Construct "fdiv_int(x, y)" *)
-val mk_fdiv_int : AST.expr -> AST.expr -> AST.expr
+(** Construct "exact_div_int(x, y)" *)
+val mk_exact_div_int : AST.expr -> AST.expr -> AST.expr
 
 (** Construct "Max(x, y)" *)
 val mk_max_int : AST.expr -> AST.expr -> AST.expr

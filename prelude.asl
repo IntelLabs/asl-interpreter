@@ -37,6 +37,7 @@ __builtin func sub_int(x : integer, y : integer) => integer;
 __builtin func shl_int(x : integer, y : integer) => integer;
 __builtin func shr_int(x : integer, y : integer) => integer;
 __builtin func mul_int(x : integer, y : integer) => integer;
+__builtin func exact_div_int(x : integer, y : integer) => integer;
 __builtin func zdiv_int(x : integer, y : integer) => integer;
 __builtin func zrem_int(x : integer, y : integer) => integer;
 __builtin func fdiv_int(x : integer, y : integer) => integer;
@@ -254,18 +255,21 @@ begin
     return frem_int(cvt_bits_uint(x), y);
 end
 
+// Division: error if division is not exact
+__operator2 DIV   = exact_div_int;
+
 // Division: round to zero
-__operator2 QUOT = zdiv_int;
-__operator2 REM  = zrem_int;
+__operator2 QUOT  = zdiv_int;
+__operator2 REM   = zrem_int;
 
 // Division: round to -infinity (floor)
-__operator2 DIV  = fdiv_int;
-__operator2 MOD  = frem_int, frem_bits_int;
+__operator2 DIVRM = fdiv_int;
+__operator2 MOD   = frem_int, frem_bits_int;
 
-__operator2 AND  = and_bits;
-__operator2 OR   = or_bits;
-__operator2 EOR  = eor_bits;
-__operator1 NOT  = not_bits;
+__operator2 AND   = and_bits;
+__operator2 OR    = or_bits;
+__operator2 EOR   = eor_bits;
+__operator1 NOT   = not_bits;
 
 func append_str_bool(x : string, y : boolean) => string
 begin

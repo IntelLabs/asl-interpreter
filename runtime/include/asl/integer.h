@@ -9,6 +9,7 @@
 #define ASL_INTEGER_H
 
 #include <stdint.h>
+#include <assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,8 +74,17 @@ ASL_is_pow2_int(ASL_int_t x)
 }
 
 static inline ASL_int_t
+ASL_exact_div_int(ASL_int_t x, ASL_int_t y)
+{
+        assert(y != 0);
+        assert(x % y == 0);
+        return x / y;
+}
+
+static inline ASL_int_t
 ASL_fdiv_int(ASL_int_t x, ASL_int_t y)
 {
+        assert(y != 0);
         const ASL_int_t quot = x / y;
         const ASL_int_t rem = x % y;
         return quot - (rem != 0 && quot < 0);
@@ -83,6 +93,7 @@ ASL_fdiv_int(ASL_int_t x, ASL_int_t y)
 static inline ASL_int_t
 ASL_frem_int(ASL_int_t x, ASL_int_t y)
 {
+        assert(y != 0);
         return x - ASL_fdiv_int(x, y) * y;
 }
 
