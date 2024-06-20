@@ -13,6 +13,8 @@ open Asl_visitor
 open Utils
 open Asl_utils
 
+let enable_auto_case_split = ref false
+
 let const_int_expr (x : AST.expr) : Z.t option =
   match x with Expr_LitInt x -> Some (Z.of_string x) | _ -> None
 
@@ -99,11 +101,15 @@ class monoClass
        combinations of parameter constraints using parameters [params]. *)
     method build_case_stmt (loc : AST.l) (stmt : AST.stmt) (params : Ident.t list)
       : AST.stmt option =
-      let* constraints = flatten_map_option self#param_to_constraints params in
-      let constraints_combinations = cartesian_product constraints in
-      let* when_branches = flatten_map_option (self#constraints_to_when_branch loc stmt) constraints_combinations in
-      let params' = List.map (fun p -> AST.Expr_Var p) params in
-      Some (AST.Stmt_Case ((Expr_Tuple params'), when_branches, None, loc))
+      if !enable_auto_case_split then (
+        let* constraints = flatten_map_option self#param_to_constraints params in
+        let constraints_combinations = cartesian_product constraints in
+        let* when_branches = flatten_map_option (self#constraints_to_when_branch loc stmt) constraints_combinations in
+        let params' = List.map (fun p -> AST.Expr_Var p) params in
+        Some (AST.Stmt_Case ((Expr_Tuple params'), when_branches, None, loc))
+      ) else (
+        None
+      )
 
     (* Collect the parameters from a list of expressions [e]. Also add the
        parameters from the list of [params]. *)
@@ -442,7 +448,12 @@ let _ =
     Commands.declarations := monomorphize !Commands.declarations;
     true
   in
-  Commands.registerCommand "xform_monomorphize" [] [] [] "Monomorphize function calls" cmd
+  let flags = Arg.align [
+        ("--auto-case-split",    Arg.Set enable_auto_case_split,   " Generate case split code automatically");
+        ("--no-auto-case-split", Arg.Clear enable_auto_case_split,   " Do not generate case split code automatically");
+      ]
+  in
+  Commands.registerCommand "xform_monomorphize" flags [] [] "Monomorphize function calls" cmd
 
 (****************************************************************
  * End

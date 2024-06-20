@@ -7,6 +7,8 @@
 
 module AST = Asl_ast
 
+val enable_auto_case_split : bool ref
+
 val monomorphize : AST.declaration list -> AST.declaration list
 
 (****************************************************************

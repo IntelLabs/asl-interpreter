@@ -75,6 +75,7 @@ let test_case_decl (globals : TC.GlobalEnv.t)
     (l : string)
     (r : string)
     () : unit =
+  Xform_mono.enable_auto_case_split := true;
   Test_utils.test_xform_decl Xform_mono.monomorphize
       globals
       prelude

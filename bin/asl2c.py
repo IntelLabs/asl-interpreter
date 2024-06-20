@@ -73,7 +73,7 @@ base_script = """
 // and change all function calls to use the appropriate specialized
 // version.
 // (Note that this performs an additional round of constant propagation.)
-:xform_monomorphize
+:xform_monomorphize {auto_case_split}
 
 // Discard any code not reachable from the list of exported functions.
 // This step is repeated because it deletes any bitwidth-polymorphic functions
@@ -81,7 +81,7 @@ base_script = """
 :filter_reachable_from exports
 
 // todo: explain why this needs to be repeated
-:xform_monomorphize
+:xform_monomorphize {auto_case_split}
 
 // Perform a further round of simplifying passes.
 // This is done after performing monomorphization and constant propagation
@@ -186,6 +186,7 @@ def main() -> int:
     parser.add_argument("--output-dir", help="output directory for generated files", metavar="output_dir", default="")
     parser.add_argument("--basename", help="basename of generated C files", metavar="output_prefix", required=True)
     parser.add_argument("--num-c-files", help="write functions to N files", metavar="N", type=int, default=1)
+    parser.add_argument("--auto-case-split", help="generate case split code automatically", action=argparse.BooleanOptionalAction)
     parser.add_argument("--line-info", help="insert line directives into C code", action=argparse.BooleanOptionalAction)
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
@@ -203,6 +204,10 @@ def main() -> int:
     }
     if args.instrument_unknown: substitutions['track_valid'] = ":xform_valid track-valid"
     if args.wrap_variables: substitutions['wrap_variables'] = ":xform_wrap"
+    if not args.auto_case_split:
+        substitutions['auto_case_split'] = '--no-auto-case-split'
+    else:
+        substitutions['auto_case_split'] = '--auto-case-split'
     if not args.line_info:
         substitutions['line_info'] = '--no-line-info'
     else:
