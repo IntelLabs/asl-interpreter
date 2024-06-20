@@ -50,11 +50,11 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
       | AST.PrecedenceError(loc, op1, op2) ->
         Printf.sprintf "PrecedenceError(%s,%s,%s)" (AST.pp_loc loc) (Asl_utils.pp_binop op1) (Asl_utils.pp_binop op2)
       | Lexer.Eof -> "Eof()"
-      | TC.UnknownObject(loc, what, x) -> Printf.sprintf "UnknownObject(%s,%s,%s)" (AST.pp_loc loc) what x
-      | TC.DoesNotMatch(loc, what, x, y) -> Printf.sprintf "DoesNotMatch(%s,%s,%s,%s)" (AST.pp_loc loc) what x y
-      | TC.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (AST.pp_loc loc) what x
-      | TC.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (AST.pp_loc loc) what x
-      | TC.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (AST.pp_loc loc) msg
+      | Error.UnknownObject(loc, what, x) -> Printf.sprintf "UnknownObject(%s,%s,%s)" (AST.pp_loc loc) what x
+      | Error.DoesNotMatch(loc, what, x, y) -> Printf.sprintf "DoesNotMatch(%s,%s,%s,%s)" (AST.pp_loc loc) what x y
+      | Error.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (AST.pp_loc loc) what x
+      | Error.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (AST.pp_loc loc) what x
+      | Error.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (AST.pp_loc loc) msg
       | InternalError(loc, msg, _, _) -> Printf.sprintf "InternalError(%s,%s)" (AST.pp_loc loc) msg
       | Value.Return(_) -> Printf.sprintf "Return(_)"
       | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (AST.pp_loc loc) err

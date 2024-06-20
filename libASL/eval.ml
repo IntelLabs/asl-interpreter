@@ -10,7 +10,6 @@
 
 module AST = Asl_ast
 module FMT = Asl_fmt
-module TC = Tcheck
 open Builtin_idents
 open AST
 open Utils
@@ -114,7 +113,7 @@ module GlobalEnv = struct
           "Stern warning: %s function %s conflicts with earlier definition - \
            discarding earlier definition\n"
           (pp_loc loc) (Ident.pprint x)
-      else raise (TC.Ambiguous (loc, "function definition", Ident.pprint x));
+      else raise (Error.Ambiguous (loc, "function definition", Ident.pprint x));
     env.functions <- Bindings.add x def env.functions
 
   let set_impl_def (env : t) (x : string) (v : value) : unit =

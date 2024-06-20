@@ -362,6 +362,7 @@ let options =
       ("--exec",    Arg.String add_exec,        "       Execute command");
       ("--project", Arg.String add_project,     "       Execute project file");
       ("--format", Arg.Symbol (formats, set_format), "       Control print format");
+      ("--max-errors", Arg.Set_int Tcheck.max_errors, "       Maximum number of typechecker errors");
     ]
 
 let version = "ASLi 0.2.0 alpha"

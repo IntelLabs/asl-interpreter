@@ -16,20 +16,13 @@ open Builtin_idents
 open AST
 open Utils
 open Asl_utils
+open Error
 open Format
 
 let verbose = false
 let fmt = std_formatter
-
-(****************************************************************)
-(** {3 Exceptions thrown by typechecker}                        *)
-(****************************************************************)
-
-exception UnknownObject of (l * string * string)
-exception DoesNotMatch of (l * string * string * string)
-exception IsNotA of (l * string * string)
-exception Ambiguous of (l * string * string)
-exception TypeError of (l * string)
+let enable_constraint_checks = ref false
+let max_errors = ref 0
 
 (****************************************************************)
 (** {3 AST construction utilities}                              *)
@@ -2347,7 +2340,7 @@ let env0 = GlobalEnv.mkempty ()
 
 (** Typecheck a list of declarations - main entrypoint into typechecker *)
 let tc_declarations (env : GlobalEnv.t) ~(isPrelude : bool) ~(sort_decls : bool)
-    (ds : AST.declaration list) : AST.declaration list =
+    (ds : AST.declaration list) : AST.declaration list option =
   if verbose then Format.fprintf fmt "  - Using Z3 %s\n" Z3.Version.to_string;
   (* Process declarations, starting by moving all function definitions to the
    * end of the list and replacing them with function prototypes.
@@ -2360,15 +2353,37 @@ let tc_declarations (env : GlobalEnv.t) ~(isPrelude : bool) ~(sort_decls : bool)
   let pre, post = if isPrelude then (ds, []) else genPrototypes ds in
   let pre = if sort_decls then List.rev (Asl_utils.topological_sort pre) else pre in
   if verbose then
-    Format.fprintf fmt "  - Typechecking %d phase 1 declarations\n"
+    Format.fprintf fmt "  - Typechecking %d phase declarations\n"
       (List.length pre);
-  let pre' = List.map (tc_declaration env) pre in
-  let post' = List.map (tc_declaration env) post in
-  (* if verbose then List.iter (fun ds -> List.iter (fun d -> Format.fprintf fmt "\nTypechecked %a\n" FMT.declaration d) ds) post'; *)
-  if verbose then
-    Format.fprintf fmt "  - Typechecking %d phase 2 declarations\n"
-      (List.length post);
-  List.append (List.concat pre') (List.concat post')
+  let error_count = ref 0 in
+  let tc_decl env d =
+    ( try
+        tc_declaration env d
+    with
+    | UnknownObject _
+    | DoesNotMatch _
+    | IsNotA _
+    | Ambiguous _
+    | TypeError _
+      as exn
+    ->
+      if !error_count < !max_errors then begin
+        Error.print_exception exn;
+        error_count := !error_count + 1;
+        [d]
+      end else begin
+        raise exn
+      end
+    )
+  in
+
+  let pre' = List.map (tc_decl env) pre in
+  let post' = List.map (tc_decl env) post in
+
+  if !error_count != 0 then
+    None
+  else
+    Some (List.append (List.concat pre') (List.concat post'))
 
 (****************************************************************
  * End

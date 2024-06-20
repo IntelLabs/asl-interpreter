@@ -154,7 +154,7 @@ let check_effect_conflicts
         FMT.expr e1
         FMT.expr e2
     in
-    raise (Tcheck.TypeError (loc, msg))
+    raise (Error.TypeError (loc, msg))
   end;
   if not (IdentSet.is_empty wr_conflicts) then begin
     let msg = Format.asprintf
@@ -166,7 +166,7 @@ let check_effect_conflicts
         FMT.expr e1
         FMT.expr e2
     in
-    raise (Tcheck.TypeError (loc, msg))
+    raise (Error.TypeError (loc, msg))
   end;
   if wt_conflicts then begin
     let msg = Format.asprintf
@@ -177,7 +177,7 @@ let check_effect_conflicts
         FMT.expr e2
         pp_identset wrs2
     in
-    raise (Tcheck.TypeError (loc, msg))
+    raise (Error.TypeError (loc, msg))
   end;
   if throw_conflicts then begin
     let msg = Format.asprintf
@@ -187,7 +187,7 @@ let check_effect_conflicts
         FMT.expr e1
         FMT.expr e2
     in
-    raise (Tcheck.TypeError (loc, msg))
+    raise (Error.TypeError (loc, msg))
   end
 
 
@@ -249,14 +249,14 @@ class rethrow_checks_class (effects : effects_class) (loc : AST.l) =
                 "call to function `%a` is incorrectly marked with `?` but it cannot throw an exception"
                 FMT.varname f
             in
-            raise (Tcheck.TypeError (loc, msg))
+            raise (Error.TypeError (loc, msg))
         end else
         if not throws && fthrows then begin
             let msg = Format.asprintf
                 "call to function `%a` should be marked with `?` because it can throw an exception"
                 FMT.varname f
             in
-            raise (Tcheck.TypeError (loc, msg))
+            raise (Error.TypeError (loc, msg))
         end
       | _ -> ()
       );
@@ -271,13 +271,13 @@ class rethrow_checks_class (effects : effects_class) (loc : AST.l) =
                 "call to procedure `%a` is incorrectly marked with `?` but it cannot throw an exception"
                 FMT.varname f
             in
-            raise (Tcheck.TypeError (loc, msg))
+            raise (Error.TypeError (loc, msg))
         end else if not throws && fthrows then begin
             let msg = Format.asprintf
                 "call to procedure `%a` should be marked with `?` because it can throw an exception"
                 FMT.varname f
             in
-            raise (Tcheck.TypeError (loc, msg))
+            raise (Error.TypeError (loc, msg))
         end
       | _ -> ()
       );

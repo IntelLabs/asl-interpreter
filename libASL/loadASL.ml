@@ -15,8 +15,6 @@ module AST = Asl_ast
 open Lexing
 open Asl_utils
 
-exception ParseError of string
-
 let find_file (search_path : string list) (filename : string) : string =
   if Filename.is_relative filename then (
     let rec find (paths : string list) : string =
@@ -47,8 +45,8 @@ let parse_file (paths : string list) (filename : string) (isPrelude : bool)
   let t = try
     Parser.declarations_start Lexer.token lexbuf
   with Parser.Error ->
-    let msg = pp_loc (Range (lexbuf.lex_start_p, lexbuf.lex_curr_p)) in
-    raise (ParseError msg);
+    let loc = Range (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+    raise (Error.ParseError loc);
   in
   close_in inchan;
   t
@@ -68,7 +66,12 @@ let read_file (paths : string list) (filename : string) (isPrelude : bool)
   );
 
   let sort_decls = not isPrelude in (* sort everything but the Prelude *)
-  let t' = TC.tc_declarations TC.env0 ~isPrelude ~sort_decls t in
+  let t' =
+    ( match TC.tc_declarations TC.env0 ~isPrelude ~sort_decls t with 
+    | None -> exit 1
+    | Some t' -> t'
+    )
+  in
 
   if false then FMT.declarations Format.std_formatter t';
   if verbose then (
@@ -122,7 +125,10 @@ let read_declarations_unsorted (tcenv : TC.GlobalEnv.t) (s : string) :
     AST.declaration list =
   let lexbuf = Lexing.from_string s in
   let s = Parser.declarations_start Lexer.token lexbuf in
-  TC.tc_declarations tcenv ~isPrelude:false ~sort_decls:false s
+  ( match TC.tc_declarations tcenv ~isPrelude:false ~sort_decls:false s with
+  | None -> exit 1
+  | Some s' -> s'
+  )
 
 let read_files (paths : string list) (filenames : string list) (verbose : bool)
     : AST.declaration list =
@@ -141,7 +147,12 @@ let read_files (paths : string list) (filenames : string list) (verbose : bool)
     Printf.printf "- Typechecking\n%!"
   );
 
-  let ds' = TC.tc_declarations TC.env0 ~isPrelude:false ~sort_decls:true ds in
+  let ds' =
+    ( match TC.tc_declarations TC.env0 ~isPrelude:false ~sort_decls:true ds with
+    | None -> exit 1
+    | Some ds' -> ds'
+    )
+  in
 
   if verbose then (
     Printf.printf "  - Got %d typechecked declarations\n" (List.length ds');

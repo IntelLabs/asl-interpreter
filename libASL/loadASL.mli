@@ -9,8 +9,6 @@
 module AST = Asl_ast
 module TC = Tcheck
 
-exception ParseError of string
-
 val read_file :
   string list -> string -> bool -> bool -> Asl_ast.declaration list
 (** Parse and typecheck ASL file *)
