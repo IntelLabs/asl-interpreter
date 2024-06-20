@@ -218,18 +218,8 @@ __operator2 >= = ge_int, ge_real;
 __operator2 <  = lt_int, lt_real;
 __operator2 >  = gt_int, gt_real;
 
-func shift_left_int(x : integer, y : integer) => integer
-begin
-    return if y >= 0 then shl_int(x, y) else shr_int(x, -y);
-end
-
-func shift_right_int(x : integer, y : integer) => integer
-begin
-    return if y >= 0 then shr_int(x, y) else shl_int(x, -y);
-end
-
-__operator2 << = shift_left_int;
-__operator2 >> = shift_right_int;
+__operator2 << = shl_int;
+__operator2 >> = shr_int;
 
 func IsPowerOfTwo(x : integer) => boolean
 begin
