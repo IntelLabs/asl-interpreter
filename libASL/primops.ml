@@ -59,6 +59,7 @@ let prim_shr_int (x : bigint) (y : bigint) : bigint =
   Z.shift_right x (Z.to_int y)
 
 let prim_mul_int (x : bigint) (y : bigint) : bigint = Z.mul x y
+let prim_zrem_int (x : bigint) (y : bigint) : bigint = Z.rem x y
 let prim_fdiv_int (x : bigint) (y : bigint) : bigint = Z.fdiv x y
 
 let prim_frem_int (x : bigint) (y : bigint) : bigint =

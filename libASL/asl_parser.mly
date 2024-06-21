@@ -131,6 +131,7 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token PLUS  (* + *)
 %token PLUS_PLUS  (* ++ *)
 %token QUERY (* ? *)
+%token REM  (* REM *)
 %token SLASH  (* / *)
 %token STAR  (* * *)
 
@@ -500,6 +501,7 @@ binop:
 | STAR { Binop_Multiply }
 | SLASH { Binop_Divide }
 | CARET { Binop_Power }
+| REM { Binop_Rem }
 | DIV { Binop_Div }
 | MOD { Binop_Mod }
 | LT_LT { Binop_ShiftL }

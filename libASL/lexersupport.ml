@@ -89,6 +89,7 @@ let string_of_token (t : Asl_parser.token) : string =
   | RBRACE -> "rbrace"
   | RBRACK -> "rbrack"
   | RECORD -> "record"
+  | REM -> "rem"
   | REPEAT -> "repeat"
   | RETURN -> "return"
   | RPAREN -> "rparen"
