@@ -338,6 +338,9 @@ val mk_neg_int : AST.expr -> AST.expr
 (** Construct "mul_int(x, y)" *)
 val mk_mul_int : AST.expr -> AST.expr -> AST.expr
 
+(** Construct "pow_int_int(x, y)" *)
+val mk_pow_int_int : AST.expr -> AST.expr -> AST.expr
+
 (** Construct "exact_div_int(x, y)" *)
 val mk_exact_div_int : AST.expr -> AST.expr -> AST.expr
 

@@ -1025,6 +1025,14 @@ let mk_mul_int (x : AST.expr) (y : AST.expr) : AST.expr =
   else if y = minus_one then mk_neg_int x
   else mk_binop mul_int [] x y
 
+(** Construct "pow_int_int(x, y)" *)
+let mk_pow_int_int (x : AST.expr) (y : AST.expr) : AST.expr =
+  if x = zero then zero
+  else if x = one then one
+  else if y = zero then one
+  else if y = one then x
+  else mk_binop pow_int_int [] x y
+
 (** Construct "exact_div_int(x, y)" *)
 let mk_exact_div_int (x : AST.expr) (y : AST.expr) : AST.expr =
   mk_binop exact_div_int [] x y
