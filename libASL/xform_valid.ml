@@ -28,7 +28,7 @@ class tracker (vars : Ident.t list) =
           ChangeTo (s :: [ call ])
       | Stmt_Assign
           ( LExpr_Var v,
-            Expr_Unknown (Type_Bits wd),
+            Expr_Unknown (Type_Bits (wd, _)),
             loc)
         when is_safe_to_replicate wd && List.mem v vars ->
           let call =

@@ -18,7 +18,7 @@ class int_bitslice_class =
           let n = Xform_simplify_expr.mk_add_int lo wd in
           Visitor.ChangeTo
             (Expr_Slices
-               (Type_Bits n, mk_cvt_int_bits n expr, [ Slice_LoWd (lo, wd) ]))
+               (Type_Bits (n, []), mk_cvt_int_bits n expr, [ Slice_LoWd (lo, wd) ]))
       | _ -> DoChildren
   end
 

@@ -356,7 +356,7 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
       | Some (Type_Exception fs) ->
         FT_Record fs
       | _ -> raise (IsNotA (loc, "record or exception", Ident.pprint tc)))
-  | Type_Register (wd, fs) -> FT_Register fs
+  | Type_Bits (n, fs) -> FT_Register fs
   | Type_OfExpr e ->
       raise (InternalError
         (loc, "typeFields: Type_OfExpr", (fun fmt -> FMT.expr fmt e), __LOC__))
@@ -784,11 +784,8 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
   ( match (derefType genv loc ty1', derefType genv loc ty2') with
   | Type_Integer ocrs1, Type_Integer ocrs2 ->
       if !enable_constraint_checks then check_subrange_satisfies env loc ocrs1 ocrs2
-  | Type_Bits e1, Type_Bits e2 -> check_equality env loc e1 e2
-  | Type_Bits e1, Type_Register (e2, _)
-  | Type_Register (e1, _), Type_Bits e2
-  | Type_Register (e1, _), Type_Register (e2, _)
-    (* todo: check that register fields are a subset *)
+  | Type_Bits (e1, fs1), Type_Bits (e2, fs2)
+    (* todo: check that register fields fs2 are a subset of fs1 *)
     -> check_equality env loc e1 e2
   | Type_Constructor (tc1, es1), Type_Constructor (tc2, es2) when tc1 = tc2 ->
       assert (List.length es1 = List.length es2);
@@ -828,7 +825,7 @@ let rec least_supertype (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty
   let ty2' = Asl_visitor.visit_type subst_consts ty2 in
   ( match (derefType genv loc ty1', derefType genv loc ty2') with
   | (Type_Integer ocrs1, Type_Integer ocrs2) -> Type_Integer (constraint_union ocrs1 ocrs2)
-  | (Type_Bits e1, Type_Bits e2) ->
+  | (Type_Bits (e1, _), Type_Bits (e2, _)) ->
       check_equality env loc e1 e2;
       ty1
   | (Type_Constructor (tc1, es1), Type_Constructor (tc2, es2)) when tc1 = tc2 ->
@@ -837,11 +834,6 @@ let rec least_supertype (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty
       ty1
   | (Type_OfExpr e1, Type_OfExpr e2) ->
       raise (InternalError (loc, "least_supertype: typeof", (fun fmt -> FMT.ty fmt ty1), __LOC__))
-  | (Type_Bits e1, Type_Register (e2, _))
-  | (Type_Register (e1, _), Type_Bits e2)
-  | (Type_Register (e1, _), Type_Register (e2, _)) ->
-      check_equality env loc e1 e2;
-      ty1
   | (Type_Array (ixty1, elty1), Type_Array (ixty2, elty2)) ->
       ( match (ixty1, ixty2) with
       | (Index_Enum tc1, Index_Enum tc2) when tc1 == tc2 -> ()
@@ -910,13 +902,10 @@ let rec synthesize_type
   : unit =
   let genv = Env.globals env in
   ( match (derefType genv loc ty1, derefType genv loc ty2) with
-  | Type_Bits e1, Type_Bits e2 -> synthesize_equality s e1 e2
+  | Type_Bits (e1, _), Type_Bits (e2, _) -> synthesize_equality s e1 e2
   | Type_Constructor (tc1, es1), Type_Constructor (tc2, es2) when tc1 = tc2 ->
       assert (List.length es1 = List.length es2);
       List.iter2 (synthesize_equality s) es1 es2
-  | Type_Bits e1, Type_Register (e2, _) -> synthesize_equality s e1 e2
-  | Type_Register (e1, _), Type_Bits e2 -> synthesize_equality s e1 e2
-  | Type_Register (e1, _), Type_Register (e2, _) -> synthesize_equality s e1 e2
   | Type_Array (_, elty1), Type_Array (_, elty2) ->
       synthesize_type env loc s elty1 elty2
   | Type_Tuple tys1, Type_Tuple tys2 ->
@@ -1098,8 +1087,8 @@ let mk_pow2_int (x : AST.expr) : AST.expr =
 (* Refine the result type of a calculation for known functions *)
 let refine_type (fty : funtype) (tys : AST.ty list) : AST.ty option =
   ( match (fty.funname, tys) with
-  | (i, [Type_Bits n]) when Ident.equal i cvt_bits_uint -> Some (Type_Integer (Some [Constraint_Range (zero, mk_sub_int (mk_pow2_int n) one)]))
-  | (i, [Type_Bits n]) when Ident.equal i cvt_bits_sint -> Some (Type_Integer (Some [Constraint_Range (mk_neg_int (mk_pow2_int (mk_sub_int n one)), mk_sub_int (mk_pow2_int (mk_sub_int n one)) one)]))
+  | (i, [Type_Bits (n, _)]) when Ident.equal i cvt_bits_uint -> Some (Type_Integer (Some [Constraint_Range (zero, mk_sub_int (mk_pow2_int n) one)]))
+  | (i, [Type_Bits (n, _)]) when Ident.equal i cvt_bits_sint -> Some (Type_Integer (Some [Constraint_Range (mk_neg_int (mk_pow2_int (mk_sub_int n one)), mk_sub_int (mk_pow2_int (mk_sub_int n one)) one)]))
   | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i add_int -> Some (Type_Integer (lift2_constraints add_constraints c1 c2))
   | (i, [Type_Integer c1; Type_Integer c2]) when Ident.equal i sub_int -> Some (Type_Integer (lift2_constraints sub_constraints c1 c2))
   | (i, [Type_Integer c]) when Ident.equal i neg_int -> Some (Type_Integer (lift1_constraints neg_constraints c))
@@ -1163,13 +1152,10 @@ let instantiate_fun (env : Env.t) (loc : AST.l)
 let rec eq_structural (env : GlobalEnv.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : bool =
   match (derefType env loc ty1, derefType env loc ty2) with
   | Type_Integer _, Type_Integer _ -> true
-  | Type_Bits e1, Type_Bits e2 -> true
+  | Type_Bits (e1, _), Type_Bits (e2, _) -> true
   | Type_Constructor (c1, es1), Type_Constructor (c2, es2) -> c1 = c2
   | Type_OfExpr e1, Type_OfExpr e2 -> raise (InternalError
       (loc, "eq_structural: typeof", (fun fmt -> FMT.ty fmt ty1), __LOC__))
-  | Type_Bits e1, Type_Register (w2, _) -> true
-  | Type_Register (w1, _), Type_Bits e2 -> true
-  | Type_Register (w1, _), Type_Register (w2, _) -> true
   | Type_Array (ixty1, elty1), Type_Array (ixty2, elty2) ->
       ( match (ixty1, ixty2) with
       | Index_Enum tc1, Index_Enum tc2 -> tc1 = tc2
@@ -1429,7 +1415,6 @@ and tc_slice_expr (env : Env.t) (loc : AST.l) (x : expr)
           (Expr_Array (x', i), elty)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
   | Type_Bits _
-  | Type_Register _
   | Type_Integer _ ->
       (Expr_Slices (ty', x', ss'), ty)
   | _ -> raise (TypeError (loc, "slice of expr"))
@@ -1671,9 +1656,17 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
   | Type_Integer ocrs ->
       let ocrs' = Option.map (tc_constraints env loc) ocrs in
       Type_Integer ocrs'
-  | Type_Bits n ->
+  | Type_Bits (n, fs) ->
       let n' = check_expr env loc type_integer n in
-      Type_Bits n'
+      check_duplicate_field_names (fun (_, f) -> f) fs loc;
+      let fs' =
+        List.map
+          (fun (ss, f) ->
+            let ss' = List.map (fun s -> fst (tc_slice env loc s)) ss in
+            (ss', f))
+          fs
+      in
+      Type_Bits (n', fs')
   | Type_Constructor (tc, es) ->
       let es' = List.map (check_expr env loc type_integer) es in
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
@@ -1683,17 +1676,6 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
   | Type_OfExpr e ->
       let (_, ty) = tc_expr env loc e in
       ty
-  | Type_Register (wd, fs) ->
-      check_duplicate_field_names (fun (_, f) -> f) fs loc;
-
-      let fs' =
-        List.map
-          (fun (ss, f) ->
-            let ss' = List.map (fun s -> fst (tc_slice env loc s)) ss in
-            (ss', f))
-          fs
-      in
-      Type_Register (wd, fs')
   | Type_Array (Index_Enum tc, ety) ->
       if not (GlobalEnv.isEnum (Env.globals env) tc) then
         raise (IsNotA (loc, "enumeration type", Ident.pprint tc));
@@ -1750,8 +1732,7 @@ let rec tc_slice_lexpr (env : Env.t) (loc : AST.l) (x : lexpr)
           check_subtype_satisfies env loc ity (ixtype_basetype ixty);
           (LExpr_Array (x', i), elty)
       | _ -> raise (TypeError (loc, "multiple subscripts for array")))
-  | Type_Bits n
-  | Type_Register (n, _) ->
+  | Type_Bits (n, _) ->
     (LExpr_Slices (ty', x', ss'), ty)
   | Type_Integer _ ->
       (* There is an argument for making this operation illegal *)
@@ -2099,8 +2080,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
   | (_, DeclItem_Tuple dis) ->
       let len = List.length dis in
       raise (IsNotA (loc, Format.asprintf "tuple of length %d" len, pp_type ity))
-  | (Type_Bits n, DeclItem_BitTuple dbs)
-  | (Type_Register (n, _), DeclItem_BitTuple dbs) ->
+  | (Type_Bits (n, _), DeclItem_BitTuple dbs) ->
       let dbs' = List.map (tc_decl_bit env loc) dbs in
       let (vs', tys) = List.split dbs' in
       let ws = List.map (width_of_type (Env.globals env) loc) tys in

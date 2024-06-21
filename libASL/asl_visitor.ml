@@ -271,17 +271,8 @@ and visit_type (vis : aslVisitor) (x : ty) : ty =
     | Type_Integer ocrs ->
         let ocrs' = mapOptionNoCopy (visit_constraints vis) ocrs in
         if ocrs == ocrs' then x else Type_Integer ocrs'
-    | Type_Bits n ->
+    | Type_Bits (n, fs) ->
         let n' = visit_expr vis n in
-        if n == n' then x else Type_Bits n'
-    | Type_Constructor (tc, es) ->
-        let tc' = visit_var vis Type tc in
-        let es' = visit_exprs vis es in
-        if tc == tc' && es == es' then x else Type_Constructor (tc', es')
-    | Type_OfExpr e ->
-        let e' = visit_expr vis e in
-        if e == e' then x else Type_OfExpr e'
-    | Type_Register (wd, fs) ->
         let fs' =
           mapNoCopy
             (fun ((ss, f) as r) ->
@@ -289,7 +280,14 @@ and visit_type (vis : aslVisitor) (x : ty) : ty =
               if ss == ss' then r else (ss', f))
             fs
         in
-        if fs == fs' then x else Type_Register (wd, fs')
+        if n == n' && fs == fs' then x else Type_Bits (n', fs')
+    | Type_Constructor (tc, es) ->
+        let tc' = visit_var vis Type tc in
+        let es' = visit_exprs vis es in
+        if tc == tc' && es == es' then x else Type_Constructor (tc', es')
+    | Type_OfExpr e ->
+        let e' = visit_expr vis e in
+        if e == e' then x else Type_OfExpr e'
     | Type_Array (Index_Enum tc, ety) ->
         let tc' = visit_var vis Type tc in
         let ety' = visit_type vis ety in

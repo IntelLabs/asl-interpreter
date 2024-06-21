@@ -244,7 +244,7 @@ class freevarClass =
       | Type_Constructor (tc, _) ->
           free_tcs <- IdentSet.add tc free_tcs;
           DoChildren
-      | Type_Register _ ->
+      | Type_Bits (_, fs) when not (Utils.is_empty fs) ->
           (* Free variables in register types are not supported and will
              lead to a type error.
 
@@ -945,7 +945,7 @@ let type_integer = Type_Integer None
 let type_bool = Type_Constructor (boolean_ident, [])
 let type_real = Type_Constructor (real_ident, [])
 let type_string = Type_Constructor (string_ident, [])
-let type_bits (n : expr) = Type_Bits n
+let type_bits (n : expr) = Type_Bits (n, [])
 let type_exn = Type_Constructor (exception_ident, [])
 
 let asl_false = AST.Expr_Var false_ident
@@ -1238,8 +1238,7 @@ let tupleTypes (t : AST.ty) : AST.ty list =
 (** Bitwidth of type (which is expected to be a bitvector) *)
 let width_of_type (ty : AST.ty) : AST.expr option =
   ( match ty with
-  | Type_Bits n
-  | Type_Register (n, _)
+  | Type_Bits (n, _)
     -> Some n
   | _
     -> None

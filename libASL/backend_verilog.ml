@@ -216,8 +216,7 @@ let rethrow_stmt (loc : AST.l) (fmt : PP.formatter) : unit =
 
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
-  | Type_Bits n
-  | Type_Register (n, _) ->
+  | Type_Bits (n, _) ->
     kw_bit fmt;
     brackets fmt (fun _ ->
       constant fmt (string_of_int (const_int_expr loc n - 1));
@@ -275,7 +274,7 @@ and ixtype (loc : AST.l) (fmt : PP.formatter) (x : AST.ixtype) : unit =
 
 and unknown (loc : AST.l) (fmt : PP.formatter) (t : AST.ty) : unit =
   match t with
-  | Type_Bits k ->
+  | Type_Bits (k, _) ->
       expr loc fmt k;
       constant fmt "'X"
   | _ ->

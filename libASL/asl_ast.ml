@@ -152,10 +152,9 @@ and ixtype =
 
 and ty =
  | Type_Integer of constraint_range list option
- | Type_Bits of expr
+ | Type_Bits of expr * (slice list * Ident.t) list
  | Type_Constructor of Ident.t * expr list
  | Type_OfExpr of expr
- | Type_Register of expr * (slice list * Ident.t) list
  | Type_Array of ixtype * ty
  | Type_Tuple of ty list
 

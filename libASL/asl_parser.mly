@@ -304,13 +304,13 @@ ty:
 | INTEGER ocrs = constraint_opt
     { Type_Integer(ocrs) }
 | BITS LPAREN n = expr RPAREN
-    { Type_Bits(n) }
+    { Type_Bits(n, []) }
 | tc = ident LPAREN es = separated_nonempty_list(COMMA, expr) RPAREN
     { Type_Constructor(tc, es) }
 | TYPEOF LPAREN e = expr RPAREN
     { Type_OfExpr(e) }
 | BITS LPAREN wd = expr RPAREN LBRACE fs = regfields RBRACE
-    { Type_Register(wd, fs) }
+    { Type_Bits(wd, fs) }
 | ARRAY LBRACK ixtype = ixtype RBRACK OF ty = ty
     { Type_Array(ixtype, ty) }
 | LPAREN tys = separated_list(COMMA, ty) RPAREN
@@ -374,8 +374,8 @@ decl_item:
     { DeclItem_Wildcard(oty) }
 
 decl_bit:
-| v = ident oty = ty_opt { (Some v, Option.value oty ~default:(Type_Bits Asl_utils.one)) }
-| MINUS     oty = ty_opt { (None,   Option.value oty ~default:(Type_Bits Asl_utils.one)) }
+| v = ident oty = ty_opt { (Some v, Option.value oty ~default:(Type_Bits (Asl_utils.one, []))) }
+| MINUS     oty = ty_opt { (None,   Option.value oty ~default:(Type_Bits (Asl_utils.one, []))) }
 
 lexpr:
 | MINUS

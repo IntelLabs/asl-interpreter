@@ -318,25 +318,24 @@ let strLit (fmt : PP.formatter) (x : string) : unit =
 
 let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
-  | Type_Integer ocrs -> (
+  | Type_Integer ocrs ->
       tycon fmt integer_ident;
-      match ocrs with None -> () | Some crs -> constraints fmt crs)
-  | Type_Bits n ->
+      (match ocrs with None -> () | Some crs -> constraints fmt crs)
+  | Type_Bits (n, fs) ->
       tycon fmt bits_ident;
-      parens fmt (fun _ -> expr fmt n)
+      parens fmt (fun _ -> expr fmt n);
+      if not (Utils.is_empty fs) then begin
+        nbsp fmt;
+        braces fmt (fun _ ->
+            indented fmt (fun _ -> cutsep fmt (regfield fmt) fs);
+            cut fmt)
+      end
   | Type_Constructor (tc, es) ->
       tycon fmt tc;
       if not (Utils.is_empty es) then parens fmt (fun _ -> exprs fmt es)
   | Type_OfExpr e ->
       kw_typeof fmt;
       parens fmt (fun _ -> expr fmt e)
-  | Type_Register (wd, fs) ->
-      tycon fmt bits_ident;
-      parens fmt (fun _ -> expr fmt wd);
-      nbsp fmt;
-      braces fmt (fun _ ->
-          indented fmt (fun _ -> cutsep fmt (regfield fmt) fs);
-          cut fmt)
   | Type_Array (ixty, ety) ->
       kw_array fmt;
       nbsp fmt;

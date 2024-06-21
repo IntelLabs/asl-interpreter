@@ -53,7 +53,7 @@ let transform (loc : AST.l) (n : AST.expr) (w : AST.expr) (i : AST.expr)
   | Expr_Slices (_, _, [Slice_Single _]) ->
     raise (InternalError
       (loc, "Slice_Single not expected", (fun fmt -> Asl_fmt.expr fmt x), __LOC__))
-  | Expr_Slices ((Type_Bits we | Type_Register (we, _)), e, [Slice_LoWd (lo, wd)]) ->
+  | Expr_Slices (Type_Bits (we, _), e, [Slice_LoWd (lo, wd)]) ->
     (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
     let e1 = mk_zero_extend_bits we n e in
     let e2 = mk_lsr_bits n e1 lo in
@@ -161,7 +161,7 @@ class bitsliceClass =
           (loc, "Slice_HiLo not expected", (fun fmt -> Asl_fmt.stmt fmt s), __LOC__))
       | Stmt_Assign (
           LExpr_Slices (
-            ( Type_Bits (Expr_LitInt _ as w) | Type_Register ((Expr_LitInt _ as w), _) ),
+            Type_Bits (Expr_LitInt _ as w, _),
             le,
             [Slice_LoWd (lo, sw)]),
           rhs,

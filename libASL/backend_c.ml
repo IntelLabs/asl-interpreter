@@ -509,8 +509,7 @@ let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
 
 let rec varty (loc : AST.l) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
-  | Type_Bits n
-  | Type_Register (n, _) ->
+  | Type_Bits (n, _) ->
     bits fmt (const_int_expr loc n);
     nbsp fmt;
     varname fmt v
