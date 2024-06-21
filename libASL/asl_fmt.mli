@@ -118,6 +118,7 @@ val kw_not : formatter -> unit
 val kw_of : formatter -> unit
 val kw_or : formatter -> unit
 val kw_otherwise : formatter -> unit
+val kw_quot : formatter -> unit
 val kw_record : formatter -> unit
 val kw_rem : formatter -> unit
 val kw_repeat : formatter -> unit

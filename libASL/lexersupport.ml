@@ -86,6 +86,7 @@ let string_of_token (t : Asl_parser.token) : string =
   | PLUS_COLON -> "pluscolon"
   | STAR_COLON -> "starcolon"
   | QUERY -> "query"
+  | QUOT -> "quot"
   | RBRACE -> "rbrace"
   | RBRACK -> "rbrack"
   | RECORD -> "record"

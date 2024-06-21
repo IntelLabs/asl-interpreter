@@ -37,6 +37,7 @@ __builtin func sub_int(x : integer, y : integer) => integer;
 __builtin func shl_int(x : integer, y : integer) => integer;
 __builtin func shr_int(x : integer, y : integer) => integer;
 __builtin func mul_int(x : integer, y : integer) => integer;
+__builtin func zdiv_int(x : integer, y : integer) => integer;
 __builtin func zrem_int(x : integer, y : integer) => integer;
 __builtin func fdiv_int(x : integer, y : integer) => integer;
 __builtin func frem_int(x : integer, y : integer) => integer;
@@ -264,6 +265,7 @@ begin
 end
 
 // Division: round to zero
+__operator2 QUOT = zdiv_int;
 __operator2 REM  = zrem_int;
 
 // Division: round to -infinity (floor)
