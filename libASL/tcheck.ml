@@ -1823,7 +1823,7 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
             GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix a ~suffix:"read")
           in
           let setters =
-            GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"set")
+            GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"write")
           in
           let ogetters =
             chooseFunction (Env.globals env) loc "getter function"
@@ -1958,7 +1958,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
         | LExpr_Var a -> (
             let tys = List.map (function _, ty -> ty) ss' in
             let setters =
-              GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"set")
+              GlobalEnv.getSetterFun (Env.globals env) (Ident.add_suffix a ~suffix:"write")
             in
             let osetters =
               chooseFunction (Env.globals env) loc "setter function"
@@ -2284,15 +2284,22 @@ let tc_argument
   end;
   (arg, ty')
 
+let mangle_setter_name (f : Ident.t) (fty : AST.function_type) : Ident.t =
+  if fty.is_getter_setter then (
+    if Option.is_none fty.rty then
+      Ident.add_suffix f ~suffix:"write"
+    else
+      Ident.add_suffix f ~suffix:"read"
+  ) else (
+    f
+  )
+
 (** Typecheck list of function arguments *)
-let tc_arguments
-    (env : Env.t)
-    (loc : AST.l)
-    (ps : (Ident.t * AST.ty option) list)
-    (args : (Ident.t * AST.ty) list)
-    (rty : AST.ty)
-    : (Ident.t * AST.ty option) list * (Ident.t * AST.ty) list * AST.ty
-  =
+(* todo: if this is a getter/setter check that if a setter function exists, it has a compatible type *)
+let tc_funtype (env : Env.t) (loc : AST.l) (fty : AST.function_type) : AST.function_type =
+  let args = fty.args @ Option.to_list fty.setter_arg in
+  let rty = Option.value fty.rty ~default:type_unit in
+
   let globals = Env.globals env in
   let is_not_global (x : Ident.t) = Option.is_none (GlobalEnv.getGlobalVar globals x) in
 
@@ -2319,7 +2326,7 @@ let tc_arguments
   (* implicit parameters are sorted alphabetically for the sake of having a consistent order. *)
   let implicit_parameters =
     (IdentSet.union argty_fvs rty_fvs)
-    |> IdentSet.filter (fun v -> not (List.mem_assoc v ps))
+    |> IdentSet.filter (fun v -> not (List.mem_assoc v fty.parameters))
     |> Asl_utils.to_sorted_list
   in
 
@@ -2335,24 +2342,29 @@ let tc_arguments
   in
 
   (* The type of any implicit or explicit parameters should match explicit argument if it exists *)
-  let typed_explicit_parameters = List.map (fun (v, oty) -> (v, merge_tys v oty (List.assoc_opt v args))) ps in
+  let typed_explicit_parameters = List.map (fun (v, oty) -> (v, merge_tys v oty (List.assoc_opt v args))) fty.parameters in
   let typed_implicit_parameters = List.map (fun v -> (v, List.assoc_opt v args)) implicit_parameters in
 
   (* Having inferred all the implicit parameters, we can finally typecheck the function type *)
   let ps' = List.map (tc_parameter env loc) (typed_explicit_parameters @ typed_implicit_parameters) in
-  let args' = List.map (tc_argument env loc ps') args in
-  let rty' = tc_type env loc rty in
-  Env.setReturnType env rty';
-  (ps', args', rty')
+  let args' = List.map (tc_argument env loc ps') fty.args in
+  let setter_arg' = Option.map (tc_argument env loc ps') fty.setter_arg in
+  let rty' = Option.map (tc_type env loc) fty.rty in
+  Env.setReturnType env (Option.value rty' ~default:type_unit);
+  { fty with
+    parameters=ps';
+    args=args';
+    setter_arg=setter_arg';
+    rty=rty'
+  }
 
 (** Add function definition to environment *)
-let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
-    (isArr : bool) (ps : (Ident.t * AST.ty option) list)
-    (args : (Ident.t * AST.ty) list) (rty : AST.ty) : funtype =
-  let argtys = List.map (fun (_, ty) -> ty) args in
-  let funs = GlobalEnv.getFuns env qid in
+let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t) (fty : AST.function_type) : funtype =
+  let argtys = List.map (fun (_, ty) -> ty) fty.args in
+  let is_setter = Option.is_some fty.setter_arg in
+  let funs = if is_setter then GlobalEnv.getSetterFun env qid else GlobalEnv.getFuns env qid in
   let num_funs = List.length funs in
-  match List.filter (isCompatibleFunction env loc isArr argtys) funs with
+  match List.filter (isCompatibleFunction env loc fty.use_array_syntax argtys) funs with
   | [] ->
       (* not defined yet *)
       (* ASL allows multiple functions to share the same name.
@@ -2362,8 +2374,10 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
        *)
       let tag = num_funs in
       let qid' = Ident.mk_fident_with_tag qid ~tag in
-      let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=None; rty=rty } in
-      GlobalEnv.addFuns env loc qid (fty :: funs);
+      let rty = Option.value fty.rty ~default:type_unit in
+      let ovty = Option.map snd fty.setter_arg in
+      let fty : funtype = { funname=qid'; loc; isArray=fty.use_array_syntax; params=fty.parameters; atys=fty.args; ovty; rty } in
+      if is_setter then GlobalEnv.addSetterFuns env qid (fty :: funs) else GlobalEnv.addFuns env loc qid (fty :: funs);
       fty
   | [ fty ] ->
       if fty.loc <> loc then begin
@@ -2378,33 +2392,6 @@ let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
       end
   | ftys ->
       let msg = "multiple function definitions" in
-      raise
-        (InternalError (loc, msg, (fun fmt -> FMT.funname fmt qid), __LOC__))
-
-let addSetterFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t)
-    (isArr : bool) (ps : (Ident.t * AST.ty option) list)
-    (args : (Ident.t * AST.ty) list) (vty : AST.ty) : funtype =
-  let argtys = List.map snd args in
-  let funs = GlobalEnv.getSetterFun env qid in
-  let num_funs = List.length funs in
-  match List.filter (isCompatibleFunction env loc isArr argtys) funs with
-  | [] ->
-      (* not defined yet *)
-      (* ASL allows multiple functions to share the same name.
-       * The typechecker disambiguates functions for the benefit of other parts of the
-       * system by adding a unique tag to each ident.
-       * We use the number of functions that already have that name as the tag.
-       *)
-      let tag = num_funs in
-      let qid' = Ident.mk_fident_with_tag qid ~tag in
-      let fty : funtype = { funname=qid'; loc; isArray=isArr; params=ps; atys=args; ovty=Some vty; rty=type_unit } in
-      GlobalEnv.addSetterFuns env qid (fty :: funs);
-      fty
-  | [ fty ] ->
-      (* already defined *)
-      fty
-  | ftys ->
-      let msg = "multiple setter function definitions" in
       raise
         (InternalError (loc, msg, (fun fmt -> FMT.funname fmt qid), __LOC__))
 
@@ -2454,17 +2441,19 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
            let v = { name=e; loc; ty; is_local=false; is_constant=true } in
            GlobalEnv.addGlobalVar env v)
         es;
-      let cmp_args = [ (Ident.mk_ident "x", ty); (Ident.mk_ident "y", ty) ] in
-      let eq =
-        addFunction env loc eq_enum false [] cmp_args type_bool
-      in
-      let ne =
-        addFunction env loc ne_enum false [] cmp_args type_bool
-      in
+      let fty = { parameters = [];
+                  args = [ (Ident.mk_ident "x", ty); (Ident.mk_ident "y", ty) ];
+                  setter_arg = None;
+                  rty = Some type_bool;
+                  is_getter_setter = false;
+                  use_array_syntax = false
+      } in
+      let eq = addFunction env loc eq_enum fty in
+      let ne = addFunction env loc ne_enum fty in
       GlobalEnv.addOperators2 env loc Binop_Eq [ eq ];
       GlobalEnv.addOperators2 env loc Binop_NtEq [ ne ];
-      let deq = Decl_BuiltinFunction (eq.funname, [], [], ty, loc) in
-      let dne = Decl_BuiltinFunction (ne.funname, [], [], ty, loc) in
+      let deq = Decl_BuiltinFunction (eq.funname, fty, loc) in
+      let dne = Decl_BuiltinFunction (ne.funname, fty, loc) in
       [ d; deq; dne ]
   | Decl_Var (qid, ty, loc) ->
       let ty' = tc_type (Env.mkEnv env) loc ty in
@@ -2482,95 +2471,24 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
       GlobalEnv.addGlobalVar env v;
       GlobalEnv.addConstant env qid (simplify_expr i');
       [ Decl_Const (qid, Some ty', i', loc) ]
-  | Decl_BuiltinFunction (qid, ps, atys, rty, loc) ->
+  | Decl_BuiltinFunction (qid, fty, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      [ Decl_BuiltinFunction (qid', ps', atys', rty', loc) ]
-  | Decl_FunType (qid, ps, atys, rty, loc) ->
+      let fty' = tc_funtype locals loc fty in
+      let qid' = (addFunction env loc qid fty').funname in
+      [ Decl_BuiltinFunction (qid', fty', loc) ]
+  | Decl_FunType (qid, fty, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      [ Decl_FunType (qid', ps', atys', rty', loc) ]
-  | Decl_FunDefn (qid, ps, atys, rty, b, loc) ->
+      let fty' = tc_funtype locals loc fty in
+      let mangled = mangle_setter_name qid fty' in
+      let qid' = (addFunction env loc mangled fty').funname in
+      [ Decl_FunType (qid', fty', loc) ]
+  | Decl_FunDefn (qid, fty, b, loc) ->
       let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
+      let fty' = tc_funtype locals loc fty in
+      let mangled = mangle_setter_name qid fty' in
+      let qid' = (addFunction env loc mangled fty').funname in
       let b' = tc_body locals loc b in
-      [ Decl_FunDefn (qid', ps', atys', rty', b', loc) ]
-  | Decl_ProcType (qid, ps, atys, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys type_unit in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      [ Decl_ProcType (qid', ps', atys', loc) ]
-  | Decl_ProcDefn (qid, ps, atys, b, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys type_unit in
-      let qid' = (addFunction env loc qid false ps' atys' rty').funname in
-      let b' = tc_body locals loc b in
-      [ Decl_ProcDefn (qid', ps', atys', b', loc) ]
-  | Decl_VarGetterType (qid, ps, rty, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") false ps' atys' rty' in
-      [ Decl_VarGetterType (fty.funname, ps', rty', loc) ]
-  | Decl_VarGetterDefn (qid, ps, rty, b, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps [] rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") false ps' atys' rty' in
-      let b' = tc_body locals loc b in
-      [ Decl_VarGetterDefn (fty.funname, ps', rty', b', loc) ]
-  | Decl_ArrayGetterType (qid, ps, atys, rty, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") true ps' atys' rty' in
-      (* todo: check that if a setter function exists, it has a compatible type *)
-      [ Decl_ArrayGetterType (fty.funname, ps', atys', rty', loc) ]
-  | Decl_ArrayGetterDefn (qid, ps, atys, rty, b, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps atys rty in
-      (* todo: check that if a setter function exists, it has a compatible type *)
-      let fty = addFunction env loc (Ident.add_suffix qid ~suffix:"read") true ps' atys' rty' in
-      let b' = tc_body locals loc b in
-      [ Decl_ArrayGetterDefn (fty.funname, ps', atys', rty', b', loc) ]
-  | Decl_VarSetterType (qid, ps, v, ty, loc) ->
-      let locals = Env.mkEnv env in
-      let (ps', atys', _) = tc_arguments locals loc ps [ (v, ty) ] type_unit in
-      let v', ty' = Utils.last atys' in
-      (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"write") false ps' [] ty' in
-      [ Decl_VarSetterType (fty.funname, ps', v, ty', loc) ]
-  | Decl_VarSetterDefn (qid, ps, v, ty, b, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', rty' = tc_arguments locals loc ps [ (v, ty) ] type_unit in
-      let (v', ty') = Utils.last atys' in
-      (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"write") false ps' [] ty' in
-      let b' = tc_body locals loc b in
-      [ Decl_VarSetterDefn (fty.funname, ps', v, ty', b', loc) ]
-  | Decl_ArraySetterType (qid, ps, atys, v, ty, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', _ = tc_arguments locals loc ps (atys @ [(v, ty)]) type_unit in
-      let atys'' = Utils.init atys' in
-      let v', ty' = Utils.last atys' in
-      (* todo: check that if a getter function exists, it has a compatible type *)
-      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"set") true ps' atys'' ty' in
-      [ Decl_ArraySetterType (fty.funname, ps', atys'', v, ty', loc) ]
-  | Decl_ArraySetterDefn (qid, ps, atys, v, ty, b, loc) ->
-      let locals = Env.mkEnv env in
-      let ps', atys', _ = tc_arguments locals loc ps (atys @ [(v, ty)]) type_unit in
-      let atys'' = Utils.init atys' in
-      let v', ty' = Utils.last atys' in
-      (* todo: should I use name mangling or define an enumeration to select
-       * which namespace to do lookup in?
-       *)
-      (* todo: check that if a getter function exists, it has a compatible
-         type *)
-      let fty = addSetterFunction env loc (Ident.add_suffix qid ~suffix:"set") true ps' atys'' ty' in
-      let b' = tc_body locals loc b in
-      [ Decl_ArraySetterDefn (fty.funname, ps', atys'', v, ty', b', loc) ]
+      [ Decl_FunDefn (qid', fty', b', loc) ]
   | Decl_Operator1 (op, funs, loc) ->
       let funs' =
         List.concat
@@ -2622,24 +2540,9 @@ let genPrototypes (ds : AST.declaration list) :
   List.iter
     (fun d ->
       match d with
-      | Decl_FunDefn (qid, ps, atys, rty, _, loc) ->
+      | Decl_FunDefn (qid, fty, _, loc) ->
           post := d :: !post;
-          pre := Decl_FunType (qid, ps, atys, rty, loc) :: !pre
-      | Decl_ProcDefn (qid, ps, atys, _, loc) ->
-          post := d :: !post;
-          pre := Decl_ProcType (qid, ps, atys, loc) :: !pre
-      | Decl_VarGetterDefn (qid, ps, rty, _, loc) ->
-          post := d :: !post;
-          pre := Decl_VarGetterType (qid, ps, rty, loc) :: !pre
-      | Decl_ArrayGetterDefn (qid, ps, atys, rty, _, loc) ->
-          post := d :: !post;
-          pre := Decl_ArrayGetterType (qid, ps, atys, rty, loc) :: !pre
-      | Decl_VarSetterDefn (qid, ps, v, ty, _, loc) ->
-          post := d :: !post;
-          pre := Decl_VarSetterType (qid, ps, v, ty, loc) :: !pre
-      | Decl_ArraySetterDefn (qid, ps, atys, v, ty, _, loc) ->
-          post := d :: !post;
-          pre := Decl_ArraySetterType (qid, ps, atys, v, ty, loc) :: !pre
+          pre := Decl_FunType (qid, fty, loc) :: !pre
       | _ -> pre := d :: !pre)
     ds;
   (List.rev !pre, List.rev !post)

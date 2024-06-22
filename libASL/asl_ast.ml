@@ -215,6 +215,15 @@ and s_elsif =
 and alt =
    Alt_Alt of pattern list * expr option * stmt list * l
 
+type function_type = {
+  parameters : (Ident.t * ty option) list;
+  args : (Ident.t * ty) list;
+  setter_arg : (Ident.t * ty) option; (* only present in setter functions *)
+  rty : ty option; (* only present in functions and getter functions *)
+  use_array_syntax : bool; (* true for array getter/setter functions *)
+  is_getter_setter : bool;
+}
+
 type
 declaration =
    Decl_BuiltinType of Ident.t * l
@@ -225,19 +234,9 @@ declaration =
  | Decl_Enum of Ident.t * Ident.t list * l
  | Decl_Var of Ident.t * ty * l
  | Decl_Const of Ident.t * ty option * expr * l
- | Decl_BuiltinFunction of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * l
- | Decl_FunType of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * l
- | Decl_FunDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * stmt list * l
- | Decl_ProcType of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * l
- | Decl_ProcDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * stmt list * l
- | Decl_VarGetterType of Ident.t * (Ident.t * ty option) list * ty * l
- | Decl_VarGetterDefn of Ident.t * (Ident.t * ty option) list * ty * stmt list * l
- | Decl_ArrayGetterType of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * l
- | Decl_ArrayGetterDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * ty * stmt list * l
- | Decl_VarSetterType of Ident.t * (Ident.t * ty option) list * Ident.t * ty * l
- | Decl_VarSetterDefn of Ident.t * (Ident.t * ty option) list * Ident.t * ty * stmt list * l
- | Decl_ArraySetterType of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * Ident.t * ty * l
- | Decl_ArraySetterDefn of Ident.t * (Ident.t * ty option) list * (Ident.t * ty) list * Ident.t * ty * stmt list * l
+ | Decl_BuiltinFunction of Ident.t * function_type * l
+ | Decl_FunType of Ident.t * function_type * l
+ | Decl_FunDefn of Ident.t * function_type * stmt list * l
  | Decl_Operator1 of unop * Ident.t list * l
  | Decl_Operator2 of binop * Ident.t list * l
  | Decl_Config of Ident.t * ty * expr * l

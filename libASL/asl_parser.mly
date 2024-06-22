@@ -238,17 +238,22 @@ ixtype:
 
 function_declaration:
 | UNDERSCORE_UNDERSCORE_BUILTIN FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { Decl_BuiltinFunction(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+      Decl_BuiltinFunction(f, fty, Range($symbolstartpos, $endpos)) }
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { Decl_FunType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty BEGIN b = block END
-    { Decl_FunDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 procedure_declaration:
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
-    { Decl_ProcType(f, ps, args, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN BEGIN b = block END
-    { Decl_ProcDefn(f, ps, args, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 parameters_opt:
 | LBRACE pars = parameter_list RBRACE { pars }
@@ -272,23 +277,31 @@ formal:
 
 getter_declaration:
 | GETTER f = ident ps = parameters_opt EQ_GT ty = ty SEMICOLON
-    { Decl_VarGetterType(f, ps, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | GETTER f = ident ps = parameters_opt EQ_GT ty = ty BEGIN b = block END
-    { Decl_VarGetterDefn(f, ps, ty, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 | GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty SEMICOLON
-    { Decl_ArrayGetterType(f, ps, args, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty BEGIN b = block END
-    { Decl_ArrayGetterDefn(f, ps, args, ty, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 setter_declaration:
 | SETTER f = ident ps = parameters_opt EQ v = ident COLON ty = ty SEMICOLON
-    { Decl_VarSetterType(f, ps, v, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | SETTER f = ident ps = parameters_opt EQ v = ident COLON ty = ty BEGIN b = block END
-    { Decl_VarSetterDefn(f, ps, v, ty, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 | SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty SEMICOLON
-    { Decl_ArraySetterType(f, ps, args, v, ty, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true } in
+      Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
 | SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty BEGIN b = block END
-    { Decl_ArraySetterDefn(f, ps, args, v, ty, b, Range($symbolstartpos, $endpos)) }
+    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true } in
+      Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 internal_definition:
 | UNDERSCORE_UNDERSCORE_OPERATOR_ONE op = unop EQ vs = separated_nonempty_list(COMMA, ident) SEMICOLON

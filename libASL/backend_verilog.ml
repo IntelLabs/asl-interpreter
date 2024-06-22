@@ -899,16 +899,15 @@ let formal (loc : AST.l) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
 let formals (loc : AST.l) (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal loc fmt) xs
 
-let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
-    (args : unit -> unit) : unit =
+let function_header (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (fty : AST.function_type) : unit =
   kw_function fmt;
   nbsp fmt;
   kw_automatic fmt;
   nbsp fmt;
   PP.pp_print_option
     ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
-    (fun _ t -> varty loc fmt f t) fmt ot;
-  parens fmt args;
+    (fun _ t -> varty loc fmt f t) fmt fty.rty;
+  parens fmt (fun _ -> commasep fmt (formal loc fmt) fty.args);
   semicolon fmt
 
 let typedef (fmt : PP.formatter) (pp : unit -> unit) : unit =
@@ -958,26 +957,11 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
                 tycon fmt tc
               );
             cut fmt)
-      | Decl_FunType (f, ps, args, t, loc) ->
+      | Decl_FunType (f, fty, loc) ->
           ()
-      | Decl_FunDefn (f, ps, args, t, b, loc) ->
-          current_function := Some (f, Some t);
-          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
-          indented_block fmt b;
-          cut fmt;
-          kw_endfunction fmt;
-          nbsp fmt;
-          colon fmt;
-          nbsp fmt;
-          funname fmt f;
-          current_function := None;
-          cut fmt;
-          cut fmt
-      | Decl_ProcType (f, ps, args, loc) ->
-          ()
-      | Decl_ProcDefn (f, ps, args, b, loc) ->
-          current_function := Some (f, None);
-          function_header loc fmt None f (fun _ -> formals loc fmt args);
+      | Decl_FunDefn (f, fty, b, loc) ->
+          current_function := Some (f, fty.rty);
+          function_header loc fmt f fty;
           indented_block fmt b;
           cut fmt;
           kw_endfunction fmt;
@@ -993,34 +977,8 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           semicolon fmt;
           cut fmt;
           cut fmt
-      | Decl_ArrayGetterDefn (f, ps, args, t, b, loc) ->
-          current_function := Some (f, Some t);
-          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
-          indented_block fmt b;
-          cut fmt;
-          kw_endfunction fmt;
-          nbsp fmt;
-          colon fmt;
-          nbsp fmt;
-          funname fmt f;
-          current_function := None;
-          cut fmt;
-          cut fmt
-      | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
-          current_function := Some (f, None);
-          function_header loc fmt None f (fun _ -> formals loc fmt (args @ [ (v, t) ]));
-          indented_block fmt b;
-          cut fmt;
-          kw_endfunction fmt;
-          nbsp fmt;
-          colon fmt;
-          nbsp fmt;
-          funname fmt f;
-          current_function := None;
-          cut fmt;
-          cut fmt
       (* ignored *)
-      | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
+      | Decl_BuiltinFunction (f, fty, loc) -> ()
       | Decl_Operator1 (op, fs, loc) -> ()
       | Decl_Operator2 (op, fs, loc) -> ()
       | _ ->
@@ -1090,17 +1048,15 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Record _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
       -> Some x
 
-    (* Add Fun/Proc-Type declarations for any functions that have been created
+    (* Add FunType declarations for any functions that have been created
      * after typechecking such as functions created during monomorphization.
-     * Since the typechecker creates Fun/Proc-Type declarations for all functions
+     * Since the typechecker creates FunType declarations for all functions
      * in the original spec, this will result in duplicate function prototypes
      * for many functions.
      *)
-    | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
-    | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+    | Decl_FunDefn (f, fty, _, loc) -> Some (Decl_FunType (f, fty, loc))
 
     | Decl_Const _
     | Decl_Exception _
@@ -1108,14 +1064,6 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
     | Decl_Config _
@@ -1137,20 +1085,10 @@ let var_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
     | Decl_FunDefn _
-    | Decl_ProcDefn _
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
       -> false
@@ -1162,7 +1100,6 @@ let fun_decls (xs : AST.declaration list) : AST.declaration list =
   let is_fun_decl (x : AST.declaration) : bool =
     ( match x with
     | Decl_FunDefn _
-    | Decl_ProcDefn _
       -> true
 
     | Decl_Var _
@@ -1172,18 +1109,9 @@ let fun_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
     | Decl_Config _

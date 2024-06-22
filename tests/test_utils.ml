@@ -135,8 +135,7 @@ let test_xform_decl
   try
     let find_decl (name : string) (d : AST.declaration) : bool =
       match d with
-      | Decl_FunDefn (f, ps, args, ty, b, loc) -> Ident.matches f ~name
-      | Decl_ProcDefn (f, ps, args, b, loc) -> Ident.matches f ~name
+      | Decl_FunDefn (f, fty, b, loc) -> Ident.matches f ~name
       | _ -> false
     in
 

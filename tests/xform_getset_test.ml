@@ -52,12 +52,12 @@ let getset_tests : unit Alcotest.test_case list =
     ("array setter type", `Quick, decl
       ""
       "setter S[i : integer] = val : integer;"
-      "func S_set(i : integer, val : integer);");
+      "func S_write(i : integer, val : integer);");
 
     ("array setter", `Quick, decl
       "var x : array [1] of integer;"
       "setter S[i : integer] = val : integer begin x[i] = val; end"
-      "func S_set(i : integer, val : integer) begin x[i] = val; end");
+      "func S_write(i : integer, val : integer) begin x[i] = val; end");
 
     ("__write l-expr", `Quick, decl
       "var x : integer;"

@@ -1236,15 +1236,11 @@ let formal (loc : AST.l) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   let v, t = x in
   varty loc fmt v t
 
-let formals (loc : AST.l) (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
-  commasep fmt (formal loc fmt) xs
-
-let function_header (loc : AST.l) (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
-    (args : unit -> unit) : unit =
+let function_header (loc : AST.l) (fmt : PP.formatter) (f : Ident.t) (fty : AST.function_type) : unit =
   PP.pp_print_option
     ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
-    (fun _ t -> varty loc fmt f t) fmt ot;
-  parens fmt args
+    (fun _ t -> varty loc fmt f t) fmt fty.rty;
+  parens fmt (fun _ -> commasep fmt (formal loc fmt) fty.args)
 
 let function_body (fmt : PP.formatter) (b : AST.stmt list) (orty : AST.ty option) : unit =
   with_catch_label (fun catcher ->
@@ -1337,25 +1333,14 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
                 tycon fmt tc
               );
             cut fmt)
-      | Decl_FunDefn (f, ps, args, t, b, loc) ->
-          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
+      | Decl_FunDefn (f, fty, b, loc) ->
+          function_header loc fmt f fty;
           nbsp fmt;
-          function_body fmt b (Some t);
+          function_body fmt b fty.rty;
           cut fmt;
           cut fmt
-      | Decl_FunType (f, ps, args, t, loc) ->
-          function_header loc fmt (Some t) f (fun _ -> formals loc fmt args);
-          semicolon fmt;
-          cut fmt;
-          cut fmt
-      | Decl_ProcDefn (f, ps, args, b, loc) ->
-          function_header loc fmt None f (fun _ -> formals loc fmt args);
-          nbsp fmt;
-          function_body fmt b None;
-          cut fmt;
-          cut fmt
-      | Decl_ProcType (f, ps, args, loc) ->
-          function_header loc fmt None f (fun _ -> formals loc fmt args);
+      | Decl_FunType (f, fty, loc) ->
+          function_header loc fmt f fty;
           semicolon fmt;
           cut fmt;
           cut fmt
@@ -1387,7 +1372,7 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           semicolon fmt;
           cut fmt;
           cut fmt
-      | Decl_BuiltinFunction (f, ps, args, t, loc) -> ()
+      | Decl_BuiltinFunction (f, fty, loc) -> ()
       | _ ->
           raise
             (Error.Unimplemented
@@ -1464,7 +1449,6 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Record _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
       -> Some x
 
     (* Add Fun/Proc-Type declarations for any functions that have been created
@@ -1473,8 +1457,7 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
      * in the original spec, this will result in duplicate function prototypes
      * for many functions.
      *)
-    | Decl_FunDefn (f, ps, args, t, _, loc) -> Some (Decl_FunType (f, ps, args, t, loc))
-    | Decl_ProcDefn (f, ps, args, _, loc) -> Some (Decl_ProcType (f, ps, args, loc))
+    | Decl_FunDefn (f, fty, b, loc) -> Some (Decl_FunType (f, fty, loc))
 
     | Decl_Const _
     | Decl_Exception _
@@ -1482,14 +1465,6 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
     | Decl_Config _
@@ -1511,20 +1486,10 @@ let var_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
     | Decl_FunDefn _
-    | Decl_ProcDefn _
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
       -> false
@@ -1536,7 +1501,6 @@ let fun_decls (xs : AST.declaration list) : AST.declaration list =
   let is_fun_decl (x : AST.declaration) : bool =
     ( match x with
     | Decl_FunDefn _
-    | Decl_ProcDefn _
       -> true
 
     | Decl_Var _
@@ -1546,18 +1510,9 @@ let fun_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_Exception _
     | Decl_Typedef _
     | Decl_FunType _
-    | Decl_ProcType _
     | Decl_BuiltinType _
     | Decl_Forward _
     | Decl_BuiltinFunction _
-    | Decl_VarGetterType _
-    | Decl_VarGetterDefn _
-    | Decl_ArrayGetterType _
-    | Decl_ArrayGetterDefn _
-    | Decl_VarSetterType _
-    | Decl_VarSetterDefn _
-    | Decl_ArraySetterType _
-    | Decl_ArraySetterDefn _
     | Decl_Operator1 _
     | Decl_Operator2 _
     | Decl_Config _

@@ -533,6 +533,31 @@ let visit_arg (vis : aslVisitor) (x : Ident.t * ty) : Ident.t * ty =
 let visit_args (vis : aslVisitor) (xs : (Ident.t * ty) list) : (Ident.t * ty) list =
   mapNoCopy (visit_arg vis) xs
 
+let get_locals (fty : function_type) : Ident.t list =
+  let ps = List.map fst fty.parameters in
+  let args = List.map fst fty.args in
+  let sv = List.map fst (Option.to_list fty.setter_arg) in
+  ps @ args @ sv
+
+let visit_funtype (vis : aslVisitor) (locals : Ident.t list) (fty : function_type) : function_type =
+  let parameters' = with_locals vis locals (visit_parameters vis) fty.parameters in
+  let args' = with_locals vis locals (visit_args vis) fty.args in
+  let setter_arg' = mapOptionNoCopy (visit_arg vis) fty.setter_arg in
+  let rty' = mapOptionNoCopy (fun ty -> with_locals vis locals (visit_type vis) ty) fty.rty in
+  if fty.parameters == parameters'
+  && fty.args == args'
+  && fty.setter_arg == setter_arg'
+  && fty.rty == rty'
+  then fty
+  else {
+    parameters=parameters';
+    args=args';
+    setter_arg=setter_arg';
+    rty=rty';
+    use_array_syntax=fty.use_array_syntax;
+    is_getter_setter=fty.is_getter_setter;
+  }
+
 let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
   let aux (vis : aslVisitor) (x : declaration) : declaration =
     match x with
@@ -570,114 +595,22 @@ let visit_decl (vis : aslVisitor) (x : declaration) : declaration =
         let e' = visit_expr vis e in
         if oty == oty' && v == v' && e == e' then x
         else Decl_Const (v', oty', e', loc)
-    | Decl_BuiltinFunction (f, ps, args, ty, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
+    | Decl_BuiltinFunction (f, fty, loc) ->
+        let locals = get_locals fty in
         let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if ty == ty' && f == f' && ps == ps' && args == args' then x
-        else Decl_BuiltinFunction (f', ps', args', ty', loc)
-    | Decl_FunType (f, ps, args, ty, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
+        let fty' = visit_funtype vis locals fty in
+        if f == f' && fty == fty' then x else Decl_BuiltinFunction (f', fty', loc)
+    | Decl_FunType (f, fty, loc) ->
+        let locals = get_locals fty in
         let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if ty == ty' && f == f' && ps == ps' && args == args' then x
-        else Decl_FunType (f', ps', args', ty', loc)
-    | Decl_FunDefn (f, ps, args, ty, b, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
+        let fty' = visit_funtype vis locals fty in
+        if f == f' && fty == fty' then x else Decl_FunType (f', fty', loc)
+    | Decl_FunDefn (f, fty, b, loc) ->
+        let locals = get_locals fty in
         let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
+        let fty' = visit_funtype vis locals fty in
         let b' = with_locals vis locals (visit_stmts vis) b in
-        if ty == ty' && f == f' && ps == ps' && args == args' && b == b' then x
-        else Decl_FunDefn (f', ps', args', ty', b', loc)
-    | Decl_ProcType (f, ps, args, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        if f == f' && ps == ps' && args == args' then x
-        else Decl_ProcType (f', ps', args', loc)
-    | Decl_ProcDefn (f, ps, args, b, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if f == f' && ps == ps' && args == args' && b == b' then x
-        else Decl_ProcDefn (f', ps', args', b', loc)
-    | Decl_VarGetterType (f, ps, ty, loc) ->
-        let locals = List.map fst ps in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if ty == ty' && f == f' && ps == ps' then x
-        else Decl_VarGetterType (f', ps', ty', loc)
-    | Decl_VarGetterDefn (f, ps, ty, b, loc) ->
-        let locals = List.map fst ps in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if ty == ty' && f == f' && ps == ps' && b == b' then x
-        else Decl_VarGetterDefn (f', ps', ty', b', loc)
-    | Decl_ArrayGetterType (f, ps, args, ty, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if ty == ty' && f == f' && ps == ps' && args == args' then x
-        else Decl_ArrayGetterType (f', ps', args', ty', loc)
-    | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) ->
-        let locals = List.map fst ps @ List.map fst args in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if ty == ty' && f == f' && ps == ps' && args == args' && b == b' then x
-        else Decl_ArrayGetterDefn (f', ps', args', ty', b', loc)
-    | Decl_VarSetterType (f, ps, v, ty, loc) ->
-        let locals = List.map fst ps @ [v] in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let v' = visit_var vis Definition v in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if f == f' && ty == ty' && v == v' then x
-        else Decl_VarSetterType (f', ps', v', ty', loc)
-    | Decl_VarSetterDefn (f, ps, v, ty, b, loc) ->
-        let locals = List.map fst ps @ [v] in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let v' = visit_var vis Definition v in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if f == f' && ty == ty' && v == v' && b == b' then x
-        else Decl_VarSetterDefn (f', ps', v', ty', b', loc)
-    | Decl_ArraySetterType (f, ps, args, v, ty, loc) ->
-        let locals = List.map fst ps @ List.map fst args @ [v] in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let v' = visit_var vis Definition v in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        if f == f' && ps == ps' && args == args' && ty == ty' && v == v' then x
-        else Decl_ArraySetterType (f', ps', args', v', ty', loc)
-    | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) ->
-        let locals = List.map fst ps @ List.map fst args @ [v] in
-        let f' = visit_var vis Definition f in
-        let ps' = with_locals vis locals (visit_parameters vis) ps in
-        let args' = with_locals vis locals (visit_args vis) args in
-        let v' = visit_var vis Definition v in
-        let ty' = with_locals vis locals (visit_type vis) ty in
-        let b' = with_locals vis locals (visit_stmts vis) b in
-        if f == f' && args == args' && ty == ty' && v == v' && b == b' then x
-        else Decl_ArraySetterDefn (f', ps', args', v', ty', b', loc)
+        if f == f' && fty == fty' && b == b' then x else Decl_FunDefn (f', fty', b', loc)
     | Decl_Operator1 (op, vs, loc) ->
         let vs' = mapNoCopy (visit_var vis Definition) vs in
         if vs == vs' then x else Decl_Operator1 (op, vs', loc)

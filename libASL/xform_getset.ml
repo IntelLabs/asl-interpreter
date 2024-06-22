@@ -20,9 +20,7 @@ open Asl_utils
 
 let getFunReturnType (d : AST.declaration) : AST.ty option =
   match d with
-  | Decl_ArrayGetterDefn (f, ps, atys, rty, body, loc) -> Some rty
-  | Decl_FunDefn (f, ps, atys, rty, body, loc) -> Some rty
-  | Decl_VarGetterDefn (f, ps, rty, body, loc) -> Some rty
+  | Decl_FunDefn (f, fty, body, loc) -> fty.rty
   | _ -> None
 
 let rmwVariables = new Asl_utils.nameSupply "__rmw"
@@ -76,44 +74,26 @@ class replaceClass (ds : AST.declaration list) =
 let replace (cl : replaceClass) (ss : AST.stmt list) : AST.stmt list =
   Asl_visitor.visit_stmts (cl :> Asl_visitor.aslVisitor) ss
 
+let xform_funtype (fty : AST.function_type) : AST.function_type =
+  let args' =
+    ( match fty.setter_arg with
+    | Some arg -> fty.args @ [arg]
+    | None -> fty.args
+    )
+  in
+  { fty with args = args'; setter_arg=None; use_array_syntax=false; is_getter_setter=false }
+
 let xform_decl (replacer : replaceClass) (d : AST.declaration) :
     AST.declaration list =
   match d with
-  | Decl_FunDefn (f, ps, args, rty, body, loc) ->
+  | Decl_FunType (f, fty, loc) ->
+      let fty' = xform_funtype fty in
+      let d' = AST.Decl_FunType (f, fty', loc) in
+      [ d' ]
+  | Decl_FunDefn (f, fty, body, loc) ->
+      let fty' = xform_funtype fty in
       let body' = replace replacer body in
-      let d' = AST.Decl_FunDefn (f, ps, args, rty, body', loc) in
-      [ d' ]
-  | Decl_ProcDefn (f, ps, args, body, loc) ->
-      let body' = replace replacer body in
-      let d' = AST.Decl_ProcDefn (f, ps, args, body', loc) in
-      [ d' ]
-  | Decl_ArrayGetterDefn (f, ps, args, rty, body, loc) ->
-      let body' = replace replacer body in
-      let d' = AST.Decl_FunDefn (f, ps, args, rty, body', loc) in
-      [ d' ]
-  | Decl_ArrayGetterType (f, ps, args, rty, loc) ->
-      let d' = AST.Decl_FunType (f, ps, args, rty, loc) in
-      [ d' ]
-  | Decl_ArraySetterDefn (f, ps, args, v, t, body, loc) ->
-      let body' = replace replacer body in
-      let d' = AST.Decl_ProcDefn (f, ps, args @ [ (v, t) ], body', loc) in
-      [ d' ]
-  | Decl_ArraySetterType (f, ps, args, v, t, loc) ->
-      let d' = AST.Decl_ProcType (f, ps, args @ [ (v, t) ], loc) in
-      [ d' ]
-  | Decl_VarGetterDefn (f, ps, rty, body, loc) ->
-      let body' = replace replacer body in
-      let d' = AST.Decl_FunDefn (f, ps, [], rty, body', loc) in
-      [ d' ]
-  | Decl_VarGetterType (f, ps, rty, loc) ->
-      let d' = AST.Decl_FunType (f, ps, [], rty, loc) in
-      [ d' ]
-  | Decl_VarSetterDefn (f, ps, v, t, body, loc) ->
-      let body' = replace replacer body in
-      let d' = AST.Decl_ProcDefn (f, ps, [ (v, t) ], body', loc) in
-      [ d' ]
-  | Decl_VarSetterType (f, ps, v, t, loc) ->
-      let d' = AST.Decl_ProcType (f, ps, [ (v, t) ], loc) in
+      let d' = AST.Decl_FunDefn (f, fty', body', loc) in
       [ d' ]
   | _ -> [ d ]
 

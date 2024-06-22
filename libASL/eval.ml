@@ -762,43 +762,18 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
            *)
           let init = eval_expr loc (Env.newEnv genv) i in
           GlobalEnv.addGlobalConst genv v init
-      | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
+      | Decl_FunDefn (f, fty, body, loc) ->
+          let tvs = List.map fst fty.parameters in
+          let args = List.map fst fty.args @ List.map fst (Option.to_list fty.setter_arg) in
           GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      | Decl_ProcDefn (f, ps, atys, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      | Decl_VarGetterDefn (f, ps, ty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = [] in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      | Decl_ArrayGetterDefn (f, ps, atys, rty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      | Decl_VarSetterDefn (f, ps, v, ty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = [ v ] in
-          GlobalEnv.addFun loc genv f (tvs, args, loc, body)
-      | Decl_ArraySetterDefn (f, ps, atys, v, ty, body, loc) ->
-          let tvs = List.map fst ps in
-          let args = List.map fst atys in
-          GlobalEnv.addFun loc genv f (tvs, args @ [ v ], loc, body)
       (* The following declarations are part of the mutable global state *)
       | Decl_Config (ty, v, _, loc)
       | Decl_Var (ty, v, loc) -> ()
       (* The following declarations have no impact on execution *)
       | Decl_BuiltinType (_, _)
       | Decl_Forward (_, _)
-      | Decl_BuiltinFunction (_, _, _, _, _)
-      | Decl_FunType (_, _, _, _, _)
-      | Decl_ProcType (_, _, _, _)
-      | Decl_VarGetterType (_, _, _, _)
-      | Decl_ArrayGetterType (_, _, _, _, _)
-      | Decl_VarSetterType (_, _, _, _, _)
-      | Decl_ArraySetterType (_, _, _, _, _, _)
+      | Decl_BuiltinFunction (_, _, _)
+      | Decl_FunType (_, _, _)
       | Decl_Operator1 (_, _, _)
       | Decl_Operator2 (_, _, _) ->
           ())

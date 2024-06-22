@@ -645,30 +645,10 @@ let xform_decl (genv : Eval.GlobalEnv.t) (d : AST.declaration) : AST.declaration
       let env = Env.newEnv genv in
       let e' = xform_expr env e in
       Decl_Config (v, ty, e', loc)
-  | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
+  | Decl_FunDefn (f, fty, body, loc) ->
       let env = mk_fun_env genv loc f in
       let body' = xform_stmts env body in
-      Decl_FunDefn (f, ps, atys, rty, body', loc)
-  | Decl_ProcDefn (f, ps, atys, body, loc) ->
-      let env = mk_fun_env genv loc f in
-      let body' = xform_stmts env body in
-      Decl_ProcDefn (f, ps, atys, body', loc)
-  | Decl_VarGetterDefn (f, ps, ty, body, loc) ->
-      let env = mk_fun_env genv loc f in
-      let body' = xform_stmts env body in
-      Decl_VarGetterDefn (f, ps, ty, body', loc)
-  | Decl_ArrayGetterDefn (f, ps, args, ty, body, loc) ->
-      let env = mk_fun_env genv loc f in
-      let body' = xform_stmts env body in
-      Decl_ArrayGetterDefn (f, ps, args, ty, body', loc)
-  | Decl_VarSetterDefn (f, ps, v, ty, body, loc) ->
-      let env = mk_fun_env genv loc f in
-      let body' = xform_stmts env body in
-      Decl_VarSetterDefn (f, ps, v, ty, body', loc)
-  | Decl_ArraySetterDefn (f, ps, args, v, ty, body, loc) ->
-      let env = mk_fun_env genv loc f in
-      let body' = xform_stmts env body in
-      Decl_ArraySetterDefn (f, ps, args, v, ty, body', loc)
+      Decl_FunDefn (f, fty, body', loc)
   | _ -> d
 
 let xform_decls (genv : Eval.GlobalEnv.t) (ds : AST.declaration list) :

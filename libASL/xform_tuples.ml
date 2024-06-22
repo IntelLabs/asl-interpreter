@@ -98,21 +98,29 @@ let xform_stmts (ss : AST.stmt list) : AST.stmt list =
   let replacer = new replaceTupleClass None in
   Asl_visitor.visit_stmts (replacer :> Asl_visitor.aslVisitor) ss
 
+let isTupleReturnType (fty : AST.function_type) : bool =
+  ( match fty.rty with
+  | None -> false
+  | Some ty -> Asl_utils.isTupleType ty
+  )
+
 let xform_decl (d : AST.declaration) : AST.declaration list =
   match d with
-  | Decl_FunDefn (f, ps, atys, rty, body, loc) when Asl_utils.isTupleType rty ->
+  | Decl_FunDefn (f, fty, body, loc) when isTupleReturnType fty ->
       let tyname = mkReturnTypeName f in
-      let tydecl = mkReturnRecord tyname (Asl_utils.tupleTypes rty) loc in
+      let tydecl = mkReturnRecord tyname (Asl_utils.tupleTypes (Option.get fty.rty)) loc in
       let rty' = AST.Type_Constructor (tyname, []) in
+      let fty' = { fty with rty = Some rty' } in
       let replacer = new replaceTupleClass (Some tyname) in
       let body' = Asl_visitor.visit_stmts (replacer :> Asl_visitor.aslVisitor) body in
-      let d' = AST.Decl_FunDefn (f, ps, atys, rty', body', loc) in
+      let d' = AST.Decl_FunDefn (f, fty', body', loc) in
       [tydecl; d']
 
-  | Decl_FunType (f, ps, atys, rty, loc) when Asl_utils.isTupleType rty ->
+  | Decl_FunType (f, fty, loc) when isTupleReturnType fty ->
       let tyname = mkReturnTypeName f in
       let rty' = AST.Type_Constructor (tyname, []) in
-      let d' = AST.Decl_FunType (f, ps, atys, rty', loc) in
+      let fty' = { fty with rty = Some rty' } in
+      let d' = AST.Decl_FunType (f, fty', loc) in
       [d']
 
   | _ ->

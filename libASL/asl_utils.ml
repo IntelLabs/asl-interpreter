@@ -520,19 +520,9 @@ let decl_loc (x : AST.declaration) : AST.l =
   | Decl_Enum (v, es, loc) -> loc
   | Decl_Var (v, ty, loc) -> loc
   | Decl_Const (v, ty, e, loc) -> loc
-  | Decl_BuiltinFunction (f, ps, args, ty, loc) -> loc
-  | Decl_FunType (f, ps, args, ty, loc) -> loc
-  | Decl_FunDefn (f, ps, args, ty, b, loc) -> loc
-  | Decl_ProcType (f, ps, args, loc) -> loc
-  | Decl_ProcDefn (f, ps, args, b, loc) -> loc
-  | Decl_VarGetterType (f, ps, ty, loc) -> loc
-  | Decl_VarGetterDefn (f, ps, ty, b, loc) -> loc
-  | Decl_ArrayGetterType (f, ps, args, ty, loc) -> loc
-  | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> loc
-  | Decl_VarSetterType (f, ps, v, ty, loc) -> loc
-  | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> loc
-  | Decl_ArraySetterType (f, ps, args, v, ty, loc) -> loc
-  | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> loc
+  | Decl_BuiltinFunction (f, fty, loc) -> loc
+  | Decl_FunType (f, fty, loc) -> loc
+  | Decl_FunDefn (f, fty, b, loc) -> loc
   | Decl_Operator1 (op, vs, loc) -> loc
   | Decl_Operator2 (op, vs, loc) -> loc
   | Decl_Config (v, ty, e, loc) -> loc
@@ -572,19 +562,9 @@ let decl_name (x : declaration) : Ident.t option =
   | Decl_Enum (v, es, loc) -> Some v
   | Decl_Var (v, ty, loc) -> Some v
   | Decl_Const (v, ty, e, loc) -> Some v
-  | Decl_BuiltinFunction (f, ps, args, ty, loc) -> Some f
-  | Decl_FunType (f, ps, args, ty, loc) -> Some f
-  | Decl_FunDefn (f, ps, args, ty, b, loc) -> Some f
-  | Decl_ProcType (f, ps, args, loc) -> Some f
-  | Decl_ProcDefn (f, ps, args, b, loc) -> Some f
-  | Decl_VarGetterType (f, ps, ty, loc) -> Some f
-  | Decl_VarGetterDefn (f, ps, ty, b, loc) -> Some f
-  | Decl_ArrayGetterType (f, ps, args, ty, loc) -> Some f
-  | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> Some f
-  | Decl_VarSetterType (f, ps, v, ty, loc) -> Some f
-  | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> Some f
-  | Decl_ArraySetterType (f, ps, args, v, ty, loc) -> Some f
-  | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
+  | Decl_BuiltinFunction (f, fty, loc) -> Some f
+  | Decl_FunType (f, fty, loc) -> Some f
+  | Decl_FunDefn (f, fty, b, loc) -> Some f
   | Decl_Operator1 (op, vs, loc) -> None
   | Decl_Operator2 (op, vs, loc) -> None
   | Decl_Config (v, ty, e, loc) -> Some v
@@ -594,12 +574,7 @@ let monomorphizable_decl_name (d : AST.declaration) : Ident.t option =
   match d with
   | Decl_Record (v, ps, fs, loc) -> Some v
   | Decl_Typedef (v, ps, ty, loc) -> Some v
-  | Decl_FunDefn (f, ps, args, ty, b, loc) -> Some f
-  | Decl_ProcDefn (f, ps, args, b, loc) -> Some f
-  | Decl_ArrayGetterDefn (f, ps, args, ty, b, loc) -> Some f
-  | Decl_ArraySetterDefn (f, ps, args, v, ty, b, loc) -> Some f
-  | Decl_VarGetterDefn (f, ps, ty, b, loc) -> Some f
-  | Decl_VarSetterDefn (f, ps, v, ty, b, loc) -> Some f
+  | Decl_FunDefn (f, fty, b, loc) -> Some f
   | _ -> None
 
 let monomorphizable_decl_to_ident_and_decl (d : AST.declaration) : (Ident.t * AST.declaration) option =
@@ -808,7 +783,7 @@ let identify_impure_funs (isConstant : Ident.t -> bool)
     (isImpurePrim : Ident.t -> bool) (ds : declaration list) : IdentSet.t =
   let is_impure_prim (d : declaration) : bool =
     match d with
-    | Decl_BuiltinFunction (f, ps, args, ty, loc) -> isImpurePrim f
+    | Decl_BuiltinFunction (f, fty, loc) -> isImpurePrim f
     | _ -> false
   in
   let locally_impure (d : declaration) : bool =
@@ -1304,20 +1279,8 @@ let hoist_prototypes (ds : AST.declaration list) : AST.declaration list =
   List.iter
     (fun d ->
       match d with
-      | AST.Decl_FunDefn _
-      | AST.Decl_ProcDefn _
-      | AST.Decl_VarGetterDefn _
-      | AST.Decl_ArrayGetterDefn _
-      | AST.Decl_VarSetterDefn _
-      | AST.Decl_ArraySetterDefn _ ->
-          post := d :: !post
-      | AST.Decl_FunType _
-      | AST.Decl_ProcType _
-      | AST.Decl_VarGetterType _
-      | AST.Decl_ArrayGetterType _
-      | AST.Decl_VarSetterType _
-      | AST.Decl_ArraySetterType _ ->
-          pre := d :: !pre
+      | AST.Decl_FunDefn _ -> post := d :: !post
+      | AST.Decl_FunType _ -> pre := d :: !pre
       | _ -> pre := d :: !pre)
     ds;
   List.append (List.rev !pre) (List.rev !post)

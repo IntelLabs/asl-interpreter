@@ -170,10 +170,8 @@ let rec repl (tcenv : TC.Env.t) (cpu : Cpu.cpu) : unit =
  *)
 let delete_function (discard : Ident.t list) (x : AST.declaration) =
   ( match x with
-  | AST.Decl_FunDefn (f, ps, args, ty, b, loc) when List.mem f discard ->
-    AST.Decl_FunType (f, ps, args, ty, loc)
-  | AST.Decl_ProcDefn (f, ps, args, b, loc) when List.mem f discard ->
-    AST.Decl_ProcType (f, ps, args, loc)
+  | AST.Decl_FunDefn (f, fty, _, loc) when List.mem f discard ->
+    AST.Decl_FunType (f, fty, loc)
   | _ -> x
   )
 

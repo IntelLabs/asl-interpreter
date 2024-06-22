@@ -866,18 +866,26 @@ let formal (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
 let formals (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal fmt) xs
 
-let function_header (fmt : PP.formatter) (ot : AST.ty option) (f : Ident.t)
-    (ps : (Ident.t * AST.ty option) list) (args : unit -> unit) : unit =
-  funname fmt f;
-  braces fmt (fun _ -> parameters fmt ps);
-  parens fmt args;
+let function_type (fmt : PP.formatter) (fty : AST.function_type) : unit =
+  braces fmt (fun _ -> parameters fmt fty.parameters);
+  (if fty.use_array_syntax then
+      brackets fmt (fun _ -> formals fmt fty.args)
+  else
+      parens fmt (fun _ -> formals fmt fty.args)
+  );
   PP.pp_print_option
-    (fun _ t ->
+    (fun _ (v, ty) ->
+      eq fmt;
+      nbsp fmt;
+      varty fmt v ty)
+    fmt fty.setter_arg;
+  PP.pp_print_option
+    (fun _ rty ->
       nbsp fmt;
       eq_gt fmt;
       nbsp fmt;
-      ty fmt t)
-    fmt ot
+      ty fmt rty)
+    fmt fty.rty
 
 let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
   vbox fmt (fun _ ->
@@ -970,146 +978,36 @@ let declaration (fmt : PP.formatter) (x : AST.declaration) : unit =
           nbsp fmt;
           expr fmt e;
           semicolon fmt
-      | Decl_BuiltinFunction (f, ps, args, t, loc) ->
+      | Decl_BuiltinFunction (f, fty, loc) ->
           comments_before fmt loc;
           kw_underscore_builtin fmt;
           nbsp fmt;
           kw_func fmt;
           nbsp fmt;
-          function_header fmt (Some t) f ps (fun _ -> formals fmt args);
+          funname fmt f;
+          function_type fmt fty;
           semicolon fmt
-      | Decl_FunType (f, ps, args, t, loc) ->
+      | Decl_FunType (f, fty, loc) ->
           comments_before fmt loc;
-          kw_func fmt;
+          ( match (fty.is_getter_setter, fty.setter_arg) with
+          | (false, _)      -> kw_func fmt
+          | (true,  None)   -> kw_getter fmt
+          | (true,  Some _) -> kw_setter fmt
+          );
           nbsp fmt;
-          function_header fmt (Some t) f ps (fun _ -> formals fmt args);
+          funname fmt f;
+          function_type fmt fty;
           semicolon fmt
-      | Decl_FunDefn (f, ps, args, t, b, loc) ->
+      | Decl_FunDefn (f, fty, b, loc) ->
           comments_before fmt loc;
-          kw_func fmt;
-          nbsp fmt;
-          function_header fmt (Some t) f ps (fun _ -> formals fmt args);
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_ProcType (f, ps, args, loc) ->
-          comments_before fmt loc;
-          kw_func fmt;
-          nbsp fmt;
-          function_header fmt None f ps (fun _ -> formals fmt args);
-          semicolon fmt
-      | Decl_ProcDefn (f, ps, args, b, loc) ->
-          comments_before fmt loc;
-          kw_func fmt;
-          nbsp fmt;
-          function_header fmt None f ps (fun _ -> formals fmt args);
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_VarGetterType (f, ps, t, loc) ->
-          kw_getter fmt;
+          ( match (fty.is_getter_setter, fty.setter_arg) with
+          | (false, _)      -> kw_func fmt
+          | (true,  None)   -> kw_getter fmt
+          | (true,  Some _) -> kw_setter fmt
+          );
           nbsp fmt;
           funname fmt f;
-          nbsp fmt;
-          eq_gt fmt;
-          nbsp fmt;
-          ty fmt t;
-          semicolon fmt
-      | Decl_VarGetterDefn (f, ps, t, b, loc) ->
-          comments_before fmt loc;
-          kw_getter fmt;
-          nbsp fmt;
-          funname fmt f;
-          nbsp fmt;
-          eq_gt fmt;
-          nbsp fmt;
-          ty fmt t;
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_ArrayGetterType (f, ps, args, t, loc) ->
-          comments_before fmt loc;
-          kw_getter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          brackets fmt (fun _ -> formals fmt args);
-          nbsp fmt;
-          eq_gt fmt;
-          nbsp fmt;
-          ty fmt t;
-          semicolon fmt
-      | Decl_ArrayGetterDefn (f, ps, args, t, b, loc) ->
-          comments_before fmt loc;
-          kw_getter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          brackets fmt (fun _ -> formals fmt args);
-          nbsp fmt;
-          eq_gt fmt;
-          nbsp fmt;
-          ty fmt t;
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_VarSetterType (f, ps, v, t, loc) ->
-          comments_before fmt loc;
-          kw_setter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          varty fmt v t;
-          semicolon fmt
-      | Decl_VarSetterDefn (f, ps, v, t, b, loc) ->
-          comments_before fmt loc;
-          kw_setter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          varty fmt v t;
-          cut fmt;
-          kw_begin fmt;
-          indented_block fmt b;
-          cut fmt;
-          kw_end fmt
-      | Decl_ArraySetterType (f, ps, args, v, t, loc) ->
-          comments_before fmt loc;
-          kw_setter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          brackets fmt (fun _ -> formals fmt args);
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          varty fmt v t;
-          semicolon fmt
-      | Decl_ArraySetterDefn (f, ps, args, v, t, b, loc) ->
-          comments_before fmt loc;
-          kw_setter fmt;
-          nbsp fmt;
-          funname fmt f;
-          braces fmt (fun _ -> parameters fmt ps);
-          brackets fmt (fun _ -> formals fmt args);
-          nbsp fmt;
-          eq fmt;
-          nbsp fmt;
-          varty fmt v t;
+          function_type fmt fty;
           cut fmt;
           kw_begin fmt;
           indented_block fmt b;

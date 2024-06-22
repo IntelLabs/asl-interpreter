@@ -41,7 +41,7 @@ class replaceClass (ds : AST.declaration list) =
       match e with
       | Expr_Array (Expr_Var v, i) when IdentSet.mem v decl_var_idents ->
           let f = mk_read_fident v in
-          let e' = AST.Expr_TApply (f, [], [ i ], false)in
+          let e' = AST.Expr_TApply (f, [], [ i ], false) in
           ChangeDoChildrenPost (e', Fun.id)
       | Expr_Var v when IdentSet.mem v decl_var_idents ->
           let f = mk_read_fident v in
@@ -69,28 +69,60 @@ let xform_decl (replacer : replaceClass) (d : AST.declaration) :
   | Decl_Var (v, Type_Array (ixty, ty), loc) ->
       let i = Ident.mk_ident "i" in
       let rd_f = mk_read_fident v in
-      let rd_type = AST.Decl_FunType (rd_f, [], [ (i, ixtype_basetype ixty) ], ty, loc) in
+      let rd_fty : AST.function_type = {
+        parameters=[];
+        args=[(i, ixtype_basetype ixty)];
+        setter_arg=None;
+        rty=Some ty;
+        use_array_syntax=false;
+        is_getter_setter=false
+      } in
+      let rd_type = AST.Decl_FunType (rd_f, rd_fty, loc) in
       let rd_body = [ AST.Stmt_FunReturn (Expr_Array (Expr_Var v, Expr_Var i), loc) ] in
-      let rd_defn = AST.Decl_FunDefn (rd_f, [], [ (i, ixtype_basetype ixty) ], ty, rd_body, loc) in
+      let rd_defn = AST.Decl_FunDefn (rd_f, rd_fty, rd_body, loc) in
 
       let wr_f = mk_write_fident v in
       let vl = Ident.mk_ident "v" in
-      let wr_type = AST.Decl_ProcType (wr_f, [], [ (i, ixtype_basetype ixty) ; (vl, ty) ], loc) in
+      let wr_fty : AST.function_type = {
+        parameters=[];
+        args=[(i, ixtype_basetype ixty); (vl, ty)];
+        rty=None;
+        setter_arg=None;
+        use_array_syntax=false;
+        is_getter_setter=false
+      } in
+      let wr_type = AST.Decl_FunType (wr_f, wr_fty, loc) in
       let wr_body = [ AST.Stmt_Assign (LExpr_Array (LExpr_Var v, Expr_Var i), Expr_Var vl, loc) ] in
-      let wr_defn = AST.Decl_ProcDefn (wr_f, [], [ (i, ixtype_basetype ixty) ; (vl, ty) ], wr_body, loc) in
+      let wr_defn = AST.Decl_FunDefn (wr_f, wr_fty, wr_body, loc) in
 
       [ d' ; rd_type ; wr_type ; rd_defn ; wr_defn ]
   | Decl_Var (v, ty, loc) ->
       let rd_f = mk_read_fident v in
-      let rd_type = AST.Decl_FunType (rd_f, [], [], ty, loc) in
+      let rd_fty : AST.function_type = {
+        parameters=[];
+        args=[];
+        rty=Some ty;
+        setter_arg=None;
+        use_array_syntax=false;
+        is_getter_setter=false
+      } in
+      let rd_type = AST.Decl_FunType (rd_f, rd_fty, loc) in
       let rd_body = [ AST.Stmt_FunReturn (Expr_Var v, loc) ] in
-      let rd_defn = AST.Decl_FunDefn (rd_f, [], [], ty, rd_body, loc) in
+      let rd_defn = AST.Decl_FunDefn (rd_f, rd_fty, rd_body, loc) in
 
       let wr_f = mk_write_fident v in
       let vl = Ident.mk_ident "v" in
-      let wr_type = AST.Decl_ProcType (wr_f, [], [ (vl, ty) ], loc) in
+      let wr_fty : AST.function_type = {
+        parameters=[];
+        args=[(vl, ty)];
+        rty=None;
+        setter_arg=None;
+        use_array_syntax=false;
+        is_getter_setter=false
+      } in
+      let wr_type = AST.Decl_FunType (wr_f, wr_fty, loc) in
       let wr_body = [ AST.Stmt_Assign (LExpr_Var v, Expr_Var vl, loc) ] in
-      let wr_defn = AST.Decl_ProcDefn (wr_f, [], [ (vl, ty) ], wr_body, loc) in
+      let wr_defn = AST.Decl_FunDefn (wr_f, wr_fty, wr_body, loc) in
 
       [ d' ; rd_type ; wr_type ; rd_defn ; wr_defn ]
   | _ -> [ d' ]

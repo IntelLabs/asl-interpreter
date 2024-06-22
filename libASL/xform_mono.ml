@@ -195,62 +195,16 @@ class monoClass
         let env = Xform_constprop.mkEnv genv (List.map2 (fun tv sz -> (tv, Value.VInt sz)) tvs szs) in
 
         match d with
-        | Decl_FunDefn (f, ps, atys, rty, body, loc) ->
-            let rty' = Xform_constprop.xform_ty env rty in
-            let pnames = List.map fst ps in
-            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
-            let atys' =
-              List.map
-                (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
-                atys
+        | Decl_FunDefn (f, fty, body, loc) ->
+            let rty' = Option.map (Xform_constprop.xform_ty env) fty.rty in
+            let pnames = List.map fst fty.parameters in
+            let atys' = List.filter (fun (v, _) -> not (List.mem v pnames)) fty.args
+                     |> List.map (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
             in
+            let setter_arg' = Option.map (fun (v, t) -> (v, Xform_constprop.xform_ty env t)) fty.setter_arg in
+            let fty' = { fty with parameters=[]; args=atys'; rty=rty'; setter_arg=setter_arg' } in
             let body' = Xform_constprop.xform_stmts env body in
-            let d' = AST.Decl_FunDefn (f', [], atys', rty', body', loc) in
-            let d' = visit_decl (self :> aslVisitor) d' in
-            instances <- Instances.add key d' instances;
-            Some (f', args')
-        | Decl_ProcDefn (f, ps, atys, body, loc) ->
-            let pnames = List.map fst ps in
-            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
-            let atys' =
-              List.map
-                (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
-                atys
-            in
-            let body' = Xform_constprop.xform_stmts env body in
-            let d' = AST.Decl_ProcDefn (f', [], atys', body', loc) in
-            let d' = visit_decl (self :> aslVisitor) d' in
-            instances <- Instances.add key d' instances;
-            Some (f', args')
-        | Decl_ArrayGetterDefn (f, ps, atys, rty, body, loc) ->
-            let rty' = Xform_constprop.xform_ty env rty in
-            let pnames = List.map fst ps in
-            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
-            let atys' =
-              List.map
-                (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
-                atys
-            in
-            let body' = Xform_constprop.xform_stmts env body in
-            let d' =
-              AST.Decl_ArrayGetterDefn (f', [], atys', rty', body', loc)
-            in
-            let d' = visit_decl (self :> aslVisitor) d' in
-            instances <- Instances.add key d' instances;
-            Some (f', args')
-        | Decl_ArraySetterDefn (f, ps, atys, v, t, body, loc) ->
-            let pnames = List.map fst ps in
-            let atys = List.filter (fun (v, _) -> not (List.mem v pnames)) atys in
-            let atys' =
-              List.map
-                (fun (v, ty) -> (v, Xform_constprop.xform_ty env ty))
-                atys
-            in
-            let t' = Xform_constprop.xform_ty env t in
-            let body' = Xform_constprop.xform_stmts env body in
-            let d' =
-              AST.Decl_ArraySetterDefn (f', [], atys', v, t', body', loc)
-            in
+            let d' = AST.Decl_FunDefn (f', fty', body', loc) in
             let d' = visit_decl (self :> aslVisitor) d' in
             instances <- Instances.add key d' instances;
             Some (f', args')
@@ -403,20 +357,12 @@ class monoClass
       (* If declaration is a function, add argument type info, then regardless
          of declaration process it *)
       match d with
-      | Decl_BuiltinFunction (_, _, args, _, _)
-      | Decl_FunType (_, _, args, _, _)
-      | Decl_FunDefn (_, _, args, _, _, _)
-      | Decl_ProcType (_, _, args, _)
-      | Decl_ProcDefn (_, _, args, _, _)
-      | Decl_ArrayGetterType (_, _, args, _, _)
-      | Decl_ArrayGetterDefn (_, _, args, _, _, _)
-      | Decl_ArraySetterType (_, _, args, _, _, _)
-      | Decl_ArraySetterDefn (_, _, args, _, _, _, _) ->
-          List.iter (fun (i, ty) -> self#update_local_type_info i ty) args;
-          DoChildren
-      | Decl_VarSetterType (_, _, v, ty, _)
-      | Decl_VarSetterDefn (_, _, v, ty, _, _) ->
-          List.iter (fun (i, ty) -> self#update_local_type_info i ty) [ (v, ty) ];
+      | Decl_BuiltinFunction (_, fty, _)
+      | Decl_FunType (_, fty, _)
+      | Decl_FunDefn (_, fty, _, _)
+      ->
+          List.iter (fun (i, ty) -> self#update_local_type_info i ty) fty.args;
+          Option.iter (fun (i, ty) -> self#update_local_type_info i ty) fty.setter_arg;
           DoChildren
       | _ -> DoChildren
   end
