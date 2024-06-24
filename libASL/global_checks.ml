@@ -24,6 +24,200 @@ open Identset
 let get (f : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t =
   Option.value ~default:IdentSet.empty (Bindings.find_opt f bs)
 
+let verbose = ref false
+
+(****************************************************************
+ * Check that functions have correct throw/nothrow markers
+ *
+ * This is an experimental extensions where function definitions
+ * must be marked with whether or not they can throw exceptions
+ * and function calls must have a matching marker.
+ *
+ * We distinguish between functions that can optionally throw an
+ * exception and functions that always throw an exception.
+ *
+ * As a side effect of checking for functions that always throw
+ * an exception, we also detect dead code and detect functions
+ * that are missing return statements.
+ ****************************************************************)
+
+let check_exception_markers = ref false
+
+(* The core of this checker is checking functions for exceptions, return or fail
+ * instead of following the usual control flow.
+ * Each expression or statement is summarized with the following record.
+ *)
+type status = {
+    live : bool option; (* None => don't know; Some b => yes/no *)
+    exc : bool;         (* can this statement throw an exception? *)
+    ret : bool;         (* can this statement return a value? *)
+}
+
+let fmt_status (fmt : Format.formatter) (s : status) : unit =
+    Format.fprintf fmt "{ live=%s exc=%b ret=%b }"
+        (match s.live with None -> "?" | Some true -> "Yes" | Some false -> "No")
+        s.exc
+        s.ret
+
+let ok       = { live = Some true;  exc = false; ret = false; }
+let maythrow = { live = None;       exc = true;  ret = false; }
+let throw    = { live = Some false; exc = true;  ret = false; }
+let return   = { live = Some false; exc = false; ret = true;  }
+let fail     = { live = Some false; exc = false; ret = false; }
+
+(* At join points, we merge states in the obvious way *)
+let status_merge (x : status) (y : status) : status =
+    { live = if Option.equal (=) x.live y.live then x.live else None;
+      exc = x.exc || y.exc;
+      ret = x.ret || y.ret;
+    }
+
+(* When two actions are sequenced, the first action takes precedence
+ * if it is dead.
+ *)
+let status_seq (x : status) (y : status) : status =
+    if x.live = Some false then
+        x
+    else
+        { live = if x.live = Some true then y.live
+                 else if y.live = Some true then x.live
+                 else y.live;
+          exc = x.exc || y.exc;
+          ret = x.ret || y.ret;
+        }
+
+let canthrow_expr (x : AST.expr) : status =
+    let (_, _, _, canthrow) = side_effects_of_expr x in
+    if canthrow then maythrow else ok
+
+let canthrow_lexpr (x : AST.lexpr) : status =
+    let (_, _, _, canthrow) = side_effects_of_lexpr x in
+    if canthrow then maythrow else ok
+
+let rec canthrow_stmt (x : AST.stmt) : status =
+  ( match x with
+  | Stmt_VarDeclsNoInit (vs, ty, loc) -> ok
+  | Stmt_VarDecl (di, i, loc) -> canthrow_expr i
+  | Stmt_ConstDecl (di, i, loc) -> canthrow_expr i
+  | Stmt_Assign (l, r, loc) -> status_merge (canthrow_expr r) (canthrow_lexpr l)
+  | Stmt_TCall (f, tes, args, throws, loc) ->
+      ( match throws with
+      | NoThrow -> ok
+      | MayThrow -> maythrow
+      | AlwaysThrow -> throw
+      )
+  | Stmt_FunReturn (e, loc) -> status_seq (canthrow_expr e) return
+  | Stmt_ProcReturn loc -> return
+  | Stmt_Assert (e, loc) -> ok
+  | Stmt_Throw (e, loc) -> throw
+  | Stmt_Block (b, loc) -> canthrow_stmts b
+  | Stmt_If (c, t, els, (e, el), loc) ->
+      let els' = AST.S_Elsif_Cond (c, t, loc) :: els in
+      let rs = List.map (function AST.S_Elsif_Cond(e, b, _) -> status_seq (canthrow_expr e) (canthrow_stmts b)) els' in
+      let r = canthrow_stmts e in
+      List.fold_left status_merge r rs
+  | Stmt_Case (e, alts, ob, loc) ->
+      let r = canthrow_expr e in
+      let rs = List.map
+          (function AST.Alt_Alt (ps, og, b, _) ->
+            status_seq
+              (Option.fold ~none:ok ~some:canthrow_expr og)
+              (canthrow_stmts b))
+          alts
+      in
+      let rb = Option.fold ~none:ok ~some:(fun (b, _) -> canthrow_stmts b) ob in
+      status_seq r
+        (List.fold_left status_merge rb rs)
+  | Stmt_For (v, f, dir, t, b, loc) ->
+          (status_seq (canthrow_expr f)
+          (status_seq (canthrow_expr t)
+                      (canthrow_stmts b)))
+  | Stmt_While (c, b, loc) ->
+          (status_merge (canthrow_expr c) (canthrow_stmts b))
+  | Stmt_Repeat (b, c, pos, loc) ->
+          (status_merge (canthrow_stmts b) (canthrow_expr c))
+  | Stmt_Try (b, pos, cs, ob, loc) -> maythrow (* pessimistic assumption *)
+  )
+
+and canthrow_stmts (xs : AST.stmt list) : status =
+    ( match xs with
+    | [] -> ok
+    | x :: [] -> canthrow_stmt x
+    | x :: y :: zs ->
+            let r = canthrow_stmt x in
+            if r = fail then
+                r
+            else if r.live = Some false then
+                let msg = Format.asprintf "Dead code detected '%a'"
+                    FMT.stmt y
+                in
+                raise (Error.TypeError (stmt_loc y, msg))
+            else
+                let s = canthrow_stmts (y :: zs) in
+                if s = fail then
+                    fail
+                else
+                    status_seq r s
+    )
+
+class check_exception_class =
+  object
+    inherit Asl_visitor.nopAslVisitor
+
+    method! vdecl d =
+      ( match d with
+      | Decl_FunDefn (f, fty, b, loc)
+      ->
+          let s = canthrow_stmts b in
+          if !verbose then begin
+              Format.printf "%a: %a\n"
+                FMT.funname f
+                fmt_status s
+          end;
+          let should_return = Option.is_some fty.rty in
+          if s <> fail then begin
+              ( match fty.throws with
+              | NoThrow when s.exc ->
+                  let problem = if s = throw then "always throws an exception but is not marked with '!'"
+                                else "can throw an exception but is not marked with '?'"
+                  in
+                  let msg = Format.asprintf "Function definition '%a' %s"
+                      FMT.funname f
+                      problem
+                  in
+                  raise (Error.TypeError (loc, msg))
+              | MayThrow when s.live <> None && not s.exc ->
+                    let msg = Format.asprintf "Function/procedure definition '%a' is marked '?' but does not conditionally throw an exception"
+                        FMT.funname f
+                    in
+                    raise (Error.TypeError (loc, msg))
+              | AlwaysThrow when s <> throw ->
+                    let msg = Format.asprintf "Function/procedure definition '%a' is marked '!' but does not always throw an exception"
+                        FMT.funname f
+                    in
+                    raise (Error.TypeError (loc, msg))
+              | _ -> ()
+              );
+              if should_return && not s.ret then begin
+                    let msg = Format.asprintf "Function definition '%a' does not return a value"
+                        FMT.funname f
+                    in
+                    raise (Error.TypeError (loc, msg))
+              end
+          end;
+          SkipChildren
+      | _ ->
+          SkipChildren
+      )
+  end
+
+(****************************************************************
+ * Infer which functions can throw exceptions and/or have side
+ * effects and use that to detect expressions which are sensitive
+ * to evaluation order and to detect function calls that
+ * can throw exceptions but that are not marked appropriately.
+ ****************************************************************)
+
 (** Calculates the effects of all functions in a set of declarations.
  *
  * Effects include
@@ -225,16 +419,16 @@ class rethrow_checks_class (effects : effects_class) (loc : Loc.t) =
       ( match x with
       | Expr_TApply (f, _, _, throws) ->
         let (_, _, fthrows) = effects#fun_effects f in
-        if throws && not fthrows then begin
+        if throws <> NoThrow && not fthrows then begin
             let msg = Format.asprintf
                 "call to function `%a` is incorrectly marked with `?` but it cannot throw an exception"
                 FMT.varname f
             in
             raise (Error.TypeError (loc, msg))
         end else
-        if not throws && fthrows then begin
+        if throws = NoThrow && fthrows then begin
             let msg = Format.asprintf
-                "call to function `%a` should be marked with `?` because it can throw an exception"
+                "call to function `%a` should be marked with `?` or `!` because it can throw an exception"
                 FMT.varname f
             in
             raise (Error.TypeError (loc, msg))
@@ -247,15 +441,15 @@ class rethrow_checks_class (effects : effects_class) (loc : Loc.t) =
       ( match x with
       | Stmt_TCall (f, _, _, throws, loc) ->
         let (_, _, fthrows) = effects#fun_effects f in
-        if throws && not fthrows then begin
+        if throws <> NoThrow && not fthrows then begin
             let msg = Format.asprintf
-                "call to procedure `%a` is incorrectly marked with `?` but it cannot throw an exception"
+                "call to procedure `%a` is incorrectly marked with `?`  or `!`but it cannot throw an exception"
                 FMT.varname f
             in
             raise (Error.TypeError (loc, msg))
-        end else if not throws && fthrows then begin
+        end else if throws = NoThrow && fthrows then begin
             let msg = Format.asprintf
-                "call to procedure `%a` should be marked with `?` because it can throw an exception"
+                "call to procedure `%a` should be marked with `?` or `!` because it can throw an exception"
                 FMT.varname f
             in
             raise (Error.TypeError (loc, msg))
@@ -301,10 +495,14 @@ let check_decls (ds : AST.declaration list) : AST.declaration list =
   in
   let effects = new effects_class is_constant is_impure_prim ds in
   let checker = new global_checks_class_wrapper effects in
+  let exn_checker = new check_exception_class in
   let error_count = ref 0 in
   let check_decl d =
     ( try
-        ignore (Asl_visitor.visit_decl checker d)
+        ignore (Asl_visitor.visit_decl checker d);
+        if !check_exception_markers then begin
+            ignore (Asl_visitor.visit_decl exn_checker d)
+        end
     with
     | Error.TypeError _ as exn
     ->

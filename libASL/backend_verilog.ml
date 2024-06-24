@@ -596,7 +596,7 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       | v when Ident.equal v false_ident -> constant fmt kw_false
       | _ -> varname fmt v)
   | Expr_Parens e -> expr loc fmt e
-  | Expr_TApply (f, tes, es, false) -> funcall fmt f tes es loc
+  | Expr_TApply (f, tes, es, NoThrow) -> funcall fmt f tes es loc
   | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs loc fmt es)
   | Expr_Unknown t -> unknown loc fmt t
   | Expr_Lit v -> valueLit loc fmt v
@@ -758,7 +758,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   stmt_line_info fmt x;
 
   match x with
-  | Stmt_ConstDecl (DeclItem_Var (v, _), Expr_TApply (f, tes, es, true), loc) ->
+  | Stmt_ConstDecl (DeclItem_Var (v, _), Expr_TApply (f, tes, es, throws), loc) when throws <> NoThrow ->
       (* special case for functions that throw exceptions *)
       PP.fprintf fmt "%a = %a;"
         varname v
@@ -774,7 +774,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_TCall (f, tes, args, throws, loc) ->
       funcall fmt f tes args loc;
       semicolon fmt;
-      if (throws) then rethrow_stmt loc fmt
+      if throws <> NoThrow then rethrow_stmt loc fmt
   | Stmt_FunReturn (e, loc) ->
       kw_return fmt;
       nbsp fmt;

@@ -42,22 +42,22 @@ class replaceClass (ds : AST.declaration list) =
       match e with
       | Expr_Array (Expr_Var v, i) when IdentSet.mem v decl_var_idents ->
           let f = mk_read_fident v in
-          let e' = AST.Expr_TApply (f, [], [ i ], false) in
+          let e' = AST.Expr_TApply (f, [], [ i ], NoThrow) in
           ChangeDoChildrenPost (e', Fun.id)
       | Expr_Var v when IdentSet.mem v decl_var_idents ->
           let f = mk_read_fident v in
-          ChangeTo (AST.Expr_TApply (f, [], [], false))
+          ChangeTo (AST.Expr_TApply (f, [], [], NoThrow))
       | _ -> DoChildren
 
     method! vstmt s =
       match s with
       | Stmt_Assign (LExpr_Array (LExpr_Var v, i), e, loc) when IdentSet.mem v decl_var_idents ->
           let f = mk_write_fident v in
-          let s' = AST.Stmt_TCall (f, [], [ i ; e ], false, loc) in
+          let s' = AST.Stmt_TCall (f, [], [ i ; e ], NoThrow, loc) in
           ChangeDoChildrenPost ([ s' ], Fun.id)
       | Stmt_Assign (LExpr_Var v, e, loc) when IdentSet.mem v decl_var_idents ->
           let f = mk_write_fident v in
-          let s' = AST.Stmt_TCall (f, [], [ e ], false, loc) in
+          let s' = AST.Stmt_TCall (f, [], [ e ], NoThrow, loc) in
           ChangeDoChildrenPost ([ s' ], Fun.id)
       | _ -> DoChildren
 
@@ -76,7 +76,8 @@ let xform_decl (replacer : replaceClass) (d : AST.declaration) :
         setter_arg=None;
         rty=Some ty;
         use_array_syntax=false;
-        is_getter_setter=false
+        is_getter_setter=false;
+        throws=NoThrow
       } in
       let rd_type = AST.Decl_FunType (rd_f, rd_fty, loc) in
       let rd_body = [ AST.Stmt_FunReturn (Expr_Array (Expr_Var v, Expr_Var i), loc) ] in
@@ -90,7 +91,8 @@ let xform_decl (replacer : replaceClass) (d : AST.declaration) :
         rty=None;
         setter_arg=None;
         use_array_syntax=false;
-        is_getter_setter=false
+        is_getter_setter=false;
+        throws=NoThrow
       } in
       let wr_type = AST.Decl_FunType (wr_f, wr_fty, loc) in
       let wr_body = [ AST.Stmt_Assign (LExpr_Array (LExpr_Var v, Expr_Var i), Expr_Var vl, loc) ] in
@@ -105,7 +107,8 @@ let xform_decl (replacer : replaceClass) (d : AST.declaration) :
         rty=Some ty;
         setter_arg=None;
         use_array_syntax=false;
-        is_getter_setter=false
+        is_getter_setter=false;
+        throws=NoThrow
       } in
       let rd_type = AST.Decl_FunType (rd_f, rd_fty, loc) in
       let rd_body = [ AST.Stmt_FunReturn (Expr_Var v, loc) ] in
@@ -119,7 +122,8 @@ let xform_decl (replacer : replaceClass) (d : AST.declaration) :
         rty=None;
         setter_arg=None;
         use_array_syntax=false;
-        is_getter_setter=false
+        is_getter_setter=false;
+        throws=NoThrow
       } in
       let wr_type = AST.Decl_FunType (wr_f, wr_fty, loc) in
       let wr_body = [ AST.Stmt_Assign (LExpr_Var v, Expr_Var vl, loc) ] in

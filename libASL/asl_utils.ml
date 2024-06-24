@@ -685,8 +685,9 @@ class sideEffectClass =
 
     method! vexpr e =
       match e with
-      | Expr_TApply (f, _, _, _) ->
+      | Expr_TApply (f, _, _, throws) ->
           functions_called <- IdentSet.add f functions_called;
+          if throws <> NoThrow then throws_exceptions <- true;
           if Ident.matches ~name:"ram_read" f then begin
             reads <- IdentSet.add dummy_ram_variable reads
           end;
@@ -695,8 +696,9 @@ class sideEffectClass =
 
     method! vstmt s =
       match s with
-      | Stmt_TCall (f, _, _, _, _) ->
+      | Stmt_TCall (f, _, _, throws, _) ->
           functions_called <- IdentSet.add f functions_called;
+          if throws <> NoThrow then throws_exceptions <- true;
           if Ident.matches ~name:"ram_init" f || Ident.matches ~name:"ram_write" f then begin
             writes <- IdentSet.add dummy_ram_variable writes
           end;
@@ -705,6 +707,16 @@ class sideEffectClass =
           throws_exceptions <- true;
           DoChildren
       | _ -> DoChildren
+
+    method! vdecl d =
+      ( match d with
+      | Decl_FunType (f, fty, _)
+      | Decl_FunDefn (f, fty, _, _)
+      ->  if fty.throws != NoThrow then throws_exceptions <- true;
+          DoChildren
+      | _
+      -> DoChildren
+      )
 
     method! leave_scope (vs : Ident.t list) =
       (* remove reads/writes to local variables *)
@@ -715,6 +727,16 @@ class sideEffectClass =
 let side_effects_of_decl (d : declaration) : (IdentSet.t * IdentSet.t * IdentSet.t * bool) =
   let se = new sideEffectClass in
   ignore (visit_decl (se :> aslVisitor) d);
+  se#sideEffects
+
+let side_effects_of_expr (e : expr) : (IdentSet.t * IdentSet.t * IdentSet.t * bool) =
+  let se = new sideEffectClass in
+  ignore (visit_expr (se :> aslVisitor) e);
+  se#sideEffects
+
+let side_effects_of_lexpr (e : lexpr) : (IdentSet.t * IdentSet.t * IdentSet.t * bool) =
+  let se = new sideEffectClass in
+  ignore (visit_lexpr (se :> aslVisitor) e);
   se#sideEffects
 
 let identify_impure_funs (isConstant : Ident.t -> bool)
@@ -876,10 +898,10 @@ let two       = mk_litint 2
 let empty_bits = Expr_Lit (VBits Primops.empty_bits)
 
 let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
-  Expr_TApply (op, tys, [x], false)
+  Expr_TApply (op, tys, [x], NoThrow)
 
 let mk_binop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) (y : AST.expr) : AST.expr =
-  Expr_TApply (op, tys, [x; y], false)
+  Expr_TApply (op, tys, [x; y], NoThrow)
 
 (** Construct "!x" *)
 let mk_not (x : AST.expr) : AST.expr =
@@ -1022,14 +1044,14 @@ let mk_ones_bits (n : AST.expr) : AST.expr =
 
 (** Construct "asl_extract_bits{w,n}(x, lo, w)" *)
 let mk_bits_select (w : AST.expr) (n : AST.expr) (x : AST.expr) (lo : AST.expr) : AST.expr =
-  Expr_TApply (asl_extract_bits, [ w; n ], [ x; lo; w ], false)
+  Expr_TApply (asl_extract_bits, [ w; n ], [ x; lo; w ], NoThrow)
 
 (** Construct "zero_extend_bits{w, n}(x, n)" *)
 let mk_zero_extend_bits (w : AST.expr) (n : AST.expr) (x : AST.expr) : AST.expr =
   if w = n then
     x
   else
-    Expr_TApply (zero_extend_bits, [ w; n ], [ x; n ], false)
+    Expr_TApply (zero_extend_bits, [ w; n ], [ x; n ], NoThrow)
 
 (** Construct "mk_mask{n}(w, n)" which is equivalent to
  *  'ZeroExtend{n}(Ones(w), n)'
@@ -1038,10 +1060,10 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   if w = n then
     mk_ones_bits n
   else
-    Expr_TApply (Builtin_idents.mk_mask, [n], [w; n], false)
+    Expr_TApply (Builtin_idents.mk_mask, [n], [w; n], NoThrow)
 
 let mk_not_bits (m : AST.expr) (n : AST.expr) : AST.expr =
-  Expr_TApply (not_bits, [m], [n], false)
+  Expr_TApply (not_bits, [m], [n], NoThrow)
 
 (** Construct "(0 + x1) + ... + xn" *)
 let mk_add_ints (xs : AST.expr list) : AST.expr =
@@ -1061,7 +1083,7 @@ let mk_ors  (xs : AST.expr list) : AST.expr =
 
 (** Construct "cvt_int_bits{n}(x, n)" *)
 let mk_cvt_int_bits (n : AST.expr) (x : AST.expr) : AST.expr =
-  Expr_TApply (cvt_int_bits, [ n ], [ x; n ], false)
+  Expr_TApply (cvt_int_bits, [ n ], [ x; n ], NoThrow)
 
 (****************************************************************)
 (** {2 Safe expressions}                                        *)

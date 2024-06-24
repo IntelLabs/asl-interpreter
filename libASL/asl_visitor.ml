@@ -548,6 +548,7 @@ let visit_funtype (vis : aslVisitor) (locals : Ident.t list) (fty : function_typ
     rty=rty';
     use_array_syntax=fty.use_array_syntax;
     is_getter_setter=fty.is_getter_setter;
+    throws=fty.throws;
   }
 
 let visit_decl (vis : aslVisitor) (x : declaration) : declaration =

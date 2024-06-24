@@ -3,13 +3,16 @@
 
 type E of exception;
 
-func T() => integer
+func T?() => integer
 begin
-    throw E;
+    // Note: functions that return a value cannot be noreturn
+    // so we add an if statement to make it look optional
+    if TRUE then throw E; end
+    return 0;
 end
 
 func F() => integer
 begin
-    return T()?;
+    return T?();
 end
 

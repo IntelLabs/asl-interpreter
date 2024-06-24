@@ -180,7 +180,7 @@ let impure_funs : IdentSet.t ref = ref IdentSet.empty
 
 let isPure (x : expr) : bool =
   match x with
-  | Expr_TApply (f, _, _, throws) -> not (throws || IdentSet.mem f !impure_funs)
+  | Expr_TApply (f, _, _, throws) -> throws = NoThrow && not (IdentSet.mem f !impure_funs)
   | _ -> true
 
 class constEvalClass (env : Env.t) =

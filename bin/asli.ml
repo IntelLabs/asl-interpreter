@@ -361,6 +361,8 @@ let options =
       ("--project", Arg.String add_project,     "       Execute project file");
       ("--format", Arg.Symbol (formats, set_format), "       Control print format");
       ("--max-errors", Arg.Set_int Tcheck.max_errors, "       Maximum number of typechecker errors");
+      ("--check-exception-markers", Arg.Set Global_checks.check_exception_markers, "       Check that exceptions are marked correctly");
+      ("--nocheck-exception-markers", Arg.Clear Global_checks.check_exception_markers, "       Do not check that exceptions are marked correctly");
       ("--check-constraints", Arg.Set Tcheck.enable_constraint_checks,     "       Check type constraints");
       ("--nocheck-constraints", Arg.Clear Tcheck.enable_constraint_checks, "       Do not check type constraints");
     ]

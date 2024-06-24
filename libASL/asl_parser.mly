@@ -237,23 +237,28 @@ ixtype:
 | ident = ident { Index_Enum(ident) }
 | expr = expr { Index_Int(expr) }
 
+throws:
+| BANG { AlwaysThrow }
+| QUERY { MayThrow }
+| { NoThrow }
+
 function_declaration:
-| UNDERSCORE_UNDERSCORE_BUILTIN FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+| UNDERSCORE_UNDERSCORE_BUILTIN FUNC f = ident throws=throws ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false; throws } in
       Decl_BuiltinFunction(f, fty, Range($symbolstartpos, $endpos)) }
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
-    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+| FUNC f = ident throws=throws ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty SEMICOLON
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty BEGIN b = block END
-    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false } in
+| FUNC f = ident throws=throws ps = parameters_opt LPAREN args = formal_list RPAREN EQ_GT ty = ty BEGIN b = block END
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=false; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 procedure_declaration:
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
-    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false } in
+| FUNC f = ident throws=throws ps = parameters_opt LPAREN args = formal_list RPAREN SEMICOLON
+    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| FUNC f = ident ps = parameters_opt LPAREN args = formal_list RPAREN BEGIN b = block END
-    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false } in
+| FUNC f = ident throws=throws ps = parameters_opt LPAREN args = formal_list RPAREN BEGIN b = block END
+    { let fty = { parameters=ps; args; setter_arg=None; rty=None; use_array_syntax=false; is_getter_setter=false; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 parameters_opt:
@@ -277,31 +282,31 @@ formal:
 | ident = ident COLON ty = ty { (ident, ty) }
 
 getter_declaration:
-| GETTER f = ident ps = parameters_opt EQ_GT ty = ty SEMICOLON
-    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true } in
+| GETTER f = ident throws=throws ps = parameters_opt EQ_GT ty = ty SEMICOLON
+    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| GETTER f = ident ps = parameters_opt EQ_GT ty = ty BEGIN b = block END
-    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true } in
+| GETTER f = ident throws=throws ps = parameters_opt EQ_GT ty = ty BEGIN b = block END
+    { let fty = { parameters=ps; args=[]; setter_arg=None; rty=Some ty; use_array_syntax=false; is_getter_setter=true; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
-| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty SEMICOLON
-    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true } in
+| GETTER f = ident throws=throws ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty SEMICOLON
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| GETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty BEGIN b = block END
-    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true } in
+| GETTER f = ident throws=throws ps = parameters_opt LBRACK args = formal_list RBRACK EQ_GT ty = ty BEGIN b = block END
+    { let fty = { parameters=ps; args; setter_arg=None; rty=Some ty; use_array_syntax=true; is_getter_setter=true; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 setter_declaration:
-| SETTER f = ident ps = parameters_opt EQ v = ident COLON ty = ty SEMICOLON
-    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true } in
+| SETTER f = ident throws=throws ps = parameters_opt EQ v = ident COLON ty = ty SEMICOLON
+    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt EQ v = ident COLON ty = ty BEGIN b = block END
-    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true } in
+| SETTER f = ident throws=throws ps = parameters_opt EQ v = ident COLON ty = ty BEGIN b = block END
+    { let fty = { parameters=ps; args=[]; setter_arg=Some (v, ty); rty=None; use_array_syntax=false; is_getter_setter=true; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty SEMICOLON
-    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true } in
+| SETTER f = ident throws=throws ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty SEMICOLON
+    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true; throws } in
       Decl_FunType(f, fty, Range($symbolstartpos, $endpos)) }
-| SETTER f = ident ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty BEGIN b = block END
-    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true } in
+| SETTER f = ident throws=throws ps = parameters_opt LBRACK args = formal_list RBRACK EQ v = ident COLON ty = ty BEGIN b = block END
+    { let fty = { parameters=ps; args; setter_arg=Some (v, ty); rty=None; use_array_syntax=true; is_getter_setter=true; throws } in
       Decl_FunDefn(f, fty, b, Range($symbolstartpos, $endpos)) }
 
 internal_definition:
@@ -412,8 +417,8 @@ lexpr:
 simple_stmt:
 | assignment_stmt = assignment_stmt
     { assignment_stmt }
-| f = ident LPAREN args = separated_list(COMMA, expr) RPAREN throws=throws SEMICOLON
-    { Stmt_TCall(f, [], args, throws, Range($symbolstartpos, $endpos)) }
+| f = ident throws1=throws LPAREN args = separated_list(COMMA, expr) RPAREN throws2=throws SEMICOLON
+    { Stmt_TCall(f, [], args, (if throws1<>NoThrow then throws1 else throws2), Range($symbolstartpos, $endpos)) }
 | RETURN e = expr SEMICOLON
     { Stmt_FunReturn(e, Range($symbolstartpos, $endpos)) }
 | RETURN SEMICOLON
@@ -554,6 +559,8 @@ aexpr:
     { Expr_Var(v) }
 | f = ident LPAREN es = separated_list(COMMA, expr) RPAREN throws=throws
     { Expr_TApply(f, [], es, throws) }
+| f = ident QUERY LPAREN es = separated_list(COMMA, expr) RPAREN
+    { Expr_TApply(f, [], es, MayThrow) }
 | tc = ident
     LPAREN es = separated_list(COMMA, expr) RPAREN
     LBRACE fas = separated_nonempty_list(COMMA, field_assignment) RBRACE
@@ -583,10 +590,6 @@ field_assignment:
 opt_stringLit:
 | stringLit = STRINGLIT { Some(stringLit) }
 | { None }
-
-throws:
-| QUERY { true }
-|       { false }
 
 unop:
 | MINUS { Unop_Negate }

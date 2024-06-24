@@ -181,7 +181,9 @@ val callers : Ident.t list -> AST.declaration list -> IdentSet.t
 (** {2 Side effect detection}                                   *)
 (****************************************************************)
 
-val side_effects_of_decl : AST.declaration -> (IdentSet.t * IdentSet.t * IdentSet.t * bool)
+val side_effects_of_decl  : AST.declaration -> (IdentSet.t * IdentSet.t * IdentSet.t * bool)
+val side_effects_of_expr  : AST.expr        -> (IdentSet.t * IdentSet.t * IdentSet.t * bool)
+val side_effects_of_lexpr : AST.lexpr       -> (IdentSet.t * IdentSet.t * IdentSet.t * bool)
 
 (* `identify_impure_funs is_const isImpurePrim ds` returns the set of impure functions.
  * That is, functions that

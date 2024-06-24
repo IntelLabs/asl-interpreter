@@ -871,7 +871,7 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       end
   | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
   | Expr_TApply (f, tes, es, throws) ->
-      if throws then
+      if throws <> NoThrow then
         rethrow_expr fmt (fun _ -> funcall loc fmt f tes es loc)
       else
         funcall loc fmt f tes es loc
@@ -1166,7 +1166,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
   | Stmt_TCall (f, tes, args, throws, loc) ->
       funcall loc fmt f tes args loc;
       semicolon fmt;
-      if (throws) then rethrow_stmt fmt
+      if throws <> NoThrow then rethrow_stmt fmt
   | Stmt_VarDeclsNoInit (vs, Type_Constructor (i, [ _ ]), loc)
     when Ident.equal i Builtin_idents.ram ->
       cutsep fmt (PP.fprintf fmt "%a = ASL_ram_alloc();" varname) vs
@@ -1228,6 +1228,7 @@ let formal (loc : Loc.t) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   varty loc fmt v t
 
 let function_header (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (fty : AST.function_type) : unit =
+  (if fty.throws = AlwaysThrow then Format.fprintf fmt "__attribute__((noreturn)) ");
   PP.pp_print_option
     ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
     (fun _ t -> varty loc fmt f t) fmt fty.rty;

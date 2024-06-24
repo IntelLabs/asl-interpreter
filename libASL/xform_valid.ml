@@ -10,7 +10,7 @@ open Asl_utils
 open Builtin_idents
 
 let mk_call (args : AST.expr list) (loc : Loc.t) : AST.stmt =
-  AST.Stmt_TCall (asl_fuzz, [], args, false, loc)
+  AST.Stmt_TCall (asl_fuzz, [], args, NoThrow, loc)
 
 class tracker (vars : Ident.t list) =
   object

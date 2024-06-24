@@ -52,6 +52,11 @@ unop =
  | Unop_BoolNot
  | Unop_BitsNot
 
+type can_throw =
+   | NoThrow
+   | MayThrow
+   | AlwaysThrow
+
 type
 pattern =
  | Pat_Lit of Value.value
@@ -80,7 +85,7 @@ and expr =
  | Expr_ImpDef of string option * ty
  | Expr_AsConstraint of expr * constraint_range list
  | Expr_AsType of expr * ty
- | Expr_TApply of Ident.t * expr list * expr list * bool (* function call with explicit type parameters *)
+ | Expr_TApply of Ident.t * expr list * expr list * can_throw (* function call with explicit type parameters *)
  | Expr_Concat of expr list * expr list (* bitvector concatenation *)
  | Expr_Array of expr * expr (* array accesses *)
  | Expr_Lit of Value.value
@@ -120,8 +125,8 @@ lexpr =
  | LExpr_BitTuple of expr list * lexpr list
  | LExpr_Tuple of lexpr list
  | LExpr_Array of lexpr * expr (* array assignment *)
- | LExpr_Write of Ident.t * expr list * expr list * bool (* setter procedure call *)
- | LExpr_ReadWrite of Ident.t * Ident.t * expr list * expr list * bool (* read-modify-write function+procedure call *)
+ | LExpr_Write of Ident.t * expr list * expr list * can_throw (* setter procedure call *)
+ | LExpr_ReadWrite of Ident.t * Ident.t * expr list * expr list * can_throw (* read-modify-write function+procedure call *)
 
 type
 decl_item =
@@ -148,7 +153,7 @@ and stmt =
  | Stmt_ProcReturn of Loc.t (* procedure return *)
  | Stmt_Assert of expr * Loc.t (* assertion *)
  | Stmt_Throw of expr * Loc.t
- | Stmt_TCall of Ident.t * expr list * expr list * bool * Loc.t (* procedure call with explicit type parameters *)
+ | Stmt_TCall of Ident.t * expr list * expr list * can_throw * Loc.t (* procedure call with explicit type parameters *)
  | Stmt_VarDeclsNoInit of Ident.t list * ty * Loc.t
  | Stmt_If of expr * stmt list * s_elsif list * (stmt list * Loc.t) * Loc.t
  | Stmt_Case of expr * alt list * (stmt list * Loc.t) option * Loc.t
@@ -170,6 +175,7 @@ type function_type = {
   rty : ty option; (* only present in functions and getter functions *)
   use_array_syntax : bool; (* true for array getter/setter functions *)
   is_getter_setter : bool;
+  throws : can_throw;
 }
 
 type

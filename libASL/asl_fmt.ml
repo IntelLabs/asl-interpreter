@@ -93,7 +93,6 @@ let plus (fmt : PP.formatter) : unit = delimiter fmt "+"
 let plus_colon (fmt : PP.formatter) : unit = delimiter fmt "+:"
 let star_colon (fmt : PP.formatter) : unit = delimiter fmt "*:"
 let plus_plus (fmt : PP.formatter) : unit = delimiter fmt "++"
-let query (fmt : PP.formatter) : unit = delimiter fmt "?"
 let rbrace_rbrace (fmt : PP.formatter) : unit = delimiter fmt "}}"
 let semicolon (fmt : PP.formatter) : unit = delimiter fmt ";"
 let slash (fmt : PP.formatter) : unit = delimiter fmt "/"
@@ -312,6 +311,13 @@ let strLit (fmt : PP.formatter) (x : string) : unit =
   String.iter escape x;
   constant fmt "\""
 
+let throws (fmt : PP.formatter) (x : AST.can_throw) : unit =
+  ( match x with
+  | NoThrow -> ()
+  | MayThrow -> PP.pp_print_string fmt "?"
+  | AlwaysThrow -> PP.pp_print_string fmt "!"
+  )
+
 let rec ty (fmt : PP.formatter) (x : AST.ty) : unit =
   match x with
   | Type_Integer ocrs ->
@@ -469,11 +475,11 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
       nbsp fmt;
       expr fmt b
-  | Expr_TApply (f, tes, es, throws) ->
+  | Expr_TApply (f, tes, es, can_throw) ->
       funname fmt f;
       if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
       parens fmt (fun _ -> exprs fmt es);
-      if throws then query fmt
+      throws fmt can_throw
   | Expr_Tuple es -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat (ws, es) ->
       if !show_type_params then braces fmt (fun _ -> exprs fmt ws);
@@ -566,7 +572,7 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
   | LExpr_Array (a, e) ->
       lexpr fmt a;
       brackets fmt (fun _ -> expr fmt e)
-  | LExpr_Write (f, tes, es, throws) ->
+  | LExpr_Write (f, tes, es, can_throw) ->
       kw_underscore_write fmt;
       nbsp fmt;
       funname fmt f;
@@ -575,8 +581,8 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         exprs fmt tes;
         rbrace_rbrace fmt);
       parens fmt (fun _ -> exprs fmt es);
-      if throws then query fmt
-  | LExpr_ReadWrite (f, g, tes, es, throws) ->
+      throws fmt can_throw
+  | LExpr_ReadWrite (f, g, tes, es, can_throw) ->
       kw_underscore_readwrite fmt;
       nbsp fmt;
       funname fmt f;
@@ -587,7 +593,7 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         exprs fmt tes;
         rbrace_rbrace fmt);
       parens fmt (fun _ -> exprs fmt es);
-      if throws then query fmt
+      throws fmt can_throw
 
 and lexprs (fmt : PP.formatter) (ps : AST.lexpr list) : unit =
   commasep fmt (lexpr fmt) ps
@@ -660,7 +666,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       expr fmt r;
       semicolon fmt;
       comment_start fmt loc
-  | Stmt_TCall (f, tes, args, throws, loc) ->
+  | Stmt_TCall (f, tes, args, can_throw, loc) ->
       comments_before fmt loc;
       funname fmt f;
       if !show_type_params then (
@@ -668,7 +674,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
         exprs fmt tes;
         rbrace_rbrace fmt);
       parens fmt (fun _ -> exprs fmt args);
-      if throws then query fmt;
+      throws fmt can_throw;
       semicolon fmt;
       comment_start fmt loc
   | Stmt_FunReturn (e, loc) ->
@@ -855,6 +861,7 @@ let formals (fmt : PP.formatter) (xs : (Ident.t * AST.ty) list) : unit =
   commasep fmt (formal fmt) xs
 
 let function_type (fmt : PP.formatter) (fty : AST.function_type) : unit =
+  throws fmt fty.throws;
   braces fmt (fun _ -> parameters fmt fty.parameters);
   (if fty.use_array_syntax then
       brackets fmt (fun _ -> formals fmt fty.args)

@@ -114,7 +114,7 @@ class simplifyCaseClass =
           | None ->
             let msg = Loc.to_string loc in
             let f = asl_error_unmatched_case in
-            let s = AST.Stmt_TCall (f, [], [Asl_utils.mk_litstr msg], false, loc) in
+            let s = AST.Stmt_TCall (f, [], [Asl_utils.mk_litstr msg], NoThrow, loc) in
             ([s], loc)
         in
         let ss = mk_if branches default loc in

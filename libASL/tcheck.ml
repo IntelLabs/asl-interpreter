@@ -1077,7 +1077,7 @@ let min_constraints (x : constraint_range) (y : constraint_range) : constraint_r
   )
 
 let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
-  Expr_TApply (op, tys, [x], false)
+  Expr_TApply (op, tys, [x], NoThrow)
 
 (** Construct "pow2_int(x)" *)
 let mk_pow2_int (x : AST.expr) : AST.expr =
@@ -1449,7 +1449,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
       let x', xty = tc_expr env loc x in
       let y', yty = tc_expr env loc y in
       let fty = tc_binop env loc op x' y' xty yty in
-      (Expr_TApply (fty.name, fty.parameters, [ x'; y' ], false), fty.rty)
+      (Expr_TApply (fty.name, fty.parameters, [ x'; y' ], NoThrow), fty.rty)
   | Expr_Field (e, f) ->
       let e', ty = tc_expr env loc e in
       ( match typeFields (Env.globals env) loc ty with
@@ -1503,7 +1503,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
-              (Expr_TApply (fty'.name, fty'.parameters, es, false), fty'.rty)
+              (Expr_TApply (fty'.name, fty'.parameters, es, NoThrow), fty'.rty)
           | _ -> tc_slice_expr env loc e ss')
       | _ -> tc_slice_expr env loc e ss')
   | Expr_RecordInit (tc, es, fas) ->
@@ -1582,7 +1582,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           with
           | Some fty ->
               let fty' = instantiate_fun env loc fty [] [] in
-              (Expr_TApply (fty'.name, fty'.parameters, [], false), fty'.rty)
+              (Expr_TApply (fty'.name, fty'.parameters, [], NoThrow), fty'.rty)
           | None ->
               raise
                 (UnknownObject
@@ -1608,7 +1608,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
       let e', ety = tc_expr env loc e in
       (* Format.fprintf fmt "%a: unop %a : %a\n" FMT.loc loc FMT.expr e FMT.ty ety; *)
       let fty = tc_unop env loc op e ety in
-      (Expr_TApply (fty.name, fty.parameters, [ e' ], false), fty.rty)
+      (Expr_TApply (fty.name, fty.parameters, [ e' ], NoThrow), fty.rty)
   | Expr_Unknown t ->
       let ty' = tc_type env loc t in
       (Expr_Unknown ty', ty')
@@ -1778,7 +1778,7 @@ and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
                       (UnknownObject (loc, "var setter function", Ident.to_string v))
               in
               let fty' = instantiate_fun env loc fty [] [] in
-              let throws = false in (* todo: need to allow ? on var *)
+              let throws = NoThrow in (* todo: need to allow ? on var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, [], throws), fty'.rty)
           | None -> raise (UnknownObject (loc, "variable", Ident.to_string v))))
   | LExpr_Field (l, f) -> (
@@ -1837,7 +1837,7 @@ and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
                   ss'
               in
               let fty' = instantiate_fun env loc fty es tys in
-              let throws = false in (* todo : need to add throws to Var *)
+              let throws = NoThrow in (* todo : need to add throws to Var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, es, throws), fty'.rty)
           | None, Some _ ->
               raise (UnknownObject (loc, "getter function", Ident.to_string a))
@@ -1903,7 +1903,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
               let vty = from_option gty'.ovty (fun _ -> raise (InternalError
                 (loc, "tc_lexpr LExpr_Var", (fun fmt -> FMT.lexpr fmt x), __LOC__))) in
               check_subtype_satisfies env loc ty vty;
-              let throws = false in
+              let throws = NoThrow in
               LExpr_Write (gty'.name, gty'.parameters, [], throws)
           | None ->
               raise (UnknownObject (loc, "variable", Ident.to_string v))
@@ -1971,7 +1971,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
                 let vty = from_option gty'.ovty (fun _ -> raise (InternalError
                   (loc, "tc_lexpr LExpr_Slices", (fun fmt -> FMT.lexpr fmt e), __LOC__))) in
                 check_subtype_satisfies env loc ty vty;
-                let throws = false in
+                let throws = NoThrow in
                 (LExpr_Write (gty'.name, gty'.parameters, es, throws), ty)
             | _ -> (
                 let getters =
@@ -1991,7 +1991,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
                 match (ogetter, osetter) with
                 | Some fty, Some fty' ->
                     (* todo: calculate type correctly *)
-                    let throws = false in
+                    let throws = NoThrow in
                     let wr = LExpr_ReadWrite (fty.funname, fty'.funname, [], [], throws) in
                     (* todo: check slices are integer *)
                     (* todo: check rty is bits(_) *)
@@ -2439,7 +2439,8 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
                   setter_arg = None;
                   rty = Some type_bool;
                   is_getter_setter = false;
-                  use_array_syntax = false
+                  use_array_syntax = false;
+                  throws=NoThrow
       } in
       let eq = addFunction env loc eq_enum fty in
       let ne = addFunction env loc ne_enum fty in

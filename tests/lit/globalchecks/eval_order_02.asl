@@ -1,4 +1,4 @@
-// RUN: not %asli --nobanner %s | %decolor | filecheck %s
+// RUN: not %asli --max-errors=10 --nobanner %s | %decolor | filecheck %s
 // Copyright (C) 2023-2024 Intel Corporation
 
 var X : integer;
@@ -11,13 +11,16 @@ end
 
 type E of exception;
 
-func T() => integer
+func T?() => integer
 begin
-    throw E;
+    // Note: functions that return a value cannot be noreturn
+    // so we add an if statement to make it look optional
+    if TRUE then throw E; end
+    return 0;
 end
 
 func F() => integer
 begin
-    return WX() + T();
+    return WX() + T?();
 // CHECK: Type error: expression behaviour depends on evaluation order
 end
