@@ -9,18 +9,15 @@
 module AST = Asl_ast
 module TC = Tcheck
 
-val read_file :
-  string list -> string -> bool -> bool -> Asl_ast.declaration list
+val read_file : string list -> string -> bool -> bool -> Asl_ast.declaration list
 (** Parse and typecheck ASL file *)
 
 val parse_spec : string list -> string -> bool -> Asl_ast.declaration list
 
-val parse_file :
-  string list -> string -> bool -> bool -> Asl_ast.declaration list
+val parse_file : string list -> string -> bool -> Asl_ast.declaration list
 (** Parse ASL file, but do not typecheck *)
 
-val read_files :
-  string list -> string list -> bool -> Asl_ast.declaration list
+val read_files : string list -> string list -> bool -> Asl_ast.declaration list
 (** Parse and typecheck ASL files. All files are first parsed then typechecked
     together.*)
 

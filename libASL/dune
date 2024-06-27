@@ -6,7 +6,12 @@
 
 (menhir
  (modules asl_parser)
- (flags --explain))
+ (flags --explain --table))
+
+(rule
+ (targets asl_parser_messages.ml)
+ (deps asl_parser.messages asl_parser.mly)
+ (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
 
 (library
  (name libASL)
@@ -17,6 +22,7 @@
    asl_ast
    asl_fmt
    asl_parser
+   asl_parser_messages
    asl_utils
    asl_visitor
    backend_c
@@ -56,7 +62,7 @@
    xform_tuples
    xform_valid
    xform_wrap)
- (libraries ocolor yojson zarith z3))
+ (libraries menhirLib ocolor yojson zarith z3))
 
 
 (env (_ (odoc (warnings fatal))))
