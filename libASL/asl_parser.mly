@@ -481,8 +481,6 @@ catch_stmt:
 catcher:
 | WHEN v = ident COLON tc=ident EQ_GT b = block
     { Catcher_Guarded(v, tc, b, Range($symbolstartpos, $endpos)) }
-| WHEN v = ident EQ_GT tc=ident EQ_GT b = block
-    { Catcher_Guarded(v, tc, b, Range($symbolstartpos, $endpos)) }
 
 expr:
 | ce = conditional_expression { ce }
