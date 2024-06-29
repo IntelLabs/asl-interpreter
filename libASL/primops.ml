@@ -63,7 +63,7 @@ let prim_zdiv_int (x : bigint) (y : bigint) : bigint = Z.div x y
 let prim_zrem_int (x : bigint) (y : bigint) : bigint = Z.rem x y
 let prim_fdiv_int (x : bigint) (y : bigint) : bigint = Z.fdiv x y
 let prim_exact_div_int (x : bigint) (y : bigint) : bigint =
-  assert (Z.geq y Z.zero);
+  (* disable until we fix the spec: assert (Z.geq y Z.zero); *)
   Z.fdiv x y
 
 let prim_frem_int (x : bigint) (y : bigint) : bigint =
