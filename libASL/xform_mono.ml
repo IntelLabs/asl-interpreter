@@ -14,6 +14,7 @@ open Utils
 open Asl_utils
 
 let enable_auto_case_split = ref false
+let verbose = ref false
 
 let const_int_expr (x : AST.expr) : Z.t option =
   match x with Expr_LitInt x -> Some (Z.of_string x) | _ -> None
@@ -196,6 +197,11 @@ class monoClass
 
         match d with
         | Decl_FunDefn (f, fty, body, loc) ->
+            if !verbose then begin
+              Printf.printf "Monomorphizing: %s" (Ident.name_with_tag f);
+              List.iter2 (fun nm sz -> Printf.printf " %s->%d" (Ident.pprint nm) (Z.to_int sz)) tvs szs;
+              Printf.printf "\n";
+            end;
             let rty' = Option.map (Xform_constprop.xform_ty env) fty.rty in
             let pnames = List.map fst fty.parameters in
             let atys' = List.filter (fun (v, _) -> not (List.mem v pnames)) fty.args
@@ -397,6 +403,7 @@ let _ =
   let flags = Arg.align [
         ("--auto-case-split",    Arg.Set enable_auto_case_split,   " Generate case split code automatically");
         ("--no-auto-case-split", Arg.Clear enable_auto_case_split,   " Do not generate case split code automatically");
+        ("--verbose",            Arg.Set verbose,                  " Increase verbosity");
       ]
   in
   Commands.registerCommand "xform_monomorphize" flags [] [] "Monomorphize function calls" cmd
