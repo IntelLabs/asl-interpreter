@@ -15,4 +15,4 @@
 
 (install
   (section (site (asli runtime_include)))
-  (files (glob_files (include/asl/*.h with_prefix asl))))
+  (files (glob_files (include/asl/*.h* with_prefix asl))))

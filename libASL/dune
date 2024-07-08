@@ -28,6 +28,7 @@
    backend_c
    backend_c_new
    backend_verilog
+   backend_cpp
    builtin_idents
    commands
    configuration

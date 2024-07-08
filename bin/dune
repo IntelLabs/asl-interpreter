@@ -34,4 +34,5 @@
  (section bin)
  (files
   (asl2c.py as asl2c)
-  (asl2v.py as asl2v)))
+  (asl2v.py as asl2v)
+  (asl2cpp.py as asl2cpp)))
