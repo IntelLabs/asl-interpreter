@@ -321,7 +321,25 @@ let check_decls (ds : AST.declaration list) : AST.declaration list =
   in
   let effects = new effects_class is_constant is_impure_prim ds in
   let checker = new global_checks_class_wrapper effects in
-  List.iter (fun d -> ignore (Asl_visitor.visit_decl checker d)) ds;
+  let error_count = ref 0 in
+  let check_decl d =
+    ( try
+        ignore (Asl_visitor.visit_decl checker d)
+    with
+    | Error.TypeError _ as exn
+    ->
+      if !error_count < !Tcheck.max_errors then begin
+        Error.print_exception exn;
+        error_count := !error_count + 1
+      end else begin
+        raise exn
+      end
+    )
+  in
+  List.iter check_decl ds;
+  if !error_count != 0 then begin
+    raise (Error.TypeError (Loc.Unknown, "Errors detected"))
+  end;
   ds
 
 (****************************************************************
