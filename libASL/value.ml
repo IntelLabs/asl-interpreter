@@ -10,7 +10,6 @@
 
 open Primops
 open Builtin_idents
-open Asl_utils
 
 (****************************************************************)
 (** {2 Values}                                                  *)
@@ -26,9 +25,9 @@ type value =
   | VBits of bitvector
   | VMask of mask
   | VString of string
-  | VExc of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
+  | VExc of (Loc.t * Ident.t * value Identset.Bindings.t)
   | VTuple of value list
-  | VRecord of value Bindings.t
+  | VRecord of value Identset.Bindings.t
   | VArray of (value ImmutableArray.t * value)
   | VRAM of ram
   | VUninitialized
@@ -40,7 +39,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (Loc.t * string)
-exception Throw of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
+exception Throw of (Loc.t * Ident.t * value Identset.Bindings.t)
 
 (****************************************************************)
 (** {2 Printer for values}                                      *)
@@ -58,14 +57,14 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   | VExc (loc, exc, fs) ->
       Format.fprintf fmt "%a{%a}@%a"
         Asl_fmt.tycon exc
-        (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Bindings.bindings fs)
+        (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Identset.Bindings.bindings fs)
         Asl_fmt.loc loc
   | VTuple vs ->
     Format.fprintf fmt "(%a)"
       (Fun.flip Format_utils.commasep (pp_value fmt)) vs
   | VRecord fs ->
     Format.fprintf fmt "{%a}"
-      (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Bindings.bindings fs)
+      (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Identset.Bindings.bindings fs)
   | VArray (a, _) ->
     Format.fprintf fmt "[%a]"
       (Fun.flip Format_utils.commasep (pp_array_value fmt)) (ImmutableArray.bindings a)
@@ -137,7 +136,7 @@ let to_string (loc : Loc.t) (x : value) : string =
   | VString s -> s
   | _ -> raise (EvalError (loc, "string expected. Got " ^ string_of_value x))
 
-let to_exc (loc : Loc.t) (x : value) : Loc.t * Ident.t * value Asl_utils.Bindings.t =
+let to_exc (loc : Loc.t) (x : value) : Loc.t * Ident.t * value Identset.Bindings.t =
   match x with
   | VExc (loc, exc, fs) -> (loc, exc, fs)
   | _ -> raise (EvalError (loc, "exception expected. Got " ^ string_of_value x))
@@ -149,12 +148,12 @@ let of_tuple (loc : Loc.t) (x : value) : value list =
   | VTuple xs -> xs
   | _ -> raise (EvalError (loc, "tuple expected. Got " ^ string_of_value x))
 
-let mkrecord (fs : (Ident.t * value) list) : value = VRecord (mk_bindings fs)
+let mkrecord (fs : (Ident.t * value) list) : value = VRecord (Identset.mk_bindings fs)
 
 let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
   match x with
   | VRecord fs ->
-      ( match Bindings.find_opt f fs with
+      ( match Identset.Bindings.find_opt f fs with
       | Some r -> r
       | None -> raise (EvalError (loc, "Field " ^ Ident.pprint f ^ " not found in " ^ string_of_value x))
       )
@@ -162,7 +161,7 @@ let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
 
 let set_field (loc : Loc.t) (x : value) (f : Ident.t) (v : value) : value =
   match x with
-  | VRecord fs -> VRecord (Bindings.add f v fs)
+  | VRecord fs -> VRecord (Identset.Bindings.add f v fs)
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
 
 let empty_array (d : value) : value = VArray (prim_empty_array, d)

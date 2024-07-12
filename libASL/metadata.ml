@@ -7,6 +7,7 @@
 
 open LibASL
 open Asl_utils
+open Identset
 
 let generate_callgraph (filename : string) (ds : Asl_ast.declaration list): unit =
   let cg = ref Bindings.empty in

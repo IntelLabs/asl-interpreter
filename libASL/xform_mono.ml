@@ -8,6 +8,7 @@
 (** ASL function monomorphization transform *)
 
 module AST = Asl_ast
+open Identset
 open Visitor
 open Asl_visitor
 open Utils

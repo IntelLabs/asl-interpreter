@@ -16,6 +16,7 @@ open Builtin_idents
 open AST
 open Utils
 open Asl_utils
+open Identset
 open Error
 open Format
 
@@ -2327,7 +2328,7 @@ let tc_funtype (env : Env.t) (loc : Loc.t) (fty : AST.function_type) : AST.funct
   let implicit_parameters =
     (IdentSet.union argty_fvs rty_fvs)
     |> IdentSet.filter (fun v -> not (List.mem_assoc v fty.parameters))
-    |> Asl_utils.to_sorted_list
+    |> Identset.to_sorted_list
   in
 
   (* calculate parameter type from any explicitly provided type and

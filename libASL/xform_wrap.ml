@@ -18,6 +18,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Identset
 
 let mk_read_fident (i : Ident.t) : Ident.t =
   Ident.add_suffix (Ident.mk_fident_with_tag i ~tag:0) ~suffix:"read"

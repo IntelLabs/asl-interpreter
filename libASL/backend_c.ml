@@ -13,6 +13,7 @@ module PP = Format
 module V = Value
 open Asl_utils
 open Format_utils
+open Identset
 open Builtin_idents
 open Utils
 

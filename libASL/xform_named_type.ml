@@ -7,6 +7,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Identset
 
 let find_typedefs (ds : AST.declaration list) :
     (Ident.t list * AST.ty) Bindings.t =

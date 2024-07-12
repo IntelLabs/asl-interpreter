@@ -7,7 +7,7 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-open Asl_utils
+open Identset
 
 type 'a t = { mutable bs : 'a Bindings.t }
 

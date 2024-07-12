@@ -17,6 +17,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Identset
 
 let getFunReturnType (d : AST.declaration) : AST.ty option =
   match d with

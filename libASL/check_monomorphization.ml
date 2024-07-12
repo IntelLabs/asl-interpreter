@@ -7,6 +7,7 @@
 
 module AST = Asl_ast
 open Asl_utils
+open Identset
 
 let is_polymorphic_function (fty : AST.function_type) : bool =
   not (Utils.is_empty fty.parameters)

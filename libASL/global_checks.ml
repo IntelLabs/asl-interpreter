@@ -19,6 +19,7 @@ module AST = Asl_ast
 module FMT = Asl_fmt
 open Asl_utils
 open Builtin_idents
+open Identset
 
 (** Add one entry to a set *)
 let add_one (f : Ident.t) (x : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
@@ -97,7 +98,7 @@ class effects_class
         let parents =
           IdentSet.elements fs
           |> List.map (fun f -> get f callers)
-          |> Asl_utils.unionSets
+          |> Identset.unionSets
         in
         let next = IdentSet.filter self#update parents in
         self#fixpoint next
@@ -223,8 +224,8 @@ let rec check_expression_order (loc : Loc.t) (effects : effects_class) (e : AST.
       Utils.iter_pairs (check_effect_conflicts loc) fxs;
       Utils.iter_pairs (Fun.flip (check_effect_conflicts loc)) fxs
     end;
-    let rds = Asl_utils.unionSets (List.map (fun (_, (r, _, _)) -> r) fxs) in
-    let wrs = Asl_utils.unionSets (List.map (fun (_, (_, w, _)) -> w) fxs) in
+    let rds = Identset.unionSets (List.map (fun (_, (r, _, _)) -> r) fxs) in
+    let wrs = Identset.unionSets (List.map (fun (_, (_, w, _)) -> w) fxs) in
     let throws = List.exists (fun (_, (_, _, t)) -> t) fxs in
     let (frds, fwrs, fthrows) =
       ( match e with

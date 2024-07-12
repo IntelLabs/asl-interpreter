@@ -10,6 +10,7 @@
 module AST = Asl_ast
 open Asl_utils
 open AST
+open Identset
 open Utils
 open Builtin_idents
 

@@ -8,6 +8,7 @@
 open Test_utils
 open LibASL
 open Asl_utils
+open Identset
 module AST = Asl_ast
 module TC = Tcheck
 

@@ -14,6 +14,7 @@ open Builtin_idents
 open AST
 open Utils
 open Asl_utils
+open Identset
 open Value
 
 (****************************************************************
