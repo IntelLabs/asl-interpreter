@@ -8,8 +8,6 @@
 
 (** ASL primitive types and operations *)
 
-module AST = Asl_ast
-
 (****************************************************************
  * Flags to control behaviour (mostly for debugging)
  ****************************************************************)
