@@ -56,9 +56,9 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   | VString s -> Format.fprintf fmt "\"%s\"" s
   | VExc (loc, exc, fs) ->
       Format.fprintf fmt "%a{%a}@%a"
-        Asl_fmt.tycon exc
+        Ident.pp exc
         (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Identset.Bindings.bindings fs)
-        Asl_fmt.loc loc
+        Loc.pp loc
   | VTuple vs ->
     Format.fprintf fmt "(%a)"
       (Fun.flip Format_utils.commasep (pp_value fmt)) vs
@@ -73,7 +73,7 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
 
 and pp_field_value (fmt : Format.formatter) ((f, v) : Ident.t * value) : unit =
   Format.fprintf fmt "%a = %a"
-    Asl_fmt.fieldname f
+    Ident.pp f
     pp_value v
 
 and pp_array_value (fmt : Format.formatter) ((i, v) : int * value) : unit =

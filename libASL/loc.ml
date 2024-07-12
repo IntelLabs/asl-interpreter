@@ -46,6 +46,9 @@ let rec to_string (l : t) : string =
     | Int(s,lo) -> Printf.sprintf "%s %s" s (match lo with Some l -> to_string l | None -> "none")
     )
 
+let pp (fmt : Format.formatter) (x : t) : unit =
+  Format.pp_print_string fmt (to_string x)
+
 (****************************************************************
  * End
  ****************************************************************)

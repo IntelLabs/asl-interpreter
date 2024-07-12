@@ -40,8 +40,7 @@ let unop_table : AST.unop Bindings.t ref = ref Bindings.empty
 let add_unop (op : AST.unop) (x : Ident.t) : unit =
   unop_table := Bindings.add x op !unop_table
 
-let loc (fmt : PP.formatter) (x : Loc.t) : unit =
-  PP.pp_print_string fmt (Loc.to_string x)
+let loc (fmt : PP.formatter) (x : Loc.t) : unit = Loc.pp fmt x
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =
   with_color fmt ColorT.magenta (fun _ -> PP.pp_print_string fmt s)
