@@ -92,9 +92,16 @@ class lower_class = object (self)
       )
 
     method! vlexpr x =
+      let rec is_complex (x : AST.lexpr) : bool =
+          ( match x with
+          | LExpr_Var _ -> false
+          | LExpr_Field (l, _) -> is_complex l
+          | _ -> true
+          )
+      in
       ( match x with
-      | LExpr_Slices (ty, (LExpr_Slices _ as l), slices) ->
-          (* l[slice1][slice2] = r; --> var t = l[slice1]; t[slice2] = r; l[slice1] = t; *)
+      | LExpr_Slices (ty, l, slices) when is_complex l ->
+          (* l[slice] = r; --> var t = l; t[slice] = r; l = t; *)
           let l' = Asl_visitor.visit_lexpr (self :> Asl_visitor.aslVisitor) l in
           let slices' = Visitor.mapNoCopy (Asl_visitor.visit_slice (self :> Asl_visitor.aslVisitor)) slices in
 
