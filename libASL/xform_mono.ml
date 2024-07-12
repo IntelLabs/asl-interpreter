@@ -86,7 +86,7 @@ class monoClass
 
     (* Create a 'when' branch with statement [stmt] using the constraints [cs] as
        pattern. *)
-    method constraints_to_when_branch (loc : AST.l) (stmt : AST.stmt) (cs : AST.constraint_range list)
+    method constraints_to_when_branch (loc : Loc.t) (stmt : AST.stmt) (cs : AST.constraint_range list)
       : AST.alt option =
       let to_pattern (c : AST.constraint_range) : AST.pattern option =
         match c with
@@ -100,7 +100,7 @@ class monoClass
 
     (* Create a 'Stmt_Case' from [stmt], creating when-branches for all
        combinations of parameter constraints using parameters [params]. *)
-    method build_case_stmt (loc : AST.l) (stmt : AST.stmt) (params : Ident.t list)
+    method build_case_stmt (loc : Loc.t) (stmt : AST.stmt) (params : Ident.t list)
       : AST.stmt option =
       if !enable_auto_case_split then (
         let* constraints = flatten_map_option self#param_to_constraints params in

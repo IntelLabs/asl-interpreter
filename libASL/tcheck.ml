@@ -107,7 +107,7 @@ let pp_typedef (x : typedef) (fmt : formatter) : unit =
 (* Information about variables *)
 type var_info =
   { name        : Ident.t;
-    loc         : AST.l;
+    loc         : Loc.t;
     ty          : AST.ty;
     is_local    : bool;
     is_constant : bool;
@@ -124,7 +124,7 @@ let pp_var_info (fmt : Format.formatter) (x : var_info) : unit =
 (* Information about functions *)
 type funtype =
   { funname : Ident.t;
-    loc     : AST.l;
+    loc     : Loc.t;
     isArray : bool;
     params  : (Ident.t * AST.ty option) list;
     atys    : (Ident.t * AST.ty) list;
@@ -167,19 +167,19 @@ module GlobalEnv : sig
 
   val mkempty : unit -> t
   val clone : t -> t
-  val addType : t -> AST.l -> Ident.t -> typedef -> unit
+  val addType : t -> Loc.t -> Ident.t -> typedef -> unit
   val getType : t -> Ident.t -> typedef option
   val isType : t -> Ident.t -> bool
   val isTycon : t -> Ident.t -> bool
   val isEnum : t -> Ident.t -> bool
-  val addFuns : t -> AST.l -> Ident.t -> funtype list -> unit
+  val addFuns : t -> Loc.t -> Ident.t -> funtype list -> unit
   val getFuns : t -> Ident.t -> funtype list
   val addSetterFuns : t -> Ident.t -> funtype list -> unit
   val getSetterFun : t -> Ident.t -> funtype list
-  val addOperators1 : t -> AST.l -> AST.unop -> funtype list -> unit
-  val getOperators1 : t -> AST.l -> AST.unop -> funtype list
-  val addOperators2 : t -> AST.l -> AST.binop -> funtype list -> unit
-  val getOperators2 : t -> AST.l -> AST.binop -> funtype list
+  val addOperators1 : t -> Loc.t -> AST.unop -> funtype list -> unit
+  val getOperators1 : t -> Loc.t -> AST.unop -> funtype list
+  val addOperators2 : t -> Loc.t -> AST.binop -> funtype list -> unit
+  val getOperators2 : t -> Loc.t -> AST.binop -> funtype list
   val addGlobalVar : t -> var_info -> unit
   val getGlobalVar : t -> Ident.t -> var_info option
   val addConstant : t -> Ident.t -> AST.expr -> unit
@@ -217,7 +217,7 @@ end = struct
       constants = env.constants;
     }
 
-  let addType (env : t) (loc : AST.l) (qid : Ident.t) (t : typedef) : unit =
+  let addType (env : t) (loc : Loc.t) (qid : Ident.t) (t : typedef) : unit =
     (* Format.fprintf fmt "New type %a at %a\n" FMT.varname FMT.loc loc; *)
     let t' =
       match (Bindings.find_opt qid env.types, t) with
@@ -242,7 +242,7 @@ end = struct
   let isTycon (env : t) (qid : Ident.t) : bool = true (* todo *)
   let isEnum (env : t) (qid : Ident.t) : bool = true (* todo *)
 
-  let addFuns (env : t) (loc : AST.l) (qid : Ident.t) (ftys : funtype list) :
+  let addFuns (env : t) (loc : Loc.t) (qid : Ident.t) (ftys : funtype list) :
       unit =
     env.functions <- Bindings.add qid ftys env.functions
 
@@ -257,7 +257,7 @@ end = struct
   let getSetterFun (env : t) (qid : Ident.t) : funtype list =
     match Bindings.find_opt qid env.setters with None -> [] | Some tys -> tys
 
-  let addOperators1 (env : t) (loc : AST.l) (op : AST.unop)
+  let addOperators1 (env : t) (loc : Loc.t) (op : AST.unop)
       (funs : funtype list) : unit =
     List.iter (function fty -> FMT.add_unop op fty.funname) funs;
     env.operators1 <-
@@ -267,10 +267,10 @@ end = struct
           Some (List.append funs old))
         env.operators1
 
-  let getOperators1 (env : t) (loc : AST.l) (op : AST.unop) : funtype list =
+  let getOperators1 (env : t) (loc : Loc.t) (op : AST.unop) : funtype list =
     Option.value (Operators1.find_opt op env.operators1) ~default:[]
 
-  let addOperators2 (env : t) (loc : AST.l) (op : AST.binop)
+  let addOperators2 (env : t) (loc : Loc.t) (op : AST.binop)
       (funs : funtype list) : unit =
     List.iter (function fty -> FMT.add_binop op fty.funname) funs;
     env.operators2 <-
@@ -280,7 +280,7 @@ end = struct
           Some (List.append funs old))
         env.operators2
 
-  let getOperators2 (env : t) (loc : AST.l) (op : AST.binop) : funtype list =
+  let getOperators2 (env : t) (loc : Loc.t) (op : AST.binop) : funtype list =
     Option.value (Operators2.find_opt op env.operators2) ~default:[]
 
   let addGlobalVar (env : t) (v : var_info) : unit =
@@ -306,7 +306,7 @@ let subst_consts_type (env : GlobalEnv.t) (ty : AST.ty) : AST.ty =
   subst_fun_type (GlobalEnv.getConstant env) ty
 
 (** expand a type definition using type parameters *)
-let expand_type (loc : AST.l) (ps : Ident.t list) (ty : AST.ty) (es : expr list) : AST.ty =
+let expand_type (loc : Loc.t) (ps : Ident.t list) (ty : AST.ty) (es : expr list) : AST.ty =
   if List.length ps <> List.length es then begin
     raise (TypeError (loc, "wrong number of type parameters"))
   end;
@@ -314,7 +314,7 @@ let expand_type (loc : AST.l) (ps : Ident.t list) (ty : AST.ty) (es : expr list)
   subst_type bs ty
 
 (** dereference typedef *)
-let rec derefType (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.ty =
+let rec derefType (env : GlobalEnv.t) (loc : Loc.t) (ty : AST.ty) : AST.ty =
   match ty with
   | Type_Constructor (tc, es) -> (
       match GlobalEnv.getType env tc with
@@ -324,7 +324,7 @@ let rec derefType (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.ty =
       | _ -> ty)
   | _ -> ty
 
-let width_of_type (env : GlobalEnv.t) (loc : AST.l) (ty : AST.ty) : AST.expr =
+let width_of_type (env : GlobalEnv.t) (loc : Loc.t) (ty : AST.ty) : AST.expr =
   let ty' = derefType env loc ty in
   Utils.from_option (Asl_utils.width_of_type ty')
     (fun _ -> raise (InternalError
@@ -346,7 +346,7 @@ type fieldtypes =
   | FT_Register of (AST.slice list * Ident.t) list
 
 (** Get fieldtype information for a record/register type *)
-let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
+let typeFields (env : GlobalEnv.t) (loc : Loc.t) (x : ty) : fieldtypes =
   match derefType env loc x with
   | Type_Constructor (tc, es) -> (
       match GlobalEnv.getType env tc with
@@ -363,7 +363,7 @@ let typeFields (env : GlobalEnv.t) (loc : AST.l) (x : ty) : fieldtypes =
   | _ -> raise (IsNotA (loc, "record/register", pp_type x))
 
 (** Get fieldtype information for a named field of a record *)
-let get_recordfield (loc : AST.l) (rfs : (Ident.t * ty) list) (f : Ident.t) : AST.ty
+let get_recordfield (loc : Loc.t) (rfs : (Ident.t * ty) list) (f : Ident.t) : AST.ty
     =
   match List.filter (fun (fnm, _) -> fnm = f) rfs with
   | [ (_, fty) ] -> fty
@@ -371,7 +371,7 @@ let get_recordfield (loc : AST.l) (rfs : (Ident.t * ty) list) (f : Ident.t) : AS
   | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
 
 (** Get fieldtype information for a named field of a slice *)
-let get_regfield_info (loc : AST.l) (rfs : (AST.slice list * Ident.t) list)
+let get_regfield_info (loc : Loc.t) (rfs : (AST.slice list * Ident.t) list)
     (f : Ident.t) : AST.slice list =
   match List.filter (fun (_, fnm) -> fnm = f) rfs with
   | [ (ss, _) ] -> ss
@@ -379,13 +379,13 @@ let get_regfield_info (loc : AST.l) (rfs : (AST.slice list * Ident.t) list)
   | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
 
 (** Get named field of a register and calculate type *)
-let get_regfield (loc : AST.l) (rfs : (AST.slice list * Ident.t) list) (f : Ident.t)
+let get_regfield (loc : Loc.t) (rfs : (AST.slice list * Ident.t) list) (f : Ident.t)
     : AST.slice list * AST.ty =
   let ss = get_regfield_info loc rfs f in
   (ss, type_bits (slices_width ss))
 
 (** Get named fields of a register and calculate type of concatenating them *)
-let get_regfields (loc : AST.l) (rfs : (AST.slice list * Ident.t) list)
+let get_regfields (loc : Loc.t) (rfs : (AST.slice list * Ident.t) list)
     (fs : Ident.t list) : AST.slice list * AST.ty =
   let ss = List.flatten (List.map (get_regfield_info loc rfs) fs) in
   (ss, type_bits (slices_width ss))
@@ -403,7 +403,7 @@ module Env : sig
   val addLocalVar : t -> var_info -> unit
   val getVar : t -> Ident.t -> var_info option
   val markModified : t -> Ident.t -> unit
-  val addConstraint : t -> AST.l -> AST.expr -> unit
+  val addConstraint : t -> Loc.t -> AST.expr -> unit
   val getConstraints : t -> AST.expr list
   val setReturnType : t -> AST.ty -> unit
   val getReturnType : t -> AST.ty option
@@ -478,7 +478,7 @@ end = struct
   let markModified (env : t) (v : Ident.t) : unit =
     env.modified <- IdentSet.add v env.modified
 
-  let addConstraint (env : t) (loc : AST.l) (c : AST.expr) : unit =
+  let addConstraint (env : t) (loc : Loc.t) (c : AST.expr) : unit =
     env.constraints <- c :: env.constraints
 
   let getConstraints (env : t) : AST.expr list = env.constraints
@@ -703,7 +703,7 @@ let constraint_union (ocrs1 : constraint_range list option) (ocrs2 : constraint_
   )
 
 let check_equality
-  (env : Env.t) (loc : AST.l)
+  (env : Env.t) (loc : Loc.t)
   (x : AST.expr) (y : AST.expr)
   : unit =
   let x' = simplify_expr x in
@@ -751,7 +751,7 @@ let is_subrange (env : Env.t) (crs1 : constraint_range list) (crs2 : constraint_
   end;
   r
 
-let check_subrange_satisfies (env : Env.t) (loc : AST.l) (ocrs1 : constraint_range list option) (ocrs2 : constraint_range list option) : unit =
+let check_subrange_satisfies (env : Env.t) (loc : Loc.t) (ocrs1 : constraint_range list option) (ocrs2 : constraint_range list option) : unit =
   ( match (ocrs1, ocrs2) with
   | (_, None) -> ()
   | (None, Some crs2) ->
@@ -775,7 +775,7 @@ let check_subrange_satisfies (env : Env.t) (loc : AST.l) (ocrs1 : constraint_ran
     This differs from eq_structural and synthesize_type (below)
     in that it checks the dependent part of the type.
  *)
-let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : unit =
+let rec check_subtype_satisfies (env : Env.t) (loc : Loc.t) (ty1 : AST.ty) (ty2 : AST.ty) : unit =
   let genv = Env.globals env in
   (* Substitute global constants in types *)
   let subst_consts = new substFunClass (GlobalEnv.getConstant genv) in
@@ -817,7 +817,7 @@ let rec check_subtype_satisfies (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 
  *
  *  If no supertype exists, report an error.
  *)
-let rec least_supertype (env : Env.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : AST.ty =
+let rec least_supertype (env : Env.t) (loc : Loc.t) (ty1 : AST.ty) (ty2 : AST.ty) : AST.ty =
   let genv = Env.globals env in
   (* Substitute global constants in types *)
   let subst_consts = new substFunClass (GlobalEnv.getConstant genv) in
@@ -897,7 +897,7 @@ let synthesize_equality (s : (AST.expr option) Scope.t) (x : AST.expr) (y : AST.
  *  have been determined.
  *)
 let rec synthesize_type
-  (env : Env.t) (loc : AST.l) (s : AST.expr option Scope.t)
+  (env : Env.t) (loc : Loc.t) (s : AST.expr option Scope.t)
   (ty1 : AST.ty) (ty2 : AST.ty)
   : unit =
   let genv = Env.globals env in
@@ -919,7 +919,7 @@ let rec synthesize_type
 (** Synthesize all the parameter values by matching actual argument types
  *  against the formal argument types.
  *)
-let synthesize_parameters (env : Env.t) (loc : AST.l)
+let synthesize_parameters (env : Env.t) (loc : Loc.t)
     (fty : funtype) (es : AST.expr list) (tys : AST.ty list) : AST.expr Bindings.t =
   assert (List.length fty.atys = List.length es);
   let genv = Env.globals env in
@@ -1113,7 +1113,7 @@ type fun_instance =
   }
 
 (** Instantiate type of function *)
-let instantiate_fun (env : Env.t) (loc : AST.l)
+let instantiate_fun (env : Env.t) (loc : Loc.t)
     (fty : funtype) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
   (* Format.printf "%a: Synthesizing parameters for call to %a\n" FMT.loc loc FMT.varname fty.funname; *)
   let bs = synthesize_parameters env loc fty es tys in
@@ -1149,7 +1149,7 @@ let instantiate_fun (env : Env.t) (loc : AST.l)
  *
  *  This is called "type-clashing" in ASL 1.0
  *)
-let rec eq_structural (env : GlobalEnv.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AST.ty) : bool =
+let rec eq_structural (env : GlobalEnv.t) (loc : Loc.t) (ty1 : AST.ty) (ty2 : AST.ty) : bool =
   match (derefType env loc ty1, derefType env loc ty2) with
   | Type_Integer _, Type_Integer _ -> true
   | Type_Bits (e1, _), Type_Bits (e2, _) -> true
@@ -1168,7 +1168,7 @@ let rec eq_structural (env : GlobalEnv.t) (loc : AST.l) (ty1 : AST.ty) (ty2 : AS
   | _ -> false
 
 (** Generate error message when function disambiguation fails *)
-let reportChoices (loc : AST.l) (what : string) (nm : string)
+let reportChoices (loc : Loc.t) (what : string) (nm : string)
     (tys : AST.ty list) (funs : funtype list) : unit =
   FMT.loc fmt loc;
   FMT.colon fmt;
@@ -1192,7 +1192,7 @@ let reportChoices (loc : AST.l) (what : string) (nm : string)
     One function type is compatible with another if they have the same number
     of arguments and each argument has the same base type
  *)
-let isCompatibleFunction (env : GlobalEnv.t) (loc : AST.l) (isArr : bool) (tys : AST.ty list)
+let isCompatibleFunction (env : GlobalEnv.t) (loc : Loc.t) (isArr : bool) (tys : AST.ty list)
     (fty : funtype) : bool =
   let nargs = List.length tys in
   isArr = fty.isArray
@@ -1200,7 +1200,7 @@ let isCompatibleFunction (env : GlobalEnv.t) (loc : AST.l) (isArr : bool) (tys :
   && List.for_all2 (eq_structural env loc) (List.map snd fty.atys) tys
 
 (** Disambiguate a function name based on the number and type of arguments *)
-let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
+let chooseFunction (env : GlobalEnv.t) (loc : Loc.t) (what : string)
     (nm : string) (isArr : bool) (tys : AST.ty list) (funs : funtype list) :
     funtype option =
   let funs' = List.filter (isCompatibleFunction env loc isArr tys) funs in
@@ -1214,7 +1214,7 @@ let chooseFunction (env : GlobalEnv.t) (loc : AST.l) (what : string)
       reportChoices loc what nm tys fs;
       raise (Ambiguous (loc, what, nm))
 
-let check_duplicate_field_names (fx : 'a -> Ident.t) (fs : 'a list) (loc : AST.l) =
+let check_duplicate_field_names (fx : 'a -> Ident.t) (fs : 'a list) (loc : Loc.t) =
   let fieldnames = ref IdentSet.empty in
   List.iter (fun f ->
       let f' = fx f in
@@ -1229,7 +1229,7 @@ let check_duplicate_field_names (fx : 'a -> Ident.t) (fs : 'a list) (loc : AST.l
     fs
 
 (** Disambiguate and typecheck application of a function to a list of arguments *)
-let tc_apply (env : Env.t) (loc : AST.l) (what : string)
+let tc_apply (env : Env.t) (loc : Loc.t) (what : string)
     (f : Ident.t) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
   let genv = Env.globals env in
   let funs = GlobalEnv.getFuns genv f in
@@ -1248,7 +1248,7 @@ let tc_apply (env : Env.t) (loc : AST.l) (what : string)
       )
 
 (** Disambiguate and typecheck application of a unary operator to argument *)
-let tc_unop (env : Env.t) (loc : AST.l) (op : unop)
+let tc_unop (env : Env.t) (loc : Loc.t) (op : unop)
     (x : AST.expr) (ty : AST.ty) : fun_instance =
   let genv = Env.globals env in
   let what = "unary operator" in
@@ -1263,7 +1263,7 @@ let tc_unop (env : Env.t) (loc : AST.l) (op : unop)
       instantiate_fun env loc fty [ x ] tys
 
 (** Disambiguate and typecheck application of a binary operator to arguments *)
-let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
+let tc_binop (env : Env.t) (loc : Loc.t) (op : binop)
     (x1 : AST.expr) (x2 : AST.expr) (ty1 : AST.ty) (ty2 : AST.ty) :
     fun_instance =
   let genv = Env.globals env in
@@ -1283,11 +1283,11 @@ let tc_binop (env : Env.t) (loc : AST.l) (op : binop)
 (****************************************************************)
 
 (** Lookup a variable in environment *)
-let get_var (env : Env.t) (loc : AST.l) (v : Ident.t) : var_info =
+let get_var (env : Env.t) (loc : Loc.t) (v : Ident.t) : var_info =
   from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", Ident.pprint v)))
 
 (** check that we have exactly the fields required *)
-let check_field_assignments (loc : AST.l) (fs : (Ident.t * ty) list) (fas : (Ident.t * expr) list) : unit =
+let check_field_assignments (loc : Loc.t) (fs : (Ident.t * ty) list) (fas : (Ident.t * expr) list) : unit =
   let expected = IdentSet.of_list (List.map fst fs) in
   let assigned = IdentSet.of_list (List.map fst fas) in
   if not (IdentSet.equal assigned expected) then begin
@@ -1302,12 +1302,12 @@ let check_field_assignments (loc : AST.l) (fs : (Ident.t * ty) list) (fas : (Ide
   end
 
 (** Typecheck list of expressions *)
-let rec tc_exprs (env : Env.t) (loc : AST.l) (xs : AST.expr list)
+let rec tc_exprs (env : Env.t) (loc : Loc.t) (xs : AST.expr list)
     : (AST.expr * AST.ty) list =
   List.map (tc_expr env loc) xs
 
 (** Typecheck expression and check that it is a subtype of ty *)
-and check_expr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.expr) :
+and check_expr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.expr) :
     AST.expr =
   let (x', ty') = tc_expr env loc x in
   if verbose then
@@ -1316,7 +1316,7 @@ and check_expr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.expr) :
   x'
 
 (** Typecheck 'if c then expr' *)
-and tc_e_elsif (env : Env.t) (loc : AST.l) (x : AST.e_elsif) :
+and tc_e_elsif (env : Env.t) (loc : Loc.t) (x : AST.e_elsif) :
     AST.e_elsif * AST.ty =
   match x with
   | E_Elsif_Cond (c, e) ->
@@ -1325,7 +1325,7 @@ and tc_e_elsif (env : Env.t) (loc : AST.l) (x : AST.e_elsif) :
       (E_Elsif_Cond (c', e'), ty)
 
 (** Typecheck bitslice indices *)
-and tc_slice (env : Env.t) (loc : AST.l) (x : AST.slice) :
+and tc_slice (env : Env.t) (loc : Loc.t) (x : AST.slice) :
     AST.slice * AST.ty =
   match x with
   | Slice_Single e ->
@@ -1345,7 +1345,7 @@ and tc_slice (env : Env.t) (loc : AST.l) (x : AST.slice) :
       (Slice_Element (lo', wd'), type_integer)
 
 (** Typecheck pattern against type ty *)
-and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
+and tc_pattern (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.pattern) :
     AST.pattern =
   match x with
   | Pat_LitInt l ->
@@ -1401,7 +1401,7 @@ and tc_pattern (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.pattern) :
     This primarily consists of disambiguating between array indexing and bitslicing
     Note that this function is almost identical to tc_slice_lexpr
  *)
-and tc_slice_expr (env : Env.t) (loc : AST.l) (x : expr)
+and tc_slice_expr (env : Env.t) (loc : Loc.t) (x : expr)
     (ss : (AST.slice * AST.ty) list) : AST.expr * AST.ty =
   if List.length ss = 0 then raise (TypeError (loc, "empty list of subscripts"));
   let ss' = List.map fst ss in
@@ -1420,7 +1420,7 @@ and tc_slice_expr (env : Env.t) (loc : AST.l) (x : expr)
   | _ -> raise (TypeError (loc, "slice of expr"))
 
 (** Typecheck expression *)
-and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
+and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
     AST.expr * AST.ty =
   match x with
   | Expr_If (c, t, els, e) ->
@@ -1647,11 +1647,11 @@ and tc_expr (env : Env.t) (loc : AST.l) (x : AST.expr) :
       (Expr_AsType (e', t'), t')
 
 (** Typecheck list of types *)
-and tc_types (env : Env.t) (loc : AST.l) (xs : AST.ty list) : AST.ty list =
+and tc_types (env : Env.t) (loc : Loc.t) (xs : AST.ty list) : AST.ty list =
   List.map (tc_type env loc) xs
 
 (** Typecheck type *)
-and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
+and tc_type (env : Env.t) (loc : Loc.t) (x : AST.ty) : AST.ty =
   match x with
   | Type_Integer ocrs ->
       let ocrs' = Option.map (tc_constraints env loc) ocrs in
@@ -1690,12 +1690,12 @@ and tc_type (env : Env.t) (loc : AST.l) (x : AST.ty) : AST.ty =
       Type_Tuple tys'
 
 (* check ty and check that ty1 is a subtype of ty. *)
-and check_type (env : Env.t) (loc : l) (ty1 : ty) (ty : ty) : ty =
+and check_type (env : Env.t) (loc : Loc.t) (ty1 : ty) (ty : ty) : ty =
   let ty' = tc_type env loc ty in
   check_subtype_satisfies env loc ty1 ty';
   ty'
 
-and tc_constraint (env : Env.t) (loc : AST.l) (c : AST.constraint_range) :
+and tc_constraint (env : Env.t) (loc : Loc.t) (c : AST.constraint_range) :
     AST.constraint_range =
   match c with
   | Constraint_Single e ->
@@ -1706,7 +1706,7 @@ and tc_constraint (env : Env.t) (loc : AST.l) (c : AST.constraint_range) :
       let hi' = check_expr env loc type_integer hi in
       Constraint_Range (lo', hi')
 
-and tc_constraints (env : Env.t) (loc : AST.l) (cs : AST.constraint_range list)
+and tc_constraints (env : Env.t) (loc : Loc.t) (cs : AST.constraint_range list)
     : AST.constraint_range list =
   List.map (tc_constraint env loc) cs
 
@@ -1719,7 +1719,7 @@ and tc_constraints (env : Env.t) (loc : AST.l) (cs : AST.constraint_range list)
     This primarily consists of disambiguating between array indexing and bitslicing
     Note that this function is almost identical to tc_slice_expr
  *)
-let rec tc_slice_lexpr (env : Env.t) (loc : AST.l) (x : lexpr)
+let rec tc_slice_lexpr (env : Env.t) (loc : Loc.t) (x : lexpr)
     (ss : (AST.slice * AST.ty) list) : AST.lexpr * AST.ty =
   if List.length ss = 0 then raise (TypeError (loc, "empty list of subscripts"));
   let ss' = List.map fst ss in
@@ -1745,7 +1745,7 @@ let rec tc_slice_lexpr (env : Env.t) (loc : AST.l) (x : lexpr)
 (** Typecheck left hand side of expression in context where
     type of right hand side is not yet known
  *)
-and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
+and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
     AST.lexpr * AST.ty =
   match x with
   | LExpr_Wildcard -> raise (TypeError (loc, "wildcard in lexpr2"))
@@ -1876,7 +1876,7 @@ and tc_lexpr2 (env : Env.t) (loc : AST.l) (x : AST.lexpr) :
 (** Typecheck left hand side of expression and check that rhs type 'ty' is compatible.
     Return set of variables assigned to in this expression
  *)
-let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST.lexpr =
+let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST.lexpr =
   match x with
   | LExpr_Wildcard ->
       LExpr_Wildcard
@@ -2039,7 +2039,7 @@ let rec tc_lexpr (env : Env.t) (loc : AST.l) (ty : AST.ty) (x : AST.lexpr) : AST
       | _ -> raise (TypeError (loc, "subscript of non-array")))
   | _ -> raise (InternalError (loc, "tc_lexpr", (fun fmt -> FMT.lexpr fmt x), __LOC__))
 
-let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x : AST.decl_item) : unit =
+let rec add_decl_item_vars (env : Env.t) (loc : Loc.t) (is_constant : bool) (x : AST.decl_item) : unit =
   match x with
   | DeclItem_Var (v, Some ty) ->
       Env.addLocalVar env {name=v; loc; ty; is_local=true; is_constant}
@@ -2058,7 +2058,7 @@ let rec add_decl_item_vars (env : Env.t) (loc : AST.l) (is_constant : bool) (x :
       raise (InternalError
         (loc, "visit_declitem", (fun fmt -> FMT.decl_item fmt x), __LOC__))
 
-let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (Ident.t option * AST.ty)) : (Ident.t option * AST.ty) =
+let tc_decl_bit (env : Env.t) (loc : Loc.t) (x : (Ident.t option * AST.ty)) : (Ident.t option * AST.ty) =
   let (ov, ty) = x in
   let ty' = tc_type env loc ty in
   ( match ty' with
@@ -2067,7 +2067,7 @@ let tc_decl_bit (env : Env.t) (loc : AST.l) (x : (Ident.t option * AST.ty)) : (I
   )
 
 (* typecheck a decl_item using the type `ity` of the initializer *)
-let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_item) : AST.decl_item =
+let rec tc_decl_item (env : Env.t) (loc : Loc.t) (ity : AST.ty) (x : AST.decl_item) : AST.decl_item =
   match (ity, x) with
   | (ity, DeclItem_Var (v, None)) ->
     DeclItem_Var (v, Some ity)
@@ -2097,7 +2097,7 @@ let rec tc_decl_item (env : Env.t) (loc : AST.l) (ity : AST.ty) (x : AST.decl_it
       DeclItem_Wildcard (Some ty')
 
 (** Typecheck list of statements *)
-let rec tc_stmts (env : Env.t) (loc : AST.l) (xs : AST.stmt list) :
+let rec tc_stmts (env : Env.t) (loc : Loc.t) (xs : AST.stmt list) :
     AST.stmt list =
   Env.nest
     (fun env' -> List.map (tc_stmt env') xs)
@@ -2121,7 +2121,7 @@ and tc_alt (env : Env.t) (ty : AST.ty) (x : AST.alt) : AST.alt =
       Alt_Alt (ps', oc', b', loc)
 
 (** Typecheck exception catcher 'when expr stmt' *)
-and tc_catcher (env : Env.t) (loc : AST.l) (x : AST.catcher) : AST.catcher =
+and tc_catcher (env : Env.t) (loc : Loc.t) (x : AST.catcher) : AST.catcher =
   match x with
   | Catcher_Guarded (v, tc, b, loc) ->
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
@@ -2252,7 +2252,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
 let tc_body = tc_stmts
 
 (** Typecheck function parameter *)
-let tc_parameter (env : Env.t) (loc : AST.l)
+let tc_parameter (env : Env.t) (loc : Loc.t)
     ((arg, oty) : Ident.t * AST.ty option) : Ident.t * AST.ty option =
   let ty' =
     ( match oty with
@@ -2272,7 +2272,7 @@ let tc_parameter (env : Env.t) (loc : AST.l)
 (** Typecheck function argument *)
 let tc_argument
     (env : Env.t)
-    (loc : AST.l)
+    (loc : Loc.t)
     (ps : (Ident.t * AST.ty option) list)
     ((arg, ty) : Ident.t * AST.ty)
   : Ident.t * AST.ty
@@ -2296,7 +2296,7 @@ let mangle_setter_name (f : Ident.t) (fty : AST.function_type) : Ident.t =
 
 (** Typecheck list of function arguments *)
 (* todo: if this is a getter/setter check that if a setter function exists, it has a compatible type *)
-let tc_funtype (env : Env.t) (loc : AST.l) (fty : AST.function_type) : AST.function_type =
+let tc_funtype (env : Env.t) (loc : Loc.t) (fty : AST.function_type) : AST.function_type =
   let args = fty.args @ Option.to_list fty.setter_arg in
   let rty = Option.value fty.rty ~default:type_unit in
 
@@ -2359,7 +2359,7 @@ let tc_funtype (env : Env.t) (loc : AST.l) (fty : AST.function_type) : AST.funct
   }
 
 (** Add function definition to environment *)
-let addFunction (env : GlobalEnv.t) (loc : AST.l) (qid : Ident.t) (fty : AST.function_type) : funtype =
+let addFunction (env : GlobalEnv.t) (loc : Loc.t) (qid : Ident.t) (fty : AST.function_type) : funtype =
   let argtys = List.map (fun (_, ty) -> ty) fty.args in
   let is_setter = Option.is_some fty.setter_arg in
   let funs = if is_setter then GlobalEnv.getSetterFun env qid else GlobalEnv.getFuns env qid in

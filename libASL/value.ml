@@ -27,7 +27,7 @@ type value =
   | VBits of bitvector
   | VMask of mask
   | VString of string
-  | VExc of (AST.l * Ident.t * value Asl_utils.Bindings.t)
+  | VExc of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Bindings.t
   | VArray of (value ImmutableArray.t * value)
@@ -40,8 +40,8 @@ type value =
 (****************************************************************)
 
 exception Return of value option
-exception EvalError of (AST.l * string)
-exception Throw of (AST.l * Ident.t * value Asl_utils.Bindings.t)
+exception EvalError of (Loc.t * string)
+exception Throw of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
 
 (****************************************************************)
 (** {2 Printer for values}                                      *)
@@ -107,52 +107,52 @@ let rec eq_value (x : value) (y : value) : bool =
 
 let from_bool (x : bool) : value = VBool x
 
-let to_bool (loc : AST.l) (x : value) : bool =
+let to_bool (loc : Loc.t) (x : value) : bool =
   match x with
   | VBool b -> b
   | _ -> raise (EvalError (loc, "boolean expected.  Got " ^ string_of_value x))
 
-let to_integer (loc : AST.l) (x : value) : bigint =
+let to_integer (loc : Loc.t) (x : value) : bigint =
   match x with
   | VInt i -> i
   | _ -> raise (EvalError (loc, "integer expected. Got " ^ string_of_value x))
 
 (* todo: this should raise an exception if out of range *)
-let to_int (loc : AST.l) (x : value) : int =
+let to_int (loc : Loc.t) (x : value) : int =
   match x with
   | VInt i -> Z.to_int i
   | _ -> raise (EvalError (loc, "integer expected. Got " ^ string_of_value x))
 
-let to_bits (loc : AST.l) (x : value) : bitvector =
+let to_bits (loc : Loc.t) (x : value) : bitvector =
   match x with
   | VBits b -> b
   | _ -> raise (EvalError (loc, "bits expected. Got " ^ string_of_value x))
 
-let to_mask (loc : AST.l) (x : value) : mask =
+let to_mask (loc : Loc.t) (x : value) : mask =
   match x with
   | VMask m -> m
   | _ -> raise (EvalError (loc, "mask expected. Got " ^ string_of_value x))
 
-let to_string (loc : AST.l) (x : value) : string =
+let to_string (loc : Loc.t) (x : value) : string =
   match x with
   | VString s -> s
   | _ -> raise (EvalError (loc, "string expected. Got " ^ string_of_value x))
 
-let to_exc (loc : AST.l) (x : value) : AST.l * Ident.t * value Asl_utils.Bindings.t =
+let to_exc (loc : Loc.t) (x : value) : Loc.t * Ident.t * value Asl_utils.Bindings.t =
   match x with
   | VExc (loc, exc, fs) -> (loc, exc, fs)
   | _ -> raise (EvalError (loc, "exception expected. Got " ^ string_of_value x))
 
 let to_tuple (xs : value list) : value = VTuple xs
 
-let of_tuple (loc : AST.l) (x : value) : value list =
+let of_tuple (loc : Loc.t) (x : value) : value list =
   match x with
   | VTuple xs -> xs
   | _ -> raise (EvalError (loc, "tuple expected. Got " ^ string_of_value x))
 
 let mkrecord (fs : (Ident.t * value) list) : value = VRecord (mk_bindings fs)
 
-let get_field (loc : AST.l) (x : value) (f : Ident.t) : value =
+let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
   match x with
   | VRecord fs ->
       ( match Bindings.find_opt f fs with
@@ -161,7 +161,7 @@ let get_field (loc : AST.l) (x : value) (f : Ident.t) : value =
       )
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
 
-let set_field (loc : AST.l) (x : value) (f : Ident.t) (v : value) : value =
+let set_field (loc : Loc.t) (x : value) (f : Ident.t) (v : value) : value =
   match x with
   | VRecord fs -> VRecord (Bindings.add f v fs)
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
@@ -171,7 +171,7 @@ let empty_array (d : value) : value = VArray (prim_empty_array, d)
 let init_array (inits : (int * value) list) (d : value) : value =
   VArray (prim_init_array inits, d)
 
-let get_array (loc : AST.l) (a : value) (i : value) : value =
+let get_array (loc : Loc.t) (a : value) (i : value) : value =
   match (a, i) with
   | VArray (x, d), VInt i' -> prim_read_array x (Z.to_int i') d
   | VArray (x, d), VEnum i' -> prim_read_array x (snd i') d
@@ -179,7 +179,7 @@ let get_array (loc : AST.l) (a : value) (i : value) : value =
       raise (EvalError (loc, "array index expected. Got " ^ string_of_value i))
   | _ -> raise (EvalError (loc, "array expected. Got " ^ string_of_value a))
 
-let set_array (loc : AST.l) (a : value) (i : value) (v : value) : value =
+let set_array (loc : Loc.t) (a : value) (i : value) (v : value) : value =
   match (a, i) with
   | VArray (x, d), VInt i' -> VArray (prim_write_array x (Z.to_int i') v, d)
   | VArray (x, d), VEnum i' -> VArray (prim_write_array x (snd i') v, d)
@@ -716,29 +716,29 @@ let impure_prims =
 (** {2 Utility functions on Values}                             *)
 (****************************************************************)
 
-let extract_bits (loc : AST.l) (x : value) (i : value) (w : value) : value =
+let extract_bits (loc : Loc.t) (x : value) (i : value) (w : value) : value =
   VBits (prim_extract (to_bits loc x) (to_integer loc i) (to_integer loc w))
 
-let extract_bits' (loc : AST.l) (x : value) (i : int) (w : int) : value =
+let extract_bits' (loc : Loc.t) (x : value) (i : int) (w : int) : value =
   VBits (prim_extract (to_bits loc x) (Z.of_int i) (Z.of_int w))
 
-let extract_bits'' (loc : AST.l) (x : value) (i : value) (w : value) : value =
+let extract_bits'' (loc : Loc.t) (x : value) (i : value) (w : value) : value =
   match x with
   | VInt x' -> VBits (prim_extract_int x' (to_integer loc i) (to_integer loc w))
   | VBits x' -> VBits (prim_extract x' (to_integer loc i) (to_integer loc w))
   | _ -> raise (EvalError (loc, "bits or integer expected. Got " ^ string_of_value x))
 
-let insert_bits (loc : AST.l) (x : value) (i : value) (w : value) (y : value) :
+let insert_bits (loc : Loc.t) (x : value) (i : value) (w : value) (y : value) :
     value =
   VBits
     (prim_insert (to_bits loc x) (to_integer loc i) (to_integer loc w)
        (to_bits loc y))
 
-let insert_bits' (loc : AST.l) (x : value) (i : int) (w : int) (y : value) :
+let insert_bits' (loc : Loc.t) (x : value) (i : int) (w : int) (y : value) :
     value =
   VBits (prim_insert (to_bits loc x) (Z.of_int i) (Z.of_int w) (to_bits loc y))
 
-let rec eval_eq (loc : AST.l) (x : value) (y : value) : bool =
+let rec eval_eq (loc : Loc.t) (x : value) (y : value) : bool =
   match (x, y) with
   | VBool x', VBool y' -> prim_eq_bool x' y'
   | VEnum x', VEnum y' -> snd x' = snd y'
@@ -754,31 +754,31 @@ let rec eval_eq (loc : AST.l) (x : value) (y : value) : bool =
              "matchable types expected. Got " ^ string_of_value x ^ ", " ^ string_of_value y
            ))
 
-let eval_leq (loc : AST.l) (x : value) (y : value) : bool =
+let eval_leq (loc : Loc.t) (x : value) (y : value) : bool =
   match (x, y) with
   | VInt x', VInt y' -> prim_le_int x' y'
   | _ -> raise (EvalError (loc, "integer expected + string_of_value x"))
 
-let eval_eq_int (loc : AST.l) (x : value) (y : value) : bool =
+let eval_eq_int (loc : Loc.t) (x : value) (y : value) : bool =
   prim_eq_int (to_integer loc x) (to_integer loc y)
 
-let eval_eq_bits (loc : AST.l) (x : value) (y : value) : bool =
+let eval_eq_bits (loc : Loc.t) (x : value) (y : value) : bool =
   prim_eq_bits (to_bits loc x) (to_bits loc y)
 
 (* todo: should m be a value or a mask? *)
-let eval_inmask (loc : AST.l) (x : value) (m : value) : bool =
+let eval_inmask (loc : Loc.t) (x : value) (m : value) : bool =
   prim_in_mask (to_bits loc x) (to_mask loc m)
 
-let eval_add_int (loc : AST.l) (x : value) (y : value) : value =
+let eval_add_int (loc : Loc.t) (x : value) (y : value) : value =
   VInt (prim_add_int (to_integer loc x) (to_integer loc y))
 
-let eval_mul_int (loc : AST.l) (x : value) (y : value) : value =
+let eval_mul_int (loc : Loc.t) (x : value) (y : value) : value =
   VInt (prim_mul_int (to_integer loc x) (to_integer loc y))
 
-let eval_sub_int (loc : AST.l) (x : value) (y : value) : value =
+let eval_sub_int (loc : Loc.t) (x : value) (y : value) : value =
   VInt (prim_sub_int (to_integer loc x) (to_integer loc y))
 
-let eval_concat (loc : AST.l) (xs : value list) : value =
+let eval_concat (loc : Loc.t) (xs : value list) : value =
   let xs' = List.map (to_bits loc) xs in
   VBits (prim_concat_bits xs')
 

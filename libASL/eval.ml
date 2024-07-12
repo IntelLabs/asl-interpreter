@@ -49,7 +49,7 @@ end
 module GlobalEnv = struct
   type t = {
     mutable functions :
-      (Ident.t list * Ident.t list * AST.l * stmt list) Bindings.t;
+      (Ident.t list * Ident.t list * Loc.t * stmt list) Bindings.t;
     mutable enums : value list Bindings.t;
     mutable records : (Ident.t list * (Ident.t * AST.ty) list) Bindings.t;
     mutable typedefs : (Ident.t list * AST.ty) Bindings.t;
@@ -99,11 +99,11 @@ module GlobalEnv = struct
     Bindings.find_opt x env.typedefs
 
   let get_function (env : t) (x : Ident.t) :
-      (Ident.t list * Ident.t list * AST.l * stmt list) option =
+      (Ident.t list * Ident.t list * Loc.t * stmt list) option =
     Bindings.find_opt x env.functions
 
-  let addFun (loc : l) (env : t) (x : Ident.t)
-      (def : Ident.t list * Ident.t list * AST.l * stmt list) : unit =
+  let addFun (loc : Loc.t) (env : t) (x : Ident.t)
+      (def : Ident.t list * Ident.t list * Loc.t * stmt list) : unit =
     if false then Printf.printf "Adding function %s\n" (Ident.pprint x);
     if Bindings.mem x env.functions then
       if true then () (* silently override *)
@@ -112,14 +112,14 @@ module GlobalEnv = struct
         Printf.printf
           "Stern warning: %s function %s conflicts with earlier definition - \
            discarding earlier definition\n"
-          (pp_loc loc) (Ident.pprint x)
+          (Loc.to_string loc) (Ident.pprint x)
       else raise (Error.Ambiguous (loc, "function definition", Ident.pprint x));
     env.functions <- Bindings.add x def env.functions
 
   let set_impl_def (env : t) (x : string) (v : value) : unit =
     env.impdefs <- ImpDefs.add x v env.impdefs
 
-  let getImpdef (loc : l) (env : t) (x : string) : value =
+  let getImpdef (loc : Loc.t) (env : t) (x : string) : value =
     match ImpDefs.find_opt x env.impdefs with
     | Some v -> v
     | None ->
@@ -164,12 +164,12 @@ module Env = struct
 
   let globals (env : t) : GlobalEnv.t = env.globalConsts
 
-  let addLocalVar (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
+  let addLocalVar (loc : Loc.t) (env : t) (x : Ident.t) (v : value) : unit =
     let module Tracer = (val (!tracer) : Tracer) in
     Tracer.trace_var ~is_local:true ~is_read:false x v;
     ScopeStack.add env.locals x v
 
-  let addLocalConst (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
+  let addLocalConst (loc : Loc.t) (env : t) (x : Ident.t) (v : value) : unit =
     (* todo: should constants be held separately from local vars? *)
     let module Tracer = (val (!tracer) : Tracer) in
     Tracer.trace_var ~is_local:true ~is_read:false x v;
@@ -178,7 +178,7 @@ module Env = struct
   let addGlobalVar (env : t) (x : Ident.t) (v : value) : unit =
     Scope.set env.globalVars x v
 
-  let getVar (loc : l) (env : t) (x : Ident.t) : value =
+  let getVar (loc : Loc.t) (env : t) (x : Ident.t) : value =
     match ScopeStack.get env.locals x with
     | Some r ->
         let module Tracer = (val (!tracer) : Tracer) in
@@ -194,7 +194,7 @@ module Env = struct
             from_option (GlobalEnv.get_global_constant env.globalConsts x)
               (fun _ -> raise (EvalError (loc, "getVar: " ^ Ident.pprint x)))
 
-  let setVar (loc : l) (env : t) (x : Ident.t) (v : value) : unit =
+  let setVar (loc : Loc.t) (env : t) (x : Ident.t) (v : value) : unit =
     if ScopeStack.set env.locals x v then begin
         let module Tracer = (val (!tracer) : Tracer) in
         Tracer.trace_var ~is_local:true ~is_read:false x v
@@ -217,7 +217,7 @@ let expand_type (ps : Ident.t list) (ty : AST.ty) (es : expr list) : AST.ty =
   subst_type bs ty
 
 (** Evaluate list of expressions *)
-let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
+let rec eval_exprs (loc : Loc.t) (env : Env.t) (xs : AST.expr list) : value list =
   List.map (eval_expr loc env) xs
 
 (** Create uninitialized value at given type
@@ -228,7 +228,7 @@ let rec eval_exprs (loc : l) (env : Env.t) (xs : AST.expr list) : value list =
     todo: bitvectors are currently set to UNKNOWN because the bitvector
     representation currently in use cannot track uninitialized bits
  *)
-and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
+and mk_uninitialized (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
   match x with
   | Type_Constructor (tc, es) ->
       ( match GlobalEnv.get_record (Env.globals env) tc with
@@ -253,7 +253,7 @@ and mk_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
   | _ -> VUninitialized (* should only be used for scalar types *)
 
 (** Evaluate UNKNOWN at given type *)
-and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
+and eval_unknown (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
   match x with
   | Type_Constructor (i, []) when Ident.equal i real_ident -> eval_unknown_real ()
   | Type_Constructor (i, []) when Ident.equal i string_ident ->
@@ -290,7 +290,7 @@ and eval_unknown (loc : l) (env : Env.t) (x : AST.ty) : value =
   | Type_Tuple tys -> VTuple (List.map (eval_unknown loc env) tys)
 
 (** Evaluate pattern match *)
-and eval_pattern (loc : l) (env : Env.t) (v : value) (x : AST.pattern) : bool =
+and eval_pattern (loc : Loc.t) (env : Env.t) (v : value) (x : AST.pattern) : bool =
   match x with
   | Pat_LitInt l -> eval_eq_int loc v (from_intLit l)
   | Pat_LitHex l -> eval_eq_int loc v (from_hexLit l)
@@ -311,7 +311,7 @@ and eval_pattern (loc : l) (env : Env.t) (v : value) (x : AST.pattern) : bool =
       eval_leq loc lo' v && eval_leq loc v hi'
 
 (** Evaluate bitslice bounds *)
-and eval_slice (loc : l) (env : Env.t) (x : AST.slice) : value * value =
+and eval_slice (loc : Loc.t) (env : Env.t) (x : AST.slice) : value * value =
   match x with
   | Slice_Single i ->
       let i' = eval_expr loc env i in
@@ -331,7 +331,7 @@ and eval_slice (loc : l) (env : Env.t) (x : AST.slice) : value * value =
       (lo', wd')
 
 (** Evaluate expression *)
-and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
+and eval_expr (loc : Loc.t) (env : Env.t) (x : AST.expr) : value =
   match x with
   | Expr_If (c, t, els, e) ->
       let rec eval_if xs d =
@@ -440,7 +440,7 @@ and eval_expr (loc : l) (env : Env.t) (x : AST.expr) : value =
       eval_expr loc env e
 
 (** Evaluate L-expression in write-mode (i.e., this is not a read-modify-write) *)
-and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
+and eval_lexpr (loc : Loc.t) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
   match x with
   | LExpr_Wildcard -> ()
   | LExpr_Var v -> Env.setVar loc env v r
@@ -496,7 +496,7 @@ and eval_lexpr (loc : l) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
     2. The function 'modify' is applied to the old value
     3. The result is written back to the L-expression.
  *)
-and eval_lexpr_modify (loc : l) (env : Env.t) (x : AST.lexpr)
+and eval_lexpr_modify (loc : Loc.t) (env : Env.t) (x : AST.lexpr)
     (modify : value -> value) : unit =
   match x with
   | LExpr_Var v -> Env.setVar loc env v (modify (Env.getVar loc env v))
@@ -520,7 +520,7 @@ and eval_lexpr_modify (loc : l) (env : Env.t) (x : AST.lexpr)
       eval_proccall loc env setter tvs (vs @ [ modify old ])
   | _ -> failwith "eval_lexpr_modify"
 
-and add_decl_item_vars (loc : AST.l) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
+and add_decl_item_vars (loc : Loc.t) (env : Env.t) (is_const : bool) (x : AST.decl_item) (i : value) : unit =
   match (x, i) with
   | (DeclItem_Var (v, _), i) ->
       if is_const then
@@ -671,7 +671,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
       )
 
 (** Evaluate call to function or procedure *)
-and eval_call (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
+and eval_call (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : unit =
   let module Tracer = (val (!tracer) : Tracer) in
   match eval_prim f tvs vs with
@@ -693,7 +693,7 @@ and eval_call (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
           eval_stmts env' b)
 
 (** Evaluate call to function *)
-and eval_funcall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
+and eval_funcall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : value =
   try
     eval_call loc env f tvs vs;
@@ -705,18 +705,18 @@ and eval_funcall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
       v
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (Ident.pprint f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.pprint f);
     raise ex
 
 (** Evaluate call to procedure *)
-and eval_proccall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
+and eval_proccall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
     (vs : value list) : unit =
   ( try eval_call loc env f tvs vs with
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (pp_loc loc) (Ident.pprint f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.pprint f);
     raise ex
   );
   let module Tracer = (val (!tracer) : Tracer) in
@@ -727,7 +727,7 @@ and eval_proccall (loc : l) (env : Env.t) (f : Ident.t) (tvs : value list)
 (****************************************************************)
 
 (* Uninitialized global variables are UNKNOWN by default *)
-let eval_uninitialized (loc : l) (env : Env.t) (x : AST.ty) : value =
+let eval_uninitialized (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
   eval_unknown loc env x
 
 (** Construct global constant environment from global declarations *)

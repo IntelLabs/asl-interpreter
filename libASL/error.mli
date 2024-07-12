@@ -5,13 +5,13 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-exception Unimplemented of (Asl_ast.l * string * (Format.formatter -> unit))
-exception UnknownObject of (Asl_ast.l * string * string)
-exception DoesNotMatch of (Asl_ast.l * string * string * string)
-exception IsNotA of (Asl_ast.l * string * string)
-exception Ambiguous of (Asl_ast.l * string * string)
-exception TypeError of (Asl_ast.l * string)
-exception ParseError of Asl_ast.l
+exception Unimplemented of (Loc.t * string * (Format.formatter -> unit))
+exception UnknownObject of (Loc.t * string * string)
+exception DoesNotMatch of (Loc.t * string * string * string)
+exception IsNotA of (Loc.t * string * string)
+exception Ambiguous of (Loc.t * string * string)
+exception TypeError of (Loc.t * string)
+exception ParseError of Loc.t
 
 val print_exception : exn -> unit
 

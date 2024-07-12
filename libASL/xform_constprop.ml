@@ -289,7 +289,7 @@ let xform_ty (env : Env.t) (x : AST.ty) : AST.ty =
   let ce = new constEvalClass env in
   Asl_visitor.visit_type (ce :> Asl_visitor.aslVisitor) x
 
-let xform_slice (env : Env.t) (loc : AST.l) (x : AST.slice) : AST.slice =
+let xform_slice (env : Env.t) (loc : Loc.t) (x : AST.slice) : AST.slice =
   match x with
   | Slice_LoWd (lo, wd) -> Slice_LoWd (xform_expr env lo, xform_expr env wd)
   | Slice_Single _ ->
@@ -303,7 +303,7 @@ let xform_slice (env : Env.t) (loc : AST.l) (x : AST.slice) : AST.slice =
  * would it be cleaner to just use a visitior to perform the transformation
  * and then this bit just updates environments?
  *)
-let rec xform_lexpr (env : Env.t) (loc : AST.l) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
+let rec xform_lexpr (env : Env.t) (loc : Loc.t) (x : AST.lexpr) (r : Values.t) : AST.lexpr =
   match x with
   | LExpr_Wildcard -> x
   | LExpr_Var v ->
@@ -621,7 +621,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
           [ Stmt_Try(tb', pos, catchers', odefault', loc) ]
 
 (** Create local environment and add parameters and arguments *)
-let mk_fun_env (env : Eval.GlobalEnv.t) (loc : AST.l) (f : Ident.t) : Env.t =
+let mk_fun_env (env : Eval.GlobalEnv.t) (loc : Loc.t) (f : Ident.t) : Env.t =
   let fun_env = Env.newEnv env in
   ( match Eval.GlobalEnv.get_function env f with
   | Some (tvs, args, _, _) ->

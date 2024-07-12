@@ -24,7 +24,7 @@ val add_unop : AST.unop -> Ident.t -> unit
 type comment = Lexing.position * Lexing.position * string
 val comment_list : comment list ref
 
-val loc : formatter -> AST.l -> unit
+val loc : formatter -> Loc.t -> unit
 val tycon : formatter -> Ident.t -> unit
 val varname : formatter -> Ident.t -> unit
 val funname : formatter -> Ident.t -> unit

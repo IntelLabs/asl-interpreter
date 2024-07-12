@@ -41,6 +41,7 @@
    lexer
    lexersupport
    loadASL
+   loc
    primops
    scope
    scopeStack

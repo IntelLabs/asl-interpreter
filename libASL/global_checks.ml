@@ -133,7 +133,7 @@ class effects_class
  * - 'e1' and 'e2' can both throw an exception
  *)
 let check_effect_conflicts
-    (loc : AST.l)
+    (loc : Loc.t)
     ((e1, fx1) : AST.expr * (IdentSet.t * IdentSet.t * bool))
     ((e2, fx2) : AST.expr * (IdentSet.t * IdentSet.t * bool))
   : unit
@@ -196,7 +196,7 @@ let check_effect_conflicts
  * Returns the set of reads, writes and whether 'e' throws an exception
  * Reports an error on failure.
  *)
-let rec check_expression_order (loc : AST.l) (effects : effects_class) (e : AST.expr) : (IdentSet.t * IdentSet.t * bool) =
+let rec check_expression_order (loc : Loc.t) (effects : effects_class) (e : AST.expr) : (IdentSet.t * IdentSet.t * bool) =
   ( match e with
   | Expr_Var v ->
       if effects#is_global v then
@@ -236,7 +236,7 @@ let rec check_expression_order (loc : AST.l) (effects : effects_class) (e : AST.
   )
 
 (** Perform rethrow checks on the specification *)
-class rethrow_checks_class (effects : effects_class) (loc : AST.l) =
+class rethrow_checks_class (effects : effects_class) (loc : Loc.t) =
   object
     inherit Asl_visitor.nopAslVisitor
 
@@ -285,7 +285,7 @@ class rethrow_checks_class (effects : effects_class) (loc : AST.l) =
   end
 
 (** Perform global checks on the specification *)
-class global_checks_class (effects : effects_class) (loc : AST.l) =
+class global_checks_class (effects : effects_class) (loc : Loc.t) =
   object
     inherit Asl_visitor.nopAslVisitor
 

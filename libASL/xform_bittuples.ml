@@ -56,7 +56,7 @@ let assign_var = new Asl_utils.nameSupply "__a"
 
 (* Transform '[l1, ... ln] = r;' where, for each 'i', 'li :: bits(wi) *)
 let xform
-    (loc : AST.l)
+    (loc : Loc.t)
     (ws : AST.expr list)
     (ls : AST.lexpr list)
     (r : AST.expr)
@@ -77,7 +77,7 @@ let xform
 
 (* Transform 'let/var [v1, ... vn] = r;' *)
 let xform_dbi
-    (loc : AST.l)
+    (loc : Loc.t)
     (is_const : bool)
     (dbs : (Ident.t option * AST.ty) list)
     (r : AST.expr)

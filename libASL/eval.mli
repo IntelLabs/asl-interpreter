@@ -20,7 +20,7 @@ module GlobalEnv : sig
   val get_function :
     t ->
     Ident.t ->
-    (Ident.t list * Ident.t list * AST.l * AST.stmt list) option
+    (Ident.t list * Ident.t list * Loc.t * AST.stmt list) option
 
   val set_impl_def : t -> string -> Value.value -> unit
   val pp : Format.formatter -> t -> unit
@@ -36,16 +36,16 @@ module Env : sig
   val pp : Format.formatter -> t -> unit
 end
 
-val eval_expr : AST.l -> Env.t -> AST.expr -> Value.value
-val eval_pattern : AST.l -> Env.t -> Value.value -> AST.pattern -> bool
+val eval_expr : Loc.t -> Env.t -> AST.expr -> Value.value
+val eval_pattern : Loc.t -> Env.t -> Value.value -> AST.pattern -> bool
 val eval_stmt : Env.t -> AST.stmt -> unit
 
 val eval_proccall :
-  AST.l -> Env.t -> Ident.t -> Value.value list -> Value.value list -> unit
+  Loc.t -> Env.t -> Ident.t -> Value.value list -> Value.value list -> unit
 (** Evaluate call to procedure *)
 
 val eval_funcall :
-  AST.l ->
+  Loc.t ->
   Env.t ->
   Ident.t ->
   Value.value list ->

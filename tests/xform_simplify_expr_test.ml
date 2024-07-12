@@ -18,8 +18,8 @@ module TC = Tcheck
 let test_simplify_expr (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
     (l : string) (r : string) () : unit =
   let (tcenv, ds) = extend_tcenv globals decls in
-  let l' = LoadASL.read_expr tcenv AST.Unknown l in
-  let r' = LoadASL.read_expr tcenv AST.Unknown r in
+  let l' = LoadASL.read_expr tcenv Loc.Unknown l in
+  let r' = LoadASL.read_expr tcenv Loc.Unknown r in
   let what = l ^ " == " ^ r in
   Alcotest.check expr what r' (Xform_simplify_expr.simplify l')
 

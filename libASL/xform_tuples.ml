@@ -12,7 +12,7 @@ let mkReturnTypeName (f : Ident.t) : Ident.t =
 
 let mkReturnFieldName (i : int) : Ident.t = Ident.mk_ident ("r" ^ string_of_int i)
 
-let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : AST.l) : AST.declaration =
+let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : Loc.t) : AST.declaration =
   let fs = List.mapi (fun i ty -> (mkReturnFieldName i, ty)) rtys in
   Decl_Record (tyname, [], fs, loc)
 

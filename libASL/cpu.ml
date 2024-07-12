@@ -22,7 +22,7 @@ type cpu = {
 
 let mkCPU (env : Eval.Env.t) : cpu =
   let genv = Eval.Env.globals env in
-  let loc = AST.Unknown in
+  let loc = Loc.Unknown in
 
   let setImpdef (key : string) (v : Value.value) : unit =
     Eval.GlobalEnv.set_impl_def genv key v

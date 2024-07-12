@@ -9,7 +9,7 @@ module AST = Asl_ast
 open Asl_utils
 open Builtin_idents
 
-let mk_call (args : AST.expr list) (loc : AST.l) : AST.stmt =
+let mk_call (args : AST.expr list) (loc : Loc.t) : AST.stmt =
   AST.Stmt_TCall (asl_fuzz, [], args, false, loc)
 
 class tracker (vars : Ident.t list) =

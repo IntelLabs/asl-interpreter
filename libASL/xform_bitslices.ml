@@ -44,7 +44,7 @@ let transform_non_slices (n : AST.expr) (w : AST.expr) (i : AST.expr)
  * This function will be extended with additional special cases in
  * the future.
  *)
-let transform (loc : AST.l) (n : AST.expr) (w : AST.expr) (i : AST.expr)
+let transform (loc : Loc.t) (n : AST.expr) (w : AST.expr) (i : AST.expr)
     (x : AST.expr) : AST.expr =
   ( match x with
   | Expr_Slices (_, _, [Slice_HiLo _]) ->
@@ -78,7 +78,7 @@ let transform_assignment
     (slice_width : AST.expr)
     (shift : AST.expr)
     (rhs : AST.expr)
-    (l : AST.l) =
+    (l : Loc.t) =
   (* Generate masks for clearing affected bits in slice *)
   let slice_mask = mk_lsl_bits width (Asl_utils.mk_mask slice_width width) shift in
   let slice_not_mask = mk_not_bits width slice_mask in
@@ -100,7 +100,7 @@ let lexpr_to_expr_safe_to_replicate_opt (le : AST.lexpr) : AST.expr option =
 class bitsliceClass =
   object
     inherit Asl_visitor.nopAslVisitor
-    val mutable loc = AST.Unknown
+    val mutable loc = Loc.Unknown
 
     method! vexpr x =
       ( match x with

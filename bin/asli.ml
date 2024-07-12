@@ -78,7 +78,7 @@ let help_msg =
  * Read Eval Print Loop
  ****************************************************************)
 
-let mkLoc (fname : string) (input : string) : AST.l =
+let mkLoc (fname : string) (input : string) : Loc.t =
   let len = String.length input in
   let start : Lexing.position =
     { pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 }
@@ -86,7 +86,7 @@ let mkLoc (fname : string) (input : string) : AST.l =
   let finish : Lexing.position =
     { pos_fname = fname; pos_lnum = 1; pos_bol = 0; pos_cnum = len }
   in
-  AST.Range (start, finish)
+  Loc.Range (start, finish)
 
 let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (input0 : string) : unit =
   let input = String.trim input0 in

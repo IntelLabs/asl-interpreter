@@ -16,7 +16,7 @@ type value =
   | VBits of Primops.bitvector
   | VMask of Primops.mask
   | VString of string
-  | VExc of (AST.l * Ident.t * value Asl_utils.Bindings.t)
+  | VExc of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
   | VTuple of value list
   | VRecord of value Asl_utils.Bindings.t
   | VArray of (value Primops.ImmutableArray.t * value)
@@ -24,8 +24,8 @@ type value =
   | VUninitialized
 
 exception Return of value option
-exception EvalError of (AST.l * string)
-exception Throw of (AST.l * Ident.t * value Asl_utils.Bindings.t)
+exception EvalError of (Loc.t * string)
+exception Throw of (Loc.t * Ident.t * value Asl_utils.Bindings.t)
 
 val pp_value : Format.formatter -> value -> unit
 val string_of_value : value -> string
@@ -37,23 +37,23 @@ val impure_prims : string list
 (* value constructors and destructors *)
 
 val from_bool : bool -> value
-val to_bool : AST.l -> value -> bool
+val to_bool : Loc.t -> value -> bool
 val int_one : value
-val to_integer : AST.l -> value -> Primops.bigint
-val to_int : AST.l -> value -> int
-val to_bits : AST.l -> value -> Primops.bitvector
-val to_mask : AST.l -> value -> Primops.mask
-val to_string : AST.l -> value -> string
-val to_exc : AST.l -> value -> (AST.l * Ident.t * value Asl_utils.Bindings.t)
+val to_integer : Loc.t -> value -> Primops.bigint
+val to_int : Loc.t -> value -> int
+val to_bits : Loc.t -> value -> Primops.bitvector
+val to_mask : Loc.t -> value -> Primops.mask
+val to_string : Loc.t -> value -> string
+val to_exc : Loc.t -> value -> (Loc.t * Ident.t * value Asl_utils.Bindings.t)
 val to_tuple : value list -> value
-val of_tuple : AST.l -> value -> value list
+val of_tuple : Loc.t -> value -> value list
 val mkrecord : (Ident.t * value) list -> value
-val get_field : AST.l -> value -> Ident.t -> value
-val set_field : AST.l -> value -> Ident.t -> value -> value
+val get_field : Loc.t -> value -> Ident.t -> value
+val set_field : Loc.t -> value -> Ident.t -> value -> value
 val empty_array : value -> value
 val init_array : (int * value) list -> value -> value
-val get_array : AST.l -> value -> value -> value
-val set_array : AST.l -> value -> value -> value -> value
+val get_array : Loc.t -> value -> value -> value
+val set_array : Loc.t -> value -> value -> value -> value
 
 
 (* todo: does not belong in this module *)
@@ -70,23 +70,23 @@ val from_stringLit : string -> value
 
 (* bitvector manipulation *)
 
-val extract_bits : AST.l -> value -> value -> value -> value
-val extract_bits' : AST.l -> value -> int -> int -> value
-val extract_bits'' : AST.l -> value -> value -> value -> value
-val insert_bits : AST.l -> value -> value -> value -> value -> value
-val insert_bits' : AST.l -> value -> int -> int -> value -> value
+val extract_bits : Loc.t -> value -> value -> value -> value
+val extract_bits' : Loc.t -> value -> int -> int -> value
+val extract_bits'' : Loc.t -> value -> value -> value -> value
+val insert_bits : Loc.t -> value -> value -> value -> value -> value
+val insert_bits' : Loc.t -> value -> int -> int -> value -> value
 
 (* functions used in interpreter *)
 
-val eval_eq : AST.l -> value -> value -> bool
-val eval_leq : AST.l -> value -> value -> bool
-val eval_eq_int : AST.l -> value -> value -> bool
-val eval_eq_bits : AST.l -> value -> value -> bool
-val eval_inmask : AST.l -> value -> value -> bool
-val eval_add_int : AST.l -> value -> value -> value
-val eval_mul_int : AST.l -> value -> value -> value
-val eval_sub_int : AST.l -> value -> value -> value
-val eval_concat : AST.l -> value list -> value
+val eval_eq : Loc.t -> value -> value -> bool
+val eval_leq : Loc.t -> value -> value -> bool
+val eval_eq_int : Loc.t -> value -> value -> bool
+val eval_eq_bits : Loc.t -> value -> value -> bool
+val eval_inmask : Loc.t -> value -> value -> bool
+val eval_add_int : Loc.t -> value -> value -> value
+val eval_mul_int : Loc.t -> value -> value -> value
+val eval_sub_int : Loc.t -> value -> value -> value
+val eval_concat : Loc.t -> value list -> value
 
 (* unknowns of various types *)
 

@@ -13,52 +13,8 @@ type maskLit = string
 type realLit = string
 type hexLit = string
 
-(** Location tracking *)
-type l =
-    | Unknown
-    | Int of string * l option
-    | Generated of l
-    | Range of Lexing.position * Lexing.position
-
-type 'a annot = l * 'a
-
-type pos = Lexing.position
-
-let pp_lexing_position (p: Lexing.position): string =
-    Printf.sprintf  "file \"%s\" line %d char %d"
-        p.Lexing.pos_fname p.Lexing.pos_lnum (p.Lexing.pos_cnum - p.Lexing.pos_bol)
-
-let rec pp_loc (l: l): string =  match l with
-    | Unknown -> "no location information available"
-    | Generated l -> Printf.sprintf "Generated: %s"  (pp_loc l)
-    | Range(p1, p2) ->
-        if String.equal p1.Lexing.pos_fname p2.Lexing.pos_fname then begin
-            if p1.Lexing.pos_lnum = p2.Lexing.pos_lnum then
-                Printf.sprintf "file \"%s\" line %d char %d - %d"
-                    p1.Lexing.pos_fname
-                    p1.Lexing.pos_lnum
-                    (p1.Lexing.pos_cnum - p1.Lexing.pos_bol)
-                    (p2.Lexing.pos_cnum - p2.Lexing.pos_bol)
-            else
-                Printf.sprintf "file \"%s\" line %d char %d - line %d char %d"
-                    p1.Lexing.pos_fname
-                    p1.Lexing.pos_lnum
-                    (p1.Lexing.pos_cnum - p1.Lexing.pos_bol)
-                    p2.Lexing.pos_lnum
-                    (p2.Lexing.pos_cnum - p2.Lexing.pos_bol)
-        end else begin
-            Printf.sprintf "file \"%s\" line %d char %d - file \"%s\" line %d char %d"
-                p1.Lexing.pos_fname
-                p1.Lexing.pos_lnum
-                (p1.Lexing.pos_cnum - p1.Lexing.pos_bol)
-                p2.Lexing.pos_fname
-                p2.Lexing.pos_lnum
-                (p2.Lexing.pos_cnum - p2.Lexing.pos_bol)
-        end
-    | Int(s,lo) -> Printf.sprintf "%s %s" s (match lo with Some l -> pp_loc l | None -> "none")
-
 (** Parsing exceptions (1/2) *)
-exception Parse_error_locn of l * string
+exception Parse_error_locn of Loc.t * string
 
 type
 binop =
@@ -189,31 +145,31 @@ direction =
 
 type
 catcher =
-   Catcher_Guarded of Ident.t * Ident.t * stmt list * l
+   Catcher_Guarded of Ident.t * Ident.t * stmt list * Loc.t
 
 and stmt =
-   Stmt_Block of stmt list * l
- | Stmt_VarDecl of decl_item * expr * l
- | Stmt_ConstDecl of decl_item * expr * l
- | Stmt_Assign of lexpr * expr * l
- | Stmt_FunReturn of expr * l (* function return *)
- | Stmt_ProcReturn of l (* procedure return *)
- | Stmt_Assert of expr * l (* assertion *)
- | Stmt_Throw of expr * l
- | Stmt_TCall of Ident.t * expr list * expr list * bool * l (* procedure call with explicit type parameters *)
- | Stmt_VarDeclsNoInit of Ident.t list * ty * l
- | Stmt_If of expr * stmt list * s_elsif list * (stmt list * l) * l
- | Stmt_Case of expr * alt list * (stmt list * l) option * l
- | Stmt_For of Ident.t * expr * direction * expr * stmt list * l
- | Stmt_While of expr * stmt list * l
- | Stmt_Repeat of stmt list * expr * pos * l
- | Stmt_Try of stmt list * pos * catcher list * (stmt list * l) option * l
+   Stmt_Block of stmt list * Loc.t
+ | Stmt_VarDecl of decl_item * expr * Loc.t
+ | Stmt_ConstDecl of decl_item * expr * Loc.t
+ | Stmt_Assign of lexpr * expr * Loc.t
+ | Stmt_FunReturn of expr * Loc.t (* function return *)
+ | Stmt_ProcReturn of Loc.t (* procedure return *)
+ | Stmt_Assert of expr * Loc.t (* assertion *)
+ | Stmt_Throw of expr * Loc.t
+ | Stmt_TCall of Ident.t * expr list * expr list * bool * Loc.t (* procedure call with explicit type parameters *)
+ | Stmt_VarDeclsNoInit of Ident.t list * ty * Loc.t
+ | Stmt_If of expr * stmt list * s_elsif list * (stmt list * Loc.t) * Loc.t
+ | Stmt_Case of expr * alt list * (stmt list * Loc.t) option * Loc.t
+ | Stmt_For of Ident.t * expr * direction * expr * stmt list * Loc.t
+ | Stmt_While of expr * stmt list * Loc.t
+ | Stmt_Repeat of stmt list * expr * Loc.pos * Loc.t
+ | Stmt_Try of stmt list * Loc.pos * catcher list * (stmt list * Loc.t) option * Loc.t
 
 and s_elsif =
-   S_Elsif_Cond of expr * stmt list * l
+   S_Elsif_Cond of expr * stmt list * Loc.t
 
 and alt =
-   Alt_Alt of pattern list * expr option * stmt list * l
+   Alt_Alt of pattern list * expr option * stmt list * Loc.t
 
 type function_type = {
   parameters : (Ident.t * ty option) list;
@@ -226,20 +182,20 @@ type function_type = {
 
 type
 declaration =
-   Decl_BuiltinType of Ident.t * l
- | Decl_Forward of Ident.t * l
- | Decl_Record of Ident.t * Ident.t list * (Ident.t * ty) list * l
- | Decl_Exception of Ident.t * (Ident.t * ty) list * l
- | Decl_Typedef of Ident.t * Ident.t list * ty * l
- | Decl_Enum of Ident.t * Ident.t list * l
- | Decl_Var of Ident.t * ty * l
- | Decl_Const of Ident.t * ty option * expr * l
- | Decl_BuiltinFunction of Ident.t * function_type * l
- | Decl_FunType of Ident.t * function_type * l
- | Decl_FunDefn of Ident.t * function_type * stmt list * l
- | Decl_Operator1 of unop * Ident.t list * l
- | Decl_Operator2 of binop * Ident.t list * l
- | Decl_Config of Ident.t * ty * expr * l
+   Decl_BuiltinType of Ident.t * Loc.t
+ | Decl_Forward of Ident.t * Loc.t
+ | Decl_Record of Ident.t * Ident.t list * (Ident.t * ty) list * Loc.t
+ | Decl_Exception of Ident.t * (Ident.t * ty) list * Loc.t
+ | Decl_Typedef of Ident.t * Ident.t list * ty * Loc.t
+ | Decl_Enum of Ident.t * Ident.t list * Loc.t
+ | Decl_Var of Ident.t * ty * Loc.t
+ | Decl_Const of Ident.t * ty option * expr * Loc.t
+ | Decl_BuiltinFunction of Ident.t * function_type * Loc.t
+ | Decl_FunType of Ident.t * function_type * Loc.t
+ | Decl_FunDefn of Ident.t * function_type * stmt list * Loc.t
+ | Decl_Operator1 of unop * Ident.t list * Loc.t
+ | Decl_Operator2 of binop * Ident.t list * Loc.t
+ | Decl_Config of Ident.t * ty * expr * Loc.t
 
 type
 factor =
@@ -338,7 +294,7 @@ let higherPriorityThan (x: binop) (y: binop): bool option =
     else None
 
 (** Parsing exceptions (2/2) *)
-exception PrecedenceError of l * binop * binop
+exception PrecedenceError of Loc.t * binop * binop
 
 (* Support function for parsing expression trees of the form
  *
@@ -357,7 +313,7 @@ exception PrecedenceError of l * binop * binop
  * - op1 = op2 => (x op1 y1) op2 ...     if op1 is associative
  * - _         => error
  *)
-let rec buildExpr (op: binop) (x: expr) (ys: factor list) (loc: l): (expr * factor list) =
+let rec buildExpr (op: binop) (x: expr) (ys: factor list) (loc: Loc.t): (expr * factor list) =
     ( match ys with
     | [] ->
         (x, [])
@@ -398,7 +354,7 @@ let rec buildExpr (op: binop) (x: expr) (ys: factor list) (loc: l): (expr * fact
  * All operators are treated as left-associative
  *)
 
-let buildExpression (x: expr) (fs: factor list) (loc: l): expr =
+let buildExpression (x: expr) (fs: factor list) (loc: Loc.t): expr =
     ( match buildExpr Binop_DUMMY x fs loc with
     | (e, []) -> e
     | (_, _) -> raise (Parse_error_locn(loc, "Impossible: unable to resolve precedence"))

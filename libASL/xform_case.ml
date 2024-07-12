@@ -12,21 +12,21 @@ module AST = Asl_ast
 open Asl_utils
 open Builtin_idents
 
-let mk_elsif (x : (AST.expr * AST.stmt list * AST.l)) : AST.s_elsif =
+let mk_elsif (x : (AST.expr * AST.stmt list * Loc.t)) : AST.s_elsif =
   let (e, b, loc) = x in
   AST.S_Elsif_Cond (e, b, loc)
 
 let mk_if
-    (branches : (AST.expr * AST.stmt list * AST.l) list)
-    (d : (AST.stmt list * AST.l))
-    (loc : AST.l)
+    (branches : (AST.expr * AST.stmt list * Loc.t) list)
+    (d : (AST.stmt list * Loc.t))
+    (loc : Loc.t)
   : AST.stmt list =
   ( match branches with
   | [] -> fst d
   | ((c, t, loc) :: branches) -> [Stmt_If (c, t, List.map mk_elsif branches, d, loc)]
   )
 
-let rec match_pattern (loc : AST.l) (e : AST.expr) (p : AST.pattern) : AST.expr =
+let rec match_pattern (loc : Loc.t) (e : AST.expr) (p : AST.pattern) : AST.expr =
   ( match (p, e) with
   | (Pat_LitInt l,  _) -> mk_eq_int e (Expr_LitInt l)
   | (Pat_LitHex l,  _) -> mk_eq_int e (Expr_LitHex l)
@@ -44,10 +44,10 @@ let rec match_pattern (loc : AST.l) (e : AST.expr) (p : AST.pattern) : AST.expr 
   | _ ->  raise (Error.Unimplemented (loc, "match_pattern", fun fmt -> Asl_fmt.pattern fmt p))
   )
 
-and match_any_pattern (loc : AST.l) (e : AST.expr) (ps : AST.pattern list) : AST.expr =
+and match_any_pattern (loc : Loc.t) (e : AST.expr) (ps : AST.pattern list) : AST.expr =
   mk_ors (List.map (match_pattern loc e) ps)
 
-let alt_to_branch (e : AST.expr) (x : AST.alt) : (AST.expr * AST.stmt list * AST.l) =
+let alt_to_branch (e : AST.expr) (x : AST.alt) : (AST.expr * AST.stmt list * Loc.t) =
   ( match x with
   | Alt_Alt (ps, Some c, s, loc) -> (mk_and (match_any_pattern loc e ps) c, s, loc)
   | Alt_Alt (ps, None, s, loc) -> (match_any_pattern loc e ps, s, loc)
@@ -105,7 +105,7 @@ class simplifyCaseClass =
     method! vexpr s =
       ( match s with
       | Expr_In (e, p) when can_duplicate e ->
-        Visitor.ChangeTo (match_pattern AST.Unknown e p)
+        Visitor.ChangeTo (match_pattern Loc.Unknown e p)
       | _ -> DoChildren
       )
 
@@ -117,7 +117,7 @@ class simplifyCaseClass =
         let default = match odefault with
           | Some d -> d
           | None ->
-            let msg = AST.pp_loc loc in
+            let msg = Loc.to_string loc in
             let f = asl_error_unmatched_case in
             let s = AST.Stmt_TCall (f, [], [Expr_LitString msg], false, loc) in
             ([s], loc)

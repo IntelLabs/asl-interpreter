@@ -8,6 +8,7 @@
 
 %{
 open Asl_ast
+open Loc
 
 (* The following type is used in the parser in places where
  * the typechecker is expected to insert an inferred type that is

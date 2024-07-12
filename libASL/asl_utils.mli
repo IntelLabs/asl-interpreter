@@ -159,8 +159,8 @@ val calls_of_decl : AST.declaration -> IdentSet.t
 (** {2 Extract location info from AST nodes}                    *)
 (****************************************************************)
 
-val stmt_loc : AST.stmt -> AST.l
-val decl_loc : AST.declaration -> AST.l
+val stmt_loc : AST.stmt -> Loc.t
+val decl_loc : AST.declaration -> Loc.t
 
 (****************************************************************)
 (** {2 Keep definitions reachable from roots}                   *)

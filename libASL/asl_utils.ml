@@ -510,7 +510,7 @@ let calls_of_decl decl =
 (** {2 Extract location info from AST nodes}                    *)
 (****************************************************************)
 
-let decl_loc (x : AST.declaration) : AST.l =
+let decl_loc (x : AST.declaration) : Loc.t =
   ( match x with
   | Decl_BuiltinType (v, loc) -> loc
   | Decl_Forward (v, loc) -> loc
@@ -528,7 +528,7 @@ let decl_loc (x : AST.declaration) : AST.l =
   | Decl_Config (v, ty, e, loc) -> loc
   )
 
-let stmt_loc (x : AST.stmt) : AST.l =
+let stmt_loc (x : AST.stmt) : Loc.t =
   ( match x with
   | Stmt_VarDeclsNoInit (vs, ty, loc) -> loc
   | Stmt_VarDecl (di, i, loc) -> loc

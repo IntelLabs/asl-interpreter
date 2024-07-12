@@ -86,8 +86,8 @@ let test_xform_expr
     (decls : string) (l : string) (r : string) () : unit =
   try
     let (tcenv, _) = extend_tcenv globals decls in
-    let l' = LoadASL.read_expr tcenv AST.Unknown l in
-    let r' = LoadASL.read_expr tcenv AST.Unknown r in
+    let l' = LoadASL.read_expr tcenv Loc.Unknown l in
+    let r' = LoadASL.read_expr tcenv Loc.Unknown r in
     let x = f l' in
     let what = l ^ "\n==>\n" ^ r in
     Alcotest.check expr what r' x

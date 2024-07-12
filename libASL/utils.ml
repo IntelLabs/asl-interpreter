@@ -9,7 +9,7 @@
 (** Exceptions *)
 
 (* Internal invariants have been broken *)
-exception InternalError of (Asl_ast.l * string * (Format.formatter -> unit) * string)
+exception InternalError of (Loc.t * string * (Format.formatter -> unit) * string)
 
 (** Generic utility functions *)
 

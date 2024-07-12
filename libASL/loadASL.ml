@@ -73,7 +73,7 @@ let state (checkpoint : _ Interp.checkpoint) : int =
    (This function is based on an example in the Menhir documentation.)
 *)
 
-let show (text : string) (positions : pos * pos) : string =
+let show (text : string) (positions : Loc.pos * Loc.pos) : string =
   ErrorReports.extract text positions
   |> ErrorReports.sanitize
   |> ErrorReports.compress
@@ -103,7 +103,7 @@ let get (text : string) (checkpoint : _ Interp.checkpoint) (i : int) : string =
    (This function is based on an example in the Menhir documentation.)
 *)
 
-let fail (text : string) (buffer : (pos * pos) ErrorReports.buffer) (checkpoint : 'a Interp.checkpoint) : 'a =
+let fail (text : string) (buffer : (Loc.pos * Loc.pos) ErrorReports.buffer) (checkpoint : 'a Interp.checkpoint) : 'a =
   (* Indicate where in the input file the error occurred. *)
   let location = LexerUtils.range (ErrorReports.last buffer) in
   (* Show the tokens just before and just after the error. *)
@@ -143,7 +143,7 @@ let parse_file (paths : string list) (filename : string) (verbose : bool) : AST.
     Interp.loop_handle Fun.id (fail text buffer) supplier chkpt
   with
   | Parser.Error ->
-    let loc = Range (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
+    let loc = Loc.Range (lexbuf.lex_start_p, lexbuf.lex_curr_p) in
     raise (Error.ParseError loc)
 
 let read_file (paths : string list) (filename : string) (isPrelude : bool)
@@ -190,14 +190,14 @@ let parse_spec (paths : string list) (filename : string) (verbose : bool) :
    with End_of_file -> close_in inchan);
   List.concat (List.rev !r)
 
-let read_impdef (tcenv : TC.Env.t) (loc : AST.l) (s : string) :
+let read_impdef (tcenv : TC.Env.t) (loc : Loc.t) (s : string) :
     string * AST.expr =
   let lexbuf = Lexing.from_string s in
   let (CLI_Impdef (x, e)) = Parser.impdef_command_start Lexer.token lexbuf in
   let e', _ = TC.tc_expr tcenv loc e in
   (x, e')
 
-let read_expr (tcenv : TC.Env.t) (loc : AST.l) (s : string) : AST.expr =
+let read_expr (tcenv : TC.Env.t) (loc : Loc.t) (s : string) : AST.expr =
   let lexbuf = Lexing.from_string s in
   let e = Parser.expr_command_start Lexer.token lexbuf in
   let e', _ = TC.tc_expr tcenv loc e in
@@ -211,7 +211,7 @@ let read_stmt (tcenv : TC.Env.t) (s : string) : AST.stmt =
 let read_stmts (tcenv : TC.Env.t) (s : string) : AST.stmt list =
   let lexbuf = Lexing.from_string s in
   let s = Parser.stmts_command_start Lexer.token lexbuf in
-  TC.tc_stmts tcenv AST.Unknown s
+  TC.tc_stmts tcenv Loc.Unknown s
 
 (* This entrypoint is used for testing so it does not sort its inputs to make
  * the output easier to predict/control

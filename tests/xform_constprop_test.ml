@@ -21,7 +21,7 @@ let test_cp_expr (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (de
   let (tcenv, ds) = extend_tcenv globals decls in
   let genv = Eval.build_constant_environment (prelude @ ds) in
   let env = Xform_constprop.mkEnv genv [] in
-  let l' = LoadASL.read_expr tcenv AST.Unknown l in
+  let l' = LoadASL.read_expr tcenv Loc.Unknown l in
   let what = l ^ " == " ^ r in
   Alcotest.check Alcotest.string what r (Asl_utils.pp_expr (Xform_constprop.xform_expr env l'))
 

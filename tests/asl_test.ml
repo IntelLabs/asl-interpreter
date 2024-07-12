@@ -15,7 +15,7 @@ module AST = Asl_ast
 (* test that checks that an expression lexes, parses and typechecks *)
 let check_expr_tcheck (tcenv : TC.Env.t) (test_fmt : bool) (what : string)
     (input : string) _ : unit =
-  let loc = AST.Unknown in
+  let loc = Loc.Unknown in
   let e = LoadASL.read_expr tcenv loc input in
   if test_fmt then
     Alcotest.(check string) ("format " ^ what) input (format_expr e)
@@ -46,19 +46,19 @@ let test_static_error (globals : TC.GlobalEnv.t) (name : string) (declarations :
         Alcotest.fail "error was not detected"
       with
       | Asl_parser.Error -> "ParseError()"
-      | AST.Parse_error_locn(loc, msg) -> Printf.sprintf "Parse_error_locn(%s,%s)" (AST.pp_loc loc) msg
+      | AST.Parse_error_locn(loc, msg) -> Printf.sprintf "Parse_error_locn(%s,%s)" (Loc.to_string loc) msg
       | AST.PrecedenceError(loc, op1, op2) ->
-        Printf.sprintf "PrecedenceError(%s,%s,%s)" (AST.pp_loc loc) (Asl_utils.pp_binop op1) (Asl_utils.pp_binop op2)
+        Printf.sprintf "PrecedenceError(%s,%s,%s)" (Loc.to_string loc) (Asl_utils.pp_binop op1) (Asl_utils.pp_binop op2)
       | Lexer.Eof -> "Eof()"
-      | Error.UnknownObject(loc, what, x) -> Printf.sprintf "UnknownObject(%s,%s,%s)" (AST.pp_loc loc) what x
-      | Error.DoesNotMatch(loc, what, x, y) -> Printf.sprintf "DoesNotMatch(%s,%s,%s,%s)" (AST.pp_loc loc) what x y
-      | Error.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (AST.pp_loc loc) what x
-      | Error.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (AST.pp_loc loc) what x
-      | Error.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (AST.pp_loc loc) msg
-      | InternalError(loc, msg, _, _) -> Printf.sprintf "InternalError(%s,%s)" (AST.pp_loc loc) msg
+      | Error.UnknownObject(loc, what, x) -> Printf.sprintf "UnknownObject(%s,%s,%s)" (Loc.to_string loc) what x
+      | Error.DoesNotMatch(loc, what, x, y) -> Printf.sprintf "DoesNotMatch(%s,%s,%s,%s)" (Loc.to_string loc) what x y
+      | Error.IsNotA(loc, what, x) -> Printf.sprintf "IsNotA(%s,%s,%s)" (Loc.to_string loc) what x
+      | Error.Ambiguous(loc, what, x) -> Printf.sprintf "Ambiguous(%s,%s,%s)" (Loc.to_string loc) what x
+      | Error.TypeError(loc, msg) -> Printf.sprintf "TypeError(%s,%s)" (Loc.to_string loc) msg
+      | InternalError(loc, msg, _, _) -> Printf.sprintf "InternalError(%s,%s)" (Loc.to_string loc) msg
       | Value.Return(_) -> Printf.sprintf "Return(_)"
-      | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (AST.pp_loc loc) err
-      | Value.Throw(loc, _, _) -> Printf.sprintf "Throw(%s,_,_)" (AST.pp_loc loc)
+      | Value.EvalError(loc, err) -> Printf.sprintf "EvalError(%s,%s)" (Loc.to_string loc) err
+      | Value.Throw(loc, _, _) -> Printf.sprintf "Throw(%s,_,_)" (Loc.to_string loc)
     in
     ( match oexpect with
     | Some expect -> Alcotest.(check string) name expect msg;
@@ -79,7 +79,7 @@ let enable_test (c : bool) (test : unit Alcotest.test_case) : (unit Alcotest.tes
   if c then test else ("skipped test", `Quick, (fun _ -> ()))
 
 let eval tcenv env (input : string) : Value.value =
-  let loc = AST.Unknown in
+  let loc = Loc.Unknown in
   let e = LoadASL.read_expr tcenv loc input in
   Eval.eval_expr loc env e
 

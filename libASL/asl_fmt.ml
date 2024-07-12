@@ -40,8 +40,8 @@ let unop_table : AST.unop Bindings.t ref = ref Bindings.empty
 let add_unop (op : AST.unop) (x : Ident.t) : unit =
   unop_table := Bindings.add x op !unop_table
 
-let loc (fmt : PP.formatter) (x : AST.l) : unit =
-  PP.pp_print_string fmt (AST.pp_loc x)
+let loc (fmt : PP.formatter) (x : Loc.t) : unit =
+  PP.pp_print_string fmt (Loc.to_string x)
 
 let delimiter (fmt : PP.formatter) (s : string) : unit =
   with_color fmt ColorT.magenta (fun _ -> PP.pp_print_string fmt s)
@@ -212,7 +212,7 @@ let insert_comments (fmt : PP.formatter) (p : comment -> bool) : unit =
               cut fmt)
             cs)
 
-let comments_before (fmt : PP.formatter) (loc : AST.l) : unit =
+let comments_before (fmt : PP.formatter) (loc : Loc.t) : unit =
   (* is comment before loc? *)
   let before ((s, f, c) : comment) : bool =
     match loc with
@@ -221,7 +221,7 @@ let comments_before (fmt : PP.formatter) (loc : AST.l) : unit =
   in
   insert_comments fmt before
 
-let comment_start (fmt : PP.formatter) (loc : AST.l) : unit =
+let comment_start (fmt : PP.formatter) (loc : Loc.t) : unit =
   (* is comment on same line as loc? *)
   let here ((s, f, c) : comment) : bool =
     match loc with
@@ -231,7 +231,7 @@ let comment_start (fmt : PP.formatter) (loc : AST.l) : unit =
   insert_comment fmt here
 
 (*
-let comment_end (fmt: PP.formatter) (loc: AST.l): unit =
+let comment_end (fmt: PP.formatter) (loc: Loc.t): unit =
     (* is comment on same line as loc? *)
     let here ((s, f, c): comment): bool =
         (match loc with
@@ -239,7 +239,7 @@ let comment_end (fmt: PP.formatter) (loc: AST.l): unit =
         | _ -> true
         )
     in
-    PP.pp_print_string fmt (AST.pp_loc loc);
+    PP.pp_print_string fmt (AST.Loc.to_string loc);
     insert_comment fmt here
 *)
 
