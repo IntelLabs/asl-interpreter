@@ -6,8 +6,6 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-module AST = Asl_ast
-
 type value =
   | VBool of bool (* optimised special case of VEnum *)
   | VEnum of (Ident.t * int)
@@ -61,11 +59,11 @@ val drop_chars : string -> char -> string
 
 (* convert AST nodes to values *)
 
-val from_intLit : AST.intLit -> value
-val from_hexLit : AST.hexLit -> value
-val from_realLit : AST.realLit -> value
-val from_bitsLit : AST.bitsLit -> value
-val from_maskLit : AST.maskLit -> value
+val from_intLit : string -> value
+val from_hexLit : string -> value
+val from_realLit : string -> value
+val from_bitsLit : string -> value
+val from_maskLit : string -> value
 val from_stringLit : string -> value
 
 (* bitvector manipulation *)

@@ -9,7 +9,6 @@
 (** ASL interpreter values *)
 
 open Primops
-module AST = Asl_ast
 open Builtin_idents
 open Asl_utils
 
@@ -204,14 +203,14 @@ let drop_chars (x : string) (c : char) : string =
   (* create result *)
   String.init !len next_char
 
-let from_intLit (x : AST.intLit) : value = VInt (Z.of_string x)
+let from_intLit (x : string) : value = VInt (Z.of_string x)
 
-let from_hexLit (x : AST.hexLit) : value =
+let from_hexLit (x : string) : value =
   VInt (Z.of_string_base 16 (drop_chars x '_'))
 
 let int_one : value = VInt (Z.of_int 1)
 
-let from_realLit (x : AST.realLit) : value =
+let from_realLit (x : string) : value =
   let pt = String.index x '.' in
   let fracsz = String.length x - pt - 1 in
   let intpart = String.sub x 0 pt in
@@ -220,11 +219,11 @@ let from_realLit (x : AST.realLit) : value =
   let denominator = Z.pow (Z.of_int 10) fracsz in
   VReal (Q.make numerator denominator)
 
-let from_bitsLit (x : AST.bitsLit) : value =
+let from_bitsLit (x : string) : value =
   let x' = drop_chars x ' ' in
   VBits (mkBits (String.length x') (Z.of_string_base 2 x'))
 
-let from_maskLit (x : AST.maskLit) : value =
+let from_maskLit (x : string) : value =
   let x' = drop_chars x ' ' in
   let n = String.length x' in
   let v = String.map (function 'x' -> '0' | c -> c) x' in
