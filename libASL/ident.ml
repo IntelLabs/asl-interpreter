@@ -52,7 +52,7 @@ let root_equal (a : t) ~(root : t) : bool =
 let in_list (x : t) (xs : t list) : bool =
   List.exists (equal x) xs
 
-let pprint (i : t) : string =
+let to_string (i : t) : string =
   match i.info.opt_tag with
   | None -> i.info.name
   | Some tag -> i.info.name ^ "." ^ string_of_int tag

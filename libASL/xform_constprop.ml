@@ -90,7 +90,7 @@ module Env = struct
           (Option.map Values.singleton
              (Eval.GlobalEnv.get_global_constant env.globalConsts x))
           (fun _ ->
-            raise (Value.EvalError (Unknown, "getVar: " ^ Ident.pprint x))))
+            raise (Value.EvalError (Unknown, "getVar: " ^ Ident.to_string x))))
 
   let setVar (env : t) (x : Ident.t) (v : Values.t) : unit =
     ignore (ScopeStack.set env.locals x v)

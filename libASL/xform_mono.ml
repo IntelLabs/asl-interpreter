@@ -144,7 +144,7 @@ class monoClass
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
-          (fun p sz -> Ident.pprint p ^ "_" ^ Z.to_string sz)
+          (fun p sz -> Ident.to_string p ^ "_" ^ Z.to_string sz)
           ps szs
       in
       let tc' = Ident.add_suffix tc ~suffix:(String.concat "_" suffices) in
@@ -183,7 +183,7 @@ class monoClass
       List.iter (fun sz -> assert (Z.geq sz Z.zero)) szs; (* sanity check! *)
       let suffices =
         List.map2
-          (fun nm sz -> Ident.pprint nm ^ "_" ^ Z.to_string sz)
+          (fun nm sz -> Ident.to_string nm ^ "_" ^ Z.to_string sz)
           tvs szs
       in
       let f' = Ident.add_suffix f ~suffix:(String.concat "_" suffices) in
@@ -200,7 +200,7 @@ class monoClass
         | Decl_FunDefn (f, fty, body, loc) ->
             if !verbose then begin
               Printf.printf "Monomorphizing: %s" (Ident.name_with_tag f);
-              List.iter2 (fun nm sz -> Printf.printf " %s->%d" (Ident.pprint nm) (Z.to_int sz)) tvs szs;
+              List.iter2 (fun nm sz -> Printf.printf " %s->%d" (Ident.to_string nm) (Z.to_int sz)) tvs szs;
               Printf.printf "\n";
             end;
             let rty' = Option.map (Xform_constprop.xform_ty env) fty.rty in

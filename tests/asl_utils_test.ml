@@ -96,7 +96,7 @@ let test_impure_functions (globals : TC.GlobalEnv.t) (prelude : AST.declaration 
   let ds = List.append prelude ds in
 
   (* for testing purposes, we treat any variable whose name starts with K as a constant *)
-  let isConstant (v : Ident.t) : bool = String.get (Ident.pprint v) 0 = 'K' in
+  let isConstant (v : Ident.t) : bool = String.get (Ident.to_string v) 0 = 'K' in
 
   let isImpurePrim (v : Ident.t) : bool = List.exists (fun name -> Ident.matches v ~name) Value.impure_prims in
   let impure = identify_impure_funs isConstant isImpurePrim ds in
@@ -149,7 +149,7 @@ let test_reach
     (expected : string list)
     () : unit =
   let to_ident (x : string) : Ident.t = Ident.mk_ident x in
-  let of_ident (x : Ident.t) : string = Ident.pprint x in
+  let of_ident (x : Ident.t) : string = Ident.to_string x in
 
   (* generate dependencies of a node *)
   let next (x : Ident.t) : IdentSet.t =
@@ -220,7 +220,7 @@ let test_reachable_decls (globals : TC.GlobalEnv.t)
   let ds = List.append prelude ds in
   let reachable : AST.declaration list = reachable_decls roots ds in
   let reachable : string list =
-    List.map Ident.pprint (List.filter_map decl_name reachable)
+    List.map Ident.to_string (List.filter_map decl_name reachable)
   in
 
   Alcotest.(check (list string)) "sorted declarations" expected reachable

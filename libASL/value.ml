@@ -48,7 +48,7 @@ exception Throw of (Loc.t * Ident.t * value Identset.Bindings.t)
 let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   match x with
   | VBool b -> Format.pp_print_string fmt (prim_cvt_bool_str b)
-  | VEnum (e, _) -> Format.pp_print_string fmt (Ident.pprint e)
+  | VEnum (e, _) -> Format.pp_print_string fmt (Ident.to_string e)
   | VInt i -> Format.pp_print_string fmt (prim_cvt_int_decstr i)
   | VReal r -> Format.pp_print_string fmt (prim_cvt_real_str r)
   | VBits b -> Format.pp_print_string fmt (prim_cvt_bits_hexstr (Z.of_int b.n) b)
@@ -155,7 +155,7 @@ let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
   | VRecord fs ->
       ( match Identset.Bindings.find_opt f fs with
       | Some r -> r
-      | None -> raise (EvalError (loc, "Field " ^ Ident.pprint f ^ " not found in " ^ string_of_value x))
+      | None -> raise (EvalError (loc, "Field " ^ Ident.to_string f ^ " not found in " ^ string_of_value x))
       )
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
 
@@ -393,7 +393,7 @@ module TextTracer = struct
     if enabled then
       trace
         ("var_" ^ (if is_local then "local_" else "global_") ^ (if is_read then "read" else "write"))
-        [ Ident.pprint name
+        [ Ident.to_string name
         ; string_of_value data
         ]
 
@@ -415,7 +415,7 @@ module TextTracer = struct
     if enabled then
       trace
         ("function_" ^ (if is_return then "return" else "call"))
-        ( Ident.pprint name :: "{" :: List.append (List.map string_of_value tvs) ("}" :: List.map string_of_value vs))
+        ( Ident.to_string name :: "{" :: List.append (List.map string_of_value tvs) ("}" :: List.map string_of_value vs))
 
 end
 

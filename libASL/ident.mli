@@ -20,7 +20,7 @@ val root_equal : t -> root:t -> bool
 
 val in_list : t -> t list -> bool
 
-val pprint : t -> string
+val to_string : t -> string
 
 val name_with_tag : t -> string
 

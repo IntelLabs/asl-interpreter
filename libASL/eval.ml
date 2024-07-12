@@ -105,7 +105,7 @@ module GlobalEnv = struct
 
   let addFun (loc : Loc.t) (env : t) (x : Ident.t)
       (def : Ident.t list * Ident.t list * Loc.t * stmt list) : unit =
-    if false then Printf.printf "Adding function %s\n" (Ident.pprint x);
+    if false then Printf.printf "Adding function %s\n" (Ident.to_string x);
     if Bindings.mem x env.functions then
       if true then () (* silently override *)
       else if override_conflicts then
@@ -113,8 +113,8 @@ module GlobalEnv = struct
         Printf.printf
           "Stern warning: %s function %s conflicts with earlier definition - \
            discarding earlier definition\n"
-          (Loc.to_string loc) (Ident.pprint x)
-      else raise (Error.Ambiguous (loc, "function definition", Ident.pprint x));
+          (Loc.to_string loc) (Ident.to_string x)
+      else raise (Error.Ambiguous (loc, "function definition", Ident.to_string x));
     env.functions <- Bindings.add x def env.functions
 
   let set_impl_def (env : t) (x : string) (v : value) : unit =
@@ -193,7 +193,7 @@ module Env = struct
             r
         | None ->
             from_option (GlobalEnv.get_global_constant env.globalConsts x)
-              (fun _ -> raise (EvalError (loc, "getVar: " ^ Ident.pprint x)))
+              (fun _ -> raise (EvalError (loc, "getVar: " ^ Ident.to_string x)))
 
   let setVar (loc : Loc.t) (env : t) (x : Ident.t) (v : value) : unit =
     if ScopeStack.set env.locals x v then begin
@@ -686,7 +686,7 @@ and eval_call (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
         Utils.from_option
           (GlobalEnv.get_function (Env.globals env) f)
           (fun _ ->
-            raise (EvalError (loc, "Undeclared function " ^ Ident.pprint f)))
+            raise (EvalError (loc, "Undeclared function " ^ Ident.to_string f)))
       in
       Env.nestTop env (fun env' ->
           List.iter2 (fun arg v -> Env.addLocalVar loc env' arg v) targs tvs;
@@ -706,7 +706,7 @@ and eval_funcall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
       v
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.pprint f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.to_string f);
     raise ex
 
 (** Evaluate call to procedure *)
@@ -717,7 +717,7 @@ and eval_proccall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
   | Return (Some (VTuple [])) -> ()
   | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
   | ex ->
-    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.pprint f);
+    Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.to_string f);
     raise ex
   );
   let module Tracer = (val (!tracer) : Tracer) in

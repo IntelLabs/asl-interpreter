@@ -177,7 +177,7 @@ let chekhovTracer
       page_walk_id := Int32.add !page_walk_id 1l
 
   let trace_var ~(is_local : bool) ~(is_read : bool) (name : Ident.t) (v : Value.value) : unit =
-    let name = Ident.pprint name in
+    let name = Ident.to_string name in
     if not is_local && not is_read then
       ( match RegMap.find_opt name regmap with
       | Some ix ->

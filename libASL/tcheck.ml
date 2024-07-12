@@ -356,7 +356,7 @@ let typeFields (env : GlobalEnv.t) (loc : Loc.t) (x : ty) : fieldtypes =
         FT_Record fs'
       | Some (Type_Exception fs) ->
         FT_Record fs
-      | _ -> raise (IsNotA (loc, "record or exception", Ident.pprint tc)))
+      | _ -> raise (IsNotA (loc, "record or exception", Ident.to_string tc)))
   | Type_Bits (n, fs) -> FT_Register fs
   | Type_OfExpr e ->
       raise (InternalError
@@ -368,16 +368,16 @@ let get_recordfield (loc : Loc.t) (rfs : (Ident.t * ty) list) (f : Ident.t) : AS
     =
   match List.filter (fun (fnm, _) -> fnm = f) rfs with
   | [ (_, fty) ] -> fty
-  | [] -> raise (UnknownObject (loc, "field", Ident.pprint f))
-  | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
+  | [] -> raise (UnknownObject (loc, "field", Ident.to_string f))
+  | fs -> raise (Ambiguous (loc, "field", Ident.to_string f))
 
 (** Get fieldtype information for a named field of a slice *)
 let get_regfield_info (loc : Loc.t) (rfs : (AST.slice list * Ident.t) list)
     (f : Ident.t) : AST.slice list =
   match List.filter (fun (_, fnm) -> fnm = f) rfs with
   | [ (ss, _) ] -> ss
-  | [] -> raise (UnknownObject (loc, "field", Ident.pprint f))
-  | fs -> raise (Ambiguous (loc, "field", Ident.pprint f))
+  | [] -> raise (UnknownObject (loc, "field", Ident.to_string f))
+  | fs -> raise (Ambiguous (loc, "field", Ident.to_string f))
 
 (** Get named field of a register and calculate type *)
 let get_regfield (loc : Loc.t) (rfs : (AST.slice list * Ident.t) list) (f : Ident.t)
@@ -555,7 +555,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
   match x with
   | Expr_Var v ->
       let intsort = Z3.Arithmetic.Integer.mk_sort ctx in
-      Z3.Expr.mk_const_s ctx (Ident.pprint v) intsort
+      Z3.Expr.mk_const_s ctx (Ident.to_string v) intsort
   | Expr_Parens y -> z3_of_expr ctx ufs y
   | Expr_LitInt i -> Z3.Arithmetic.Integer.mk_numeral_s ctx i
   (* todo: the following lines involving DIV are not sound *)
@@ -950,7 +950,7 @@ let synthesize_parameters (env : Env.t) (loc : Loc.t)
   (* Extract values of the parameters from s *)
   let check_parameter (v, oe) =
     let e = from_option oe (fun _ ->
-        raise (TypeError (loc, "unable to synthesize type parameter " ^ Ident.pprint v)))
+        raise (TypeError (loc, "unable to synthesize type parameter " ^ Ident.to_string v)))
     in
     (v, e)
   in
@@ -1234,7 +1234,7 @@ let tc_apply (env : Env.t) (loc : Loc.t) (what : string)
     (f : Ident.t) (es : AST.expr list) (tys : AST.ty list) : fun_instance =
   let genv = Env.globals env in
   let funs = GlobalEnv.getFuns genv f in
-  let nm = Ident.pprint f in
+  let nm = Ident.to_string f in
   match funs with
   | [] ->
       raise (UnknownObject (loc, what, nm))
@@ -1285,7 +1285,7 @@ let tc_binop (env : Env.t) (loc : Loc.t) (op : binop)
 
 (** Lookup a variable in environment *)
 let get_var (env : Env.t) (loc : Loc.t) (v : Ident.t) : var_info =
-  from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", Ident.pprint v)))
+  from_option (Env.getVar env v) (fun _ -> raise (UnknownObject (loc, "variable", Ident.to_string v)))
 
 (** check that we have exactly the fields required *)
 let check_field_assignments (loc : Loc.t) (fs : (Ident.t * ty) list) (fas : (Ident.t * expr) list) : unit =
@@ -1295,9 +1295,9 @@ let check_field_assignments (loc : Loc.t) (fs : (Ident.t * ty) list) (fas : (Ide
     let missing = IdentSet.elements (IdentSet.diff expected assigned) in
     let extra = IdentSet.elements (IdentSet.diff assigned expected) in
     let msg = "record initializer is missing fields "
-      ^ String.concat ", " (List.map Ident.pprint missing)
+      ^ String.concat ", " (List.map Ident.to_string missing)
       ^ " and/or has extra fields "
-      ^ String.concat ", " (List.map Ident.pprint extra)
+      ^ String.concat ", " (List.map Ident.to_string extra)
     in
     raise (TypeError (loc, msg))
   end
@@ -1494,7 +1494,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           in
           let ogetters =
             chooseFunction (Env.globals env) loc "getter function"
-              (Ident.pprint a) true tys getters
+              (Ident.to_string a) true tys getters
           in
           match ogetters with
           | Some fty when all_single ->
@@ -1512,12 +1512,12 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
       | _ -> tc_slice_expr env loc e ss')
   | Expr_RecordInit (tc, es, fas) ->
       if not (GlobalEnv.isType (Env.globals env) tc) then
-        raise (IsNotA (loc, "type constructor", Ident.pprint tc));
+        raise (IsNotA (loc, "type constructor", Ident.to_string tc));
       let (ps, fs) =
         match GlobalEnv.getType (Env.globals env) tc with
         | Some (Type_Record (ps, fs)) -> (ps, fs)
         | Some (Type_Exception fs) -> ([], fs)
-        | _ -> raise (IsNotA (loc, "record or exception type", Ident.pprint tc))
+        | _ -> raise (IsNotA (loc, "record or exception type", Ident.to_string tc))
       in
       if List.length es <> List.length ps then
         raise (TypeError (loc, "wrong number of type parameters"));
@@ -1575,14 +1575,14 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           end;
           (Expr_RecordInit (v, [], []), Type_Constructor (v, []))
         | Some _ ->
-          raise (IsNotA (loc, "record or exception type", Ident.pprint v));
+          raise (IsNotA (loc, "record or exception type", Ident.to_string v));
         | None ->
           let getters =
             GlobalEnv.getFuns (Env.globals env) (Ident.add_suffix v ~suffix:"read")
           in
           match
             chooseFunction (Env.globals env) loc "getter function"
-              (Ident.pprint v) false [] getters
+              (Ident.to_string v) false [] getters
           with
           | Some fty ->
               let fty' = instantiate_fun env loc fty [] [] in
@@ -1590,7 +1590,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           | None ->
               raise
                 (UnknownObject
-                   (loc, "variable or getter functions", Ident.pprint v))
+                   (loc, "variable or getter functions", Ident.to_string v))
         )
       )
   | Expr_Parens e ->
@@ -1671,7 +1671,7 @@ and tc_type (env : Env.t) (loc : Loc.t) (x : AST.ty) : AST.ty =
   | Type_Constructor (tc, es) ->
       let es' = List.map (check_expr env loc type_integer) es in
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
-        raise (IsNotA (loc, "type constructor", Ident.pprint tc))
+        raise (IsNotA (loc, "type constructor", Ident.to_string tc))
       end;
       Type_Constructor (tc, es')
   | Type_OfExpr e ->
@@ -1679,7 +1679,7 @@ and tc_type (env : Env.t) (loc : Loc.t) (x : AST.ty) : AST.ty =
       ty
   | Type_Array (Index_Enum tc, ety) ->
       if not (GlobalEnv.isEnum (Env.globals env) tc) then
-        raise (IsNotA (loc, "enumeration type", Ident.pprint tc));
+        raise (IsNotA (loc, "enumeration type", Ident.to_string tc));
       let ety' = tc_type env loc ety in
       Type_Array (Index_Enum tc, ety')
   | Type_Array (Index_Int sz, ety) ->
@@ -1771,24 +1771,24 @@ and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
           in
           let ogetter =
             chooseFunction (Env.globals env) loc "var getter function"
-              (Ident.pprint v) false [] getters
+              (Ident.to_string v) false [] getters
           in
           match ogetter with
           | Some fty ->
               let gty =
                 match
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (Ident.pprint v) false [] setters
+                    (Ident.to_string v) false [] setters
                 with
                 | Some gty -> gty
                 | None ->
                     raise
-                      (UnknownObject (loc, "var setter function", Ident.pprint v))
+                      (UnknownObject (loc, "var setter function", Ident.to_string v))
               in
               let fty' = instantiate_fun env loc fty [] [] in
               let throws = false in (* todo: need to allow ? on var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, [], throws), fty'.rty)
-          | None -> raise (UnknownObject (loc, "variable", Ident.pprint v))))
+          | None -> raise (UnknownObject (loc, "variable", Ident.to_string v))))
   | LExpr_Field (l, f) -> (
       let l', ty = tc_lexpr2 env loc l in
       match typeFields (Env.globals env) loc ty with
@@ -1828,11 +1828,11 @@ and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
           in
           let ogetters =
             chooseFunction (Env.globals env) loc "getter function"
-              (Ident.pprint a) true tys getters
+              (Ident.to_string a) true tys getters
           in
           let osetters =
             chooseFunction (Env.globals env) loc "setter function"
-              (Ident.pprint a) true tys setters
+              (Ident.to_string a) true tys setters
           in
           match (ogetters, osetters) with
           | Some fty, Some gty when all_single ->
@@ -1848,9 +1848,9 @@ and tc_lexpr2 (env : Env.t) (loc : Loc.t) (x : AST.lexpr) :
               let throws = false in (* todo : need to add throws to Var *)
               (LExpr_ReadWrite (fty'.name, gty.funname, fty'.parameters, es, throws), fty'.rty)
           | None, Some _ ->
-              raise (UnknownObject (loc, "getter function", Ident.pprint a))
+              raise (UnknownObject (loc, "getter function", Ident.to_string a))
           | Some _, None ->
-              raise (UnknownObject (loc, "setter function", Ident.pprint a))
+              raise (UnknownObject (loc, "setter function", Ident.to_string a))
           | _ -> tc_slice_lexpr env loc e ss')
       | _ -> tc_slice_lexpr env loc e ss')
   | LExpr_BitTuple (_, ls) ->
@@ -1903,7 +1903,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
           in
           let osetter =
             chooseFunction (Env.globals env) loc "var setter function"
-              (Ident.pprint v) false [] setters
+              (Ident.to_string v) false [] setters
           in
           match osetter with
           | Some gty ->
@@ -1914,7 +1914,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
               let throws = false in
               LExpr_Write (gty'.name, gty'.parameters, [], throws)
           | None ->
-              raise (UnknownObject (loc, "variable", Ident.pprint v))
+              raise (UnknownObject (loc, "variable", Ident.to_string v))
           )
       )
   | LExpr_Field (l, f) ->
@@ -1963,7 +1963,7 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
             in
             let osetters =
               chooseFunction (Env.globals env) loc "setter function"
-                (Ident.pprint a) true tys setters
+                (Ident.to_string a) true tys setters
             in
             match osetters with
             | Some gty when all_single ->
@@ -1990,11 +1990,11 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
                 in
                 let ogetter =
                   chooseFunction (Env.globals env) loc "var getter function"
-                    (Ident.pprint a) false [] getters
+                    (Ident.to_string a) false [] getters
                 in
                 let osetter =
                   chooseFunction (Env.globals env) loc "var setter function"
-                    (Ident.pprint a) false [] setters
+                    (Ident.to_string a) false [] setters
                 in
                 match (ogetter, osetter) with
                 | Some fty, Some fty' ->
@@ -2007,10 +2007,10 @@ let rec tc_lexpr (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.lexpr) : AST
                     (LExpr_Slices (fty.rty, wr, ss''), type_bits (slices_width ss''))
                 | None, Some _ ->
                     raise
-                      (UnknownObject (loc, "var getter function", Ident.pprint a))
+                      (UnknownObject (loc, "var getter function", Ident.to_string a))
                 | Some _, None ->
                     raise
-                      (UnknownObject (loc, "var setter function", Ident.pprint a))
+                      (UnknownObject (loc, "var setter function", Ident.to_string a))
                 | None, None -> tc_slice_lexpr env loc e ss'))
         | _ -> tc_slice_lexpr env loc e ss'
       in
@@ -2126,7 +2126,7 @@ and tc_catcher (env : Env.t) (loc : Loc.t) (x : AST.catcher) : AST.catcher =
   match x with
   | Catcher_Guarded (v, tc, b, loc) ->
       if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
-        raise (IsNotA (loc, "exception type", Ident.pprint tc))
+        raise (IsNotA (loc, "exception type", Ident.to_string tc))
       end;
       let b' = Env.nest
         (fun env' ->
@@ -2499,7 +2499,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
                if fs = [] then
                  raise
                    (UnknownObject
-                      (loc, "unary operator implementation", Ident.pprint f));
+                      (loc, "unary operator implementation", Ident.to_string f));
                fs)
              funs)
       in
@@ -2514,7 +2514,7 @@ let tc_declaration (env : GlobalEnv.t) (d : AST.declaration) :
                if fs = [] then
                  raise
                    (UnknownObject
-                      (loc, "binary operator implementation", Ident.pprint f));
+                      (loc, "binary operator implementation", Ident.to_string f));
                fs)
              funs)
       in

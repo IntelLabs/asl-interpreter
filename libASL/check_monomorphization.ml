@@ -54,7 +54,7 @@ let show_dependency_graph (ds : AST.declaration list) (names : IdentSet.t) : uni
     for _ = 1 to 2*depth do
       print_char ' '
     done;
-    Printf.printf "%s\n" (Ident.pprint x);
+    Printf.printf "%s\n" (Ident.to_string x);
     let ys = Bindings.find_opt x !callees |> Option.value ~default:IdentSet.empty in
     IdentSet.iter (display_tree (depth+1)) ys
   in
@@ -81,7 +81,7 @@ let _ =
       (if !verbose then
         show_dependency_graph polymorphic names
       else
-        IdentSet.iter (fun x -> Printf.printf "%s\n" (Ident.pprint x)) names
+        IdentSet.iter (fun x -> Printf.printf "%s\n" (Ident.to_string x)) names
       );
       not !fatal
     ) else (
