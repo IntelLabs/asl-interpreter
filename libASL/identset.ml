@@ -6,8 +6,6 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-module FMT = Asl_fmt
-
 (****************************************************************)
 (** {2 Bindings and IdentSet}                                   *)
 (****************************************************************)
@@ -27,7 +25,7 @@ let mk_bindings (xs : (Ident.t * 'a) list) : 'a Bindings.t =
 
 (** format bindings *)
 let pp_bindings (f : Format.formatter -> 'a -> unit) (fmt : Format.formatter) (bs : 'a Bindings.t) : unit =
-  Bindings.iter (fun k v -> Format.fprintf fmt "%a: %a\n" Asl_fmt.varname k f v) bs
+  Bindings.iter (fun k v -> Format.fprintf fmt "%a: %a\n" Ident.pp k f v) bs
 
 (** convert a list to bindings *)
 let list_to_bindings (merge : 'a -> 'a -> 'a) (null : 'a) (xs : (Ident.t * 'a) list) : 'a Bindings.t =
@@ -62,7 +60,7 @@ let addToBindingSet (k : Ident.t) (v : Ident.t) (bs : IdentSet.t Bindings.t) :
     bs
 
 let pp_identset (fmt : Format.formatter) (xs : IdentSet.t) : unit =
-    Format.pp_print_list ~pp_sep:(fun fmt _ -> Format.pp_print_string fmt ", ") FMT.varname fmt (IdentSet.elements xs)
+    Format.pp_print_list ~pp_sep:(fun fmt _ -> Format.pp_print_string fmt ", ") Ident.pp fmt (IdentSet.elements xs)
 
 (** convert identifier set to sorted list of identifiers
 

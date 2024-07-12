@@ -22,6 +22,8 @@ val in_list : t -> t list -> bool
 
 val to_string : t -> string
 
+val pp : Format.formatter -> t -> unit
+
 val name_with_tag : t -> string
 
 val name : t -> string

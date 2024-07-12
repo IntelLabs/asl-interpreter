@@ -57,6 +57,9 @@ let to_string (i : t) : string =
   | None -> i.info.name
   | Some tag -> i.info.name ^ "." ^ string_of_int tag
 
+let pp (fmt : Format.formatter) (x : t) : unit =
+  Format.pp_print_string fmt (to_string x)
+
 let name_with_tag (i : t) : string =
   match i.info.opt_tag with
   | None -> i.info.name

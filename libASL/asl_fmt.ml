@@ -53,7 +53,7 @@ let constant (fmt : PP.formatter) (s : string) : unit =
   with_color fmt ColorT.blue (fun _ -> PP.pp_print_string fmt s)
 
 let ident (fmt : PP.formatter) (color : ColorT.color4) (x : Ident.t) : unit =
-  with_color fmt color (fun _ -> PP.pp_print_string fmt (Ident.to_string x))
+  with_color fmt color (fun _ -> Ident.pp fmt x)
 
 let tycon (fmt : PP.formatter) (x : Ident.t) : unit = ident fmt ColorT.green x
 
