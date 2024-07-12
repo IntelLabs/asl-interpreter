@@ -62,6 +62,15 @@ let transform (loc : AST.l) (n : AST.expr) (w : AST.expr) (i : AST.expr)
   | _ -> transform_non_slices n w i x
   )
 
+  (** Transform assignment
+    *   le[shift +: slice_width] = rhs;
+    * to
+    *   le = (e AND (NOT slice_mask) OR (rhs AND slice_mask)
+    * where le : bits(width)
+    *       e = le (converted to an expression)
+    *       l = location
+    *       slice_mask = mask(slice_width) << shift
+    *)
 let transform_assignment
     (le : AST.lexpr)
     (e : AST.expr)
@@ -78,7 +87,7 @@ let transform_assignment
    * and masked *)
   let rhs' = transform_non_slices width slice_width shift rhs in
 
-  (* lhs = (lhs & ~slice_mask) | rhs' *)
+  (* lhs = (lhs AND (NOT slice_mask) OR rhs' *)
   let or_op1 = mk_and_bits width e slice_not_mask in
   let rhs'' = mk_or_bits width or_op1 rhs' in
 
