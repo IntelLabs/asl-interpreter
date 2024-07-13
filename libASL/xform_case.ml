@@ -28,10 +28,9 @@ let mk_if
 
 let rec match_pattern (loc : Loc.t) (e : AST.expr) (p : AST.pattern) : AST.expr =
   ( match (p, e) with
-  | (Pat_LitInt l,  _) -> mk_eq_int e (Expr_LitInt l)
-  | (Pat_LitHex l,  _) -> mk_eq_int e (Expr_LitHex l)
-  | (Pat_LitBits l, _) -> mk_eq_bits (Asl_utils.masklength_expr l) e (Expr_LitBits l)
-  | (Pat_LitMask l, _) -> Expr_In (e, p)
+  | (Pat_Lit (VInt _ as v), _)  -> mk_eq_int e (Expr_Lit v)
+  | (Pat_Lit (VBits b as v), _) -> mk_eq_bits (Asl_utils.mk_litint b.n) e (Expr_Lit v)
+  | (Pat_Lit (VMask _), _)      -> Expr_In (e, p)
   (* This actually makes the type information invalid because mk_eq_enum will
      just use eq_enum with tag 0 which most likely corresponds to some other
      enum. *)
@@ -58,12 +57,13 @@ let alt_to_branch (e : AST.expr) (x : AST.alt) : (AST.expr * AST.stmt list * Loc
  *)
 let is_simple_pattern (x : AST.pattern) : bool =
   ( match x with
-  | Pat_LitInt _
-  | Pat_LitHex _
-  | Pat_LitBits _
+  | Pat_Lit (VMask _)
+  -> false
+  | Pat_Lit _
   | Pat_Const _
-    -> true
-  | _ -> false
+  -> true
+  | _
+  -> false
   )
 
 (* Detect case alternatives that can be directly
@@ -83,12 +83,7 @@ let is_simple_alt (x : AST.alt) : bool =
 let rec can_duplicate (x : AST.expr) : bool =
   ( match x with
   | Expr_Var _
-  | Expr_LitInt _
-  | Expr_LitHex _
-  | Expr_LitReal _
-  | Expr_LitBits _
-  | Expr_LitMask _
-  | Expr_LitString _
+  | Expr_Lit _
     -> true
 
   | Expr_Field (e, f) -> can_duplicate e
@@ -119,7 +114,7 @@ class simplifyCaseClass =
           | None ->
             let msg = Loc.to_string loc in
             let f = asl_error_unmatched_case in
-            let s = AST.Stmt_TCall (f, [], [Expr_LitString msg], false, loc) in
+            let s = AST.Stmt_TCall (f, [], [Asl_utils.mk_litstr msg], false, loc) in
             ([s], loc)
         in
         let ss = mk_if branches default loc in

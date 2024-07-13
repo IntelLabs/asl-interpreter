@@ -18,7 +18,7 @@ let enable_auto_case_split = ref false
 let verbose = ref false
 
 let const_int_expr (x : AST.expr) : Z.t option =
-  match x with Expr_LitInt x -> Some (Z.of_string x) | _ -> None
+  match x with Expr_Lit (VInt x') -> Some x' | _ -> None
 
 module InstanceKey = struct
   type t = Ident.t * Z.t list
@@ -91,9 +91,7 @@ class monoClass
       : AST.alt option =
       let to_pattern (c : AST.constraint_range) : AST.pattern option =
         match c with
-        | Constraint_Single (Expr_LitHex s) -> Some (Pat_LitHex s)
-        | Constraint_Single (Expr_LitInt s) -> Some (Pat_LitInt s)
-        | Constraint_Single (Expr_LitBits s) -> Some (Pat_LitBits s)
+        | Constraint_Single (Expr_Lit s) -> Some (Pat_Lit s)
         | _ -> None
       in
       let* ps = flatten_map_option to_pattern cs in

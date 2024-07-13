@@ -121,10 +121,7 @@ and visit_patterns (vis : aslVisitor) (xs : pattern list) : pattern list =
 and visit_pattern (vis : aslVisitor) (x : pattern) : pattern =
   let aux (vis : aslVisitor) (x : pattern) : pattern =
     match x with
-    | Pat_LitInt _ -> x
-    | Pat_LitHex _ -> x
-    | Pat_LitBits _ -> x
-    | Pat_LitMask _ -> x
+    | Pat_Lit _ -> x
     | Pat_Const c ->
         let c' = visit_var vis Read c in
         if c == c' then x else Pat_Const c'
@@ -221,12 +218,7 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
         let a' = visit_expr vis a in
         let e' = visit_expr vis e in
         if a == a' && e == e' then x else Expr_Array (a', e')
-    | Expr_LitInt _ -> x
-    | Expr_LitHex _ -> x
-    | Expr_LitReal _ -> x
-    | Expr_LitBits _ -> x
-    | Expr_LitMask _ -> x
-    | Expr_LitString _ -> x
+    | Expr_Lit _ -> x
     | Expr_AsConstraint (e, c) ->
         let e' = visit_expr vis e in
         let c' = visit_constraints vis c in

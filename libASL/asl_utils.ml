@@ -864,14 +864,14 @@ let type_exn = Type_Constructor (exception_ident, [])
 let asl_false = AST.Expr_Var false_ident
 let asl_true = AST.Expr_Var true_ident
 
-let mk_litint (x : int) : AST.expr = Expr_LitInt (string_of_int x)
-let mk_litbigint (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x)
-let mk_litstr (x : string) : AST.expr = Expr_LitString x
+let mk_litint (x : int) : AST.expr = Expr_Lit (VInt (Z.of_int x))
+let mk_litbigint (x : Z.t) : AST.expr = Expr_Lit (VInt x)
+let mk_litstr (x : string) : AST.expr = Expr_Lit (VString x)
 
-let minus_one = Expr_LitInt "-1"
-let zero = Expr_LitInt "0"
-let one = Expr_LitInt "1"
-let two = Expr_LitInt "2"
+let minus_one = Expr_Lit (VInt Z.minus_one)
+let zero      = Expr_Lit (VInt Z.zero)
+let one       = Expr_Lit (VInt Z.one)
+let two       = mk_litint 2
 
 let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
   Expr_TApply (op, tys, [x], false)
@@ -1076,12 +1076,7 @@ let rec is_safe_to_replicate (x : expr) : bool =
   ( match x with
   (* trivial, atomic expressions *)
   | Expr_Var _
-  | Expr_LitInt _
-  | Expr_LitHex _
-  | Expr_LitReal _
-  | Expr_LitBits _
-  | Expr_LitMask _
-  | Expr_LitString _
+  | Expr_Lit _
   -> true
 
   (* recursive cases *)
@@ -1160,13 +1155,8 @@ let width_of_type (ty : AST.ty) : AST.expr option =
 (** Is an expression a literal constant? *)
 let is_literal_constant (x : expr) : bool =
   ( match x with
-  | Expr_LitInt _
-  | Expr_LitHex _
-  | Expr_LitReal _
-  | Expr_LitBits _
-  | Expr_LitMask _
-  | Expr_LitString _ -> true
-  | _ -> false
+  | Expr_Lit _ -> true
+  | _          -> false
   )
 
 (** Convert an L-expression to an expression *)

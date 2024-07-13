@@ -293,10 +293,12 @@ and eval_unknown (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
 (** Evaluate pattern match *)
 and eval_pattern (loc : Loc.t) (env : Env.t) (v : value) (x : AST.pattern) : bool =
   match x with
-  | Pat_LitInt l -> eval_eq_int loc v (from_intLit l)
-  | Pat_LitHex l -> eval_eq_int loc v (from_hexLit l)
-  | Pat_LitBits l -> eval_eq_bits loc v (from_bitsLit l)
-  | Pat_LitMask l -> eval_inmask loc v (from_maskLit l)
+  | Pat_Lit (VInt _ as y) -> eval_eq_int loc v y
+  | Pat_Lit (VBits _ as y) -> eval_eq_bits loc v y
+  | Pat_Lit (VMask _ as y) -> eval_inmask loc v y
+  | Pat_Lit _ ->
+      raise (InternalError
+        (loc, "eval_pattern: lit", (fun fmt -> FMT.pattern fmt x), __LOC__))
   | Pat_Const c -> eval_eq loc v (GlobalEnv.getGlobalConst (Env.globals env) c)
   | Pat_Wildcard -> true
   | Pat_Tuple ps ->
@@ -427,12 +429,7 @@ and eval_expr (loc : Loc.t) (env : Env.t) (x : AST.expr) : value =
       let a' = eval_expr loc env a in
       let i' = eval_expr loc env i in
       get_array loc a' i'
-  | Expr_LitInt i -> from_intLit i
-  | Expr_LitHex i -> from_hexLit i
-  | Expr_LitReal r -> from_realLit r
-  | Expr_LitBits b -> from_bitsLit b
-  | Expr_LitMask b -> from_maskLit b (* todo: masks should not be expressions *)
-  | Expr_LitString s -> from_stringLit s
+  | Expr_Lit v -> v
   | Expr_AsConstraint (e, c) ->
       (* todo: dynamic constraint check *)
       eval_expr loc env e

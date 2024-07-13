@@ -270,6 +270,8 @@ let mkMask (n : int) (v : Z.t) (m : Z.t) : mask =
   assert (Z.equal v (Z.logand v m));
   { n; v; m }
 
+let prim_length_mask (m : mask) : int = m.n
+
 let prim_in_mask (x : bitvector) (m : mask) : bool =
   Z.equal (Z.logand x.v m.m) m.v
 

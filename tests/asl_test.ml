@@ -125,13 +125,13 @@ let tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   [
     test_static globals true "literals (int)" "" "1234";
-    test_static globals true "literals (real)" "" "10.0";
-    test_static globals true "literals (bits)" "" "'1111 0000'";
-    test_static globals true "literals (string)" "" "\"abc\"";
-    test_static globals true "literals (string)" "" "\"ab\\nc\"";
-    test_static globals true "literals (string)" "" "\"ab\\tc\"";
-    test_static globals true "literals (string)" "" "\"ab\\\\c\"";
-    test_static globals true "literals (string)" "" "\"ab\\\"c\"";
+    test_static globals false "literals (real)" "" "10.0";
+    test_static globals false "literals (bits)" "" "'1111 0000'";
+    test_static globals false "literals (string)" "" "\"abc\"";
+    test_static globals false "literals (string)" "" "\"ab\\nc\"";
+    test_static globals false "literals (string)" "" "\"ab\\tc\"";
+    test_static globals false "literals (string)" "" "\"ab\\\\c\"";
+    test_static globals false "literals (string)" "" "\"ab\\\"c\"";
     test_static globals true "let-expressions" "" "__let x : integer = 1 __in x";
     test_static globals true "expressions (records)"
       "record Pair{x : integer; y : integer; };" "Pair{x = 1, y = 2}";

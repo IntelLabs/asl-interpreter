@@ -111,12 +111,7 @@ let isConstant (env : Env.t) (x : expr) : bool =
 
 let value_of_constant (env : Env.t) (x : expr) : Value.value option =
   match x with
-  | Expr_LitInt i -> Some (Value.from_intLit i)
-  | Expr_LitHex i -> Some (Value.from_hexLit i)
-  | Expr_LitReal r -> Some (Value.from_realLit r)
-  | Expr_LitBits b -> Some (Value.from_bitsLit b)
-  | Expr_LitMask b -> Some (Value.from_maskLit b)
-  | Expr_LitString s -> Some (Value.from_stringLit s)
+  | Expr_Lit v -> Some v
   | Expr_Var v -> Eval.GlobalEnv.get_global_constant (Env.globals env) v
   | _ -> None
 
@@ -126,23 +121,17 @@ let expr_value (env : Env.t) (x : AST.expr) : Values.t =
     Values.singleton (Eval.eval_expr Unknown env0 x)
   else Values.bottom
 
-let cvt_bitvector_binstr (x : Primops.bitvector) : string =
-  if x.n = 0 then ""
-  else
-    let s = Z.format "%0b" x.v in
-    let pad = String.make (x.n - String.length s) '0' in
-    pad ^ s
-
 let rec value_to_expr (x : Value.value) : expr option =
   match x with
   | VBool b -> Some (Expr_Var (if b then true_ident else false_ident))
   | VEnum (v, _) -> Some (Expr_Var v)
-  | VInt v -> Some (Asl_utils.mk_litbigint v)
-  | VBits v -> Some (Expr_LitBits (cvt_bitvector_binstr v))
-  (*
-    | VReal v -> _
-    *)
-  | VString v -> Some (Expr_LitString v)
+
+  | VInt _
+  | VBits _
+  | VReal _
+  | VString _
+  -> Some (Expr_Lit x)
+
   | VTuple vs ->
       Option.map (fun es -> Expr_Tuple es) (flatten_map_option value_to_expr vs)
   | _ -> None
@@ -151,8 +140,8 @@ let value_to_pattern (x : Value.value) : pattern option =
   match x with
   | VBool b -> Some (Pat_Const (if b then true_ident else false_ident))
   | VEnum (v, _) -> Some (Pat_Const v)
-  | VInt v -> Some (Pat_LitInt (Z.to_string v))
-  | VBits v -> Some (Pat_LitBits (cvt_bitvector_binstr v))
+  | VInt v -> Some (Pat_Lit x)
+  | VBits v -> Some (Pat_Lit x)
   | _ -> None
 
 let algebraic_simplifications (x : expr) : expr =
@@ -162,22 +151,22 @@ let algebraic_simplifications (x : expr) : expr =
   | Expr_Concat (ws, xs) ->
       let (ws', xs') =
         List.combine ws xs |>
-        List.filter (function (_, Expr_LitBits "") -> false | _ -> true) |>
+        List.filter (function (_, Expr_Lit (VBits v)) -> v.n <> 0 | _ -> true) |>
         List.split
       in
-      if xs' = [] then Expr_LitBits "" else Expr_Concat (ws', xs')
+      if xs' = [] then Expr_Lit (VBits Primops.empty_bits) else Expr_Concat (ws', xs')
   (* '' : x == x == x : '' *)
-  | Expr_TApply (i, [ Expr_LitInt "0"; _ ], [ _; y ], _) when
-    Ident.equal i append_bits ->
+  | Expr_TApply (i, [ Expr_Lit (VInt v); _ ], [ _; y ], _) when
+    v = Z.zero && Ident.equal i append_bits ->
       y
-  | Expr_TApply (i, [ _; Expr_LitInt "0" ], [ x; _ ], _) when
-    Ident.equal i append_bits ->
+  | Expr_TApply (i, [ _; Expr_Lit (VInt v) ], [ x; _ ], _) when
+    v = Z.zero && Ident.equal i append_bits ->
       x
   (* x + 0 == x == 0 + x *)
-  | Expr_TApply (i, [], [ x; Expr_LitInt "0" ], _) when Ident.equal i add_int -> x
-  | Expr_TApply (i, [], [ Expr_LitInt "0"; x ], _) when Ident.equal i add_int -> x
+  | Expr_TApply (i, [], [ x; Expr_Lit (VInt v) ], _) when v = Z.zero && Ident.equal i add_int -> x
+  | Expr_TApply (i, [], [ Expr_Lit (VInt v); x ], _) when v = Z.zero && Ident.equal i add_int -> x
   (* x - 0 == x *)
-  | Expr_TApply (i, [], [ x; Expr_LitInt "0" ], _) when Ident.equal i sub_int -> x
+  | Expr_TApply (i, [], [ x; Expr_Lit (VInt v) ], _) when v = Z.zero && Ident.equal i sub_int -> x
   | _ -> x
 
 (* impure functions: set during initialization *)
@@ -385,14 +374,8 @@ and xform_pattern_with_expr (env : Env.t) (p : AST.pattern) (e : AST.expr) : AST
   match (e, p) with
   | (Expr_Tuple rs, Pat_Tuple ps) ->
       Pat_Tuple (List.map2 (xform_pattern_with_expr env) ps rs)
-  | (Expr_Var v, Pat_LitInt il) ->
-      add_id v (Value.from_intLit il);
-      p
-  | (Expr_Var v, Pat_LitHex hl) ->
-      add_id v (Value.from_hexLit hl);
-      p
-  | (Expr_Var v, Pat_LitBits bl) ->
-      add_id v (Value.from_bitsLit bl);
+  | (Expr_Var v, Pat_Lit v') ->
+      add_id v v';
       p
   | _ -> xform_pattern env p
 

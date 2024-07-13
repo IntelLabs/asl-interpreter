@@ -189,7 +189,7 @@ let mul_poly (p : polynomial) (q : polynomial) : polynomial =
 (** Convert an expression to a polynomial *)
 let rec to_poly (x : AST.expr) : polynomial =
   ( match x with
-  | Expr_LitInt k -> mk_poly (Z.of_string k) []
+  | Expr_Lit (VInt k) -> mk_poly k []
   | Expr_Var v -> mk_poly Z.one [v]
   | Expr_Parens e -> to_poly e
   | Expr_TApply (i, [], [x; y], _) when Ident.equal i add_int ->

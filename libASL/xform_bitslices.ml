@@ -170,7 +170,7 @@ class bitsliceClass =
           (loc, "Slice_HiLo not expected", (fun fmt -> Asl_fmt.stmt fmt s), __LOC__))
       | Stmt_Assign (
           LExpr_Slices (
-            Type_Bits (Expr_LitInt _ as w, _),
+            Type_Bits (Expr_Lit _ as w, _),
             le,
             [Slice_LoWd (lo, sw)]),
           rhs,

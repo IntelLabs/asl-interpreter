@@ -294,14 +294,11 @@ let unop (fmt : PP.formatter) (x : AST.unop) : unit =
 
 let intLit (fmt : PP.formatter) (x : AST.intLit) : unit = constant fmt x
 
-let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
-  constant fmt ("'" ^ x ^ "'")
+let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit = constant fmt ("'" ^ x ^ "'")
 
-let maskLit (fmt : PP.formatter) (x : AST.maskLit) : unit =
-  constant fmt ("'" ^ x ^ "'")
+let maskLit (fmt : PP.formatter) (x : AST.maskLit) : unit = constant fmt ("'" ^ x ^ "'")
 
 let realLit (fmt : PP.formatter) (x : AST.realLit) : unit = constant fmt x
-let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit = constant fmt x
 
 let strLit (fmt : PP.formatter) (x : string) : unit =
   let escape (c : char) : unit =
@@ -502,12 +499,7 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Array (a, e) ->
       expr fmt a;
       brackets fmt (fun _ -> expr fmt e)
-  | Expr_LitInt l -> intLit fmt l
-  | Expr_LitHex l -> hexLit fmt l
-  | Expr_LitReal l -> realLit fmt l
-  | Expr_LitBits l -> bitsLit fmt l
-  | Expr_LitMask l -> maskLit fmt l
-  | Expr_LitString l -> strLit fmt l
+  | Expr_Lit v -> Value.pp_value fmt v
   | Expr_AsConstraint (e, c) ->
       expr fmt e;
       nbsp fmt;
@@ -535,10 +527,7 @@ and field_assignment (fmt : PP.formatter) (x : Ident.t * AST.expr) : unit =
 
 and pattern (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
-  | Pat_LitInt l -> intLit fmt l
-  | Pat_LitHex l -> hexLit fmt l
-  | Pat_LitBits l -> bitsLit fmt l
-  | Pat_LitMask l -> maskLit fmt l
+  | Pat_Lit v -> Value.pp_value fmt v
   | Pat_Const v -> varname fmt v
   | Pat_Wildcard -> minus fmt
   | Pat_Tuple ps -> parens fmt (fun _ -> patterns fmt ps)

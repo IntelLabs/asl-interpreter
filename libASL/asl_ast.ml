@@ -54,10 +54,7 @@ unop =
 
 type
 pattern =
-   Pat_LitInt of intLit
- | Pat_LitHex of hexLit
- | Pat_LitBits of bitsLit
- | Pat_LitMask of maskLit
+ | Pat_Lit of Value.value
  | Pat_Const of Ident.t
  | Pat_Wildcard
  | Pat_Tuple of pattern list
@@ -86,12 +83,7 @@ and expr =
  | Expr_TApply of Ident.t * expr list * expr list * bool (* function call with explicit type parameters *)
  | Expr_Concat of expr list * expr list (* bitvector concatenation *)
  | Expr_Array of expr * expr (* array accesses *)
- | Expr_LitInt of intLit (* literal decimal integer *)
- | Expr_LitHex of hexLit (* literal hexadecimal integer *)
- | Expr_LitReal of realLit (* literal real *)
- | Expr_LitBits of bitsLit (* literal bitvector *)
- | Expr_LitMask of maskLit (* literal bitmask *)
- | Expr_LitString of string (* literal string *)
+ | Expr_Lit of Value.value
 
 and e_elsif =
    E_Elsif_Cond of expr * expr

@@ -506,9 +506,9 @@ end
 
 let rec simplify_expr (x : AST.expr) : AST.expr =
   let eval (x : AST.expr) : Z.t option =
-    match x with Expr_LitInt x' -> Some (Z.of_string x') | _ -> None
+    match x with Expr_Lit (VInt x') -> Some x' | _ -> None
   in
-  let to_expr (x : Z.t) : AST.expr = Expr_LitInt (Z.to_string x) in
+  let to_expr (x : Z.t) : AST.expr = Expr_Lit (VInt x) in
 
   match x with
   | Expr_TApply (f, tes, es, throws) -> (
@@ -557,7 +557,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
       let intsort = Z3.Arithmetic.Integer.mk_sort ctx in
       Z3.Expr.mk_const_s ctx (Ident.to_string v) intsort
   | Expr_Parens y -> z3_of_expr ctx ufs y
-  | Expr_LitInt i -> Z3.Arithmetic.Integer.mk_numeral_s ctx i
+  | Expr_Lit (VInt i) -> Z3.Arithmetic.Integer.mk_numeral_s ctx (Z.to_string i)
   (* todo: the following lines involving DIV are not sound *)
   | Expr_TApply
       ( i,
@@ -656,6 +656,7 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
       | Some uf -> uf)
 
 let z3_ctx = Z3.mk_context []
+
 let solver = Z3.Solver.mk_simple_solver z3_ctx
 
 (** check that bs => cs where bs and cs are lists of boolean expressions *)
@@ -1081,7 +1082,7 @@ let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
 (** Construct "pow2_int(x)" *)
 let mk_pow2_int (x : AST.expr) : AST.expr =
   ( match x with
-  | Expr_LitInt i -> Asl_utils.mk_litbigint (Primops.prim_pow2_int (Z.of_string i))
+  | Expr_Lit (VInt i) -> Asl_utils.mk_litbigint (Primops.prim_pow2_int i)
   | _ -> mk_unop pow2_int [] x
   )
 
@@ -1349,18 +1350,13 @@ and tc_slice (env : Env.t) (loc : Loc.t) (x : AST.slice) :
 and tc_pattern (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.pattern) :
     AST.pattern =
   match x with
-  | Pat_LitInt l ->
-      check_subtype_satisfies env loc ty type_integer;
-      Pat_LitInt l
-  | Pat_LitHex l ->
-      check_subtype_satisfies env loc ty type_integer;
-      Pat_LitHex l
-  | Pat_LitBits l ->
-      check_subtype_satisfies env loc ty (type_bits (masklength_expr l));
-      Pat_LitBits l
-  | Pat_LitMask l ->
-      check_subtype_satisfies env loc ty (type_bits (masklength_expr l));
-      Pat_LitMask l
+  | Pat_Lit (VInt _)  -> check_subtype_satisfies env loc ty type_integer; x
+  | Pat_Lit (VReal _) -> check_subtype_satisfies env loc ty type_real; x
+  | Pat_Lit (VBits b) -> check_subtype_satisfies env loc ty (type_bits (mk_litint (Primops.prim_length_bits b))); x
+  | Pat_Lit (VMask m) -> check_subtype_satisfies env loc ty (type_bits (mk_litint (Primops.prim_length_mask m))); x
+  | Pat_Lit _ ->
+      raise (InternalError
+        (loc, "tc_pattern: lit", (fun fmt -> FMT.pattern fmt x), __LOC__))
   | Pat_Const c ->
       let i = get_var env loc c in
       if i.is_local || not i.is_constant then begin
@@ -1384,9 +1380,9 @@ and tc_pattern (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.pattern) :
   | Pat_Set ps ->
       let ps' = List.map (tc_pattern env loc ty) ps in
       Pat_Set ps'
-  | Pat_Single (Expr_LitMask m) ->
+  | Pat_Single (Expr_Lit (VMask m as v)) ->
       (* todo: this is a workaround for bad IN sugar *)
-      tc_pattern env loc ty (Pat_LitMask m)
+      tc_pattern env loc ty (Pat_Lit v)
   | Pat_Single e ->
       let (e', ety) = tc_expr env loc e in
       ignore (least_supertype env loc ty ety);
@@ -1443,12 +1439,12 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           (Expr_Let (v, t', e', b'), bty')
         )
         env
-  | Expr_Binop (x, Binop_Eq, Expr_LitMask y) ->
+  | Expr_Binop (x, Binop_Eq, Expr_Lit (VMask _ as m)) ->
       (* syntactic sugar *)
-      tc_expr env loc (Expr_In (x, Pat_LitMask y))
-  | Expr_Binop (x, Binop_NtEq, Expr_LitMask y) ->
+      tc_expr env loc (Expr_In (x, Pat_Lit m))
+  | Expr_Binop (x, Binop_NtEq, Expr_Lit (VMask _ as m)) ->
       (* syntactic sugar *)
-      tc_expr env loc (Expr_Unop (Unop_BoolNot, Expr_In (x, Pat_LitMask y)))
+      tc_expr env loc (Expr_Unop (Unop_BoolNot, Expr_In (x, Pat_Lit m)))
   | Expr_Binop (x, op, y) ->
       let x', xty = tc_expr env loc x in
       let y', yty = tc_expr env loc y in
@@ -1552,7 +1548,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           es
       in
       let n = List.length (e::es) in
-      let ixty = Index_Int (Expr_LitInt (string_of_int n)) in
+      let ixty = Index_Int (mk_litint n) in
       (Expr_ArrayInit (e'::es'), Type_Array (ixty, !rty))
   | Expr_In (e, p) ->
       let (e', ety') = tc_expr env loc e in
@@ -1626,17 +1622,13 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           let e' = check_expr env loc (ixtype_basetype ixty) e in
           (Expr_Array (a', e'), elty)
       | _ -> raise (TypeError (loc, "subscript of non-array")))
-  | Expr_LitInt i -> (Expr_LitInt i, Type_Integer (Some([Constraint_Single x])))
-  | Expr_LitHex i -> (Expr_LitHex i, Type_Integer (Some([Constraint_Single x])))
-  | Expr_LitReal r -> (Expr_LitReal r, type_real)
-  | Expr_LitBits b -> (Expr_LitBits b, type_bits (masklength_expr b))
-  | Expr_LitMask b ->
-      (* todo: this case only exists because of the (bad) sugar of
-       * writing "x == '0x'" instead of "x IN '0x'"
-       *)
+  | Expr_Lit (VInt _)    -> (x, Type_Integer (Some([Constraint_Single x])))
+  | Expr_Lit (VReal _)   -> (x, type_real)
+  | Expr_Lit (VBits b)   -> (x, type_bits (mk_litint (Primops.prim_length_bits b)))
+  | Expr_Lit (VString _) -> (x, type_string)
+  | Expr_Lit _ ->
       raise (InternalError
-        (loc, "tc_expr: litmask", (fun fmt -> FMT.expr fmt x), __LOC__))
-  | Expr_LitString s -> (Expr_LitString s, type_string)
+        (loc, "tc_expr: lit", (fun fmt -> FMT.expr fmt x), __LOC__))
   | Expr_AsConstraint (e, c) ->
       let e' = check_expr env loc type_integer e in
       let c' = tc_constraints env loc c in

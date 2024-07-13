@@ -192,6 +192,18 @@ let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : V.value) : unit =
       let s = Z.format "%0b" b.v in
       let pad = String.make (b.n - String.length s) '0' in
       bitsLit fmt (pad ^ s)
+  | VMask m ->
+      Format.fprintf fmt "%d'b" m.n;
+      let cs = List.init
+                 m.n
+                 (fun i ->
+                     let i' = m.n - i - 1 in
+                     if Z.extract m.m i' 1 = Z.one then
+                       (if Z.extract m.v i' 1 = Z.one then '1' else '0')
+                     else
+                       '?')
+      in
+      constant fmt (Utils.string_of_chars cs)
   | VString s -> strLit fmt s
   | _ ->
       raise (Error.Unimplemented (loc, "constant value type", fun fmt -> ()))
@@ -282,12 +294,7 @@ and unknown (loc : Loc.t) (fmt : PP.formatter) (t : AST.ty) : unit =
 
 and const_expr (loc : Loc.t) (x : AST.expr) : V.value =
   match x with
-  | Expr_LitInt i -> V.from_intLit i
-  | Expr_LitHex i -> V.from_hexLit i
-  | Expr_LitReal r -> V.from_realLit r
-  | Expr_LitBits b -> V.from_bitsLit b
-  | Expr_LitMask b -> V.from_maskLit b
-  | Expr_LitString s -> V.from_stringLit s
+  | Expr_Lit v -> v
   | _ ->
     raise (Error.Unimplemented
             (loc,
@@ -592,12 +599,7 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_TApply (f, tes, es, false) -> funcall fmt f tes es loc
   | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs loc fmt es)
   | Expr_Unknown t -> unknown loc fmt t
-  | Expr_LitInt l -> intLit fmt l
-  | Expr_LitHex l -> hexLit fmt l
-  | Expr_LitReal l -> realLit fmt l
-  | Expr_LitBits l -> bitsLit fmt l
-  | Expr_LitMask l -> maskLit fmt l
-  | Expr_LitString l -> strLit fmt l
+  | Expr_Lit v -> valueLit loc fmt v
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
@@ -620,10 +622,10 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_ArrayInit es ->
       PP.fprintf fmt "{ %a }"
         (exprs loc) es
-  | Expr_In (e, Pat_LitMask x) ->
+  | Expr_In (e, Pat_Lit x) ->
       PP.fprintf fmt "(%a ==? %a)"
         (expr loc) e
-        bitsLit x
+        (valueLit loc) x
   | Expr_AsConstraint (e, _)
   | Expr_AsType (e, _) ->
       expr loc fmt e
@@ -641,10 +643,7 @@ and exprs (loc : Loc.t) (fmt : PP.formatter) (es : AST.expr list) : unit =
 
 and pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
-  | Pat_LitInt l -> intLit fmt l
-  | Pat_LitHex l -> hexLit fmt l
-  | Pat_LitBits l -> bitsLit fmt l
-  | Pat_LitMask l -> maskLit fmt l
+  | Pat_Lit v -> valueLit loc fmt v
   | Pat_Const v -> varname fmt v
   | Pat_Wildcard -> delimiter fmt ".*"
   | Pat_Single e -> expr loc fmt e

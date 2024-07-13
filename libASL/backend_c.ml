@@ -406,29 +406,24 @@ let int_literal (fmt : PP.formatter) (x : Z.t) : unit =
   else
     int_literal_not_fit_int64 fmt x
 
-let hex_literal (fmt : PP.formatter) (x : Z.t) : unit =
-  if Z.fits_int64 x then
-    constant fmt (Z.format "%#x" x ^ "LL")
-  else
-    int_literal_not_fit_int64 fmt x
+let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
+  let bit_to_hex (b : Z.t) : string =
+    Z.format "%#x" b ^ "ULL"
+  in
+  if x.n <= 64 then begin
+      constant fmt (bit_to_hex x.v)
+  end else begin
+    let num_bits = round_up_to_pow2 x.n in
+    let num_limbs = (num_bits / 64) in
+    let limbs = List.init
+        num_limbs
+        (fun i -> bit_to_hex (Z.extract x.v (i * 64) 64))
+    in
+    asl_keyword fmt "bits";
+    parens fmt (fun _ ->
+        commasep fmt (constant fmt) (string_of_int num_bits :: limbs))
 
-let z_of_intLit (x : AST.intLit) : Z.t =
-  Z.of_string_base 10 (drop_underscores x)
-
-let z_of_hexLit (x : AST.hexLit) : Z.t =
-  Z.of_string_base 16 (drop_underscores x)
-
-let intLit (fmt : PP.formatter) (x : AST.intLit) : unit =
-  int_literal fmt (z_of_intLit x)
-
-let negIntLit (fmt : PP.formatter) (x : AST.intLit) : unit =
-  int_literal fmt (Z.neg (z_of_intLit x))
-
-let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
-  hex_literal fmt (z_of_hexLit x)
-
-let negHexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
-  hex_literal fmt (Z.neg (z_of_hexLit x))
+  end
 
 let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
   let (x : string) = drop_spaces x in
@@ -456,12 +451,7 @@ let strLit (fmt : PP.formatter) (x : string) : unit =
 
 let const_expr (loc : Loc.t) (x : AST.expr) : V.value =
   match x with
-  | Expr_LitBits b -> V.from_bitsLit b
-  | Expr_LitHex i -> V.from_hexLit i
-  | Expr_LitInt i -> V.from_intLit i
-  | Expr_LitMask b -> V.from_maskLit b
-  | Expr_LitReal r -> V.from_realLit r
-  | Expr_LitString s -> V.from_stringLit s
+  | Expr_Lit v -> v
   | _ ->
       raise
         (Error.Unimplemented
@@ -507,6 +497,14 @@ let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
   PP.fprintf fmt "; ";
   rethrow_stmt fmt;
   PP.fprintf fmt " __r; })"
+
+let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : Value.value) : unit =
+  ( match x with
+  | VInt v    -> int_literal fmt v
+  | VBits v   -> bits_literal fmt v
+  | VString v -> constant fmt ("\"" ^ String.escaped v ^ "\"")
+  | _ -> raise (InternalError (loc, "valueLit", (fun fmt -> Value.pp_value fmt x), __LOC__))
+  )
 
 let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
@@ -588,7 +586,7 @@ and pow2_int (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
     (fun _ -> lt_lt fmt)
     (fun _ ->
       (* TODO determine correct type width. For now use ASL_bits64_t. *)
-      make_cast fmt (fun _ -> bits fmt 64) (fun _ -> intLit fmt "1"))
+      make_cast fmt (fun _ -> bits fmt 64) (fun _ -> int_literal fmt Z.one))
     (fun _ -> expr loc fmt x)
 
 (* Calculate mask with x ones *)
@@ -689,8 +687,7 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | _ when Ident.equal f ne_int -> binop loc fmt "!=" args
   | _ when Ident.equal f neg_int ->
       ( match args with
-      | [ Expr_LitInt l ] -> negIntLit fmt l
-      | [ Expr_LitHex l ] -> negHexLit fmt l
+      | [ Expr_Lit (VInt l) ] -> int_literal fmt (Z.neg l)
       | _ -> unop loc fmt "-" args
       )
   | [ x ] when Ident.equal f Builtin_idents.pow2_int -> pow2_int loc fmt x
@@ -856,10 +853,7 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       Format.fprintf fmt " = %a; %a; })"
         (expr loc) e
         (expr loc) b
-  | Expr_LitBits l -> bitsLit fmt l
-  | Expr_LitHex l -> hexLit fmt l
-  | Expr_LitInt l -> intLit fmt l
-  | Expr_LitString l -> strLit fmt l
+  | Expr_Lit v -> valueLit loc fmt v
   | Expr_Parens e -> expr loc fmt e
   | Expr_RecordInit (tc, [], fas) ->
       if List.mem tc !exception_tcs then begin
@@ -891,12 +885,9 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Array (a, i) ->
       expr loc fmt a;
       brackets fmt (fun _ -> expr loc fmt i)
-  | Expr_In (e, Pat_LitMask x) ->
-      let x' = drop_spaces x in
-      let v = String.map (function 'x' -> '0' | c -> c) x' in
-      let m = String.map (function 'x' -> '0' | c -> '1') x' in
-      let v = Z.format "%#x" (Z.of_string_base 2 v) in
-      let m = Z.format "%#x" (Z.of_string_base 2 m) in
+  | Expr_In (e, Pat_Lit (VMask m)) ->
+      let v = Z.format "%#x" m.v in
+      let m = Z.format "%#x" m.m in
       parens fmt (fun _ ->
           parens fmt (fun _ ->
               expr loc fmt e;
@@ -918,8 +909,6 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Fields _
   | Expr_ImpDef _
   | Expr_In _
-  | Expr_LitMask _
-  | Expr_LitReal _
   | Expr_RecordInit _
   | Expr_Slices _
   | Expr_Tuple _
@@ -933,14 +922,15 @@ and exprs (loc : Loc.t) (fmt : PP.formatter) (es : AST.expr list) : unit =
 
 let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
-  | Pat_LitBits l -> bitsLit fmt l
-  | Pat_LitHex l -> hexLit fmt l
-  | Pat_LitInt l -> intLit fmt l
+  | Pat_Lit (VInt v)    -> int_literal fmt v
+  | Pat_Lit (VBits v)   -> bits_literal fmt v
+  | Pat_Lit (VString v) -> constant fmt ("\"" ^ String.escaped v ^ "\"")
+  | Pat_Lit _ -> raise (InternalError (loc, "pattern: lit", (fun fmt -> FMT.pattern fmt x), __LOC__))
   | Pat_Const v ->
       if Ident.equal v true_ident then kw_true fmt
       else if Ident.equal v false_ident then kw_false fmt
       else varname fmt v
-  | Pat_LitMask _ | Pat_Range _ | Pat_Set _ | Pat_Single _
+  | Pat_Range _ | Pat_Set _ | Pat_Single _
   | Pat_Tuple _ | Pat_Wildcard ->
       raise
         (Error.Unimplemented (loc, "pattern", fun fmt -> FMTAST.pattern fmt x))
@@ -1044,8 +1034,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
 
   match x with
   | Stmt_Assert (e, loc) ->
-      let expr_string = AST.Expr_LitString (Utils.to_string2 (Fun.flip FMTAST.expr e)) in
-      let loc_string = AST.Expr_LitString (Loc.to_string loc) in
+      let expr_string = Asl_utils.mk_litstr (Utils.to_string2 (Fun.flip FMTAST.expr e)) in
+      let loc_string = Asl_utils.mk_litstr (Loc.to_string loc) in
       apply loc fmt (fun _ -> fn_assert fmt) [loc_string; expr_string; e];
       semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
@@ -1086,7 +1076,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
                           )
                     | None ->
                         indented fmt (fun _ ->
-                          let loc_string = AST.Expr_LitString (Loc.to_string loc) in
+                          let loc_string = Asl_utils.mk_litstr (Loc.to_string loc) in
                           apply loc fmt (fun _ -> fn_error_unmatched_case fmt) [loc_string];
                           semicolon fmt
                         );

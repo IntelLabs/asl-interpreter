@@ -450,10 +450,10 @@ opt_altcond:
 | { None }
 
 pattern:
-| i = INTLIT { Pat_LitInt(i) }
-| h = HEXLIT { Pat_LitHex(h) }
-| b = BITSLIT { Pat_LitBits(b) }
-| m = MASKLIT { Pat_LitMask(m) }
+| i = INTLIT { Pat_Lit (Value.from_intLit i) }
+| h = HEXLIT { Pat_Lit (Value.from_hexLit h) }
+| b = BITSLIT { Pat_Lit (Value.from_bitsLit b) }
+| m = MASKLIT { Pat_Lit (Value.from_maskLit m) }
 | c = ident { Pat_Const(c) }
 | MINUS { Pat_Wildcard }
 | LPAREN ps = separated_nonempty2_list(COMMA, pattern) RPAREN { Pat_Tuple(ps) }
@@ -600,12 +600,12 @@ slice:
 | lo = expr STAR_COLON wd = expr { Slice_Element(lo, wd) }
 
 literal_expression:
-| i = INTLIT { Expr_LitInt(i) }
-| h = HEXLIT { Expr_LitHex(h) }
-| r = REALLIT { Expr_LitReal(r) }
-| b = BITSLIT { Expr_LitBits(b) }
-| m = MASKLIT { Expr_LitMask(m) }
-| s = STRINGLIT { Expr_LitString(s) }
+| i = INTLIT { Expr_Lit(Value.from_intLit i) }
+| h = HEXLIT { Expr_Lit(Value.from_hexLit h) }
+| r = REALLIT { Expr_Lit(Value.from_realLit r) }
+| b = BITSLIT { Expr_Lit(Value.from_bitsLit b) }
+| m = MASKLIT { Expr_Lit(Value.from_maskLit m) }
+| s = STRINGLIT { Expr_Lit(Value.from_stringLit s) }
 
 expr_command:
 | expr = expr { expr }
