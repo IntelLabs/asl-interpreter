@@ -105,6 +105,9 @@ val first_option : ('a -> 'b option) -> 'a list -> 'b option
 (** Drop first n characters from string *)
 val string_drop : int -> string -> string
 
+(** Convert a char list to a string *)
+val string_of_chars : char list -> string
+
 (****************************************************************
  * Compare related
  ****************************************************************)

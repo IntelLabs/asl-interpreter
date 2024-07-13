@@ -193,6 +193,12 @@ let string_drop (n : int) (s : string) : string =
   let l = String.length s in
   if n > l then "" else String.sub s n (l - n)
 
+(** Convert a char list to a string *)
+let string_of_chars (cs : char list) : string =
+  let buf = Buffer.create 16 in
+  List.iter (Buffer.add_char buf) cs;
+  Buffer.contents buf
+
 (****************************************************************
  * Compare related
  ****************************************************************)
