@@ -239,7 +239,8 @@ let from_stringLit (x : string) : value =
         let c = String.get x (i + 1) in
         if c = '\\' then r := !r ^ String.make 1 '\\'
         else if c = 'n' then r := !r ^ String.make 1 '\n'
-        else assert false;
+        else if c = 't' then r := !r ^ String.make 1 '\t'
+        else r := !r ^ String.make 1 c;
         unescape (i + 2))
       else (
         r := !r ^ String.make 1 c;
