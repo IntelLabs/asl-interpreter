@@ -15,7 +15,12 @@ module AST = Asl_ast
 
 let load_test_libraries () : AST.declaration list =
   let paths = [ ".." ] in
-  LoadASL.read_file paths "prelude.asl" true false
+  try (
+    LoadASL.read_file paths "prelude.asl" true false
+  ) with e -> begin
+    Error.print_exception e;
+    exit 1
+  end
 
 (****************************************************************
  * Alcotest testable functions
