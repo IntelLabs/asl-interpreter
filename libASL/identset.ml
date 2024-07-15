@@ -50,13 +50,22 @@ let unionSets (idss : IdentSet.t list) : IdentSet.t =
   List.fold_left IdentSet.union IdentSet.empty idss
 
 (** add v to set of identifiers mapped to k *)
-let addToBindingSet (k : Ident.t) (v : Ident.t) (bs : IdentSet.t Bindings.t) :
-    IdentSet.t Bindings.t =
+let addToBindingSet (k : Ident.t) (v : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
   Bindings.update k
-    (fun old ->
-      match old with
-      | None -> Some (IdentSet.singleton v)
-      | Some vs -> Some (IdentSet.add v vs))
+    (function
+    | None -> Some (IdentSet.singleton v)
+    | Some vs -> Some (IdentSet.add v vs)
+    )
+    bs
+
+(** Add multiple entries to a set *)
+let unionToBindingSet (f : Ident.t) (xs : IdentSet.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
+  Bindings.update
+    f
+    (function
+    | None -> Some xs
+    | Some s -> Some (IdentSet.union s xs)
+    )
     bs
 
 let pp_identset (fmt : Format.formatter) (xs : IdentSet.t) : unit =

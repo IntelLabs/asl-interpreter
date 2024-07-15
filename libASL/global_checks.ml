@@ -21,26 +21,6 @@ open Asl_utils
 open Builtin_idents
 open Identset
 
-(** Add one entry to a set *)
-let add_one (f : Ident.t) (x : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
-  Bindings.update
-    f
-    (function
-    | None -> Some (IdentSet.singleton x)
-    | Some s -> Some (IdentSet.add x s)
-    )
-    bs
-
-(** Add multiple entries to a set *)
-let add (f : Ident.t) (xs : IdentSet.t) (bs : IdentSet.t Bindings.t) : IdentSet.t Bindings.t =
-  Bindings.update
-    f
-    (function
-    | None -> Some xs
-    | Some s -> Some (IdentSet.union s xs)
-    )
-    bs
-
 let get (f : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t =
   Option.value ~default:IdentSet.empty (Bindings.find_opt f bs)
 
@@ -76,8 +56,8 @@ class effects_class
       changed := !changed || not (IdentSet.subset rds (get f reads));
       changed := !changed || not (IdentSet.subset wrs (get f writes));
       if throws_exn then throws <- IdentSet.add f throws;
-      reads <- add f rds reads;
-      writes <- add f wrs writes;
+      reads <- unionToBindingSet f rds reads;
+      writes <- unionToBindingSet f wrs writes;
       !changed
 
     (* Update the effects of 'f' with the effects of all functions that it calls.
@@ -112,10 +92,10 @@ class effects_class
             let (rds, wrs, calls, throws_exn) = side_effects_of_decl d in
             globals <- IdentSet.add nm globals;
             if throws_exn then throws <- IdentSet.add nm throws;
-            reads <- add nm rds reads;
-            writes <- add nm wrs writes;
-            callees <- add nm calls callees;
-            IdentSet.iter (fun f -> callers <- add_one f nm callers) calls
+            reads <- unionToBindingSet nm rds reads;
+            writes <- unionToBindingSet nm wrs writes;
+            callees <- unionToBindingSet nm calls callees;
+            IdentSet.iter (fun f -> callers <- addToBindingSet f nm callers) calls
         )
       ) ds;
 

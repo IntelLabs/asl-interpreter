@@ -44,6 +44,9 @@ val unionSets : IdentSet.t list -> IdentSet.t
 (** add v to set of identifiers mapped to k *)
 val addToBindingSet : Ident.t -> Ident.t -> IdentSet.t Bindings.t -> IdentSet.t Bindings.t
 
+(** Add multiple entries to a set *)
+val unionToBindingSet : Ident.t -> IdentSet.t -> IdentSet.t Bindings.t -> IdentSet.t Bindings.t
+
 val pp_identset : Format.formatter -> IdentSet.t -> unit
 
 (** convert identifier set to sorted list of identifiers
