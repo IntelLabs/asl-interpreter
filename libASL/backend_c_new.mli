@@ -1,0 +1,15 @@
+(****************************************************************
+ * ASL to C backend
+ *
+ * Copyright (C) 2022-2024 Intel Corporation
+ * SPDX-Licence-Identifier: BSD-3-Clause
+ ****************************************************************)
+
+(** Supply of goto labels for exception implementation *)
+val catch_labels : Asl_utils.nameSupply
+
+val declarations : Format.formatter -> Asl_ast.declaration list -> unit
+
+(****************************************************************
+ * End
+ ****************************************************************)

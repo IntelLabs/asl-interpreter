@@ -186,7 +186,7 @@ base_script = """
 // Optionally, references to thread-local processor state such as registers
 // can be accessed via a pointer.
 // (This can be useful when modelling multi-processor systems.)
-:generate_c --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info} {thread_local}
+:{generate_c} --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info} {thread_local}
 """.strip()
 
 def main() -> int:
@@ -204,11 +204,18 @@ def main() -> int:
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--backend", help="select backend", choices=['old', 'fallback'], default='old')
     args = parser.parse_args()
+
+    backend_generator = {
+        'old': 'generate_c',
+        'fallback': 'generate_c_new',
+    }
 
     substitutions = {
         'command':     " ".join(sys.argv),
         'basename':    args.basename,
+        'generate_c':  backend_generator[backend],
         'line_info':   "",
         'num_c_files': args.num_c_files,
         'output_dir':  args.output_dir,

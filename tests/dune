@@ -7,6 +7,7 @@
   asl_test
   asl_utils_test
   backend_c_test
+  backend_c_new_test
   backend_verilog_test
   loadasl_test
   xform_bitslices_test

@@ -26,6 +26,7 @@
    asl_utils
    asl_visitor
    backend_c
+   backend_c_new
    backend_verilog
    builtin_idents
    commands
@@ -44,6 +45,7 @@
    loadASL
    loc
    primops
+   runtime_fallback
    scope
    scopeStack
    tcheck
