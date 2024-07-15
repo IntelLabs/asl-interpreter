@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y libgmp-dev opam verilator
+          apt install -y libgmp-dev opam verilator pkg-config
           pip3 install filecheck lit
           opam init --no-setup --disable-sandboxing --compiler=4.14.0
           opam install . --deps-only --with-test --with-doc --yes
