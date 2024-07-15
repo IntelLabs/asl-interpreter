@@ -17,9 +17,6 @@ open Identset
 open Builtin_idents
 open Utils
 
-let drop_spaces (x : string) : string = Value.drop_chars x ' '
-let drop_underscores (x : string) : string = Value.drop_chars x '_'
-
 let include_line_info : bool ref = ref false
 
 (* Support for packing thread-local state (e.g., registers) into a struct that is then
@@ -424,30 +421,6 @@ let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
         commasep fmt (constant fmt) (string_of_int num_bits :: limbs))
 
   end
-
-let bitsLit (fmt : PP.formatter) (x : AST.bitsLit) : unit =
-  let (x : string) = drop_spaces x in
-  let len = String.length x in
-  let bit_to_hex (s : string) : string =
-    Z.format "%#x" (Z.of_string_base 2 s) ^ "ULL"
-  in
-
-  if len <= 64 then constant fmt (bit_to_hex x)
-  else
-    let len_ext = round_up_to_pow2 len in
-    let x_ext = String.make (len_ext - len) '0' ^ x in
-    let num_limbs = len_ext / 64 in
-    let limbs =
-      List.init num_limbs (fun i ->
-          let pos = i * 64 in
-          bit_to_hex (String.sub x_ext pos 64))
-    in
-    asl_keyword fmt "bits";
-    parens fmt (fun _ ->
-        commasep fmt (constant fmt) (string_of_int len_ext :: limbs))
-
-let strLit (fmt : PP.formatter) (x : string) : unit =
-  constant fmt ("\"" ^ String.escaped x ^ "\"")
 
 let const_expr (loc : Loc.t) (x : AST.expr) : V.value =
   match x with
