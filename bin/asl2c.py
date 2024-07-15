@@ -120,6 +120,10 @@ base_script = """
 
 {wrap_variables}
 
+// A final pass of constant propagation simplifies any constant expressions
+// introduced by previous transforms
+:xform_constprop --nounroll
+
 // To let the generated code call your own functions, you need to declare
 // the type of an ASL function with a matching type and provide a configuration
 // file containing a list of these external functions.
