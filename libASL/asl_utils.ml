@@ -873,6 +873,8 @@ let zero      = Expr_Lit (VInt Z.zero)
 let one       = Expr_Lit (VInt Z.one)
 let two       = mk_litint 2
 
+let empty_bits = Expr_Lit (VBits Primops.empty_bits)
+
 let mk_unop (op : Ident.t) (tys : AST.expr list) (x : AST.expr) : AST.expr =
   Expr_TApply (op, tys, [x], false)
 

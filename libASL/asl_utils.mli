@@ -264,6 +264,7 @@ val mk_litstr : string -> AST.expr
 val zero : AST.expr
 val one : AST.expr
 val two : AST.expr
+val empty_bits : AST.expr
 
 (** Construct "!x" *)
 val mk_not : AST.expr -> AST.expr

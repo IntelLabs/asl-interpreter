@@ -154,13 +154,19 @@ let algebraic_simplifications (x : expr) : expr =
         List.filter (function (_, Expr_Lit (VBits v)) -> v.n <> 0 | _ -> true) |>
         List.split
       in
-      if xs' = [] then Expr_Lit (VBits Primops.empty_bits) else Expr_Concat (ws', xs')
+      if xs' = [] then Asl_utils.empty_bits else Expr_Concat (ws', xs')
   (* '' : x == x == x : '' *)
   | Expr_TApply (i, [ Expr_Lit (VInt v); _ ], [ _; y ], _) when
     v = Z.zero && Ident.equal i append_bits ->
       y
   | Expr_TApply (i, [ _; Expr_Lit (VInt v) ], [ x; _ ], _) when
     v = Z.zero && Ident.equal i append_bits ->
+      x
+  (* Replicate(x, 0) = '' *)
+  | Expr_TApply (i, [ _; Expr_Lit (VInt v) ], _, _) when v = Z.zero ->
+      Asl_utils.empty_bits
+  (* Replicate(x, 1) = x *)
+  | Expr_TApply (i, [ _; Expr_Lit (VInt v) ], [x; _], _) when v = Z.one ->
       x
   (* x + 0 == x == 0 + x *)
   | Expr_TApply (i, [], [ x; Expr_Lit (VInt v) ], _) when v = Z.zero && Ident.equal i add_int -> x
