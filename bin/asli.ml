@@ -36,12 +36,12 @@ let error () : unit =
 let projects : string list ref = ref []
 
 let add_project (prj : string): unit =
-  projects := List.append !projects [prj]
+  projects := !projects @ [prj]
 
 let execs : string list ref = ref []
 
 let add_exec (cmd : string): unit =
-  execs := List.append !execs [cmd]
+  execs := !execs @ [cmd]
 
 (* verbosity control for :show and asli.exe *)
 let formats = [ "simple"; "typed"; "raw" ]

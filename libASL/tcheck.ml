@@ -265,7 +265,7 @@ end = struct
       Operators1.update op
         (fun ov ->
           let old = Option.value ov ~default:[] in
-          Some (List.append funs old))
+          Some (funs @ old))
         env.operators1
 
   let getOperators1 (env : t) (loc : Loc.t) (op : AST.unop) : funtype list =
@@ -278,7 +278,7 @@ end = struct
       Operators2.update op
         (fun ov ->
           let old = Option.value ov ~default:[] in
-          Some (List.append funs old))
+          Some (funs @ old))
         env.operators2
 
   let getOperators2 (env : t) (loc : Loc.t) (op : AST.binop) : funtype list =
@@ -2588,7 +2588,7 @@ let tc_declarations (env : GlobalEnv.t) ~(isPrelude : bool) ~(sort_decls : bool)
   if !error_count != 0 then
     None
   else
-    Some (List.append (List.concat pre') (List.concat post'))
+    Some ((List.concat pre') @ (List.concat post'))
 
 (****************************************************************
  * End

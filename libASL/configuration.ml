@@ -49,7 +49,7 @@ let configurations : Yojson.Safe.t list ref = ref []
 (** Read a JSON configuration file *)
 let read_configuration_file (filename : string) : unit =
   let ops = Yojson.Safe.from_file filename in
-  configurations := List.append !configurations [ops]
+  configurations := !configurations @ [ops]
 
 (** Read list of strings from all previously read configuration files *)
 let get_strings (key : string) : string list =

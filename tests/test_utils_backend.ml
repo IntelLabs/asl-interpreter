@@ -36,7 +36,7 @@ let check_compiler
   Out_channel.output_string chan header;
   Out_channel.output_string chan body;
   Out_channel.close chan;
-  let args' = List.append args [ tmp ] in
+  let args' = args @ [ tmp ] in
 
   if true then begin
     (* output test to log - for ease of debugging *)

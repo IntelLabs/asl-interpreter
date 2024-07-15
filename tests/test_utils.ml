@@ -75,7 +75,7 @@ let extend_global_tcenv (globals : TC.GlobalEnv.t) (declarations : string) :
 let extend_env (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls : string)
   : (TC.Env.t * Eval.Env.t) =
   let (tcenv, ds) = extend_tcenv globals decls in
-  let env = Eval.build_evaluation_environment (List.append prelude ds) in
+  let env = Eval.build_evaluation_environment (prelude @ ds) in
   (tcenv, env)
 
 (****************************************************************

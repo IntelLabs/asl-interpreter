@@ -425,7 +425,7 @@ module TextTracer = struct
     if enabled then
       trace
         ("function_" ^ (if is_return then "return" else "call"))
-        ( Ident.to_string name :: "{" :: List.append (List.map string_of_value tvs) ("}" :: List.map string_of_value vs))
+        ( Ident.to_string name :: "{" :: (List.map string_of_value tvs) @ ("}" :: List.map string_of_value vs))
 
 end
 

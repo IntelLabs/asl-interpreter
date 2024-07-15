@@ -1213,7 +1213,7 @@ let hoist_prototypes (ds : AST.declaration list) : AST.declaration list =
       | AST.Decl_FunType _ -> pre := d :: !pre
       | _ -> pre := d :: !pre)
     ds;
-  List.append (List.rev !pre) (List.rev !post)
+  (List.rev !pre) @ (List.rev !post)
 
 (****************************************************************
  * End

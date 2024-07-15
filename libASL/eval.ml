@@ -485,7 +485,7 @@ and eval_lexpr (loc : Loc.t) (env : Env.t) (x : AST.lexpr) (r : value) : unit =
   | LExpr_Write (setter, tes, es, _) ->
       let tvs = eval_exprs loc env tes in
       let vs = eval_exprs loc env es in
-      eval_proccall loc env setter tvs (List.append vs [ r ])
+      eval_proccall loc env setter tvs (vs @ [ r ])
   | _ -> failwith ("eval_lexpr: " ^ pp_lexpr x)
 
 (** Evaluate L-expression in read-modify-write mode.

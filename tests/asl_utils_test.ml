@@ -44,7 +44,7 @@ let test_side_effects (globals : TC.GlobalEnv.t) (prelude : AST.declaration list
     (expected : (string list * string list * string list * bool))
     () : unit =
   let (tcenv, ds) = extend_tcenv globals decls in
-  let ds = List.append prelude ds in
+  let ds = prelude @ ds in
   (* to find the definition called 'f', we extract all the declarations called 'f'
    * and take the last element (because any function prototype will be listed first)
    *)
@@ -93,7 +93,7 @@ let side_effect_tests : unit Alcotest.test_case list =
 let test_impure_functions (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
     (decls : string) (ex_pure : string list) (ex_impure : string list) () : unit =
   let (tcenv, ds) = extend_tcenv globals decls in
-  let ds = List.append prelude ds in
+  let ds = prelude @ ds in
 
   (* for testing purposes, we treat any variable whose name starts with K as a constant *)
   let isConstant (v : Ident.t) : bool = String.get (Ident.to_string v) 0 = 'K' in
@@ -217,7 +217,7 @@ let test_reachable_decls (globals : TC.GlobalEnv.t)
     (expected : string list) () : unit =
   let roots = Ident.mk_fidents roots in
   let tcenv, ds = extend_tcenv globals decls in
-  let ds = List.append prelude ds in
+  let ds = prelude @ ds in
   let reachable : AST.declaration list = reachable_decls roots ds in
   let reachable : string list =
     List.map Ident.to_string (List.filter_map decl_name reachable)

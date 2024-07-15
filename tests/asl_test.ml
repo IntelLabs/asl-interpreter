@@ -111,7 +111,7 @@ let test_bits (globals : TC.GlobalEnv.t) (prelude : AST.declaration list) (decls
 let test_xform (globals : TC.GlobalEnv.t) (prelude : AST.declaration list)
     (f : (AST.declaration list) xform) (decls : string) (x : string) () : unit =
   let (tcenv, ds) = extend_tcenv globals decls in
-  let ds1 = List.append prelude ds in
+  let ds1 = prelude @ ds in
   let ds2 = f ds1 in
   let r1 = eval tcenv (Eval.build_evaluation_environment ds1) x in
   let r2 = eval tcenv (Eval.build_evaluation_environment ds2) x in

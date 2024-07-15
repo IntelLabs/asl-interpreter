@@ -1626,7 +1626,7 @@ let _ =
 
   let add_thread_local_variables (group : string) : unit =
     let names = Configuration.get_strings group in
-    thread_local_variables := List.append !thread_local_variables (Ident.mk_idents names)
+    thread_local_variables := !thread_local_variables @ (Ident.mk_idents names)
   in
 
   let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
