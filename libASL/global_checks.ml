@@ -101,6 +101,9 @@ let rec canthrow_stmt (x : AST.stmt) : status =
   | Stmt_ConstDecl (di, i, loc) -> canthrow_expr i
   | Stmt_Assign (l, r, loc) -> status_merge (canthrow_expr r) (canthrow_lexpr l)
   | Stmt_TCall (f, tes, args, throws, loc) ->
+      if String.starts_with ~prefix:"Unimplemented" (Ident.name f) then
+          fail
+      else
       ( match throws with
       | NoThrow -> ok
       | MayThrow -> maythrow
