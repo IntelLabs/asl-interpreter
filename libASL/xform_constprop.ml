@@ -443,9 +443,11 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       [ Stmt_ProcReturn loc ]
   | Stmt_Assert (e, loc) ->
       let e' = xform_expr env e in
-      (* todo: add 'e' to the environment *)
-      (* todo: if e is false, dead code eliminate *)
-      [ Stmt_Assert (e', loc) ]
+      if e' = asl_true then
+          [] (* dead code elimination *)
+      else
+          (* todo: add 'e' to the environment *)
+          [ Stmt_Assert (e', loc) ]
   | Stmt_Throw(e, loc) ->
       let e' = xform_expr env e in
       Env.throw env;

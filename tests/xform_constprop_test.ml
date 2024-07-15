@@ -469,6 +469,10 @@ let constprop_tests : unit Alcotest.test_case list =
       var y : integer;"
      "case 3 of when 1 => x = 0; when 3 where y < 0 => x =  1; when 3 where y > 0 => x =  2; when 4 => x =  3; end"
      "case 3 of when - where y < 0 => x = 1; when - where y > 0 => x = 2; end");
+    ("assert stmt dead code", `Quick, test_cp_stmts
+     ""
+     "assert TRUE;"
+     "");
   ]
 
 (****************************************************************
