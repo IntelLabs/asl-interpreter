@@ -23,6 +23,8 @@ open Asl_utils
 open Builtin_idents
 open Utils
 
+let transform_slices : bool ref = ref true
+
 let transform_non_slices (n : AST.expr) (w : AST.expr) (i : AST.expr)
     (x : AST.expr) : AST.expr =
   match x with
@@ -174,7 +176,7 @@ class bitsliceClass =
             le,
             [Slice_LoWd (lo, sw)]),
           rhs,
-          _) ->
+          _) when !transform_slices ->
         Option.fold (lexpr_to_expr_safe_to_replicate_opt le)
           ~some:(fun e -> transform_assignment le e w sw lo rhs loc)
           ~none:Visitor.DoChildren
@@ -206,7 +208,14 @@ let _ =
     Commands.declarations := xform_decls !Commands.declarations;
     true
   in
-  Commands.registerCommand "xform_bitslices" [] [] [] "Transform bitslice operations" cmd
+  let options =
+    Arg.align
+      [
+        ("--transform",   Arg.Set   transform_slices, " Transform bitslice operations to mask & or operations");
+        ("--notransform", Arg.Clear transform_slices, " Do not transform bitslice operations");
+      ]
+  in
+  Commands.registerCommand "xform_bitslices" options [] [] "Transform bitslice operations" cmd
 
 (****************************************************************
  * End
