@@ -17,6 +17,7 @@ let check_syntax (name : string) (code : string) : unit =
     [
       "-std=c99";
       "-fsyntax-only";
+      "-DASL_FALLBACK";
       "-I../runtime/include";
       "-Werror";
       "-xc";

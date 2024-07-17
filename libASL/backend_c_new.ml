@@ -11,16 +11,22 @@ module AST = Asl_ast
 module FMT = Asl_fmt
 module PP = Format
 module V = Value
-open Runtime_fallback
+open Runtime
 open Asl_utils
 open Format_utils
 open Identset
 open Builtin_idents
 open Utils
 
-let runtimes = ["fallback"]
+module type RuntimeLib = Runtime.RuntimeLib
+let runtime = ref (module Runtime_fallback.Runtime : RuntimeLib)
 
-let set_runtime (rt : string) : unit = ()
+let runtimes = ["c23"; "fallback"]
+
+let set_runtime (rt : string) : unit =
+  runtime := if rt = "c23"
+             then (module Runtime_c23.Runtime : RuntimeLib)
+             else (module Runtime_fallback.Runtime : RuntimeLib)
 
 let include_line_info : bool ref = ref false
 let new_ffi : bool ref = ref false
@@ -250,7 +256,6 @@ let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
   rethrow_stmt fmt;
   PP.fprintf fmt " __r; })"
 
-let fn_extern (fmt : PP.formatter) (x : Ident.t) : unit = ident_str fmt ("ASL_" ^ Ident.name x)
 let const_expr (loc : Loc.t) (x : AST.expr) : V.value =
   ( match x with
   | Expr_Lit v -> v
@@ -285,6 +290,7 @@ let width_of_type (loc : Loc.t) (ty : AST.ty) : AST.expr option =
   )
 
 let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : Value.value) : unit =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
   ( match x with
   | VInt v    -> Runtime.int_literal fmt v
   | VBits v   -> Runtime.bits_literal fmt v
@@ -307,9 +313,10 @@ and binop (loc : Loc.t) (fmt : PP.formatter) (op : string) (x : AST.expr) (y : A
     op
     (expr loc) y
 
-and mk_expr loc = mk_rt_expr (expr loc)
+and mk_expr loc = Runtime.mk_rt_expr (expr loc)
 
 and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list) (args : AST.expr list) =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
   ( match (const_int_exprs loc tes, args) with
 
   (* Boolean builtin functions *)
@@ -432,12 +439,8 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | ([a;n], [_;_;ram;addr;v]) when Ident.equal f ram_write -> Runtime.ram_write fmt a n (mk_expr loc ram) (mk_expr loc addr) (mk_expr loc v)
 
   (* Printing builtin functions *)
-  | _ when Ident.in_list f [
-        print_char;
-        print_str
-      ] ->
-      (* todo: add these to the runtime api *)
-      apply loc fmt (fun _ -> fn_extern fmt f) args
+  | ([], [x]) when Ident.equal f print_char -> Runtime.print_char fmt (mk_expr loc x)
+  | ([], [x]) when Ident.equal f print_str -> Runtime.print_str fmt (mk_expr loc x)
 
   (* File builtin functions *)
   | _ when Ident.in_list f [ asl_file_getc; asl_file_open; asl_file_write ] ->
@@ -453,6 +456,7 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   )
 
 and slice (loc : Loc.t) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr) (s : AST.slice) : unit =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
   let n = Option.get (width_of_type loc t) in
   ( match s with
   | Slice_LoWd (lo, wd) -> Runtime.slice_lowd fmt (const_int_expr loc n) (const_int_expr loc wd) (mk_expr loc e) (mk_expr loc lo)
@@ -485,7 +489,8 @@ and conds (loc : Loc.t) (fmt : PP.formatter) (cts : (AST.expr * AST.expr) list) 
   )
 
 and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
-  match x with
+  let module Runtime = (val (!runtime) : RuntimeLib) in
+  ( match x with
   | Expr_Concat _ ->
       raise (InternalError (loc, "Expr_Concat not expected", (fun fmt -> FMT.expr fmt x), __LOC__))
   | Expr_Field (e, f) ->
@@ -552,11 +557,13 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_Unop _ ->
       let pp fmt = FMT.expr fmt x in
       raise (Error.Unimplemented (loc, "expression", pp))
+  )
 
 and exprs (loc : Loc.t) (fmt : PP.formatter) (es : AST.expr list) : unit =
   commasep (expr loc) fmt es
 
 and varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
   ( match x with
   | Type_Bits (n, _) ->
     Runtime.ty_bits fmt (const_int_expr loc n);
@@ -703,6 +710,7 @@ let stmt_line_info (fmt : PP.formatter) (x : AST.stmt) : unit =
     )
 
 let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
   stmt_line_info fmt x;
   ( match x with
   | Stmt_Assert (e, loc) ->
@@ -769,12 +777,12 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       PP.fprintf fmt "return %a;" (expr loc) e
   | Stmt_If (c, t, els, (e, el), loc) ->
       vbox fmt (fun _ ->
-          PP.fprintf fmt "if (%a) {%a}"
+          PP.fprintf fmt "if (%a) {%a@,}"
             (expr loc) c
             indented_block t;
           map fmt
             (fun (AST.S_Elsif_Cond (c, s, loc)) ->
-              PP.fprintf fmt " else if (%a) {%a}"
+              PP.fprintf fmt " else if (%a) {%a@,}"
                 (expr loc) c
                 indented_block s)
             els;
@@ -1201,11 +1209,11 @@ let mk_ffi_exports (decls : AST.declaration list) (function_names : string list)
  * File writing support
  ****************************************************************)
 
-let fprinf_sys_includes (fmt : PP.formatter) (filenames : string list) : unit =
+let fprintf_sys_includes (fmt : PP.formatter) (filenames : string list) : unit =
   List.iter (PP.fprintf fmt "#include <%s>@.") filenames;
   PP.pp_print_newline fmt ()
 
-let fprinf_includes (fmt : PP.formatter) (filenames : string list) : unit =
+let fprintf_includes (fmt : PP.formatter) (filenames : string list) : unit =
   List.iter (PP.fprintf fmt "#include \"%s\"@.") filenames;
   PP.pp_print_newline fmt ()
 
@@ -1222,8 +1230,8 @@ let emit_c_header (dirname : string) (basename : string)
       PP.fprintf fmt "#ifndef %s@." macro;
       PP.fprintf fmt "#define %s@,@." macro;
 
-      fprinf_sys_includes fmt sys_h_filenames;
-      fprinf_includes fmt h_filenames;
+      fprintf_sys_includes fmt sys_h_filenames;
+      fprintf_includes fmt h_filenames;
 
       PP.fprintf fmt "#ifdef __cplusplus@.";
       PP.fprintf fmt "extern \"C\" {@.";
@@ -1239,18 +1247,25 @@ let emit_c_header (dirname : string) (basename : string)
   )
 
 let emit_c_source (filename : string) ?(index : int option)
-    (h_filenames : string list) (f : PP.formatter -> unit) : unit =
+  (defines : string list) (h_filenames : string list)
+  (f : PP.formatter -> unit) : unit =
   let suffix = function None -> "" | Some i -> "_" ^ string_of_int i in
   let filename = filename ^ suffix index ^ ".c" in
   Utils.to_file filename (fun fmt ->
-      fprinf_includes fmt h_filenames;
+      List.iter (PP.fprintf fmt "%s\n") defines;
+      fprintf_includes fmt h_filenames;
       f fmt
   )
+
+let get_c_defines (_ : unit) : string list =
+  let module Runtime = (val (!runtime) : RuntimeLib) in
+  Runtime.c_defines
 
 let generate_files (num_c_files : int) (dirname : string) (basename : string)
     (ffi_prototypes : PP.formatter -> unit)
     (ffi_definitions : PP.formatter -> unit)
     (ds : AST.declaration list) : unit =
+  let rt_defines = get_c_defines () in
   let sys_h_filenames = [ "stdbool.h" ] in
   let h_filenames = [ "asl/runtime.h" ] in
 
@@ -1275,21 +1290,20 @@ let generate_files (num_c_files : int) (dirname : string) (basename : string)
   in
 
   let filename_e = Filename.concat dirname basename_e in
-  emit_c_source filename_e gen_h_filenames (fun fmt ->
-      exceptions_init fmt);
+  emit_c_source filename_e rt_defines gen_h_filenames exceptions_init;
 
   let filename_v = Filename.concat dirname basename_v in
-  emit_c_source filename_v gen_h_filenames (fun fmt ->
+  emit_c_source filename_v rt_defines gen_h_filenames (fun fmt ->
       declarations fmt (var_decls ds));
 
   let ds = fun_decls ds in
   let filename_f = Filename.concat dirname (basename ^ "_funs") in
   let emit_funs ?(index : int option) (ds : AST.declaration list) : unit =
-    emit_c_source filename_f ?index gen_h_filenames (fun fmt ->
-        declarations fmt ds)
+    emit_c_source filename_f ?index rt_defines gen_h_filenames (fun fmt ->
+      declarations fmt ds)
   in
   if num_c_files = 1 then begin
-    emit_c_source filename_f gen_h_filenames (fun fmt ->
+    emit_c_source filename_f rt_defines gen_h_filenames (fun fmt ->
       declarations fmt ds;
       Format.fprintf fmt "@,";
       ffi_definitions fmt
@@ -1299,7 +1313,7 @@ let generate_files (num_c_files : int) (dirname : string) (basename : string)
     let rec emit_funs_by_chunk (i : int) (acc : AST.declaration list) = function
       (* last chunk *)
       | l when i = num_c_files ->
-          emit_c_source filename_f ~index:i gen_h_filenames (fun fmt ->
+          emit_c_source filename_f ~index:i rt_defines gen_h_filenames (fun fmt ->
             declarations fmt (List.rev acc @ l);
             Format.fprintf fmt "@,";
             ffi_definitions fmt
@@ -1307,7 +1321,7 @@ let generate_files (num_c_files : int) (dirname : string) (basename : string)
       | h :: t when List.length acc < threshold ->
           emit_funs_by_chunk i (h :: acc) t
       | h :: t ->
-          emit_c_source filename_f ~index:i gen_h_filenames (fun fmt ->
+          emit_c_source filename_f ~index:i rt_defines gen_h_filenames (fun fmt ->
             declarations fmt (List.rev acc)
           );
           emit_funs_by_chunk (i + 1) [ h ] t
@@ -1348,7 +1362,7 @@ let _ =
         ("--output-dir",   Arg.Set_string opt_dirname,         "<dirname>    Directory for output files");
         ("--basename",     Arg.Set_string opt_basename,        "<basename>   Basename of output files");
         ("--num-c-files",  Arg.Set_int opt_num_c_files,        "<num>        Number of .c files created (default: 1)");
-        ("--runtime",      Arg.Symbol (runtimes, set_runtime), "fallback     Select runtime system");
+        ("--runtime",      Arg.Symbol (runtimes, set_runtime), "fallback|c23 Select runtime system");
         ("--new-ffi",      Arg.Set   new_ffi,                  " Use new FFI");
         ("--no-new-ffi",   Arg.Clear new_ffi,                  " Do not use new FFI");
         ("--line-info",    Arg.Set include_line_info,          " Insert line number information");

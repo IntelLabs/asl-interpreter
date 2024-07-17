@@ -46,6 +46,8 @@
    loadASL
    loc
    primops
+   runtime
+   runtime_c23
    runtime_fallback
    scope
    scopeStack

@@ -58,7 +58,7 @@ runtime_test:
 lit_test: build
 	env PATH="`pwd`/tests/scripts:${PATH}" ${LIT} tests/lit -v
 
-BACKENDS = interpreter fallback
+BACKENDS = interpreter c23 fallback
 
 test_backends: ${addprefix test_backend_, ${BACKENDS}}
 

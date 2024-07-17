@@ -23,6 +23,13 @@ jobs:
         run: |
           apt update
           apt install -y libgmp-dev opam verilator pkg-config
+
+          # install clang-16
+          apt install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          ./llvm.sh 16
+
           pip3 install filecheck lit
           opam init --no-setup --disable-sandboxing --compiler=4.14.0
           opam install . --deps-only --with-test --with-doc --yes

@@ -12,19 +12,22 @@ module BE = Backend_c_new
 module TC = Tcheck
 
 let check_syntax (name : string) (code : string) : unit =
-  let prog = "gcc" in
+  let rt_defines = BE.get_c_defines () in
+  let prog = "clang-16" in
   let args =
     [
-      "-std=c99";
+      "-std=c2x";
       "-fsyntax-only";
       "-I../runtime/include";
       "-Werror";
+      "-Wno-return-type";
       "-xc";
-      "-DASL_BACKEND_BP";
     ]
   in
   let header =
     String.concat "\n"
+      (rt_defines
+      @
       [
         "#include <assert.h>";
         "#include <stdbool.h>";
@@ -32,7 +35,7 @@ let check_syntax (name : string) (code : string) : unit =
         "";
         "#include \"asl/runtime.h\"";
         "\n";
-      ]
+      ])
   in
   check_compiler "C" ".c" prog args name header code
 
@@ -52,8 +55,9 @@ let make_cases (cases : Test_cases.test_case list) :
     cases
 
 let () =
+  BE.set_runtime "c23";
   ignore (Test_utils.load_test_libraries ());
-  Alcotest.run "backend_c_new"
+  Alcotest.run "backend_c_c23"
     [
       ("expression",        make_cases Test_cases.expr);
       ("integer ops",       make_cases Test_cases.int_ops);

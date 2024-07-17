@@ -222,9 +222,10 @@ def run(cmd):
 ################################################################
 
 backend_flags = {
+    'c23':         ['-DASL_C23'],
     'interpreter': [],
-    'orig':        ['-DASL_FALLBACK'],
     'fallback':    ['-DASL_FALLBACK'],
+    'orig':        ['-DASL_FALLBACK'],
 }
 
 def get_c_flags(asli, backend):
@@ -265,8 +266,9 @@ def mk_script(args, output_directory):
     ffi = "--new-ffi" if args.build else ""
 
     backend_generator = {
-        'orig':        'generate_c',
+        'c23':         f'generate_c_new {ffi} --runtime=c23',
         'fallback':    f'generate_c_new {ffi} --runtime=fallback',
+        'orig':        'generate_c',
     }
 
     substitutions = {
@@ -354,13 +356,13 @@ def compile_and_link(c_files, exe_file, include_directory, c_flags, ld_flags):
         cc = cc.split()
     else:
         if subprocess.call(['which', 'clang-18']) == 0:
-            cc = [ "clang-18" ]
+            cc = [ "clang-18", "-std=c2x" ]
         elif subprocess.call(['which', 'clang-17']) == 0:
-            cc = [ "clang-17" ]
+            cc = [ "clang-17", "-std=c2x" ]
         elif subprocess.call(['which', 'clang-16']) == 0:
-            cc = [ "clang-16" ]
+            cc = [ "clang-16", "-std=c2x" ]
         elif subprocess.call(['which', 'clang']) == 0:
-            cc = [ "clang" ]
+            cc = [ "clang", "-std=c2x" ]
         else:
             cc = [ "gcc" ]
     cc_cmd = cc + [
@@ -400,7 +402,7 @@ def main() -> int:
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--backend", help="select backend", choices=['interpreter', 'orig', 'fallback'], default='orig')
+    parser.add_argument("--backend", help="select backend", choices=['c23', 'interpreter', 'fallback', 'orig'], default='orig')
     parser.add_argument("--print-c-flags", help="Print the C flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--print-ld-flags", help="Print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--build", help="Compile and link the ASL code", action='store_true')
