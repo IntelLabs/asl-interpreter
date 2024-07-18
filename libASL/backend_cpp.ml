@@ -501,7 +501,7 @@ let rethrow_stmt (fmt : PP.formatter) : unit =
     varname (current_catch_label ())
 
 let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
-  PP.fprintf fmt "({ __auto_type __r = ";
+  PP.fprintf fmt "({ auto __r = ";
   f ();
   PP.fprintf fmt "; ";
   rethrow_stmt fmt;
@@ -835,16 +835,8 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | _ when Ident.equal f zeros_bits ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
-  | _ when Ident.equal f Builtin_idents.zero_extend_bits ->
-      let m, n =
-        match tes with
-        | [ m; n ] -> (m, n)
-        | _ ->
-            raise
-              (InternalError
-                 ( loc, "wrong number of type parameters", (fun fmt -> FMTAST.funname fmt f), __LOC__ ))
-      in
-      zero_extend_bits loc fmt (const_int_expr loc n) m
+  | [ x; n ]  when Ident.equal f Builtin_idents.zero_extend_bits ->
+      zero_extend_bits loc fmt (const_int_expr loc n) x
   (* String builtin functions *)
   | [x; y] when Ident.equal f append_str_str -> expr loc fmt x (* not perfect but better than nothing *)
   | _ when Ident.in_list f [
@@ -948,8 +940,12 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       end
   | Expr_Array (a, i) ->
       expr loc fmt a;
-      brackets fmt (fun _ -> expr loc fmt i;
-                            keyword fmt ".to_uint64()")
+      brackets fmt (fun _ ->
+      match i with
+      | Expr_Lit _ -> expr loc fmt i;
+      | _ -> expr loc fmt i;
+             keyword fmt ".to_uint64()"
+      )
   | Expr_In (e, Pat_Lit (VMask m)) ->
       let v = Z.format "%#x" m.v in
       let m = Z.format "%#x" m.m in
@@ -1015,8 +1011,12 @@ let rec lexpr (loc : Loc.t) (fmt : PP.formatter) (x : AST.lexpr) : unit =
     varname fmt v
   | LExpr_Array (a, i) ->
     lexpr loc fmt a;
-    brackets fmt (fun _ -> expr loc fmt i;
-                           keyword fmt ".to_uint64()")
+    brackets fmt (fun _ ->
+    match i with
+    | Expr_Lit _ -> expr loc fmt i;
+    | _ -> expr loc fmt i;
+            keyword fmt ".to_uint64()"
+    )
   | LExpr_Field (l, f) ->
     lexpr loc fmt l;
     dot fmt;
