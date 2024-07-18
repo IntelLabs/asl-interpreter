@@ -18,10 +18,6 @@ let expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return if FALSE then 0 elsif FALSE then 0 else 0; end" );
 
-    ( "binary operation",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return 1 + 1; end" );
-
     ( "field selection",
       [ Backend_C; Backend_Verilog ],
       "record X { i : integer; }; func F(x : X) => integer begin return x.i; end" );
@@ -113,99 +109,6 @@ let expr : test_case list =
       [ Backend_C; Backend_Verilog ],
       "func B() => integer begin return 0; end func F() => integer begin return B(); end" );
 
-    ( "built-in fun call (eq_enum)",
-      [ Backend_C; Backend_Verilog ],
-      "enumeration T { A, B, C };
-       func F() => boolean begin return A == B; end" );
-
-    ( "built-in fun call (add_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' + '0'; end" );
-
-    ( "built-in fun call (and_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' AND '0'; end" );
-
-    ( "built-in fun call (append_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(3) begin return append_bits('1', '11'); end" );
-
-    ( "built-in fun call (asr_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return asr_bits('10', 1); end" );
-
-    ( "built-in fun call (cvt_bits_sint)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return cvt_bits_sint('1'); end" );
-
-    ( "built-in fun call (cvt_bits_uint)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return cvt_bits_uint('1'); end" );
-
-    ( "built-in fun call (cvt_int_bits)",
-      [ Backend_C ], (* TODO fails for verilog: part-select on literal *)
-      "func F() => bits(1) begin return cvt_int_bits(1, 1); end" );
-
-    ( "built-in fun call (eor_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' EOR '0'; end" );
-
-    ( "built-in fun call (eq_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => boolean begin return '1' == '0'; end" );
-
-    ( "built-in fun call (lsl_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return lsl_bits('01', 1); end" );
-
-    ( "built-in fun call (lsr_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return lsr_bits('10', 1); end" );
-
-    ( "built-in fun call (mk_mask)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return mk_mask(1, 2); end" );
-
-    ( "built-in fun call (mul_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' * '0'; end" );
-
-    ( "built-in fun call (ne_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => boolean begin return '1' != '0'; end" );
-
-    ( "built-in fun call (not_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return NOT '0'; end" );
-
-    ( "built-in fun call (ones_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return ones_bits(2); end" );
-
-    ( "built-in fun call (or_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' OR '0'; end" );
-
-    ( "built-in fun call (replicate_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return replicate_bits('1', 2); end" );
-
-    ( "built-in fun call (sub_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(1) begin return '1' - '0'; end" );
-
-    ( "built-in fun call (zero_extend_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(4) begin return zero_extend_bits('10', 4); end" );
-
-    ( "built-in fun call (zeros_bits)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(2) begin return zeros_bits(2); end" );
-
-    ( "built-in fun call (ram_read)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => bits(8) begin var m : __RAM(12); return ram_read(12, 1, m, '100000000000'); end" );
-
     ( "parentheses",
       [ Backend_C; Backend_Verilog ],
       "func F() => integer begin return ( 0 ); end" );
@@ -229,6 +132,234 @@ let expr : test_case list =
     ( "let",
       [ Backend_C ],
       "func F(x : integer) => integer begin return __let r : integer = x*x __in r+r; end" );
+  ]
+
+let int_ops : test_case list =
+  [
+    ( "integer operation (add_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return 1 + 1; end" );
+
+    ( "integer operation (mul_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return 1 * 1; end" );
+
+    ( "integer operation (sub_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return 1 - 1; end" );
+
+    ( "integer operation (neg_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return - 1; end" );
+
+    ( "integer operation (shr_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return 14 >> 2; end" );
+
+    ( "integer operation (shl_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return 14 << 2; end" );
+
+    ( "integer operation (eq_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 == 0; end" );
+
+    ( "integer operation (ne_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 != 0; end" );
+
+    ( "integer operation (ge_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 > 0; end" );
+
+    ( "integer operation (gt_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 >= 0; end" );
+
+    ( "integer operation (le_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 <= 0; end" );
+
+    ( "integer operation (lt_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return 1 < 0; end" );
+
+    ( "integer operation (zdiv_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return zdiv_int(13, 4); end" );
+
+    ( "integer operation (zrem_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return zrem_int(13, 4); end" );
+
+    (* commented out because they are failing on some backends at the moment
+    ( "integer operation (fdiv_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return fdiv_int(13, 4); end" );
+
+    ( "integer operation (frem_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return frem_int(13, 4); end" );
+    *)
+
+    ( "integer operation (exact_div_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return exact_div_int(16, 4); end" );
+
+    ( "integer operation (pow2_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return pow2_int(4); end" );
+
+    ( "integer operation (is_pow2_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return is_pow2_int(16); end" );
+
+    ( "integer operation (align_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return align_int(19, 4); end" );
+
+    ( "integer operation (mod_pow2_int)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return mod_pow2_int(19, 4); end" );
+
+    ( "built-in integer procedure call (print_int_dec)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin print_int_dec(42); end" );
+
+    ( "built-in integer procedure call (print_int_hex)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin print_int_hex(42); end" );
+
+  ]
+
+let enum_ops : test_case list =
+  [
+    ( "built-in fun call (eq_enum)",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration T { A, B, C };
+       func F() => boolean begin return A == B; end" );
+
+    ( "built-in fun call (ne_enum)",
+      [ Backend_C; Backend_Verilog ],
+      "enumeration T { A, B, C };
+       func F() => boolean begin return A != B; end" );
+  ]
+
+let bit_ops : test_case list =
+  [
+    ( "bitvector operation (eq_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return '1' == '0'; end" );
+
+    ( "bitvector operation (ne_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => boolean begin return '1' != '0'; end" );
+
+    ( "bitvector operation (add_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' + '0'; end" );
+
+    ( "bitvector operation (sub_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' - '0'; end" );
+
+    ( "bitvector operation (mul_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' * '0'; end" );
+
+    ( "bitvector operation (and_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' AND '0'; end" );
+
+    ( "bitvector operation (or_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' OR '0'; end" );
+
+    ( "bitvector operation (eor_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return '1' EOR '0'; end" );
+
+    ( "bitvector operation (not_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(1) begin return NOT '0'; end" );
+
+    ( "bitvector operation (lsl_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return lsl_bits('01', 1); end" );
+
+    ( "bitvector operation (lsr_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return lsr_bits('10', 1); end" );
+
+    ( "bitvector operation (asr_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return asr_bits('10', 1); end" );
+
+    ( "bitvector operation (cvt_bits_sint)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return cvt_bits_sint('1'); end" );
+
+    ( "bitvector operation (cvt_bits_uint)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => integer begin return cvt_bits_uint('1'); end" );
+
+    ( "bitvector operation (cvt_int_bits)",
+      [ Backend_C ], (* TODO fails for verilog: part-select on literal *)
+      "func F() => bits(1) begin return cvt_int_bits(1, 1); end" );
+
+    ( "bitvector operation (zeros_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return zeros_bits(2); end" );
+
+    ( "bitvector operation (ones_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return ones_bits(2); end" );
+
+    ( "bitvector operation (mk_mask)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return mk_mask(1, 2); end" );
+
+    ( "bitvector operation (zero_extend_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(4) begin return zero_extend_bits('10', 4); end" );
+
+    ( "bitvector operation (append_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(3) begin return append_bits('1', '11'); end" );
+
+    ( "bitvector operation (replicate_bits)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(2) begin return replicate_bits('1', 2); end" );
+
+    ( "bitvector operation (print_bits_hex)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin print_bits_hex('0'); end" );
+  ]
+
+let ram_ops : test_case list =
+  [
+    ( "built-in ram procedure call (ram_init)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin var m : __RAM(12); ram_init(12, 1, m, '00000001'); end" );
+
+    ( "built-in ram fun call (ram_read)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() => bits(8) begin var m : __RAM(12); return ram_read(12, 1, m, '100000000000'); end" );
+
+    ( "built-in ram procedure call (ram_write)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin var m : __RAM(12); ram_write(12, 1, m, '100000000000', '00000001'); end" );
+  ]
+
+let misc_ops : test_case list =
+  [
+    ( "built-in procedure call (print_char)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin print_char(0); end" );
+
+    ( "built-in procedure call (print_str)",
+      [ Backend_C; Backend_Verilog ],
+      "func F() begin print_str(\"a string\"); end" );
   ]
 
 let fun_decl : test_case list  =
@@ -322,34 +453,6 @@ let stmt : test_case list  =
     ( "procedure call with argument",
       [ Backend_C; Backend_Verilog ],
       "func B(x : integer) begin end func F() begin B(0); end" );
-
-    ( "built-in procedure call (print_bits_hex)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin print_bits_hex('0'); end" );
-
-    ( "built-in procedure call (print_char)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin print_char(0); end" );
-
-    ( "built-in procedure call (print_int_hex)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin print_int_hex(0); end" );
-
-    ( "built-in procedure call (print_int_dec)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin print_int_dec(0); end" );
-
-    ( "built-in procedure call (print_str)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin print_str(\"a string\"); end" );
-
-    ( "built-in procedure call (ram_init)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin var m : __RAM(12); ram_init(12, 1, m, '00000001'); end" );
-
-    ( "built-in procedure call (ram_write)",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin var m : __RAM(12); ram_write(12, 1, m, '100000000000', '00000001'); end" );
 
     ( "procedure return",
       [ Backend_C; Backend_Verilog ],

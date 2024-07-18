@@ -45,6 +45,11 @@ let () =
   Alcotest.run "backend_verilog"
     [
       ("expression",        make_cases Test_cases.expr);
+      ("integer ops",       make_cases Test_cases.int_ops);
+      ("enum ops",          make_cases Test_cases.enum_ops);
+      ("bitvector ops",     make_cases Test_cases.bit_ops);
+      ("ram ops",           make_cases Test_cases.ram_ops);
+      ("misc ops",          make_cases Test_cases.misc_ops);
       ("function_decl",     make_cases Test_cases.fun_decl);
       ("procedure_decl",    make_cases Test_cases.proc_decl);
       ("statement",         make_cases Test_cases.stmt);
