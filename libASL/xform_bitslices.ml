@@ -56,10 +56,10 @@ let transform (loc : Loc.t) (n : AST.expr) (w : AST.expr) (i : AST.expr)
     raise (InternalError
       (loc, "Slice_Single not expected", (fun fmt -> Asl_fmt.expr fmt x), __LOC__))
   | Expr_Slices (Type_Bits (we, _), e, [Slice_LoWd (lo, wd)]) ->
-    (* generate "((zero_extend_bits(e, n) >> lo) AND mk_mask(wd, n)) << i" *)
-    let e1 = mk_zero_extend_bits we n e in
-    let e2 = mk_lsr_bits n e1 lo in
-    let e3 = mk_and_bits n e2 (Asl_utils.mk_mask wd n) in
+    (* generate "zero_extend_bits((e >> lo) AND mk_mask(wd, we), n) << i" *)
+    let e1 = mk_lsr_bits we e lo in
+    let e2 = mk_and_bits we e1 (Asl_utils.mk_mask wd we) in
+    let e3 = mk_zero_extend_bits we n e2 in
     mk_lsl_bits n e3 i
   | _ -> transform_non_slices n w i x
   )
