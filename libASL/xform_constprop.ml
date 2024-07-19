@@ -189,6 +189,7 @@ class constEvalClass (env : Env.t) =
 
     method eval_type (x : ty) : ty = Asl_visitor.visit_type (self :> Asl_visitor.aslVisitor) x
     method eval_expr (x : expr) : expr = Asl_visitor.visit_expr (self :> Asl_visitor.aslVisitor) x
+    method eval_slice (x : slice) : slice = Asl_visitor.visit_slice (self :> Asl_visitor.aslVisitor) x
 
     method! vexpr x =
       match x with
@@ -238,6 +239,14 @@ class constEvalClass (env : Env.t) =
             else
               Visitor.ChangeTo (Expr_Let (v, t', e', b'))
             )
+      | Expr_Slices (t, e, ss) ->
+          let t' = self#eval_type t in
+          let e' = self#eval_expr e in
+          let ss' = List.map self#eval_slice ss in
+          (* optimization: remove empty slices *)
+          let ss'' = List.filter (function (Slice_LoWd(_, w)) -> w <> zero | _ -> true) ss' in
+          let r = if Utils.is_empty ss'' then empty_bits else Expr_Slices (t', e', ss'') in
+          Visitor.ChangeTo r
       | _ -> (
           try
             let eval (x : expr) : expr =
@@ -327,7 +336,9 @@ let rec xform_lexpr (env : Env.t) (loc : Loc.t) (x : AST.lexpr) (r : Values.t) :
       let t' = xform_ty env t in
       let l' = xform_lexpr env loc l Values.bottom in
       let ss' = List.map (xform_slice env loc) ss in
-      LExpr_Slices (t', l', ss')
+      (* optimization: remove empty slices *)
+      let ss'' = List.filter (function (Slice_LoWd(_, w)) -> w <> zero | _ -> true) ss' in
+      if Utils.is_empty ss'' then LExpr_Wildcard else LExpr_Slices (t', l', ss'')
   | LExpr_BitTuple (ws, ls) ->
       let ws' = xform_exprs env ws in
       let ls' = List.map (fun l -> xform_lexpr env loc l Values.bottom) ls in
