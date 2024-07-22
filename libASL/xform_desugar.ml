@@ -3,9 +3,9 @@
  *
  * This performs some simple desugaring transformations:
  *
- * 1) add_bits_int{N}(x, y) -> add_bits(x, y[0 +: N])
- * 2) sub_bits_int{N}(x, y) -> sub_bits(x, y[0 +: N])
- * 3) mul_bits_int{N}(x, y) -> mul_bits(x, y[0 +: N])
+ * 1) add_bits_int{N}(x, y) -> add_bits(x, mk_cvt_int_bits{N}(y, N))
+ * 2) sub_bits_int{N}(x, y) -> sub_bits(x, mk_cvt_int_bits{N}(y, N))
+ * 3) mul_bits_int{N}(x, y) -> mul_bits(x, mk_cvt_int_bits{N}(y, N))
  *
  * Copyright (C) 2023-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
@@ -22,29 +22,11 @@ class desugar (ds : AST.declaration list option) =
     method! vexpr x =
       ( match x with
       | Expr_TApply (i, [n], [x; y], _) when Ident.equal i add_bits_int ->
-        Visitor.ChangeTo (Asl_utils.mk_add_bits
-          n
-          x
-          (Expr_Slices (Asl_utils.type_bits
-            n,
-            y,
-            [Slice_LoWd (Asl_utils.zero, n)])))
+        Visitor.ChangeTo (Asl_utils.mk_add_bits n x (Asl_utils.mk_cvt_int_bits n y))
       | Expr_TApply (i, [n], [x; y], _) when Ident.equal i sub_bits_int ->
-        Visitor.ChangeTo (Asl_utils.mk_sub_bits
-          n
-          x
-          (Expr_Slices (Asl_utils.type_bits
-            n,
-            y,
-            [Slice_LoWd (Asl_utils.zero, n)])))
+        Visitor.ChangeTo (Asl_utils.mk_sub_bits n x (Asl_utils.mk_cvt_int_bits n y))
       | Expr_TApply (i, [n], [x; y], _) when Ident.equal i sub_bits_int ->
-        Visitor.ChangeTo (Asl_utils.mk_mul_bits
-          n
-          x
-          (Expr_Slices (Asl_utils.type_bits
-            n,
-            y,
-            [Slice_LoWd (Asl_utils.zero, n)])))
+        Visitor.ChangeTo (Asl_utils.mk_mul_bits n x (Asl_utils.mk_cvt_int_bits n y))
       | _ -> DoChildren
       )
   end
