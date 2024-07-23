@@ -105,10 +105,7 @@ Platform independent instructions:
 
 ```
     opam install ocaml.4.14.1
-    opam install . --yes --deps-only
-
-    # use this command if you are modifying ASLi
-    # opam install . --yes --deps-only --with-doc --with-test
+    opam install . --yes --deps-only --with-doc --with-test
 
     # On OSX, you may need to use this command to install zarith
     env CFLAGS="-I$HOME/homebrew/include/" LDFLAGS="-L$HOME/homebrew/lib/" opam install zarith
