@@ -519,6 +519,7 @@ expr_command_start: ID DOT ID WHILE
 
 Malformed expression.
 The most likely expression syntax is
+    "$0;"
     "$0.<field identifier>"
     "$0.[<field identifier list>]"
     "$0 IN <pattern>"
