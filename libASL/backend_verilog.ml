@@ -1152,7 +1152,7 @@ let _ =
   let flags = Arg.align [
         ("--output-dir",   Arg.Set_string opt_dirname,  "<dirname>  Directory for output files");
         ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
-        ("--intwidth",     Arg.Set_int    int_width,    "<num>      Maximum integer width");
+        ("--int-width",    Arg.Set_int    int_width,    "<num>      Maximum integer width");
         ("--line-info",    Arg.Set include_line_info,   " Insert line number information");
         ("--no-line-info", Arg.Clear include_line_info, " Do not insert line number information");
       ]

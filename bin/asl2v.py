@@ -6,7 +6,7 @@ Generate asli script to generate SystemVerilog code from ASL
 Typical usage:
 
     mkdir vgen
-    bin/asl2v.py --output-dir=vgen --basename=sim --intermediates=vgen/log --line-info > vgen/asl2v.prj
+    bin/asl2v.py --output-dir=vgen --basename=sim --int-width=64 --intermediates=vgen/log --line-info > vgen/asl2v.prj
     asli --batchmode --nobanner --project=vgen/asl2v.prj --configuration=imports.json --configuration=exports.json spec.asl
 """
 
@@ -164,7 +164,7 @@ base_script = """
 // Optionally, the Verilog code can use #line directives so that profiling, debuggers,
 // etc. know what file/line in the ASL file produced each line of Verilog code.
 // Use --line-info or --no-line-info to control this.
-:generate_verilog --output-dir={output_dir} --basename={basename} {line_info}
+:generate_verilog --output-dir={output_dir} --basename={basename} --int-width={int_width} {line_info}
 """.strip()
 
 def main() -> int:
@@ -176,12 +176,14 @@ def main() -> int:
     parser.add_argument("--intermediates", help="generate intermediate files with prefix", metavar="log_prefix")
     parser.add_argument("--output-dir", help="output directory for generated files", metavar="output_dir", default="")
     parser.add_argument("--basename", help="basename of generated Verilog files", metavar="output_prefix", required=True)
+    parser.add_argument("--int-width", help="maximum integer width", metavar="N", type=int, default=66)
     parser.add_argument("--line-info", help="insert line directives into Verilog code", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     substitutions = {
         'command':     " ".join(sys.argv),
         'basename':    args.basename,
+        'int_width':   args.int_width,
         'line_info':   "",
         'output_dir':  args.output_dir,
     }
