@@ -274,11 +274,9 @@ let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
 and slice (loc : Loc.t) (fmt : PP.formatter) (x : AST.slice) : unit =
   match x with
   | Slice_LoWd (lo, wd) ->
-      expr loc fmt lo;
-      nbsp fmt;
-      plus_colon fmt;
-      nbsp fmt;
-      expr loc fmt wd
+      Format.fprintf fmt "%a +: %d"
+        (expr loc) lo
+        (const_int_expr loc wd)
   | Slice_Single _ ->
       raise (InternalError (loc, "Slice_Single not expected", (fun _ -> ()), __LOC__))
   | Slice_HiLo _ ->
@@ -482,9 +480,9 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
              "real builtin function",
              fun fmt -> FMTAST.funname fmt f ))
   | i, [ x; n ] when Ident.equal i cvt_int_bits ->
-      PP.fprintf fmt "(%a[0 +: %a])"
+      PP.fprintf fmt "(%a[0 +: %d])"
           (expr loc) x
-          (expr loc) n
+          (const_int_expr loc n)
   | i, [ x ] when Ident.equal i cvt_bits_sint ->
       sign_extend_bits loc fmt !int_width x
   | i, [ x ] when Ident.equal i cvt_bits_uint ->
