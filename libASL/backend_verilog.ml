@@ -159,8 +159,15 @@ let fn_writes (fmt : PP.formatter) : unit = keyword fmt "$write"
 let fn_typeof (fmt : PP.formatter) : unit = keyword fmt "$typeof"
 let fn_onehot (fmt : PP.formatter) : unit = keyword fmt "$onehot"
 
-let intLit (fmt : PP.formatter) (x : AST.intLit) : unit =
-  constant fmt (string_of_int !int_width ^ "'sd" ^ drop_underscores x)
+let intLit (fmt : PP.formatter) (x : Primops.bigint) : unit =
+  if Z.geq x Z.zero then
+    PP.fprintf fmt "%d'sh%s"
+      !int_width
+      (Z.format "%x" x)
+  else (* negative values *)
+    PP.fprintf fmt "(-%d'sh%s)"
+      !int_width
+      (Z.format "%x" (Z.neg x))
 
 let hexLit (fmt : PP.formatter) (x : AST.hexLit) : unit =
   constant fmt (string_of_int !int_width ^ "'sh" ^ drop_underscores x)
@@ -187,7 +194,7 @@ let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : V.value) : unit =
   match x with
   | VBool b -> constant fmt (if b then kw_true else kw_false)
   | VEnum (e, _) -> ident fmt e
-  | VInt i -> intLit fmt (Z.to_string i)
+  | VInt i -> intLit fmt i
   | VBits b ->
       let s = Z.format "%0b" b.v in
       let pad = String.make (b.n - String.length s) '0' in
@@ -210,7 +217,7 @@ let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : V.value) : unit =
 
 let ones (fmt : PP.formatter) (x : int) : unit =
   braces fmt (fun _ ->
-      intLit fmt (string_of_int x);
+      Format.fprintf fmt "%d" x;
       braces fmt (fun _ -> bitsLit fmt "1"))
 
 let rethrow_stmt (loc : Loc.t) (fmt : PP.formatter) : unit =
@@ -233,7 +240,7 @@ let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
     brackets fmt (fun _ ->
       constant fmt (string_of_int (const_int_expr loc n - 1));
       colon fmt;
-      intLit fmt "0");
+      Format.fprintf fmt "0");
     nbsp fmt;
     varname fmt v
   | Type_Constructor (tc, []) ->
@@ -444,12 +451,7 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
           nbsp fmt;
           notmask_int loc fmt y)
   | i, [ x ] when Ident.equal i pow2_int ->
-      parens fmt (fun _ ->
-          intLit fmt "1";
-          nbsp fmt;
-          delimiter fmt "<<";
-          nbsp fmt;
-          expr loc fmt x)
+      Format.fprintf fmt "(%a << %a)" intLit Z.one (expr loc) x
   | i, [ x; y ] when Ident.equal i pow_int_int ->
       PP.fprintf fmt "(%a ** %a)"
         (expr loc) x
@@ -480,11 +482,9 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
              "real builtin function",
              fun fmt -> FMTAST.funname fmt f ))
   | i, [ x; n ] when Ident.equal i cvt_int_bits ->
-      expr loc fmt x;
-      brackets fmt (fun _ ->
-          intLit fmt "0";
-          plus_colon fmt;
-          expr loc fmt n)
+      PP.fprintf fmt "(%a[0 +: %a])"
+          (expr loc) x
+          (expr loc) n
   | i, [ x ] when Ident.equal i cvt_bits_sint ->
       sign_extend_bits loc fmt !int_width x
   | i, [ x ] when Ident.equal i cvt_bits_uint ->
