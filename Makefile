@@ -47,6 +47,7 @@ clean::
 test: dune_test
 test: runtime_test
 test: lit_test
+test: test_backends
 
 dune_test: build
 	$(DUNE) test
@@ -56,6 +57,13 @@ runtime_test:
 
 lit_test: build
 	env PATH="`pwd`/tests/scripts:${PATH}" ${LIT} tests/lit -v
+
+BACKENDS = interpreter fallback
+
+test_backends: ${addprefix test_backend_, ${BACKENDS}}
+
+test_backend_%: build
+	env PATH="${CURDIR}/tests/scripts:$${PATH}" ASL_BACKEND=$* ${LIT} tests/backends -v
 
 ################################################################
 # End
