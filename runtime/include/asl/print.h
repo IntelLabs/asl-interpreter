@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////
+
 // Runtime print support for ASL's C backend
 //
 // Copyright (C) 2023-2024 Intel Corporation
@@ -58,7 +58,16 @@ static inline void
 ASL_print_int_hex(ASL_int_t x)
 {
 #ifdef ASL_INT128
-        printf("0x%08llx_%08llx", (long long)(x >> 64), (long long)x);
+        int64_t top = (int64_t)(x >> 64);
+        int64_t bottom = (int64_t)x;
+        if (top == 0 && bottom >= 0) {
+            printf("%#lx", bottom);
+        } else if (top == -1 && bottom < 0 && bottom != INT64_MIN) {
+            printf("-%#lx", -bottom);
+        } else {
+            // despite the name, large numbers are printed in hex
+            printf("0x%08lx_%08lx", top, bottom);
+        }
 #else
         printf("0x%llx", (long long)x);
 #endif
@@ -68,8 +77,14 @@ static inline void
 ASL_print_int_dec(ASL_int_t x)
 {
 #ifdef ASL_INT128
-        // print in hex for simplicity
-        printf("0x%08llx_%08llx", (long long)(x >> 64), (long long)x);
+        int64_t top = (int64_t)(x >> 64);
+        int64_t bottom = (int64_t)x;
+        if ((top == 0 && bottom >= 0) || (top == -1 && bottom < 0)) {
+            printf("%ld", bottom);
+        } else {
+            // despite the name, large numbers are printed in hex
+            printf("0x%08lx_%08lx", top, bottom);
+        }
 #else
         printf("%lld", (long long)x);
 #endif
