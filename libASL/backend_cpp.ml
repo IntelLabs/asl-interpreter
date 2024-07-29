@@ -522,11 +522,15 @@ let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : Value.value) : unit =
   | _ -> raise (InternalError (loc, "valueLit", (fun fmt -> Value.pp_value fmt x), __LOC__))
   )
 
-let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
+let rec varty ?(const_expr = false) (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   ( match x with
   | Type_Bits (n, _) ->
+    if const_expr = true then
+      keyword fmt "const ";
     bits fmt (const_int_expr loc n);
     nbsp fmt;
+    if const_expr = true then
+      keyword fmt "&";
     varname fmt v
   | Type_Constructor (tc, []) ->
       ( match tc with
@@ -542,8 +546,12 @@ let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
         star fmt;
         varname fmt v
       | _ ->
+        if const_expr = true then
+          keyword fmt "const ";
         tycon fmt tc;
         nbsp fmt;
+        if const_expr = true then
+          keyword fmt "&";
         varname fmt v
       )
   | Type_Constructor (i, [_]) when Ident.equal i Builtin_idents.ram ->
@@ -552,8 +560,12 @@ let rec varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : un
     varname fmt v
   (* TODO implement integer range analysis to determine the correct type width *)
   | Type_Integer _ ->
+    if const_expr = true then
+      keyword fmt "const ";
     kw_asl_int fmt;
     nbsp fmt;
+    if const_expr = true then
+      keyword fmt "&";
     varname fmt v
   | Type_Array (Index_Enum tc, ety) ->
     varty loc fmt v ety;
@@ -695,6 +707,10 @@ and zero_extend_bits (loc : Loc.t) (fmt : PP.formatter) (target_width : int) (x 
     unit =
   cast fmt (string_of_int target_width) "false" (fun _ -> expr loc fmt x)
 
+and uint_from_bits (loc : Loc.t) (fmt : PP.formatter) (target_width : int) (x : AST.expr) :
+  unit =
+  cast fmt (string_of_int (target_width + 1)) "false" (fun _ -> expr loc fmt x)
+
 and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
     (args : AST.expr list) (loc : Loc.t) =
   match args with
@@ -778,10 +794,10 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | _ when Ident.equal f and_bits -> binop loc fmt "&" args
   | _ when Ident.equal f cvt_bits_uint ->
       let n = List.hd tes in
-      sign_extend_bits loc fmt (const_int_expr loc n) (List.hd args)
+      uint_from_bits loc fmt (const_int_expr loc n) (List.hd args)
   | _ when Ident.equal f cvt_bits_sint ->
       let n = List.hd tes in
-      zero_extend_bits loc fmt (const_int_expr loc n) (List.hd args)
+      sign_extend_bits loc fmt (const_int_expr loc n) (List.hd args)
   | _ when Ident.in_list f [ asr_bits; ] ->
       let n = List.hd tes in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
@@ -1327,7 +1343,7 @@ and brace_enclosed_block (fmt : PP.formatter) (b : AST.stmt list) =
 
 let formal (loc : Loc.t) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   let v, t = x in
-  varty loc fmt v t
+  varty ~const_expr:true loc fmt v t
 
 let function_header (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (fty : AST.function_type) : unit =
   (if fty.throws = AlwaysThrow then Format.fprintf fmt "__attribute__((noreturn)) ");
