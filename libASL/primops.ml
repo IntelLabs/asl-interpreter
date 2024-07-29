@@ -285,7 +285,10 @@ let prim_notin_mask (x : bitvector) (m : mask) : bool = not (prim_in_mask x m)
 let prim_eq_str (x : string) (y : string) : bool = x = y
 let prim_ne_str (x : string) (y : string) : bool = x <> y
 let prim_append_str (x : string) (y : string) : string = x ^ y
-let prim_cvt_int_hexstr (x : bigint) : string = "0x" ^ Z.format "%x" x
+let prim_cvt_int_hexstr (x : bigint) : string =
+    if Z.geq x Z.zero
+    then "0x" ^ Z.format "%x" x
+    else "-0x" ^ Z.format "%x" (Z.neg x)
 let prim_cvt_int_decstr (x : bigint) : string = Z.to_string x
 let prim_cvt_bool_str (x : bool) : string = if x then "TRUE" else "FALSE"
 
