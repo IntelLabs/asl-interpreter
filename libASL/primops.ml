@@ -44,7 +44,7 @@ let prim_ge_int (x : bigint) (y : bigint) : bool = Z.geq x y
 let prim_gt_int (x : bigint) (y : bigint) : bool = Z.gt x y
 
 let prim_is_pow2_int (x : bigint) : bool =
-  Z.equal (Z.logand x (Z.sub x Z.one)) Z.zero
+  (Z.gt x Z.zero) && (Z.equal (Z.logand x (Z.sub x Z.one)) Z.zero)
 
 let prim_neg_int (x : bigint) : bigint = Z.neg x
 let prim_add_int (x : bigint) (y : bigint) : bigint = Z.add x y
