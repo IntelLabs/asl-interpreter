@@ -18,6 +18,10 @@ open Identset
 open Builtin_idents
 open Utils
 
+let runtimes = ["fallback"]
+
+let set_runtime (rt : string) : unit = ()
+
 let include_line_info : bool ref = ref false
 let new_ffi : bool ref = ref false
 
@@ -1344,6 +1348,7 @@ let _ =
         ("--output-dir",   Arg.Set_string opt_dirname,         "<dirname>    Directory for output files");
         ("--basename",     Arg.Set_string opt_basename,        "<basename>   Basename of output files");
         ("--num-c-files",  Arg.Set_int opt_num_c_files,        "<num>        Number of .c files created (default: 1)");
+        ("--runtime",      Arg.Symbol (runtimes, set_runtime), "fallback     Select runtime system");
         ("--new-ffi",      Arg.Set   new_ffi,                  " Use new FFI");
         ("--no-new-ffi",   Arg.Clear new_ffi,                  " Do not use new FFI");
         ("--line-info",    Arg.Set include_line_info,          " Insert line number information");
