@@ -221,7 +221,11 @@ def run(cmd):
 # Compile/link flags
 ################################################################
 
-backend_flags = {
+ac_types_dir = os.environ.get('AC_TYPES_DIR')
+ac_types_include = [f"-I{ac_types_dir}/include"] if ac_types_dir else []
+
+backend_c_flags = {
+    'ac':          ['-DASL_AC'] + ac_types_include,
     'c23':         ['-DASL_C23'],
     'interpreter': [],
     'fallback':    ['-DASL_FALLBACK'],
@@ -240,8 +244,16 @@ def get_c_flags(asli, backend):
         rootdir = os.path.dirname(bindir)
         path = os.path.join(rootdir, "runtime/include")
         c_flags = [f"-I{path}"]
-    c_flags.extend(backend_flags[backend])
+    c_flags.extend(backend_c_flags[backend])
     return c_flags
+
+backend_ld_flags = {
+    'ac':          [],
+    'c23':         [],
+    'interpreter': [],
+    'fallback':    [],
+    'orig':        [],
+}
 
 def get_ld_flags(asli, backend):
     if "opam" in asli:
@@ -255,6 +267,7 @@ def get_ld_flags(asli, backend):
         rootdir = os.path.dirname(bindir)
         path = os.path.join(rootdir, "runtime/libASL.a")
         ld_flags = [path]
+    ld_flags.extend(backend_ld_flags[backend])
     return ld_flags
 
 ################################################################
@@ -266,6 +279,7 @@ def mk_script(args, output_directory):
     ffi = "--new-ffi" if args.build else ""
 
     backend_generator = {
+        'ac':          f'generate_cpp   {ffi} --runtime=ac',
         'c23':         f'generate_c_new {ffi} --runtime=c23',
         'fallback':    f'generate_c_new {ffi} --runtime=fallback',
         'orig':        'generate_c',
@@ -319,13 +333,14 @@ def mk_script(args, output_directory):
 # Building support functions
 ################################################################
 
-def mk_filenames(working_directory, basename):
+def mk_filenames(backend, working_directory, basename):
     project_file = f"{working_directory}/asl2c.prj"
     exports_file = f"{working_directory}/exports.json"
+    suffix = "cpp" if backend == "ac" else "c"
     c_files = [
-        f"{working_directory}/{basename}_exceptions.c",
-        f"{working_directory}/{basename}_vars.c",
-        f"{working_directory}/{basename}_funs.c"
+        f"{working_directory}/{basename}_exceptions.{suffix}",
+        f"{working_directory}/{basename}_vars.{suffix}",
+        f"{working_directory}/{basename}_funs.{suffix}"
     ]
     exe_file = f"{working_directory}/{basename}"
     return (project_file, exports_file, c_files, exe_file)
@@ -350,21 +365,25 @@ def generate_c(asli, asl_files, project_file, exports_file):
     asli_cmd.extend(asl_files)
     run(asli_cmd)
 
-def compile_and_link(c_files, exe_file, include_directory, c_flags, ld_flags):
+def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_flags):
     cc = os.environ.get("CC")
     if cc:
         cc = cc.split()
     else:
-        if subprocess.call(['which', 'clang-18']) == 0:
-            cc = [ "clang-18", "-std=c2x" ]
-        elif subprocess.call(['which', 'clang-17']) == 0:
-            cc = [ "clang-17", "-std=c2x" ]
-        elif subprocess.call(['which', 'clang-16']) == 0:
-            cc = [ "clang-16", "-std=c2x" ]
-        elif subprocess.call(['which', 'clang']) == 0:
-            cc = [ "clang", "-std=c2x" ]
+        if subprocess.run(['which', 'clang-18']).returncode == 0:
+            cc = [ "clang-18" ]
+        elif subprocess.run(['which', 'clang-17']).returncode == 0:
+            cc = [ "clang-17" ]
+        elif subprocess.run(['which', 'clang-16']).returncode == 0:
+            cc = [ "clang-16" ]
+        elif subprocess.run(['which', 'clang']).returncode == 0:
+            cc = [ "clang" ]
         else:
             cc = [ "gcc" ]
+    if use_cxx:
+        cc.append('-lstdc++')
+    else:
+        cc.append('-std=c2x')
     cc_cmd = cc + [
         f"-I{include_directory}",
         "-o", exe_file,
@@ -372,13 +391,14 @@ def compile_and_link(c_files, exe_file, include_directory, c_flags, ld_flags):
     run(cc_cmd)
 
 def build(script, asl_files, asli, backend, working_directory, basename):
-    (project_file, exports_file, c_files, exe_file) = mk_filenames(working_directory, basename)
+    (project_file, exports_file, c_files, exe_file) = mk_filenames(backend, working_directory, basename)
     c_flags = get_c_flags(asli, backend)
     ld_flags = get_ld_flags(asli, backend)
     generate_project(project_file, script)
     generate_exports(exports_file)
     generate_c(asli, asl_files, project_file, exports_file)
-    compile_and_link(c_files, exe_file, working_directory, c_flags, ld_flags)
+    use_cxx = backend in ['ac']
+    compile_and_link(use_cxx, c_files, exe_file, working_directory, c_flags, ld_flags)
     return exe_file
 
 ################################################################
@@ -402,7 +422,7 @@ def main() -> int:
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--backend", help="select backend", choices=['c23', 'interpreter', 'fallback', 'orig'], default='orig')
+    parser.add_argument("--backend", help="select backend", choices=['ac', 'c23', 'interpreter', 'fallback', 'orig'], default='orig')
     parser.add_argument("--print-c-flags", help="Print the C flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--print-ld-flags", help="Print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--build", help="Compile and link the ASL code", action='store_true')
@@ -443,6 +463,7 @@ def main() -> int:
         run(asli_cmd)
     elif args.run:
         with tempfile.TemporaryDirectory() as working_directory:
+            # working_directory = tempfile.mkdtemp(prefix="asltest.") # use this while testing to prevent file being deleted
             report(f"# In temporary directory {working_directory}")
             script = mk_script(args, working_directory)
             exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
