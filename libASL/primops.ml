@@ -198,7 +198,19 @@ let prim_ones_bits (x : bigint) : bitvector = mkBits (Z.to_int x) Z.minus_one
 
 let prim_lsl (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_left x.v (Z.to_int d))
 let prim_lsr (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_right_trunc x.v (Z.to_int d))
-let prim_asr (x : bitvector) (d : bigint) : bitvector = mkBits x.n (Z.shift_right x.v (Z.to_int d))
+let prim_asr (x : bitvector) (d : bigint) : bitvector =
+    let d' = Z.to_int d in
+    if x.n = 0 || d' = 0 then
+        x
+    else (
+        let r = Z.shift_right x.v (Z.to_int d) in
+        let sign_bits =
+            if Z.testbit x.v (x.n - 1)
+            then Z.shift_left Z.minus_one (x.n - d')
+            else Z.zero
+        in
+        mkBits x.n (Z.logor sign_bits r)
+    )
 
 let prim_append_bits (x : bitvector) (y : bitvector) : bitvector =
   mkBits (x.n + y.n) (Z.logor (Z.shift_left x.v y.n) y.v)
