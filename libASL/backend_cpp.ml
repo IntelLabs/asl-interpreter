@@ -20,7 +20,12 @@ open Utils
 let drop_spaces (x : string) : string = Value.drop_chars x ' '
 let drop_underscores (x : string) : string = Value.drop_chars x '_'
 
+let runtimes = ["ac"]
+
+let set_runtime (rt : string) : unit = ()
+
 let include_line_info : bool ref = ref false
+let new_ffi : bool ref = ref false
 
 (* Support for packing thread-local state (e.g., registers) into a struct that is then
  * accessed via the named pointer.
@@ -1607,6 +1612,125 @@ let fun_decls (xs : AST.declaration list) : AST.declaration list =
   List.filter is_fun_decl xs
 
 (****************************************************************
+ * Foreign Function Interface (FFI)
+ ****************************************************************)
+
+let ffi_ty (loc : Loc.t) (fmt : PP.formatter) (x : AST.ty) : unit =
+    ( match x with
+    | Type_Bits(Expr_Lit (VInt n), _) when List.mem (Z.to_int n) [8; 16; 32; 64] ->
+        Format.fprintf fmt "uint%d_t" (Z.to_int n)
+    | Type_Integer _ ->
+        Format.fprintf fmt "int"
+    | Type_Constructor (tc, _) ->
+        ident fmt tc
+    | _ ->
+        let msg = Format.asprintf "Type '%a' cannot be used in functions that are imported or exported between ASL and C"
+          FMT.ty x
+        in
+        raise (Error.TypeError (loc, msg))
+    )
+
+let ffi_rty (loc : Loc.t) (fmt : PP.formatter) (ox : AST.ty option) : unit =
+    ( match ox with
+    | Some x -> ffi_ty loc fmt x
+    | None -> Format.fprintf fmt "void"
+    )
+
+let ffi_fun_header (loc : Loc.t) (fmt : PP.formatter) (function_name : string) (x : AST.function_type) : unit =
+    if not (Utils.is_empty x.parameters)
+      || Option.is_some x.setter_arg
+      || x.use_array_syntax
+      || x.is_getter_setter
+      || x.throws != NoThrow
+    then begin
+        let msg = Format.asprintf "Type '%a' cannot be used in functions that are imported or exported between ASL and C"
+          FMT.function_type x
+        in
+        raise (Error.TypeError (loc, msg))
+    end;
+    Format.fprintf fmt "%a %s("
+      (ffi_rty loc) x.rty
+      function_name;
+    commasep fmt (fun (arg, ty) ->
+      Format.fprintf fmt "%a %a"
+        (ffi_ty loc) ty
+        ident arg)
+      x.args;
+    Format.fprintf fmt ")"
+
+let mk_ffi_proto (fmt : PP.formatter) ((function_name, fty, loc) : (string * AST.function_type * Loc.t)) : unit =
+    ffi_fun_header loc fmt function_name fty;
+    Format.fprintf fmt ";@,"
+
+(* convert from internal representation to C *)
+let ffi_from_c (loc : Loc.t) (fmt : PP.formatter) (arg : Ident.t) (t : AST.ty) : unit =
+    ( match t with
+    | Type_Integer _ ->
+        Format.fprintf fmt "%a.to_int()" ident arg
+    | _ ->
+        let msg = Format.asprintf "Type '%a' cannot be used in functions that are imported or exported between ASL and C"
+          FMT.ty t
+        in
+        raise (Error.TypeError (loc, msg))
+    )
+(* convert from internal representation to C *)
+let ffi_to_c (loc : Loc.t) (fmt : PP.formatter) (pp : PP.formatter -> unit) (t : AST.ty) : unit =
+    ( match t with
+    | Type_Integer _ ->
+        Format.fprintf fmt "(%a).to_int()" (fun fmt _ -> pp fmt) ()
+    | _ ->
+        let msg = Format.asprintf "Type '%a' cannot be used in functions that are imported or exported between ASL and C"
+          FMT.ty t
+        in
+        raise (Error.TypeError (loc, msg))
+    )
+
+let mk_ffi_defn (fmt : PP.formatter) ((function_name, fty, loc) : (string * AST.function_type * Loc.t)) : unit =
+    ffi_fun_header loc fmt function_name fty;
+    Format.fprintf fmt "{@,";
+    Format.fprintf fmt "    ";
+    if Option.is_some fty.rty then begin
+        Format.fprintf fmt "auto __r = ";
+    end;
+    Format.fprintf fmt "%a(%a);@,"
+      ident (Ident.mk_fident function_name)
+      (fun fmt -> commasep fmt (fun (arg, ty) -> ffi_from_c loc fmt arg ty)) fty.args;
+    ( match fty.rty with
+    | Some rty ->
+        Format.fprintf fmt "return ";
+        ffi_to_c loc fmt (fun fmt -> Format.pp_print_string fmt "__r") rty;
+        Format.fprintf fmt ";";
+    | None ->
+        ()
+    );
+    Format.fprintf fmt "}@,"
+
+let mk_ffi_exports (decls : AST.declaration list) (function_names : string list) :
+    (PP.formatter -> unit) * (PP.formatter -> unit) =
+  let map = Asl_utils.decls_map_of decls in
+
+  let missing : string list ref = ref [] in
+  let infos = List.filter_map (fun function_name ->
+      let fn_name = Ident.mk_fident function_name in
+      ( match Bindings.find_opt fn_name map with
+      | Some (Decl_FunType (_, fty, loc) :: _) -> Some (function_name, fty, loc)
+      | Some (Decl_FunDefn (_, fty, _, loc) :: _) -> Some (function_name, fty, loc)
+      | _ ->
+          missing := function_name :: !missing;
+          None
+      )
+    ) function_names
+  in
+  if not (Utils.is_empty !missing) then begin
+      Format.eprintf "Error: unable to find exported functions\n";
+      List.iter (Format.eprintf "  '%s'\n") !missing;
+      exit 1
+  end;
+  let mk_protos fmt = cutsep fmt (mk_ffi_proto fmt) infos in
+  let mk_defns fmt = cutsep fmt (mk_ffi_defn fmt) infos in
+  (mk_protos, mk_defns)
+
+(****************************************************************
  * File writing support
  ****************************************************************)
 
@@ -1649,13 +1773,18 @@ let emit_cpp_source (filename : string) ?(index : int option)
   )
 
 let generate_files (num_c_files : int) (dirname : string) (basename : string)
+    (ffi_prototypes : PP.formatter -> unit)
+    (ffi_definitions : PP.formatter -> unit)
     (ds : AST.declaration list) : unit =
   let sys_h_filenames = [ "cstdint" ] in
   let h_filenames = [ "asl/runtime.hpp"; "ac_int.h" ] in
 
   let basename_t = basename ^ "_types" in
   emit_cpp_header dirname basename_t sys_h_filenames h_filenames (fun fmt ->
-      type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt
+      type_decls ds |> Asl_utils.topological_sort |> List.rev |> declarations fmt;
+      Format.fprintf fmt "@,";
+      ffi_prototypes fmt;
+      Format.fprintf fmt "@,"
   );
   let basename_e = basename ^ "_exceptions" in
   emit_cpp_header dirname basename_e sys_h_filenames h_filenames (fun fmt ->
@@ -1685,13 +1814,21 @@ let generate_files (num_c_files : int) (dirname : string) (basename : string)
         declarations fmt ds)
   in
   if num_c_files = 1 then
-    emit_funs ds
+    emit_cpp_source filename_f gen_h_filenames (fun fmt ->
+       declarations fmt ds;
+      Format.fprintf fmt "@,";
+      ffi_definitions fmt
+    )
   else
     let threshold = List.length ds / num_c_files in
     let rec emit_funs_by_chunk (i : int) (acc : AST.declaration list) = function
       (* last chunk *)
       | l when i = num_c_files ->
-          emit_funs ~index:i (List.rev acc @ l)
+          emit_cpp_source filename_f ~index:i gen_h_filenames (fun fmt ->
+            declarations fmt (List.rev acc @ l);
+            Format.fprintf fmt "@,";
+            ffi_definitions fmt
+          )
       | h :: t when List.length acc < threshold ->
           emit_funs_by_chunk i (h :: acc) t
       | h :: t ->
@@ -1716,7 +1853,16 @@ let _ =
   in
 
   let cmd (tcenv : Tcheck.Env.t) (cpu : Cpu.cpu) : bool =
-    generate_files !opt_num_c_files !opt_dirname !opt_basename !Commands.declarations;
+    let decls = !Commands.declarations in
+    let exports =
+      if !new_ffi then
+        Configuration.get_strings "exports"
+      else
+        (* the new FFI doesn't change code if it thinks there are no exports *)
+        []
+    in
+    let (ffi_protos, ffi_defns) = mk_ffi_exports decls exports in
+    generate_files !opt_num_c_files !opt_dirname !opt_basename ffi_protos ffi_defns decls;
     true
   in
 
@@ -1724,6 +1870,9 @@ let _ =
         ("--output-dir",   Arg.Set_string opt_dirname,  "<dirname> Directory for output files");
         ("--basename",     Arg.Set_string opt_basename, "<basename> Basename of output files");
         ("--num-c-files",  Arg.Set_int opt_num_c_files, "<num>      Number of .c files created (default: 1)");
+        ("--runtime",      Arg.Symbol (runtimes, set_runtime), "ac     Select runtime system");
+        ("--new-ffi",      Arg.Set   new_ffi,                  " Use new FFI");
+        ("--no-new-ffi",   Arg.Clear new_ffi,                  " Do not use new FFI");
         ("--line-info",    Arg.Set include_line_info,   " Insert line number information");
         ("--no-line-info", Arg.Clear include_line_info, " Do not insert line number information");
         ("--thread-local-pointer", Arg.String (fun s -> opt_thread_local_pointer := Some s), "<varname> Access all thread-local variables through named pointer");
