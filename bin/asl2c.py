@@ -371,13 +371,13 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
     if cc:
         cc = cc.split()
     else:
-        if subprocess.run(['which', 'clang-18']).returncode == 0:
+        if subprocess.run(['which', 'clang-18'], capture_output=True).returncode == 0:
             cc = [ "clang-18" ]
-        elif subprocess.run(['which', 'clang-17']).returncode == 0:
+        elif subprocess.run(['which', 'clang-17'], capture_output=True).returncode == 0:
             cc = [ "clang-17" ]
-        elif subprocess.run(['which', 'clang-16']).returncode == 0:
+        elif subprocess.run(['which', 'clang-16'], capture_output=True).returncode == 0:
             cc = [ "clang-16" ]
-        elif subprocess.run(['which', 'clang']).returncode == 0:
+        elif subprocess.run(['which', 'clang'], capture_output=True).returncode == 0:
             cc = [ "clang" ]
         else:
             cc = [ "gcc" ]
