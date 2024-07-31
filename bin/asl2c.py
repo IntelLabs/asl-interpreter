@@ -17,6 +17,7 @@ Alternative usage (compile and run the ASL function 'main' using backend fallbac
 import argparse
 import os
 import os.path
+import pathlib
 import string
 import subprocess
 import sys
@@ -444,7 +445,10 @@ def main() -> int:
         exit(1)
 
     # when running tests, we need to be able to use ASLi without having installed it
-    asli = os.environ.get('ASLI', "asli")
+    asli = pathlib.Path(__file__).parent / "asli"
+    if not asli.exists():
+        asli = pathlib.Path(__file__).parent / "asli.exe"
+    asli = str(asli)
 
     if args.print_c_flags:
         print(get_c_flags(asli, args.backend))
