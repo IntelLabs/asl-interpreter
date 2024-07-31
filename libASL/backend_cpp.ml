@@ -423,7 +423,9 @@ let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
     Z.format "%#x" b ^ "ULL"
   in
   if x.n <= 64 then begin
-      constant fmt (bit_to_hex x.v)
+      Format.fprintf fmt "ac_int<%d,false>(%s)"
+          x.n
+          (bit_to_hex x.v)
   end else begin
     let num_bits = round_up_to_pow2 x.n in
     let num_limbs = (num_bits / 64) in
@@ -864,9 +866,11 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       print_str
     ] ->
       apply loc fmt (fun _ -> fn_extern fmt f) args
-  | _ when Ident.equal f print_bits_hex ->
+  | [x] when Ident.equal f print_bits_hex ->
       let n = List.hd tes in
-      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] (n :: args)
+      Format.fprintf fmt "ASL_print_bits_hex<%d>(%a)"
+          (const_int_expr loc n)
+          (expr loc) x;
   (* RAM builtin functions *)
   | _ when Ident.in_list f [ ram_init; ram_read; ram_write ] ->
       apply loc fmt (fun _ -> fn_extern fmt f) args
