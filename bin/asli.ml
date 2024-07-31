@@ -90,7 +90,7 @@ let mkLoc (fname : string) (input : string) : Loc.t =
 
 let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (input0 : string) : unit =
   let input = String.trim input0 in
-  match String.split_on_char ' ' input with
+  match String.split_on_char ' ' input |> List.filter (fun a -> a <> "") with
   | [ "" ] -> ()
   | ("//"::_) -> () (* comment *)
   | [ ":help" ] | [ ":?" ] ->
@@ -128,6 +128,8 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
      if not (Commands.execute_command cmd args tcenv cpu) then error();
      FMT.show_type_params := old_show_params;
      FMT.resugar_operators := old_resugar
+  | [] ->
+     ()
   | _ ->
       if ';' = String.get input (String.length input - 1) then
         let s = LoadASL.read_stmt tcenv input in
