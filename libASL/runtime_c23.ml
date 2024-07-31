@@ -262,7 +262,7 @@ module Runtime : RT.RuntimeLib = struct
     if n = 0 then begin
       (* Although we print empty_bits, we may still need to execute 'x' for any side effects *)
       PP.fprintf fmt "(void)%a;@," RT.pp_expr x;
-      PP.fprintf fmt "printf(\"0'%%#llx\", 0ULL)"
+      PP.fprintf fmt "printf(\"0'x0\")"
     end else begin
       let chunks = (n+63) / 64 in
       PP.fprintf fmt "{ @[%a __tmp = %a; "
