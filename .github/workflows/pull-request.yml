@@ -30,6 +30,10 @@ jobs:
           chmod +x llvm.sh
           ./llvm.sh 16
 
+          # download and unpack ac_types library
+          wget https://github.com/hlslibs/ac_types/archive/refs/tags/v4.0.tar.gz
+          tar zxf v4.0.tar.gz
+
           pip3 install filecheck lit
           opam init --no-setup --disable-sandboxing --compiler=4.14.0
           opam install . --deps-only --with-test --with-doc --yes
@@ -43,6 +47,7 @@ jobs:
         run: |
           eval $(opam env)
           make test
+          AC_TYPES_DIR=`pwd`/ac_types-4.0 make test_backend_ac
 
       - name: Build documentation
         run: |
