@@ -368,7 +368,7 @@ def compile_and_link(c_files, exe_file, include_directory, c_flags, ld_flags):
     cc_cmd = cc + [
         f"-I{include_directory}",
         "-o", exe_file,
-    ] + c_flags + ld_flags + c_files
+    ] + c_flags + c_files + ld_flags
     run(cc_cmd)
 
 def build(script, asl_files, asli, backend, working_directory, basename):
