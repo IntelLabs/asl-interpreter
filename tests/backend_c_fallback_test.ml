@@ -12,7 +12,7 @@ module BE = Backend_c_new
 module TC = Tcheck
 
 let check_syntax (name : string) (code : string) : unit =
-  let rt_defines = BE.get_c_defines () in
+  let rt_header = BE.get_rt_header () in
   let prog = "gcc" in
   let args =
     [
@@ -23,19 +23,7 @@ let check_syntax (name : string) (code : string) : unit =
       "-xc";
     ]
   in
-  let header =
-    String.concat "\n"
-      (rt_defines
-      @
-      [
-        "#include <assert.h>";
-        "#include <stdbool.h>";
-        "#include <stdint.h>";
-        "";
-        "#include \"asl/runtime.h\"";
-        "\n";
-      ])
-  in
+  let header = String.concat "\n" rt_header in
   check_compiler "C" ".c" prog args name header code
 
 let test_declaration (name : string) (s : string) : unit =

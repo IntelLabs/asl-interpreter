@@ -9,7 +9,6 @@ end
 func main() => integer
 begin
     print_int_dec(Test(1, 2)); println();
+    // CHECK: -1
     return 0;
 end
-
-// CHECK: -1

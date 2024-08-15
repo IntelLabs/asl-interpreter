@@ -583,6 +583,8 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       Some (VBits (prim_replicate_bits x y))
   | [ _; _ ], [ VBits x; VInt y ]  when Ident.equal f zero_extend_bits ->
       Some (VBits (prim_zero_extend_bits x y))
+  | [ _; _ ], [ VBits x; VInt y ]  when Ident.equal f sign_extend_bits ->
+      Some (VBits (prim_sign_extend_bits x y))
   | [ VInt m; VInt n ], [ VBits x; VBits y ] when Ident.equal f append_bits ->
       Some (VBits (prim_append_bits x y))
   | [ _ ], [ VInt w; VInt n ] when Ident.equal f Builtin_idents.mk_mask ->

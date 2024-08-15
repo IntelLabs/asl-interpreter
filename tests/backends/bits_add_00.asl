@@ -8,8 +8,7 @@ end
 
 func main() => integer
 begin
-    print(Test(1[0 +: 8], 2[0 +: 8])); println();
+    print_bits_hex(Test(1[0 +: 8], 2[0 +: 8])); println();
+    // CHECK: 8'x3
     return 0;
 end
-
-// CHECK: 8'x3

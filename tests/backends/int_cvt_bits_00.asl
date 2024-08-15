@@ -1,16 +1,16 @@
 // RUN: %aslrun %s | filecheck %s
 // Copyright (C) 2023-2024 Intel Corporation
 
-func Test(x : integer, N : integer) => bits(N)
+func Test(x : integer) => bits(8)
 begin
-    return cvt_int_bits(x, N);
+    return cvt_int_bits(x, 8);
 end
 
 func main() => integer
 begin
-    print(Test(42, 8)); println();
+    print_bits_hex(Test(42)); println();
     // CHECK: 8'x2a
-    print(Test(-1, 8)); println();
+    print_bits_hex(Test(-1)); println();
     // CHECK: 8'xff
     return 0;
 end

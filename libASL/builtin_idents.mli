@@ -99,6 +99,7 @@ val add_bits_int : Ident.t
 val sub_bits_int : Ident.t
 val mul_bits_int : Ident.t
 val zero_extend_bits : Ident.t
+val sign_extend_bits : Ident.t
 val append_bits : Ident.t
 val mk_mask : Ident.t
 val mask_int : Ident.t

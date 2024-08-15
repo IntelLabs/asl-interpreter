@@ -1,17 +1,16 @@
 // RUN: %aslrun %s | filecheck %s
 // Copyright (C) 2023-2024 Intel Corporation
 
-func Test(x : bits(M), N : integer) => bits(N)
+func Test(x : bits(3)) => bits(8)
 begin
-    return ZeroExtend(x, N);
+    return zero_extend_bits(x, 8);
 end
 
 func main() => integer
 begin
-    print(Test('110', 8)); println();
+    print_bits_hex(Test('110')); println();
     // CHECK: 8'x6
-    print(Test('011', 8)); println();
+    print_bits_hex(Test('011')); println();
     // CHECK: 8'x3
     return 0;
 end
-

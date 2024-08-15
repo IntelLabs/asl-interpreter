@@ -1,19 +1,14 @@
 (****************************************************************
- * ASL to C backend
+ * Algorithmic C runtime library support
+ * This uses the C++ "Algorithmic C" library "ac_int.h"
  *
  * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-(** select which runtime library is used *)
-val set_runtime : string -> unit
+(** ASL to C runtime library support (C++) *)
 
-(** Supply of goto labels for exception implementation *)
-val catch_labels : Asl_utils.nameSupply
-
-val declarations : Format.formatter -> Asl_ast.declaration list -> unit
-
-val get_rt_header : unit -> string list
+module Runtime : Runtime.RuntimeLib
 
 (****************************************************************
  * End

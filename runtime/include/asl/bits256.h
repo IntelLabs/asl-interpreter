@@ -63,6 +63,8 @@ ASL_bits128_t ASL_slice_lowd_256_128(ASL_bits256_t x, ASL_int_t lo, ASL_int_t wi
 ASL_bits64_t ASL_slice_lowd_256_64(ASL_bits256_t x, ASL_int_t lo, ASL_int_t width);
 ASL_bits256_t ASL_zero_extend_bits_64_256(int width, ASL_bits64_t x, ASL_int_t n);
 ASL_bits256_t ASL_zero_extend_bits_128_256(int width, ASL_bits128_t x, ASL_int_t n);
+ASL_bits256_t ASL_sign_extend_bits_64_256(int width, ASL_bits64_t x, ASL_int_t n);
+ASL_bits256_t ASL_sign_extend_bits_128_256(int width, ASL_bits128_t x, ASL_int_t n);
 ASL_bits256_t ASL_zeros_bits_256(ASL_int_t width);
 
 #ifdef __cplusplus

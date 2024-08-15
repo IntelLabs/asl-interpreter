@@ -48,6 +48,7 @@
    primops
    runtime
    runtime_c23
+   runtime_ac
    runtime_fallback
    scope
    scopeStack

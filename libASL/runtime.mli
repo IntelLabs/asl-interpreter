@@ -25,8 +25,8 @@ val pp_expr : PP.formatter -> rt_expr -> unit
 val mk_rt_expr : (PP.formatter -> AST.expr -> unit) -> AST.expr -> rt_expr
 
 module type RuntimeLib = sig
-  (* #defines that are needed by this runtime variant *)
-  val c_defines : string list
+  (* file header needed by this runtime variant *)
+  val file_header : string list
 
   (* types *)
   val ty_int : PP.formatter -> unit
@@ -63,7 +63,8 @@ module type RuntimeLib = sig
   val mod_pow2_int : PP.formatter -> rt_expr -> rt_expr -> unit
 
   (* bitvector functions *)
-  val slice_lowd : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
+  val get_slice : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
+  val set_slice : PP.formatter -> int -> int -> rt_expr -> rt_expr -> rt_expr -> unit
   val eq_bits  : PP.formatter -> int -> rt_expr -> rt_expr -> unit
   val ne_bits  : PP.formatter -> int -> rt_expr -> rt_expr -> unit
   val add_bits : PP.formatter -> int -> rt_expr -> rt_expr -> unit
@@ -83,6 +84,7 @@ module type RuntimeLib = sig
   val ones_bits : PP.formatter -> int -> unit
   val mk_mask : PP.formatter -> int -> rt_expr -> unit
   val zero_extend_bits : PP.formatter -> int -> int -> rt_expr -> unit
+  val sign_extend_bits : PP.formatter -> int -> int -> rt_expr -> unit
   val in_bits : PP.formatter -> int -> rt_expr -> Primops.mask -> unit
   val append_bits : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
   val replicate_bits : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
@@ -96,6 +98,10 @@ module type RuntimeLib = sig
   (* Print functions *)
   val print_char : PP.formatter -> rt_expr -> unit
   val print_str : PP.formatter -> rt_expr -> unit
+
+  (* Foreign Function Interface (FFI) *)
+  val to_c_int : PP.formatter -> rt_expr -> unit
+  val to_c_index : PP.formatter -> rt_expr -> unit
 end
 
 (****************************************************************

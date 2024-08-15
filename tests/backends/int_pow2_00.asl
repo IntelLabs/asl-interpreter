@@ -9,9 +9,8 @@ end
 func main() => integer
 begin
     print_int_dec(Test(3)); println();
+    // CHECK: 8
     print_int_dec(Test(7)); println();
+    // CHECK: 128
     return 0;
 end
-
-// CHECK: 8
-// CHECK: 128

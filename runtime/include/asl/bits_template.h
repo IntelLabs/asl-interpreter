@@ -26,5 +26,22 @@ ASL_BITS_TYPE ASL_replicate_bits(N, int width, ASL_BITS_TYPE x, ASL_int_t n);
 ASL_BITS_TYPE ASL_slice_lowd(N, N, ASL_BITS_TYPE x, ASL_int_t lo, ASL_int_t width);
 ASL_BITS_TYPE ASL_sub_bits(N, int width, ASL_BITS_TYPE x, ASL_BITS_TYPE y);
 ASL_BITS_TYPE ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, ASL_int_t n);
+ASL_BITS_TYPE ASL_sign_extend_bits(N, N, int width, ASL_BITS_TYPE x, ASL_int_t n);
+
+#define M 64
+#include "asl/set_slice_template.h"
+#undef M
+#define M 128
+#include "asl/set_slice_template.h"
+#undef M
+#define M 256
+#include "asl/set_slice_template.h"
+#undef M
+#define M 512
+#include "asl/set_slice_template.h"
+#undef M
+#define M 1024
+#include "asl/set_slice_template.h"
+#undef M
 
 #undef ASL_BITS_TYPE

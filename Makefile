@@ -58,12 +58,12 @@ runtime_test:
 lit_test: build
 	env PATH="`pwd`/tests/scripts:${PATH}" ${LIT} tests/lit -v
 
-BACKENDS = interpreter c23 fallback
+BACKENDS = interpreter c23 ac fallback
 
 test_backends: ${addprefix test_backend_, ${BACKENDS}}
 
 test_backend_%: build
-	env PATH="${CURDIR}/tests/scripts:$${PATH}" ASL_BACKEND=$* ${LIT} tests/backends -v
+	env PATH="${CURDIR}/tests/scripts:$${PATH}" AC_TYPES_DIR="`pwd`/ac_types-4.0" ASL_BACKEND=$* ${LIT} tests/backends -v
 
 ################################################################
 # End

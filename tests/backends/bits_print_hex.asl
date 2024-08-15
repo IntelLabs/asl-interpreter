@@ -11,6 +11,10 @@ begin
     // CHECK: 8'x0
     print_bits_hex(''); println();
     // CHECK: 0'x0
+    print_bits_hex(16384[0 +: 70]); println();
+    // CHECK: 70'x4000
+    print_bits_hex((-16384)[0 +: 70]); println();
+    // CHECK: 70'x3fffffffffffffc000
+
     return 0;
 end
-

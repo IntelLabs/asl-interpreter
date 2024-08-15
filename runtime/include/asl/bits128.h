@@ -54,6 +54,7 @@ ASL_bits128_t ASL_lsl_bits_128(int width, ASL_bits128_t x, ASL_int_t d);
 ASL_bits128_t ASL_lsr_bits_128(int width, ASL_bits128_t x, ASL_int_t d);
 ASL_bits64_t ASL_slice_lowd_128_64(ASL_bits128_t x, ASL_int_t lo, ASL_int_t width);
 ASL_bits128_t ASL_zero_extend_bits_64_128(int width, ASL_bits64_t x, ASL_int_t n);
+ASL_bits128_t ASL_sign_extend_bits_64_128(int width, ASL_bits64_t x, ASL_int_t n);
 ASL_bits128_t ASL_zeros_bits_128(ASL_int_t width);
 
 #ifdef __cplusplus

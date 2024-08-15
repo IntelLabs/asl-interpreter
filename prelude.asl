@@ -127,6 +127,7 @@ __operator2 / = divide_real;
 __builtin func replicate_bits{M}(x : bits(M), N : integer) => bits(M*N);
 __builtin func append_bits{M, N}(x : bits(M), y : bits(N)) => bits(M+N);
 __builtin func zero_extend_bits{M}(x : bits(M), N : integer) => bits(N);
+__builtin func sign_extend_bits{M}(x : bits(M), N : integer) => bits(N);
 
 __builtin func cvt_int_hexstr(x : integer) => string;
 __builtin func cvt_int_decstr(x : integer) => string;
@@ -485,8 +486,7 @@ end
 func SignExtend{M}(x : bits(M), N : integer) => bits(N)
 begin
     assert N >= M;
-    let sign = x[M-1];
-    return [Replicate(sign, N-M), x];
+    return sign_extend_bits(x, N);
 end
 
 // Extend a bitvector to a specified width, treating as signed or unsigned.

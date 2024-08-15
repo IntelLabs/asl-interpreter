@@ -1,12 +1,12 @@
 (****************************************************************
- * Bit-precise runtime library support
- * This uses the C23 "Bit-precise integer" feature "_BitInt"
+ * Algorithmic C runtime library support
+ * This uses the C++ "Algorithmic C" library "ac_int.h"
  *
  * Copyright (C) 2022-2024 Intel Corporation
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-(** ASL to C runtime library support (fallback) *)
+(** ASL to C runtime library support (C++) *)
 
 module PP = Format
 module V = Value
@@ -20,68 +20,76 @@ module Runtime : RT.RuntimeLib = struct
 
   let int_width = 128
 
-  (* signed and unsigned ints
-   *
-   * Note that _BitInt(0) is not supported so we have to use _BitInt(1) instead
-   * and some of the operations that produce a bits(0) value have to make sure
-   * that the value is always 0 (to make other operations that consume a bits(0)
-   * value simpler).
-   *
-   * In addition, when calling external functions, all backends
-   * need to pass values using the same representation so,
-   * for simplicity, we use 'uint<n>_t' for bits(8|16|32|64)
-   * and 'unsigned|signed __int128' for bits128 and integer
-   *)
+  (* signed and unsigned ints *)
   let ty_sint (fmt : PP.formatter) (width : int) : unit =
-    if width = 128 then
-      PP.fprintf fmt "__int128"
-    else if List.mem width [8; 16; 32; 64] then
-      PP.fprintf fmt "int%d_t" width
-    else
-      PP.fprintf fmt "signed _BitInt(%d)" (max 1 width)
+    PP.fprintf fmt "ac_int<%d,true>" width
 
   let ty_uint (fmt : PP.formatter) (width : int) : unit =
-    if width = 128 then
-      PP.fprintf fmt "unsigned __int128"
-    else if List.mem width [8; 16; 32; 64] then
-      PP.fprintf fmt "uint%d_t" width
-    else
-      PP.fprintf fmt "unsigned _BitInt(%d)" (max 1 width)
+    PP.fprintf fmt "ac_int<%d,false>" width
 
   (* file header needed by this runtime variant *)
   let file_header : string list = [
-      "#include <assert.h>";
-      "#include <stdbool.h>";
-      "#include <stdint.h>";
-      "#ifndef ASL_C23";
-      "#define ASL_C23";
+      "#include <cstdint>";
+      "#include \"ac_int.h\"";
+      "#ifndef ASL_AC";
+      "#define ASL_AC";
       "#endif";
-      "#include \"asl/runtime.h\"";
+      "#include \"asl/runtime.hpp\"";
   ]
 
   let ty_int (fmt : PP.formatter) : unit = ty_sint fmt int_width
   let ty_bits (fmt : PP.formatter) (width : int) : unit = ty_uint fmt width
   let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
+  (** split a bigint into a number of chunks in little-endian order *)
+  let split_int (x : Z.t) (num_chunks : int) (chunk_size : int) : Z.t list =
+    List.init
+      num_chunks
+      (fun i -> Z.extract x (i * chunk_size) chunk_size)
+
+  let constant_u32 (fmt : PP.formatter) (x : Z.t) : unit =
+    PP.fprintf fmt "static_cast<int>(%s)" (Z.format "%#x" x)
+
+  let pos_int_literal (fmt : PP.formatter) (x : Z.t) : unit =
+    let num_limbs = (int_width + 63) / 64 in
+    let limbs = split_int x num_limbs 64 in
+    PP.fprintf fmt "ac::bit_fill<%a>((int [%d]){"
+      ty_sint int_width
+      num_limbs;
+    PP.pp_print_list
+      ~pp_sep:(fun fmt _ -> PP.pp_print_string fmt ", ")
+      constant_u32
+      fmt
+      limbs;
+    PP.fprintf fmt "}, false)"
+
   let int_literal (fmt : PP.formatter) (x : Z.t) : unit =
     if Z.geq x Z.zero then
-      PP.fprintf fmt "((%a)0x%swb)"
-        ty_sint int_width
-        (Z.format "%x" x)
-    else (* negative values *)
-      PP.fprintf fmt "(-(%a)0x%swb)"
-        ty_sint int_width
-        (Z.format "%x" (Z.neg x))
-
-  let empty_bits (fmt : PP.formatter) : unit = PP.pp_print_string fmt "0uwb"
+      pos_int_literal fmt x
+    else
+      PP.fprintf fmt "(-%a)"
+        pos_int_literal (Z.neg x)
 
   let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
-    if x.n = 0 then
-      empty_bits fmt
-    else
-      PP.fprintf fmt "((%a)0x%suwb)"
-        ty_bits x.n
-        (Z.format "%x" x.v)
+    if x.n <= 64 then begin
+      Format.fprintf fmt "ac_int<%d,false>(%a)"
+        x.n
+        constant_u32 x.v
+    end else begin
+      let num_limbs = (x.n + 63) / 64 in
+      let limbs = split_int x.v num_limbs 64 in
+      PP.fprintf fmt "ac::bit_fill<%a>((int [%d]){"
+        ty_uint x.n
+        num_limbs;
+      PP.pp_print_list
+        ~pp_sep:(fun fmt _ -> PP.pp_print_string fmt ", ")
+        constant_u32
+        fmt
+        limbs;
+      PP.fprintf fmt "}, false)"
+    end
+
+  let empty_bits (fmt : PP.formatter) (_ : unit) : unit = PP.pp_print_string fmt "ac_int<0,false>(0)"
 
   let unop (fmt : PP.formatter) (op : string) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "(%s %a)"
@@ -144,15 +152,11 @@ module Runtime : RT.RuntimeLib = struct
 
   let print_int_hex (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     (* Print small numbers in decimal, large numbers in hex *)
-    PP.fprintf fmt "@[{ %a __tmp = %a;@,"
+    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@,"
       ty_sint 128
       RT.pp_expr x;
-    PP.fprintf fmt "  %a __top = (%a)(__tmp >> 64);@,"
-      ty_sint 64
-      ty_sint 64;
-    PP.fprintf fmt "  %a __bottom = (%a)__tmp;@,"
-      ty_sint 64
-      ty_sint 64;
+    PP.fprintf fmt "  int64_t __top = (__tmp.slc<64>(64)).to_int64();@,";
+    PP.fprintf fmt "  int64_t __bottom = (__tmp.slc<64>(0)).to_int64();@,";
     PP.fprintf fmt "  if (__top == 0 && __bottom >= 0) {@,";
     PP.fprintf fmt "    printf(\"%%#lx\", __bottom);@,";
     PP.fprintf fmt "  } else if (__top == -1 && __bottom < 0 && __bottom != INT64_MIN) {@,";
@@ -164,15 +168,11 @@ module Runtime : RT.RuntimeLib = struct
 
   let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     (* Print small numbers in decimal, large numbers in hex *)
-    PP.fprintf fmt "@[{ %a __tmp = %a;@,"
+    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@,"
       ty_sint 128
       RT.pp_expr x;
-    PP.fprintf fmt "  %a __top = (%a)(__tmp >> 64);@,"
-      ty_sint 64
-      ty_sint 64;
-    PP.fprintf fmt "  %a __bottom = (%a)__tmp;@,"
-      ty_sint 64
-      ty_sint 64;
+    PP.fprintf fmt "  int64_t __top = (__tmp.slc<64>(64)).to_int64();@,";
+    PP.fprintf fmt "  int64_t __bottom = (__tmp.slc<64>(0)).to_int64();@,";
     PP.fprintf fmt "  if ((__top == 0 && __bottom >= 0) || (__top == -1 && __bottom < 0)) {@,";
     PP.fprintf fmt "    printf(\"%%ld\", __bottom);@,";
     PP.fprintf fmt "  } else {@,";
@@ -201,43 +201,28 @@ module Runtime : RT.RuntimeLib = struct
       RT.pp_expr y
       int_literal Z.one
 
-  let zeros_bits (fmt : PP.formatter) (n : int) : unit =
-    bits_literal fmt (Primops.mkBits n Z.zero)
-
-  let ones_bits (fmt : PP.formatter) (n : int) : unit =
-    let x = Z.sub (Z.shift_left Z.one n) Z.one in
-    bits_literal fmt (Primops.mkBits n x)
-
-  let mk_mask (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then
-      (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; 0uwb; })" RT.pp_expr x
+  let get_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) : unit =
+    if w = 1 then
+      PP.fprintf fmt "(%a[%a])"
+        RT.pp_expr l
+        RT.pp_expr i
     else
-      PP.fprintf fmt "(%a >> (%d - %a))"
-        ones_bits n
-        n
-        RT.pp_expr x
-
-  let get_slice (fmt : PP.formatter) (n : int) (w : int) (x : RT.rt_expr) (i : RT.rt_expr) : unit =
-    PP.fprintf fmt "((%a)(%a >> %a))"
-      ty_bits w
-      RT.pp_expr x
-      RT.pp_expr i
+      PP.fprintf fmt "(%a.slc<%d>(%a))"
+        RT.pp_expr l
+        w
+        RT.pp_expr i
 
   let set_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) (r : RT.rt_expr) : unit =
-    PP.fprintf fmt "{ %a __index = %a; "
-      ty_uint int_width
-      RT.pp_expr i;
-    PP.fprintf fmt "%a __mask = %a >> %d; "
-      ty_bits n
-      ones_bits n
-      (n - w);
-    PP.fprintf fmt "%a = (%a & ~(__mask << __index)) | (((%a)%a) << __index);"
-      RT.pp_expr l
-      RT.pp_expr l
-      ty_bits n
-      RT.pp_expr r;
-    PP.fprintf fmt " }"
+    if w = 1 then
+      PP.fprintf fmt "%a[%a] = %a;"
+        RT.pp_expr l
+        RT.pp_expr i
+        RT.pp_expr r
+    else
+      PP.fprintf fmt "%a.set_slc(%a, %a);"
+        RT.pp_expr l
+        RT.pp_expr i
+        RT.pp_expr r
 
   let eq_bits  (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "==" x y
   let ne_bits  (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "!=" x y
@@ -251,7 +236,9 @@ module Runtime : RT.RuntimeLib = struct
   let not_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     if n = 0 then
       (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; 0uwb; })" RT.pp_expr x
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        empty_bits ()
     else
       unop fmt "~" x
 
@@ -299,11 +286,32 @@ module Runtime : RT.RuntimeLib = struct
   let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     if n = 0 then
       (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; 0uwb; })" RT.pp_expr x
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        empty_bits ()
     else
       PP.fprintf fmt "((%a)((%a)%a))"
         ty_uint n
         ty_uint int_width
+        RT.pp_expr x
+
+  let zeros_bits (fmt : PP.formatter) (n : int) : unit =
+    bits_literal fmt (Primops.mkBits n Z.zero)
+
+  let ones_bits (fmt : PP.formatter) (n : int) : unit =
+    let x = Z.sub (Z.shift_left Z.one n) Z.one in
+    bits_literal fmt (Primops.mkBits n x)
+
+  let mk_mask (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
+    if n = 0 then
+      (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        empty_bits ()
+    else
+      PP.fprintf fmt "(%a >> (%d - %a))"
+        ones_bits n
+        n
         RT.pp_expr x
 
   let zero_extend_bits (fmt : PP.formatter) (m : int) (n : int)  (x : RT.rt_expr) : unit =
@@ -325,24 +333,24 @@ module Runtime : RT.RuntimeLib = struct
       PP.fprintf fmt "printf(\"0'x0\")"
     end else begin
       let chunks = (n+63) / 64 in
-      PP.fprintf fmt "{ @[%a __tmp = %a;@,"
+      PP.fprintf fmt "{ @[<v>%a __tmp = %a;@,"
         ty_bits n
         RT.pp_expr x;
 
       PP.fprintf fmt "printf(\"%d'x\");@," n;
       PP.fprintf fmt "bool leading = true;@,";
       PP.fprintf fmt "for (int i = %d; i >= 0; --i) {@," (chunks-1);
-      PP.fprintf fmt "  long long chunk = __tmp >> (64 * i);@,";
+      PP.fprintf fmt "  uint64_t chunk = (__tmp >> (64 * i)).to_uint64();@,";
       PP.fprintf fmt "  if (leading) {@,";
       PP.fprintf fmt "    if (i == 0 || chunk) {@,";
-      PP.fprintf fmt "      printf(\"%%llx\", chunk);@,";
+      PP.fprintf fmt "      printf(\"%%lx\", chunk);@,";
       PP.fprintf fmt "      leading = false;@,";
       PP.fprintf fmt "    }@,";
       PP.fprintf fmt "  } else {@,";
-      PP.fprintf fmt "    printf(\"%%08llx\", chunk);@,";
+      PP.fprintf fmt "    printf(\"%%08lx\", chunk);@,";
       PP.fprintf fmt "  }@,";
       PP.fprintf fmt "}@,";
-      PP.fprintf fmt "@]}"
+      PP.fprintf fmt "}@]"
     end
 
   let in_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (m : Primops.mask) : unit =
@@ -384,7 +392,7 @@ module Runtime : RT.RuntimeLib = struct
    *)
   let replicate_bits (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     if n = 0 then begin
-      empty_bits fmt
+      empty_bits fmt ()
     end else begin
       let result_width = m * n in
       let n = Z.of_int n in
@@ -442,17 +450,17 @@ module Runtime : RT.RuntimeLib = struct
       RT.pp_expr v
 
   let print_char (fmt : PP.formatter) (x : RT.rt_expr) : unit =
-    PP.fprintf fmt "putchar(%a)" RT.pp_expr x
+    PP.fprintf fmt "putchar(%a.to_int())" RT.pp_expr x
 
   let print_str (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "fputs(%a, stdout)" RT.pp_expr x
 
   (* Foreign Function Interface (FFI) *)
   let to_c_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
-    PP.fprintf fmt "%a" RT.pp_expr x
+    PP.fprintf fmt "%a.to_int()" RT.pp_expr x
 
   let to_c_index (fmt : PP.formatter) (x : RT.rt_expr) : unit =
-    RT.pp_expr fmt x
+    PP.fprintf fmt "%a.to_uint64()" RT.pp_expr x
 end
 
 (****************************************************************

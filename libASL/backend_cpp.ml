@@ -860,6 +860,8 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ n ] args
   | [ x; n ]  when Ident.equal f Builtin_idents.zero_extend_bits ->
       zero_extend_bits loc fmt (const_int_expr loc n) x
+  | [ x; n ]  when Ident.equal f Builtin_idents.sign_extend_bits ->
+      sign_extend_bits loc fmt (const_int_expr loc n) x
   (* String builtin functions *)
   | [x; y] when Ident.equal f append_str_str -> expr loc fmt x (* not perfect but better than nothing *)
   | _ when Ident.in_list f [
@@ -900,23 +902,6 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       apply loc fmt (fun _ -> PP.pp_print_string fmt (Ident.name f)) args
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
-and slice (loc : Loc.t) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
-    (s : AST.slice) : unit =
-  match s with
-  | Slice_LoWd (lo, wd) ->
-      expr loc fmt e;
-      keyword fmt ".slc<";
-      expr loc fmt wd;
-      keyword fmt ">(";
-      expr loc fmt lo;
-      keyword fmt ")";
-  | Slice_Single _ ->
-      raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_HiLo _ ->
-      raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_Element _ ->
-      raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-
 and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_Concat _ ->
@@ -950,7 +935,15 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
           fas;
         PP.fprintf fmt " }"
       end
-  | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
+  | Expr_Slices (Type_Bits (n,_), e, [Slice_LoWd (lo, wd)]) ->
+      expr loc fmt e;
+      keyword fmt ".slc<";
+      expr loc fmt wd;
+      keyword fmt ">(";
+      expr loc fmt lo;
+      keyword fmt ")";
+  | Expr_Slices (Type_Integer _, e, [Slice_LoWd (lo, wd)]) when lo = Asl_utils.zero ->
+      sign_extend_bits loc fmt (const_int_expr loc wd) e;
   | Expr_TApply (f, tes, es, throws) ->
       if throws <> NoThrow then
         rethrow_expr fmt (fun _ -> funcall loc fmt f tes es loc)

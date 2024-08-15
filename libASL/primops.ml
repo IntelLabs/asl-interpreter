@@ -234,6 +234,16 @@ let prim_zero_extend_bits (x : bitvector) (y : bigint) : bitvector =
   assert (y' >= x.n);
   mkBits y' x.v
 
+let prim_sign_extend_bits (x : bitvector) (y : bigint) : bitvector =
+  let y' = Z.to_int y in
+  assert (y' >= x.n);
+  let v = z_extract x.v 0 y' in
+  if Z.testbit x.v (x.n - 1) then
+    let ext = Z.sub (Z.shift_left Z.one y') (Z.shift_left Z.one x.n) in
+    mkBits y' (Z.logor v ext)
+  else
+    mkBits y' v
+
 let prim_extract (x : bitvector) (i : bigint) (w : bigint) : bitvector =
   let i' = Z.to_int i in
   let w' = Z.to_int w in

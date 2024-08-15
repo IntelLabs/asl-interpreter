@@ -9,13 +9,12 @@ end
 func main() => integer
 begin
     print(Test(1, 2)); println();
+    // CHECK: FALSE
     print(Test(1, 1)); println();
+    // CHECK: TRUE
     print(Test(1, 0)); println();
+    // CHECK: TRUE
     print(Test(-1, 0)); println();
+    // CHECK: FALSE
     return 0;
 end
-
-// CHECK: FALSE
-// CHECK: TRUE
-// CHECK: TRUE
-// CHECK: FALSE

@@ -12,6 +12,12 @@
 
 #include "asl/integer.h"
 
+#define M 64
+#define N 64
+#include "set_slice_template_c.h"
+#undef N
+#undef M
+
 ASL_bits64_t
 ASL_add_bits_64(int width, ASL_bits64_t x, ASL_bits64_t y)
 {
@@ -96,7 +102,11 @@ ASL_lsr_bits_64(int width, ASL_bits64_t x, ASL_int_t d)
 ASL_bits64_t
 ASL_mk_mask_64(ASL_int_t w)
 {
-        return UINT64_MAX >> (64 - w);
+        if (w == 0) {
+                return 0;
+        } else {
+                return UINT64_MAX >> (64 - w);
+        }
 }
 
 ASL_bits64_t
@@ -148,6 +158,17 @@ ASL_bits64_t
 ASL_zero_extend_bits_64_64(int width, ASL_bits64_t x, ASL_int_t n)
 {
         return x;
+}
+
+ASL_bits64_t
+ASL_sign_extend_bits_64_64(int width, ASL_bits64_t x, ASL_int_t n)
+{
+        if (x & (1 << (width - 1))) {
+            ASL_bits64_t ext = ASL_mk_mask_64(n) & ~ASL_mk_mask_64(width);
+            return x | ext;
+        } else {
+            return x;
+        }
 }
 
 ASL_bits64_t

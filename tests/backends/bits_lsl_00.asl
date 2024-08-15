@@ -8,10 +8,9 @@ end
 
 func main() => integer
 begin
-    print(Test('1010 0101', 3)); println();
-    print(Test('0101 1010', 2)); println();
+    print_bits_hex(Test('1010 0101', 3)); println();
+    // CHECK: 8'x28
+    print_bits_hex(Test('0101 1010', 2)); println();
+    // CHECK: 8'x68
     return 0;
 end
-
-// CHECK: 8'x28
-// CHECK: 8'x68

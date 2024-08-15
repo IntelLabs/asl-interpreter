@@ -9,15 +9,14 @@ end
 func main() => integer
 begin
     print_int_dec(Test(6, 3)); println();
+    // CHECK: 0
     print_int_dec(Test(-6, 3)); println();
+    // CHECK: 0
     print_int_dec(Test(5, 3)); println();
+    // CHECK: 2
     print_int_dec(Test(-5, 3)); println();
+    // CHECK: 1
     print_int_dec(Test(6, -3)); println();
+    // CHECK: 0
     return 0;
 end
-
-// CHECK: 0
-// CHECK: 0
-// CHECK: 2
-// CHECK: 1
-// CHECK: 0

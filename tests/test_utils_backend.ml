@@ -34,6 +34,7 @@ let check_compiler
   : unit =
   let (tmp, chan) = Filename.open_temp_file "test" suffix in
   Out_channel.output_string chan header;
+  Out_channel.output_string chan "\n";
   Out_channel.output_string chan body;
   Out_channel.close chan;
   let args' = args @ [ tmp ] in
@@ -41,6 +42,7 @@ let check_compiler
   if true then begin
     (* output test to log - for ease of debugging *)
     output_string stdout header;
+    output_string stdout "\n";
     output_string stdout body;
 
     Printf.printf "Wrote to %s\n" tmp;

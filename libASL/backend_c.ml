@@ -452,14 +452,6 @@ let c_int_width_64up (width : int) : int =
 let bits (fmt : PP.formatter) (width : int) : unit =
   asl_keyword fmt ("bits" ^ string_of_int (c_int_width_64up width) ^ "_t")
 
-let width_of_type (loc : Loc.t) (ty : AST.ty) : AST.expr option =
-  match ty with
-  | Type_Constructor _ ->
-      raise (InternalError (loc, "bitslicing a named type not expected", (fun fmt -> FMTAST.ty fmt ty), __LOC__))
-  | Type_Integer _ ->
-      raise (InternalError (loc, "bitslicing an integer not expected", (fun fmt -> FMTAST.ty fmt ty), __LOC__))
-  | _ -> Asl_utils.width_of_type ty
-
 let rethrow_stmt (fmt : PP.formatter) : unit =
   PP.fprintf fmt "if (ASL_exception._exc.ASL_tag != ASL_no_exception) goto %a;"
     varname (current_catch_label ())
@@ -758,6 +750,16 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
                  ( loc, "wrong number of type parameters", (fun fmt -> FMTAST.funname fmt f), __LOC__ ))
       in
       apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ m; n ] (m :: args)
+  | _ when Ident.equal f sign_extend_bits ->
+      let m, n =
+        match tes with
+        | [ m; n ] -> (m, n)
+        | _ ->
+            raise
+              (InternalError
+                 ( loc, "wrong number of type parameters", (fun fmt -> FMTAST.funname fmt f), __LOC__ ))
+      in
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt f) [ m; n ] (m :: args)
   (* String builtin functions *)
   | [x; y] when Ident.equal f append_str_str -> expr loc fmt x (* not perfect but better than nothing *)
   | _ when Ident.in_list f [
@@ -796,19 +798,6 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       apply loc fmt (fun _ -> PP.pp_print_string fmt (Ident.name f)) args
   | _ -> apply loc fmt (fun _ -> funname fmt f) args
 
-and slice (loc : Loc.t) (fmt : PP.formatter) (t : AST.ty) (e : AST.expr)
-    (s : AST.slice) : unit =
-  let ew = Option.get (width_of_type loc t) in
-  match s with
-  | Slice_LoWd (lo, wd) ->
-      apply_bits_builtin loc fmt (fun _ -> fn_slice_lowd fmt) [ ew; wd ] [ e; lo; wd ]
-  | Slice_Single _ ->
-      raise (InternalError (loc, "Slice_Single not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_HiLo _ ->
-      raise (InternalError (loc, "Slice_HiLo not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-  | Slice_Element _ ->
-      raise (InternalError (loc, "Slice_Element not expected", (fun fmt -> FMTAST.expr fmt e), __LOC__))
-
 and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   match x with
   | Expr_Concat _ ->
@@ -842,7 +831,10 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
           fas;
         PP.fprintf fmt " }"
       end
-  | Expr_Slices (t, e, [ s ]) -> slice loc fmt t e s
+  | Expr_Slices (Type_Bits (n,_), e, [Slice_LoWd (lo, wd)]) ->
+      apply_bits_builtin loc fmt (fun _ -> fn_slice_lowd fmt) [ n; wd ] [ e; lo; wd ]
+  | Expr_Slices (Type_Integer _, e, [Slice_LoWd (lo, wd)]) when lo = Asl_utils.zero ->
+      apply_bits_builtin loc fmt (fun _ -> fn_extern fmt cvt_int_bits) [ wd ] [ wd; e ]
   | Expr_TApply (f, tes, es, throws) ->
       if throws <> NoThrow then
         rethrow_expr fmt (fun _ -> funcall loc fmt f tes es loc)

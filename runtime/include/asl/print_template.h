@@ -12,8 +12,17 @@ static inline void
 ASL_print_bits_hex(N, int width, ASL_BITS_TYPE x)
 {
         printf("%d'x", width);
-        for (int i = ASL_BITS_LIMBS_64 - 1; i >= 0; --i)
-                printf("%0llx", (long long)x.u64[i]);
+        bool leading = true; // suppress leading zeros
+        for (int i = ASL_BITS_LIMBS_64 - 1; i >= 0; --i) {
+                if (leading) {
+                        if (i == 0 || x.u64[i]) {
+                                printf("%llx", (long long)x.u64[i]);
+                                leading = false;
+                        }
+                } else {
+                    printf("%08llx", (long long)x.u64[i]);
+                }
+        }
 }
 
 #undef ASL_BITS_LIMBS_64

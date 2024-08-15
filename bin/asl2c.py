@@ -280,11 +280,17 @@ def mk_script(args, output_directory):
     ffi = "--new-ffi" if args.build else ""
 
     backend_generator = {
-        'ac':          f'generate_cpp   {ffi} --runtime=ac',
+        'ac':          f'generate_c_new {ffi} --runtime=ac',
         'c23':         f'generate_c_new {ffi} --runtime=c23',
         'fallback':    f'generate_c_new {ffi} --runtime=fallback',
         'orig':        'generate_c',
     }
+
+    if args.O0:
+        filter = ":filter_reachable_from exports"
+        generate = f":{backend_generator[args.backend]} --output-dir={output_directory} --basename={args.basename} --num-c-files=1"
+        script = [filter, generate]
+        return "\n".join(script)
 
     substitutions = {
         'command':     " ".join(sys.argv),
@@ -337,7 +343,7 @@ def mk_script(args, output_directory):
 def mk_filenames(backend, working_directory, basename):
     project_file = f"{working_directory}/asl2c.prj"
     exports_file = f"{working_directory}/exports.json"
-    suffix = "cpp" if backend == "ac" else "c"
+    suffix = "cpp" if backend in ["ac"] else "c"
     c_files = [
         f"{working_directory}/{basename}_exceptions.{suffix}",
         f"{working_directory}/{basename}_vars.{suffix}",
@@ -382,6 +388,11 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
         else:
             cc = [ "gcc" ]
     if use_cxx:
+        # ac_types_dir = os.environ.get("AC_TYPES_DIR")
+        # if not ac_types_dir:
+        #     print("Error: environment variable AC_TYPES_DIR must be set when using C++ backends")
+        #     exit(1)
+        # cc.append(f'-I{ac_types_dir}/include')
         cc.append('-lstdc++')
     else:
         cc.append('-std=c2x')
@@ -423,6 +434,7 @@ def main() -> int:
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
+    parser.add_argument("-O0", help="Perform minimal set of transformations", action=argparse.BooleanOptionalAction)
     parser.add_argument("--backend", help="select backend", choices=['ac', 'c23', 'interpreter', 'fallback', 'orig'], default='orig')
     parser.add_argument("--print-c-flags", help="Print the C flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--print-ld-flags", help="Print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)

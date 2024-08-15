@@ -39,11 +39,15 @@ module Runtime : RT.RuntimeLib = struct
     (* +1 for sign bit, not taken into account by Z.numbits *)
     Z.numbits x' + 1
 
-  (* #defines that are needed by this runtime variant *)
-  let c_defines : string list = [
+  (* file header needed by this runtime variant *)
+  let file_header : string list = [
+      "#include <assert.h>";
+      "#include <stdbool.h>";
+      "#include <stdint.h>";
       "#ifndef ASL_FALLBACK";
       "#define ASL_FALLBACK";
-      "#endif"
+      "#endif";
+      "#include \"asl/runtime.h\"";
   ]
 
   (* C types defined elsewhere *)
@@ -124,7 +128,7 @@ module Runtime : RT.RuntimeLib = struct
       in
       asl_keyword fmt "bits";
       parens fmt (fun _ ->
-          commasep PP.pp_print_string fmt (string_of_int num_bits :: limbs))
+          commasep PP.pp_print_string fmt (string_of_int num_bits :: List.rev limbs))
     end
 
   let unop (fmt : PP.formatter) (op : string) (x : RT.rt_expr) : unit =
@@ -180,8 +184,8 @@ module Runtime : RT.RuntimeLib = struct
   let neg_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = unop fmt "-" x
   let zdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "/" x y
   let zrem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "%" x y
-  let shr_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<<" x y
-  let shl_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">>" x y
+  let shr_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">>" x y
+  let shl_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<<" x y
 
   let eq_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "==" x y
   let ne_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "!=" x y
@@ -201,25 +205,35 @@ module Runtime : RT.RuntimeLib = struct
     PP.fprintf fmt "(((ASL_bits64_t)1) << %a)"
       RT.pp_expr x
 
-  (* todo: remove redundancy with mod_pow2_int *)
   let align_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     PP.fprintf fmt "(%a & ~%a)"
       RT.pp_expr x
       mask_int y
 
   let mod_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
-    PP.fprintf fmt "(%a & ~%a)"
+    PP.fprintf fmt "(%a & %a)"
       RT.pp_expr x
       mask_int y
 
-  let slice_lowd (fmt : PP.formatter) (n : int) (w : int) (x : RT.rt_expr) (i : RT.rt_expr) : unit =
+  let get_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) : unit =
     PP.fprintf fmt "%a(%d, %d, %a, %a, %d)"
       asl_keyword "slice_lowd"
       (c_int_width_64up n)
       (c_int_width_64up w)
-      RT.pp_expr x
+      RT.pp_expr l
       RT.pp_expr i
       w
+
+  let set_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) (r : RT.rt_expr) : unit =
+    PP.fprintf fmt "%a(%d, %d, %d, &%a, %a, %d, %a);"
+      asl_keyword "set_slice"
+      (c_int_width_64up n)
+      (c_int_width_64up w)
+      n
+      RT.pp_expr l
+      RT.pp_expr i
+      w
+      RT.pp_expr r
 
   let eq_bits  (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply_bits_1_2 fmt "eq_bits" n x y
   let ne_bits  (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply_bits_1_2 fmt "ne_bits" n x y
@@ -254,6 +268,15 @@ module Runtime : RT.RuntimeLib = struct
         RT.pp_expr x
         n
 
+  let sign_extend_bits (fmt : PP.formatter) (m : int) (n : int)  (x : RT.rt_expr) : unit =
+      PP.fprintf fmt "%a(%d, %d, %d, %a, %d)"
+        asl_keyword "sign_extend_bits"
+        (c_int_width_64up m)
+        (c_int_width_64up n)
+        m
+        RT.pp_expr x
+        n
+
   let print_bits_hex (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "print_bits_hex" n x
 
   let in_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (m : Primops.mask) : unit =
@@ -280,7 +303,7 @@ module Runtime : RT.RuntimeLib = struct
       PP.fprintf fmt "%a(%d, %d, %a, %d)"
         asl_keyword "replicate_bits"
         (c_int_width_64up result_width)
-        (c_int_width_64up m)
+        m
         RT.pp_expr x'
         n
 
@@ -311,6 +334,14 @@ module Runtime : RT.RuntimeLib = struct
 
   let print_char (fmt : PP.formatter) (x : RT.rt_expr) : unit = apply1 fmt "print_char" x
   let print_str (fmt : PP.formatter) (x : RT.rt_expr) : unit = apply1 fmt "print_str" x
+
+  (* Foreign Function Interface (FFI) *)
+  let to_c_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "%a" RT.pp_expr x
+
+  let to_c_index (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    RT.pp_expr fmt x
+
 end
 
 (****************************************************************

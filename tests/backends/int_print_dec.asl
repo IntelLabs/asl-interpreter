@@ -4,9 +4,8 @@
 func main() => integer
 begin
     print_int_dec(42); println();
+    // CHECK: 42
     print_int_dec(-42); println();
+    // CHECK: -42
     return 0;
 end
-
-// CHECK: 42
-// CHECK: -42

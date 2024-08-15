@@ -3,13 +3,12 @@
 
 func Test(x : bits(4), y : bits(4)) => bits(8)
 begin
-    return [x, y];
+    return append_bits(x, y);
 end
 
 func main() => integer
 begin
-    print(Test('1101', '0010')); println();
+    print_bits_hex(Test('1101', '0010')); println();
+    // CHECK: 8'xd2
     return 0;
 end
-
-// CHECK: 8'xd2
