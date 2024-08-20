@@ -29,11 +29,13 @@
   (-cclib -lstdc++))
  (libraries alcotest libASL)
  (deps
+  ../bin/asli.exe
   ../prelude.asl
   (glob_files ../runtime/include/asl/*)))
 
 (rule
  (deps
+  ../bin/asli.exe
   ../prelude.asl
   test_project1.prj
   test_project2.prj)
