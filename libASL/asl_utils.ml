@@ -881,6 +881,7 @@ let type_bool = Type_Constructor (boolean_ident, [])
 let type_real = Type_Constructor (real_ident, [])
 let type_string = Type_Constructor (string_ident, [])
 let type_bits (n : expr) = Type_Bits (n, [])
+let type_sintN (n : expr) = Type_Constructor (sintN, [n])
 
 let asl_false = AST.Expr_Var false_ident
 let asl_true = AST.Expr_Var true_ident

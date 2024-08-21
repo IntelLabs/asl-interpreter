@@ -56,11 +56,42 @@ module type RuntimeLib = sig
   val fdiv_int : PP.formatter -> rt_expr -> rt_expr -> unit
   val frem_int : PP.formatter -> rt_expr -> rt_expr -> unit
   val is_pow2_int : PP.formatter -> rt_expr -> unit
+  val pow2_int : PP.formatter -> rt_expr -> unit
+  val align_int : PP.formatter -> rt_expr -> rt_expr -> unit
+  val mod_pow2_int : PP.formatter -> rt_expr -> rt_expr -> unit
   val print_int_dec : PP.formatter -> rt_expr -> unit
   val print_int_hex : PP.formatter -> rt_expr -> unit
-  val align_int : PP.formatter -> rt_expr -> rt_expr -> unit
-  val pow2_int : PP.formatter -> rt_expr -> unit
-  val mod_pow2_int : PP.formatter -> rt_expr -> rt_expr -> unit
+
+  (* signed sized integer functions *)
+  val eq_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val ne_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val ge_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val gt_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val le_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val lt_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val add_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val neg_sintN : PP.formatter -> int -> rt_expr -> unit
+  val sub_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val shl_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val shr_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val mul_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val exact_div_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val zdiv_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val zrem_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val fdiv_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val frem_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val is_pow2_sintN : PP.formatter -> int -> rt_expr -> unit
+  val pow2_sintN : PP.formatter -> int -> rt_expr -> unit
+  val align_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val mod_pow2_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
+  val cvt_sintN_bits : PP.formatter -> int -> int -> rt_expr -> unit
+  val cvt_bits_ssintN : PP.formatter -> int -> int -> rt_expr -> unit
+  val cvt_bits_usintN : PP.formatter -> int -> int -> rt_expr -> unit
+  val cvt_sintN_int : PP.formatter -> int -> rt_expr -> unit
+  val cvt_int_sintN : PP.formatter -> int -> rt_expr -> unit
+  val resize_sintN : PP.formatter -> int -> int -> rt_expr -> unit
+  val print_sintN_dec : PP.formatter -> int -> rt_expr -> unit
+  val print_sintN_hex : PP.formatter -> int -> rt_expr -> unit
 
   (* bitvector functions *)
   val get_slice : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit

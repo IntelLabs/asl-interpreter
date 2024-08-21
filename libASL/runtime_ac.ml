@@ -20,6 +20,15 @@ module Runtime : RT.RuntimeLib = struct
 
   let int_width = 128
 
+  let zero_sintN (fmt : PP.formatter) (n : int) : unit =
+    PP.fprintf fmt "ac_int<128,true>(value<AC_VAL_0,%d,true>(0))" n
+
+  let min_sintN (fmt : PP.formatter) (n : int) : unit =
+    PP.fprintf fmt "ac_int<128,true>(value<AC_VAL_MIN,%d,true>(0))" n
+
+  let max_sintN (fmt : PP.formatter) (n : int) : unit =
+    PP.fprintf fmt "ac_int<128,true>(value<AC_VAL_MAX,%d,true>(0))" n
+
   (* signed and unsigned ints *)
   let ty_sint (fmt : PP.formatter) (width : int) : unit =
     PP.fprintf fmt "ac_int<%d,true>" width
@@ -50,11 +59,11 @@ module Runtime : RT.RuntimeLib = struct
   let constant_u32 (fmt : PP.formatter) (x : Z.t) : unit =
     PP.fprintf fmt "static_cast<int>(%s)" (Z.format "%#x" x)
 
-  let pos_int_literal (fmt : PP.formatter) (x : Z.t) : unit =
-    let num_limbs = (int_width + 63) / 64 in
+  let pos_int_literal (n : int) (fmt : PP.formatter) (x : Z.t) : unit =
+    let num_limbs = (n + 63) / 64 in
     let limbs = split_int x num_limbs 64 in
     PP.fprintf fmt "ac::bit_fill<%a>((int [%d]){"
-      ty_sint int_width
+      ty_sint n
       num_limbs;
     PP.pp_print_list
       ~pp_sep:(fun fmt _ -> PP.pp_print_string fmt ", ")
@@ -63,12 +72,14 @@ module Runtime : RT.RuntimeLib = struct
       limbs;
     PP.fprintf fmt "}, false)"
 
-  let int_literal (fmt : PP.formatter) (x : Z.t) : unit =
+  let intN_literal (n : int) (fmt : PP.formatter) (x : Z.t) : unit =
     if Z.geq x Z.zero then
-      pos_int_literal fmt x
+      pos_int_literal n fmt x
     else
       PP.fprintf fmt "(-%a)"
-        pos_int_literal (Z.neg x)
+        (pos_int_literal n) (Z.neg x)
+
+  let int_literal (fmt : PP.formatter) (x : Z.t) : unit = intN_literal int_width fmt x
 
   let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
     if x.n <= 64 then begin
@@ -102,90 +113,64 @@ module Runtime : RT.RuntimeLib = struct
       op
       RT.pp_expr y
 
-  let add_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "+" x y
-  let mul_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "*" x y
-  let sub_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "-" x y
-  let neg_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = unop fmt "-" x
-  let zdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "/" x y
-  let zrem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "%" x y
-  let shr_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">>" x y
-  let shl_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<<" x y
+  (* signed sized integers *)
 
-  let eq_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "==" x y
-  let ne_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "!=" x y
-  let ge_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">=" x y
-  let gt_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">" x y
-  let le_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<=" x y
-  let lt_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<" x y
+  let eq_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "==" x y
+  let ne_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "!=" x y
+  let ge_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">=" x y
+  let gt_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">" x y
+  let le_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<=" x y
+  let lt_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<" x y
+  let add_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "+" x y
+  let neg_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = unop fmt "-" x
+  let sub_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "-" x y
+  let mul_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "*" x y
+  let shr_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt ">>" x y
+  let shl_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "<<" x y
+  let exact_div_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "/" x y
+  let zdiv_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "/" x y
+  let zrem_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "%" x y
 
-  let exact_div_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = binop fmt "/" x y
-
-  let fdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
+  let fdiv_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     PP.fprintf fmt "({ %a __tmp1 = %a; "
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x;
     PP.fprintf fmt "%a __tmp2 = %a; "
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr y;
-    PP.fprintf fmt "%a __tmp3 = __tmp1 / __tmp2; " ty_sint int_width;
-    PP.fprintf fmt "%a __tmp4 = __tmp1 %% __tmp2; " ty_sint int_width;
-    PP.fprintf fmt "if (__tmp4 != 0 && (__tmp1 < 0 || __tmp2 < 0)) { __tmp3 = __tmp3 - 1; } ";
+    PP.fprintf fmt "%a __tmp3 = __tmp1 / __tmp2; " ty_sint n;
+    PP.fprintf fmt "%a __tmp4 = __tmp1 %% __tmp2; " ty_sint n;
+    PP.fprintf fmt "if (__tmp4 != 0 && (__tmp1 < %a || __tmp2 < %a)) { __tmp3 = __tmp3 - 1; } "
+      zero_sintN n
+      zero_sintN n;
     PP.fprintf fmt "__tmp3; })"
 
-  let frem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
+  let frem_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     PP.fprintf fmt "({ %a __tmp1 = %a; "
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x;
     PP.fprintf fmt "%a __tmp2 = %a; "
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr y;
-    PP.fprintf fmt "%a __tmp3 = __tmp1 / __tmp2; " ty_sint int_width;
-    PP.fprintf fmt "%a __tmp4 = __tmp1 %% __tmp2; " ty_sint int_width;
-    PP.fprintf fmt "if (__tmp4 != 0 && (__tmp1 < 0 || __tmp2 < 0)) { __tmp4 = __tmp4 + __tmp2; } ";
+    PP.fprintf fmt "%a __tmp3 = __tmp1 / __tmp2; " ty_sint n;
+    PP.fprintf fmt "%a __tmp4 = __tmp1 %% __tmp2; " ty_sint n;
+    PP.fprintf fmt "if (__tmp4 != 0 && (__tmp1 < %a || __tmp2 < %a)) { __tmp4 = __tmp4 + __tmp2; } "
+      zero_sintN n
+      zero_sintN n;
     PP.fprintf fmt "__tmp4; })"
 
-  let is_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+  let is_pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "({ %a __tmp = %a; "
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x;
     PP.fprintf fmt "__tmp != 0 && (__tmp & (__tmp - 1)) == 0; })"
 
-  let print_int_hex (fmt : PP.formatter) (x : RT.rt_expr) : unit =
-    (* Print small numbers in decimal, large numbers in hex *)
-    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@,"
-      ty_sint 128
-      RT.pp_expr x;
-    PP.fprintf fmt "  int64_t __top = (__tmp.slc<64>(64)).to_int64();@,";
-    PP.fprintf fmt "  int64_t __bottom = (__tmp.slc<64>(0)).to_int64();@,";
-    PP.fprintf fmt "  if (__top == 0 && __bottom >= 0) {@,";
-    PP.fprintf fmt "    printf(\"%%#lx\", __bottom);@,";
-    PP.fprintf fmt "  } else if (__top == -1 && __bottom < 0 && __bottom != INT64_MIN) {@,";
-    PP.fprintf fmt "    printf(\"-%%#lx\", -__bottom);@,";
-    PP.fprintf fmt "  } else {@,";
-    PP.fprintf fmt "    printf(\"0x%%08lx_%%08lx\", __top, __bottom);@,";
-    PP.fprintf fmt "  }@,";
-    PP.fprintf fmt "}@]"
-
-  let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit =
-    (* Print small numbers in decimal, large numbers in hex *)
-    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@,"
-      ty_sint 128
-      RT.pp_expr x;
-    PP.fprintf fmt "  int64_t __top = (__tmp.slc<64>(64)).to_int64();@,";
-    PP.fprintf fmt "  int64_t __bottom = (__tmp.slc<64>(0)).to_int64();@,";
-    PP.fprintf fmt "  if ((__top == 0 && __bottom >= 0) || (__top == -1 && __bottom < 0)) {@,";
-    PP.fprintf fmt "    printf(\"%%ld\", __bottom);@,";
-    PP.fprintf fmt "  } else {@,";
-    PP.fprintf fmt "    printf(\"0x%%08lx_%%08lx\", __top, __bottom);@,";
-    PP.fprintf fmt "  }@,";
-    PP.fprintf fmt "}@]"
-
-  let pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+  let pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "(%a << %a)"
       int_literal Z.one
       RT.pp_expr x
 
-  let align_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
+  let align_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     (* x & (~((1 << y) - 1)) *)
     PP.fprintf fmt "(%a & (~((%a << %a) - %a)))"
       RT.pp_expr x
@@ -193,13 +178,163 @@ module Runtime : RT.RuntimeLib = struct
       RT.pp_expr y
       int_literal Z.one
 
-  let mod_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
+  let mod_pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit =
     (* x & ((1 << y) - 1) *)
     PP.fprintf fmt "(%a & ((%a << %a) - %a))"
       RT.pp_expr x
       int_literal Z.one
       RT.pp_expr y
       int_literal Z.one
+
+  let cvt_bits_ssintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
+    if n = 0 then begin
+      (* Although we return zero, we may still need to execute 'x' for any side effects *)
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        int_literal Z.zero
+    end else if n = 1 then begin
+      (* signed _BitInt must be at least 2 *)
+      PP.fprintf fmt "(%a ? %a : %a)"
+        RT.pp_expr x
+        int_literal Z.minus_one
+        int_literal Z.zero
+    end else begin
+      PP.fprintf fmt "((%a)((%a)%a))"
+        ty_sint n
+        ty_sint m
+        RT.pp_expr x
+    end
+
+  let cvt_bits_usintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
+    if n = 0 then begin
+      (* Although we return zero, we may still need to execute 'x' for any side effects *)
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        int_literal Z.zero
+    end else begin
+      PP.fprintf fmt "((%a)%a)"
+        ty_uint n
+        RT.pp_expr x
+    end
+
+  let cvt_sintN_bits (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
+    if n = 0 then
+      (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
+      PP.fprintf fmt "({ (void)%a; %a; })"
+        RT.pp_expr x
+        empty_bits ()
+    else
+      PP.fprintf fmt "((%a)((%a)%a))"
+        ty_uint n
+        ty_uint m
+        RT.pp_expr x
+
+  let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "((%a)%a)"
+      ty_sint n
+      RT.pp_expr x
+
+  let cvt_int_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "((%a)%a)"
+      ty_sint int_width
+      RT.pp_expr x
+
+  let resize_sintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "((%a)%a)"
+      ty_sint int_width
+      RT.pp_expr x
+
+  let print_sintN_decimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
+    (* Print small numbers in decimal, large numbers in hex *)
+    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
+    PP.fprintf fmt "  if (__tmp >= %a && __tmp <= %a) {@,"
+      min_sintN 63
+      max_sintN 63;
+    (if add_size then PP.fprintf fmt "      printf(\"%d'd%%lld\", __tmp.to_int64());@," n
+                 else PP.fprintf fmt "      printf(\"%%lld\", __tmp.to_int64());@,");
+    PP.fprintf fmt "  } else {@,";
+    PP.fprintf fmt "    if (__tmp < %a) {@," zero_sintN n;
+    PP.fprintf fmt "      __tmp = -__tmp;@,";
+    PP.fprintf fmt "      printf(\"-\");@,";
+    PP.fprintf fmt "    }@,";
+    (if add_size then PP.fprintf fmt "    printf(\"%d'x\");@," n
+                 else PP.fprintf fmt "    printf(\"0x\");@,");
+    PP.fprintf fmt "    bool leading = true;@,";
+    PP.fprintf fmt "    for(int i = (%d-1)&~3; i >= 0; i -= 4) {@," n;
+    PP.fprintf fmt "      unsigned c = ((unsigned) __tmp.slc<4>(i)) & 15;@,";
+    PP.fprintf fmt "      if (leading) {@,";
+    PP.fprintf fmt "        if (i == 0 || c) {@,";
+    PP.fprintf fmt "          printf(\"%%x\", c);@,";
+    PP.fprintf fmt "          leading = false;@,";
+    PP.fprintf fmt "        }@,";
+    PP.fprintf fmt "      } else {@,";
+    PP.fprintf fmt "        printf(\"%%x\", c);@,";
+    PP.fprintf fmt "      }@,";
+    PP.fprintf fmt "    }@,";
+    PP.fprintf fmt "  }@,";
+    PP.fprintf fmt "}@]"
+
+  let print_sintN_hexadecimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
+    PP.fprintf fmt "  if (__tmp < %a) {@," zero_sintN n;
+    PP.fprintf fmt "    __tmp = -__tmp;@,";
+    PP.fprintf fmt "    printf(\"-\");@,";
+    PP.fprintf fmt "  }@,";
+    (if add_size then PP.fprintf fmt "  printf(\"%d'x\");@," n
+                 else PP.fprintf fmt "  printf(\"0x\");@,");
+    PP.fprintf fmt "  bool leading = true;@,";
+    PP.fprintf fmt "  for(int i = (%d-1)&~3; i >= 0; i -= 4) {@," n;
+    PP.fprintf fmt "    unsigned c = ((unsigned) __tmp.slc<4>(i)) & 15;@,";
+    PP.fprintf fmt "    if (leading) {@,";
+    PP.fprintf fmt "      if (i == 0 || c) {@,";
+    PP.fprintf fmt "        printf(\"%%x\", c);@,";
+    PP.fprintf fmt "        leading = false;@,";
+    PP.fprintf fmt "      }@,";
+    PP.fprintf fmt "    } else {@,";
+    PP.fprintf fmt "      printf(\"%%x\", c);@,";
+    PP.fprintf fmt "    }@,";
+    PP.fprintf fmt "  }@,";
+    PP.fprintf fmt "}@]"
+
+  let print_sintN_dec (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
+    print_sintN_decimal fmt n ~add_size:true x
+
+  let print_sintN_hex (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
+    print_sintN_hexadecimal fmt n ~add_size:true x
+
+
+  (* signed unbounded integers *)
+
+  let add_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = add_sintN fmt int_width x y
+  let sub_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = sub_sintN fmt int_width x y
+  let neg_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = neg_sintN fmt int_width x
+  let shr_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = shr_sintN fmt int_width x y
+  let shl_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = shl_sintN fmt int_width x y
+  let mul_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = mul_sintN fmt int_width x y
+  let exact_div_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = exact_div_sintN fmt int_width x y
+  let zdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = zdiv_sintN fmt int_width x y
+  let zrem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = zrem_sintN fmt int_width x y
+  let fdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = fdiv_sintN fmt int_width x y
+  let frem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = frem_sintN fmt int_width x y
+  let eq_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = eq_sintN fmt int_width x y
+  let ne_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = ne_sintN fmt int_width x y
+  let ge_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = ge_sintN fmt int_width x y
+  let gt_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = gt_sintN fmt int_width x y
+  let le_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = le_sintN fmt int_width x y
+  let lt_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = lt_sintN fmt int_width x y
+  let is_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = is_pow2_sintN fmt int_width x
+  let pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = pow2_sintN fmt int_width x
+  let align_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = align_sintN fmt int_width x y
+  let mod_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = mod_pow2_sintN fmt int_width x y
+  let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_sintN_bits fmt int_width n x
+  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_ssintN fmt n int_width x
+  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_usintN fmt n int_width x
+
+  let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    print_sintN_decimal fmt int_width ~add_size:false x
+
+  let print_int_hex (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    print_sintN_hexadecimal fmt int_width ~add_size:false x
 
   let get_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) : unit =
     if w = 1 then
@@ -251,49 +386,6 @@ module Runtime : RT.RuntimeLib = struct
       ty_sint n
       RT.pp_expr x
       RT.pp_expr y
-
-  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then begin
-      (* Although we return zero, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; %a; })"
-        RT.pp_expr x
-        int_literal Z.zero
-    end else if n = 1 then begin
-      (* signed _BitInt must be at least 2 *)
-      PP.fprintf fmt "(%a ? %a : %a)"
-        RT.pp_expr x
-        int_literal Z.minus_one
-        int_literal Z.zero
-    end else begin
-      PP.fprintf fmt "((%a)((%a)%a))"
-        ty_sint int_width
-        ty_sint n
-        RT.pp_expr x
-    end
-
-  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then begin
-      (* Although we return zero, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; %a; })"
-        RT.pp_expr x
-        int_literal Z.zero
-    end else begin
-      PP.fprintf fmt "((%a)%a)"
-        ty_uint int_width
-        RT.pp_expr x
-    end
-
-  let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then
-      (* Although we return empty_bits, we may still need to execute 'x' for any side effects *)
-      PP.fprintf fmt "({ (void)%a; %a; })"
-        RT.pp_expr x
-        empty_bits ()
-    else
-      PP.fprintf fmt "((%a)((%a)%a))"
-        ty_uint n
-        ty_uint int_width
-        RT.pp_expr x
 
   let zeros_bits (fmt : PP.formatter) (n : int) : unit =
     bits_literal fmt (Primops.mkBits n Z.zero)

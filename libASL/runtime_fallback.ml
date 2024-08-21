@@ -215,6 +215,41 @@ module Runtime : RT.RuntimeLib = struct
       RT.pp_expr x
       mask_int y
 
+  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_bits_sint" n x
+  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_bits_uint" n x
+  let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_int_bits" n x
+
+  (* signed sized integer functions *)
+  let eq_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = eq_int fmt x y
+  let ne_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = ne_int fmt x y
+  let ge_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = ge_int fmt x y
+  let gt_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = gt_int fmt x y
+  let le_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = le_int fmt x y
+  let lt_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = lt_int fmt x y
+  let add_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = add_int fmt x y
+  let neg_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = neg_int fmt x
+  let sub_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = sub_int fmt x y
+  let mul_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = mul_int fmt x y
+  let shr_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = shr_int fmt x y
+  let shl_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = shl_int fmt x y
+  let exact_div_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = exact_div_int fmt x y
+  let zdiv_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = zdiv_int fmt x y
+  let zrem_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = zrem_int fmt x y
+  let fdiv_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = fdiv_int fmt x y
+  let frem_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = frem_int fmt x y
+  let is_pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = is_pow2_int fmt x
+  let pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = pow2_int fmt x
+  let align_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = align_int fmt x y
+  let mod_pow2_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = mod_pow2_int fmt x y
+  let cvt_sintN_bits (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit = cvt_int_bits fmt n x
+  let cvt_bits_ssintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit = cvt_bits_sint fmt m x
+  let cvt_bits_usintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit = cvt_bits_uint fmt m x
+  let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
+  let cvt_int_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
+  let resize_sintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
+  let print_sintN_dec (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_int_dec fmt x
+  let print_sintN_hex (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_int_hex fmt x
+
   let get_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) : unit =
     PP.fprintf fmt "%a(%d, %d, %a, %a, %d)"
       asl_keyword "slice_lowd"
@@ -247,9 +282,6 @@ module Runtime : RT.RuntimeLib = struct
   let lsl_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply_bits_1_2 fmt "lsl_bits" n x y
   let lsr_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply_bits_1_2 fmt "lsr_bits" n x y
   let asr_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply_bits_1_2 fmt "asr_bits" n x y
-  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_bits_sint" n x
-  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_bits_uint" n x
-  let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = apply_bits_1_1 fmt "cvt_int_bits" n x
   let zeros_bits (fmt : PP.formatter) (n : int) : unit = apply_bits_1_0 fmt "zeros_bits" n
   let ones_bits (fmt : PP.formatter) (n : int) : unit = apply_bits_1_0 fmt "ones_bits" n
 

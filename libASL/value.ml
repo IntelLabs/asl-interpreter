@@ -23,14 +23,14 @@ type value =
   | VInt of bigint
   | VReal of real
   | VBits of bitvector
+  | VIntN of sintN
   | VMask of mask
   | VString of string
   | VTuple of value list
   | VRecord of (Ident.t * value Identset.Bindings.t)
   | VArray of (value ImmutableArray.t * value)
   | VRAM of ram
-  | VUninitialized
-(* initial value of scalars with no explicit initialization *)
+  | VUninitialized (* initial value of scalars with no explicit initialization *)
 
 (****************************************************************)
 (** {2 Exceptions thrown by interpreter}                        *)
@@ -51,6 +51,7 @@ let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   | VInt i -> Format.pp_print_string fmt (prim_cvt_int_decstr i)
   | VReal r -> Format.pp_print_string fmt (prim_cvt_real_str r)
   | VBits b -> Format.pp_print_string fmt (prim_cvt_bits_hexstr (Z.of_int b.n) b)
+  | VIntN i -> Format.pp_print_string fmt (prim_cvt_sintN_decstr i)
   | VMask m -> Format.pp_print_string fmt "todo: mask"
   | VString s -> Format.fprintf fmt "\"%s\"" s
   | VTuple vs ->
@@ -89,6 +90,7 @@ let rec eq_value (x : value) (y : value) : bool =
   | VInt x', VInt y' -> prim_eq_int x' y'
   | VReal x', VReal y' -> prim_eq_real x' y'
   | VBits x', VBits y' -> prim_eq_bits x' y'
+  | VIntN x', VIntN y' -> prim_eq_sintN x' y'
   | VMask x', VMask y' -> x' = y'
   | VString x', VString y' -> String.equal x' y'
   | VTuple xs, VTuple ys -> List.for_all2 eq_value xs ys
@@ -483,6 +485,66 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       Some (VInt (prim_pow_int_int x y))
   | [], [ VInt x ] when Ident.equal f cvt_int_real ->
       Some (VReal (prim_cvt_int_real x))
+
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f eq_sintN ->
+      Some (VBool (prim_eq_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f ne_sintN ->
+      Some (VBool (prim_ne_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f le_sintN ->
+      Some (VBool (prim_le_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f lt_sintN ->
+      Some (VBool (prim_lt_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f ge_sintN ->
+      Some (VBool (prim_ge_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f gt_sintN ->
+      Some (VBool (prim_gt_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f add_sintN ->
+      Some (VIntN (prim_add_sintN x y))
+  | [_], [ VIntN x ] when Ident.equal f neg_sintN ->
+      Some (VIntN (prim_neg_sintN x))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f sub_sintN ->
+      Some (VIntN (prim_sub_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f shl_sintN ->
+      Some (VIntN (prim_shl_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f shr_sintN ->
+      Some (VIntN (prim_shr_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f mul_sintN ->
+      Some (VIntN (prim_mul_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f zdiv_sintN ->
+      Some (VIntN (prim_zdiv_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f zrem_sintN ->
+      Some (VIntN (prim_zrem_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f exact_div_sintN ->
+      Some (VIntN (prim_exact_div_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f fdiv_sintN ->
+      Some (VIntN (prim_fdiv_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f frem_sintN ->
+      Some (VIntN (prim_frem_sintN x y))
+  | [_], [ VIntN x ] when Ident.equal f is_pow2_sintN ->
+      Some (VBool (prim_is_pow2_sintN x))
+  | [_], [ VIntN x ] when Ident.equal f pow2_sintN ->
+      Some (VIntN (prim_pow2_sintN x))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f align_sintN ->
+      Some (VIntN (prim_align_sintN x y))
+  | [_], [ VIntN x; VIntN y ] when Ident.equal f mod_pow2_sintN ->
+      Some (VIntN (prim_mod_pow2_sintN x y))
+  | [VIntN n], [ VIntN x ] when Ident.equal f cvt_sintN_bits ->
+      Some (VBits (prim_cvt_sintN_bits x))
+  | [VIntN n], [ VBits x ] when Ident.equal f cvt_bits_ssintN ->
+      Some (VIntN (prim_cvt_bits_ssintN x))
+  | [_], [ VBits x ] when Ident.equal f cvt_bits_usintN ->
+      Some (VIntN (prim_cvt_bits_usintN x))
+  | [_], [ VIntN x ] when Ident.equal f cvt_sintN_int ->
+      Some (VInt (prim_cvt_sintN_int x))
+  | [_], [ VInt x; VInt m ] when Ident.equal f cvt_int_sintN ->
+      Some (VIntN (prim_cvt_int_sintN x m))
+  | [_;_], [ VIntN x; VInt n ] when Ident.equal f resize_sintN ->
+      Some (VIntN (prim_resize_sintN x n))
+  | [_], [ VIntN x ] when Ident.equal f print_sintN_dec ->
+      prim_print_sintN_dec x; Some (VTuple [])
+  | [_], [ VIntN x ] when Ident.equal f print_sintN_hex ->
+      prim_print_sintN_hex x; Some (VTuple [])
+
   | [], [ VReal x; VReal y ] when Ident.equal f eq_real ->
       Some (VBool (prim_eq_real x y))
   | [], [ VReal x; VReal y ] when Ident.equal f ne_real ->

@@ -12,6 +12,7 @@ type value =
   | VInt of Primops.bigint
   | VReal of Primops.real
   | VBits of Primops.bitvector
+  | VIntN of Primops.sintN
   | VMask of Primops.mask
   | VString of string
   | VTuple of value list

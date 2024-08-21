@@ -299,6 +299,132 @@ let prim_in_mask (x : bitvector) (m : mask) : bool =
 
 let prim_notin_mask (x : bitvector) (m : mask) : bool = not (prim_in_mask x m)
 
+(****************************************************************)
+(** {2 Sized signed integer primops}                            *)
+(****************************************************************)
+
+type sintN = { n : int; v : Z.t }
+
+(* primary way of creating sized integer satisfying invariants *)
+let mksintN (n : int) (v : bigint) : sintN =
+  assert (n >= 0);
+  assert (Z.lt v (Z.shift_left Z.one (n-1)));
+  assert (Z.geq v (Z.neg (Z.shift_left Z.one (n-1))));
+  { n; v }
+
+let prim_eq_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  Z.equal x.v y.v
+
+let prim_ne_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  not (Z.equal x.v y.v)
+
+let prim_gt_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  not (Z.gt x.v y.v)
+
+let prim_ge_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  not (Z.geq x.v y.v)
+
+let prim_le_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  not (Z.leq x.v y.v)
+
+let prim_lt_sintN (x : sintN) (y : sintN) : bool =
+  assert (x.n = y.n);
+  not (Z.lt x.v y.v)
+
+let prim_add_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.add x.v y.v)
+
+let prim_neg_sintN (x : sintN) : sintN =
+  mksintN x.n (Z.neg x.v)
+
+let prim_sub_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.sub x.v y.v)
+
+let prim_shl_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.shift_left x.v (Z.to_int y.v))
+
+let prim_shr_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.shift_right x.v (Z.to_int y.v))
+
+let prim_mul_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.mul x.v y.v)
+
+let prim_exact_div_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  (* disable until we fix the spec: assert (Z.geq y.n Z.zero); *)
+  mksintN x.n (Z.fdiv x.v y.v)
+
+let prim_zdiv_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.div x.v y.v)
+
+let prim_zrem_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.rem x.v y.v)
+
+let prim_fdiv_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.fdiv x.v y.v)
+
+let prim_frem_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  mksintN x.n (Z.sub x.v (Z.mul y.v (Z.fdiv x.v y.v)))
+
+let prim_is_pow2_sintN (x : sintN) : bool =
+  (Z.gt x.v Z.zero) && (Z.equal (Z.logand x.v (Z.sub x.v Z.one)) Z.zero)
+
+let prim_pow2_sintN (x : sintN) : sintN =
+  mksintN x.n (Z.shift_left Z.one (Z.to_int x.v))
+
+let prim_align_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  let y' = Z.to_int y.v in
+  mksintN x.n (Z.shift_left (Z.shift_right_trunc x.v y') y')
+
+let prim_mod_pow2_sintN (x : sintN) (y : sintN) : sintN =
+  assert (x.n = y.n);
+  let mask = Z.sub (Z.shift_left Z.one (Z.to_int y.v)) Z.one in
+  mksintN x.n (Z.logand x.v mask)
+
+let prim_cvt_sintN_int (x : sintN) : bigint = x.v
+
+let prim_cvt_int_sintN (x : bigint) (n : bigint) : sintN = mksintN (Z.to_int n) x
+
+let prim_resize_sintN (x : sintN) (m : bigint) : sintN = mksintN (Z.to_int m) x.v
+
+let prim_cvt_sintN_bits (x : sintN) : bitvector =
+  mkBits x.n (z_extract x.v 0 x.n)
+
+let prim_cvt_bits_ssintN (x : bitvector) : sintN =
+  mksintN x.n (z_signed_extract x.v 0 x.n)
+
+let prim_cvt_bits_usintN (x : bitvector) : sintN =
+  mksintN x.n (z_extract x.v 0 x.n)
+
+let prim_cvt_sintN_decstr (x : sintN) : string =
+  let prefix = Printf.sprintf "%d'x" x.n in
+  let value = Z.to_string x.v in
+  prefix ^ value
+
+let prim_print_sintN_dec (x : sintN) : unit =
+  if Z.geq x.v Z.zero
+  then Printf.printf "%d'd%s" x.n (Z.format "%d" x.v)
+  else Printf.printf "-%d'd%s" x.n (Z.format "%d" (Z.neg x.v))
+
+let prim_print_sintN_hex (x : sintN) : unit =
+  if Z.geq x.v Z.zero
+  then Printf.printf "%d'x%s" x.n (Z.format "%x" x.v)
+  else Printf.printf "-%d'x%s" x.n (Z.format "%x" (Z.neg x.v))
 
 (****************************************************************)
 (** {2 String primops}                                          *)

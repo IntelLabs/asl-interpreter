@@ -139,6 +139,37 @@ val ram : Ident.t
 val true_ident : Ident.t
 val false_ident : Ident.t
 
+val sintN            : Ident.t
+val eq_sintN         : Ident.t
+val ne_sintN         : Ident.t
+val gt_sintN         : Ident.t
+val ge_sintN         : Ident.t
+val le_sintN         : Ident.t
+val lt_sintN         : Ident.t
+val add_sintN        : Ident.t
+val neg_sintN        : Ident.t
+val sub_sintN        : Ident.t
+val shl_sintN        : Ident.t
+val shr_sintN        : Ident.t
+val mul_sintN        : Ident.t
+val exact_div_sintN  : Ident.t
+val zdiv_sintN       : Ident.t
+val zrem_sintN       : Ident.t
+val fdiv_sintN       : Ident.t
+val frem_sintN       : Ident.t
+val is_pow2_sintN    : Ident.t
+val pow2_sintN       : Ident.t
+val align_sintN      : Ident.t
+val mod_pow2_sintN   : Ident.t
+val cvt_sintN_bits   : Ident.t
+val cvt_bits_ssintN  : Ident.t
+val cvt_bits_usintN  : Ident.t
+val cvt_sintN_int    : Ident.t
+val cvt_int_sintN    : Ident.t
+val resize_sintN     : Ident.t
+val print_sintN_dec  : Ident.t
+val print_sintN_hex  : Ident.t
+
 (****************************************************************
  * End
  ****************************************************************)
