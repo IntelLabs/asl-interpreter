@@ -47,7 +47,7 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token RPAREN  (* ) *)
 %token SEMICOLON  (* ; *)
 
-%token <string> BITSLIT  (* metavarroot bitsLit *)
+%token <Primops.bitvector> BITSLIT  (* metavarroot bitsLit *)
 %token <string> HEXLIT  (* metavarroot hexLit *)
 %token <string> INTLIT  (* metavarroot intLit *)
 %token <string> ID  (* metavarroot id *)
@@ -457,7 +457,7 @@ opt_altcond:
 pattern:
 | i = INTLIT { Pat_Lit (Value.from_intLit i) }
 | h = HEXLIT { Pat_Lit (Value.from_hexLit h) }
-| b = BITSLIT { Pat_Lit (Value.from_bitsLit b) }
+| b = BITSLIT { Pat_Lit (Value.VBits b) }
 | m = MASKLIT { Pat_Lit (Value.from_maskLit m) }
 | c = ident { Pat_Const(c) }
 | MINUS { Pat_Wildcard }
@@ -606,7 +606,7 @@ literal_expression:
 | i = INTLIT { Expr_Lit(Value.from_intLit i) }
 | h = HEXLIT { Expr_Lit(Value.from_hexLit h) }
 | r = REALLIT { Expr_Lit(Value.from_realLit r) }
-| b = BITSLIT { Expr_Lit(Value.from_bitsLit b) }
+| b = BITSLIT { Expr_Lit(Value.VBits b) }
 | m = MASKLIT { Expr_Lit(Value.from_maskLit m) }
 | s = STRINGLIT { Expr_Lit(Value.from_stringLit s) }
 

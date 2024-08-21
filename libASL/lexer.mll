@@ -124,9 +124,19 @@ rule token = parse
                                     lexbuf.lex_start_p <- startpos;
                                     STRINGLIT(Buffer.contents buffer) }
 
-    | '\'' ['0' '1' ' ']* '\''               as lxm { BITSLIT(String.sub lxm 1 (String.length lxm - 2)) }
-    | '\'' ['0' '1' 'x' ' ']* '\''           as lxm { MASKLIT(String.sub lxm 1 (String.length lxm - 2)) }
-    | '0''x'['0'-'9' 'A' - 'F' 'a'-'f' '_']+ as lxm { HEXLIT(String.sub lxm 2 (String.length lxm - 2)) }
+    | '\'' (['0' '1' ' ']* as bits) '\''
+      { let x = Utils.drop_chars bits ' ' in
+        BITSLIT(Primops.mkBits (String.length x) (Z.of_string_base 2 x)) }
+    | (['0'-'9']+ as len) '\'' 'b' (['0'-'1']+ as bits)
+      { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 2 bits)) }
+    | (['0'-'9']+ as len) '\'' 'd' (['0'-'9']+ as digits)
+      { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 10 digits)) }
+    | (['0'-'9']+ as len) '\'' 'x' (['0'-'9' 'A'-'F' 'a'-'f']+ as nibbles)
+      { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 16 nibbles)) }
+    | '\'' (['0' '1' 'x' ' ']* as bits) '\''
+      { MASKLIT(bits) }
+    | '0''x'(['0'-'9' 'A'-'F' 'a'-'f' '_']+ as nibbles)
+      { HEXLIT(nibbles) }
     | ['0'-'9']+ '.' ['0'-'9']+              as lxm { REALLIT(lxm) }
     | ['0'-'9'] ['0'-'9' '_']*               as lxm { INTLIT(lxm) }
     | ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm {

@@ -319,11 +319,11 @@ let prim_cvt_bits_binstr (n : bigint) (x : bitvector) : string =
     "''"
   else
     let s = Z.format "%0b" x.v in
-    let pad = String.make (Z.to_int n - String.length s) '0' in
+    let pad = String.make (x.n - String.length s) '0' in
     "'" ^ pad ^ s ^ "'"
 
 let prim_cvt_bits_hexstr (n : bigint) (x : bitvector) : string =
-  let prefix = Printf.sprintf "%d'x" (Z.to_int n) in
+  let prefix = Printf.sprintf "%d'x" x.n in
   let value = Z.format "%x" x.v in
   prefix ^ value
 
