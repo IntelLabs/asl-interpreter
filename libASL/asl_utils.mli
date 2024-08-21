@@ -254,7 +254,6 @@ val type_bool : AST.ty
 val type_real : AST.ty
 val type_string : AST.ty
 val type_bits : AST.expr -> AST.ty
-val type_exn : AST.ty
 
 val asl_false : AST.expr
 val asl_true : AST.expr

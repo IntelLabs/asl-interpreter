@@ -335,7 +335,12 @@ let fn_error_unmatched_case (fmt : PP.formatter) : unit = asl_keyword fmt "error
 let fn_assert (fmt : PP.formatter) : unit = asl_keyword fmt "assert"
 
 let fn_extern (fmt : PP.formatter) (x : Ident.t) : unit =
-  asl_keyword fmt (Ident.name x)
+  let nm = Ident.name x in
+  let nm' = if String.starts_with ~prefix:"asl_" nm
+            then String.sub nm 4 (String.length nm - 4)
+            else nm
+  in
+  asl_keyword fmt nm'
 
 (* Round up to the next power of 2 *)
 let round_up_to_pow2 (x : int) : int =
@@ -1248,7 +1253,6 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
               real_ident;
               string_ident;
               mask_ident;
-              exception_ident;
               ram
             ] -> ()
           | _ ->

@@ -3,12 +3,12 @@
 
 func Test_3_8(x : bits(3)) => bits(8)
 begin
-    return sign_extend_bits(x, 8);
+    return asl_sign_extend_bits(x, 8);
 end
 
 func Test_70_140(x : bits(70)) => bits(140)
 begin
-    return sign_extend_bits(x, 140);
+    return asl_sign_extend_bits(x, 140);
 end
 
 func main() => integer

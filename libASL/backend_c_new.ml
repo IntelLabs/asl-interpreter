@@ -923,7 +923,6 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
               real_ident;
               string_ident;
               mask_ident;
-              exception_ident;
               ram
             ] -> ()
           | _ ->

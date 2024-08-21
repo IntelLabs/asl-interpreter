@@ -688,7 +688,7 @@ class sideEffectClass =
       | Expr_TApply (f, _, _, throws) ->
           functions_called <- IdentSet.add f functions_called;
           if throws <> NoThrow then throws_exceptions <- true;
-          if Ident.matches ~name:"ram_read" f then begin
+          if Ident.matches ~name:"asl_ram_read" f then begin
             reads <- IdentSet.add dummy_ram_variable reads
           end;
           DoChildren
@@ -699,7 +699,7 @@ class sideEffectClass =
       | Stmt_TCall (f, _, _, throws, _) ->
           functions_called <- IdentSet.add f functions_called;
           if throws <> NoThrow then throws_exceptions <- true;
-          if Ident.matches ~name:"ram_init" f || Ident.matches ~name:"ram_write" f then begin
+          if Ident.matches ~name:"asl_ram_init" f || Ident.matches ~name:"asl_ram_write" f then begin
             writes <- IdentSet.add dummy_ram_variable writes
           end;
           DoChildren
@@ -881,7 +881,6 @@ let type_bool = Type_Constructor (boolean_ident, [])
 let type_real = Type_Constructor (real_ident, [])
 let type_string = Type_Constructor (string_ident, [])
 let type_bits (n : expr) = Type_Bits (n, [])
-let type_exn = Type_Constructor (exception_ident, [])
 
 let asl_false = AST.Expr_Var false_ident
 let asl_true = AST.Expr_Var true_ident
@@ -1060,7 +1059,7 @@ let mk_mask (w : AST.expr) (n : AST.expr) =
   if w = n then
     mk_ones_bits n
   else
-    Expr_TApply (Builtin_idents.mk_mask, [n], [w; n], NoThrow)
+    Expr_TApply (mk_mask, [n], [w; n], NoThrow)
 
 let mk_not_bits (m : AST.expr) (n : AST.expr) : AST.expr =
   Expr_TApply (not_bits, [m], [n], NoThrow)

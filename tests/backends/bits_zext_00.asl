@@ -3,7 +3,7 @@
 
 func Test(x : bits(3)) => bits(8)
 begin
-    return zero_extend_bits(x, 8);
+    return asl_zero_extend_bits(x, 8);
 end
 
 func main() => integer

@@ -3,7 +3,7 @@
 
 func Test(x : bits(8), y : integer) => bits(8)
 begin
-    return lsl_bits(x, y);
+    return asl_lsl_bits(x, y);
 end
 
 func main() => integer

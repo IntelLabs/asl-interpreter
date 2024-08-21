@@ -22,7 +22,7 @@ let int_bitslice_tests : unit Alcotest.test_case list =
     ("integer bitslice", `Quick, expr
        "var x : integer; var i : integer;"
        "x[i +: 8]"
-       "cvt_int_bits(x, i + 8)[i +: 8]");
+       "asl_cvt_int_bits(x, i + 8)[i +: 8]");
   ]
 
 (****************************************************************

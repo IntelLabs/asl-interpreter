@@ -3,7 +3,7 @@
 
 func Test(x : bits(4), y : bits(4)) => bits(8)
 begin
-    return append_bits(x, y);
+    return asl_append_bits(x, y);
 end
 
 func main() => integer

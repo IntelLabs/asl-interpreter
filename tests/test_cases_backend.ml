@@ -114,15 +114,15 @@ let ram_ops : test_case list =
   [
     ( "built-in ram procedure call (ram_init)",
       [ Backend_C; Backend_Verilog ],
-      "func F() begin var m : __RAM(12); ram_init(12, 1, m, '00000001'); end" );
+      "func F() begin var m : __RAM(12); asl_ram_init(12, 1, m, '00000001'); end" );
 
     ( "built-in ram fun call (ram_read)",
       [ Backend_C; Backend_Verilog ],
-      "func F() => bits(8) begin var m : __RAM(12); return ram_read(12, 1, m, '100000000000'); end" );
+      "func F() => bits(8) begin var m : __RAM(12); return asl_ram_read(12, 1, m, '100000000000'); end" );
 
     ( "built-in ram procedure call (ram_write)",
       [ Backend_C; Backend_Verilog ],
-      "func F() begin var m : __RAM(12); ram_write(12, 1, m, '100000000000', '00000001'); end" );
+      "func F() begin var m : __RAM(12); asl_ram_write(12, 1, m, '100000000000', '00000001'); end" );
   ]
 
 let misc_ops : test_case list =
@@ -278,10 +278,6 @@ let type_decl : test_case list  =
     ( "built-in (__mask)",
       [ Backend_C ],
       "__builtin type __mask;" );
-
-    ( "built-in (__Exception)",
-      [ Backend_C ],
-      "__builtin type __Exception;" );
 
     ( "built-in (__RAM)",
       [ Backend_C ],

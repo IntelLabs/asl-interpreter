@@ -3,7 +3,7 @@
 
 func Test(x : bits(4)) => integer {-8..7}
 begin
-    return cvt_bits_sint(x);
+    return asl_cvt_bits_sint(x);
 end
 
 func main() => integer

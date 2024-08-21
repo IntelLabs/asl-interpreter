@@ -3,7 +3,7 @@
 
 func Test(x : integer, y : integer) => integer
 begin
-    return mod_pow2_int(x, y);
+    return asl_mod_pow2_int(x, y);
 end
 
 func main() => integer

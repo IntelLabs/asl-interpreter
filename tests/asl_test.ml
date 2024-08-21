@@ -269,7 +269,7 @@ let tests : unit Alcotest.test_case list =
     ("operators (iff)",        `Quick, test_bool globals prelude "" "TRUE <-> FALSE" false);
     ("operators (iff)",        `Quick, test_bool globals prelude "" "TRUE <-> TRUE" true);
     ("let-expressions",        `Quick, test_int globals prelude "" "__let x : integer = 2 __in x+x" 4);
-    ("prelude (cvt_bits_str)", `Quick, test_string globals prelude "" "cvt_bits_str(1, '0')" "1'x0");
+    ("prelude (cvt_bits_str)", `Quick, test_string globals prelude "" "asl_cvt_bits_str(1, '0')" "1'x0");
     ("prelude (HexStr (int))", `Quick, test_string globals prelude "" "HexStr(15)" "0xf");
     ("prelude (+ (int))",      `Quick, test_int globals prelude "" "1+1" 2);
     ("prelude (DIV)",          `Quick, test_int globals prelude "" "5 DIV 3" 1);

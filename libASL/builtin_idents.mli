@@ -134,7 +134,6 @@ val bits_ident : Ident.t
 val wildcard_ident : Ident.t
 val dash_ident : Ident.t
 val mask_ident : Ident.t
-val exception_ident : Ident.t
 val asl_integer : Ident.t
 val ram : Ident.t
 val true_ident : Ident.t

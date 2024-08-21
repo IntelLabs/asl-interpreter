@@ -3,7 +3,7 @@
 
 func Test(x : integer, y : integer) => integer
 begin
-    return fdiv_int(x, y);
+    return asl_fdiv_int(x, y);
 end
 
 func main() => integer

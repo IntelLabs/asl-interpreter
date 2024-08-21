@@ -16,92 +16,92 @@ type bit of bits(1);
 enumeration boolean { FALSE, TRUE };
 enumeration signal { LOW, HIGH };
 
-__builtin func eq_bool(x : boolean, y : boolean) => boolean;
-__builtin func ne_bool(x : boolean, y : boolean) => boolean;
-__builtin func not_bool(x : boolean) => boolean;
-__builtin func and_bool(x : boolean, y : boolean) => boolean;
-__builtin func or_bool(x : boolean, y : boolean) => boolean;
-__builtin func equiv_bool(x : boolean, y : boolean) => boolean;
-__builtin func implies_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_eq_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_ne_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_not_bool(x : boolean) => boolean;
+__builtin func asl_and_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_or_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_equiv_bool(x : boolean, y : boolean) => boolean;
+__builtin func asl_implies_bool(x : boolean, y : boolean) => boolean;
 
-__builtin func eq_int(x : integer, y : integer) => boolean;
-__builtin func ne_int(x : integer, y : integer) => boolean;
-__builtin func gt_int(x : integer, y : integer) => boolean;
-__builtin func ge_int(x : integer, y : integer) => boolean;
-__builtin func le_int(x : integer, y : integer) => boolean;
-__builtin func lt_int(x : integer, y : integer) => boolean;
-__builtin func is_pow2_int(x : integer) => boolean;
-__builtin func add_int(x : integer, y : integer) => integer;
-__builtin func neg_int(x : integer) => integer;
-__builtin func sub_int(x : integer, y : integer) => integer;
-__builtin func shl_int(x : integer, y : integer) => integer;
-__builtin func shr_int(x : integer, y : integer) => integer;
-__builtin func mul_int(x : integer, y : integer) => integer;
-__builtin func exact_div_int(x : integer, y : integer) => integer;
-__builtin func zdiv_int(x : integer, y : integer) => integer;
-__builtin func zrem_int(x : integer, y : integer) => integer;
-__builtin func fdiv_int(x : integer, y : integer) => integer;
-__builtin func frem_int(x : integer, y : integer) => integer;
-__builtin func mod_pow2_int(x : integer, y : integer) => integer;
-__builtin func align_int(x : integer, y : integer) => integer;
-__builtin func pow2_int(y : integer) => integer;
+__builtin func asl_eq_int(x : integer, y : integer) => boolean;
+__builtin func asl_ne_int(x : integer, y : integer) => boolean;
+__builtin func asl_gt_int(x : integer, y : integer) => boolean;
+__builtin func asl_ge_int(x : integer, y : integer) => boolean;
+__builtin func asl_le_int(x : integer, y : integer) => boolean;
+__builtin func asl_lt_int(x : integer, y : integer) => boolean;
+__builtin func asl_is_pow2_int(x : integer) => boolean;
+__builtin func asl_add_int(x : integer, y : integer) => integer;
+__builtin func asl_neg_int(x : integer) => integer;
+__builtin func asl_sub_int(x : integer, y : integer) => integer;
+__builtin func asl_shl_int(x : integer, y : integer) => integer;
+__builtin func asl_shr_int(x : integer, y : integer) => integer;
+__builtin func asl_mul_int(x : integer, y : integer) => integer;
+__builtin func asl_exact_div_int(x : integer, y : integer) => integer;
+__builtin func asl_zdiv_int(x : integer, y : integer) => integer;
+__builtin func asl_zrem_int(x : integer, y : integer) => integer;
+__builtin func asl_fdiv_int(x : integer, y : integer) => integer;
+__builtin func asl_frem_int(x : integer, y : integer) => integer;
+__builtin func asl_mod_pow2_int(x : integer, y : integer) => integer;
+__builtin func asl_align_int(x : integer, y : integer) => integer;
+__builtin func asl_pow2_int(y : integer) => integer;
 
-__builtin func cvt_int_real(x : integer) => real;
-__builtin func eq_real(x : real, y : real) => boolean;
-__builtin func ne_real(x : real, y : real) => boolean;
-__builtin func le_real(x : real, y : real) => boolean;
-__builtin func lt_real(x : real, y : real) => boolean;
-__builtin func gt_real(x : real, y : real) => boolean;
-__builtin func ge_real(x : real, y : real) => boolean;
-__builtin func add_real(x : real,    y : real) => real;
-__builtin func neg_real(x : real) => real;
-__builtin func sub_real(x : real, y : real) => real;
-__builtin func mul_real(x : real, y : real) => real;
-__builtin func divide_real(x : real, y : real) => real;
-__builtin func pow2_real(y : integer) => real;
-__builtin func round_tozero_real(x : real) => integer;
-__builtin func round_down_real(x : real) => integer;
-__builtin func round_up_real(x : real) => integer;
-__builtin func sqrt_real(x : real) => real;
+__builtin func asl_cvt_int_real(x : integer) => real;
+__builtin func asl_eq_real(x : real, y : real) => boolean;
+__builtin func asl_ne_real(x : real, y : real) => boolean;
+__builtin func asl_le_real(x : real, y : real) => boolean;
+__builtin func asl_lt_real(x : real, y : real) => boolean;
+__builtin func asl_gt_real(x : real, y : real) => boolean;
+__builtin func asl_ge_real(x : real, y : real) => boolean;
+__builtin func asl_add_real(x : real,    y : real) => real;
+__builtin func asl_neg_real(x : real) => real;
+__builtin func asl_sub_real(x : real, y : real) => real;
+__builtin func asl_mul_real(x : real, y : real) => real;
+__builtin func asl_divide_real(x : real, y : real) => real;
+__builtin func asl_pow2_real(y : integer) => real;
+__builtin func asl_round_tozero_real(x : real) => integer;
+__builtin func asl_round_down_real(x : real) => integer;
+__builtin func asl_round_up_real(x : real) => integer;
+__builtin func asl_sqrt_real(x : real) => real;
 
-__builtin func cvt_int_bits(x : integer, N : integer) => bits(N);
-__builtin func cvt_bits_sint{N}(x : bits(N)) => integer;
-__builtin func cvt_bits_uint{N}(x : bits(N)) => integer;
-__builtin func in_mask{N}(x : bits(N), y : __mask(N)) => boolean;
-__builtin func notin_mask{N}(x : bits(N), y : __mask(N)) => boolean;
-__builtin func eq_bits{N}(x : bits(N), y : bits(N)) => boolean;
-__builtin func ne_bits{N}(x : bits(N), y : bits(N)) => boolean;
-__builtin func add_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func sub_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func mul_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func and_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func or_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func eor_bits{N}(x : bits(N), y : bits(N)) => bits(N);
-__builtin func not_bits{N}(x : bits(N)) => bits(N);
-__builtin func zeros_bits(N : integer) => bits(N);
-__builtin func ones_bits(N : integer) => bits(N);
-__builtin func lsl_bits{N}(x : bits(N), i : integer) => bits(N);
-__builtin func lsr_bits{N}(x : bits(N), i : integer) => bits(N);
-__builtin func asr_bits{N}(x : bits(N), i : integer) => bits(N);
+__builtin func asl_cvt_int_bits(x : integer, N : integer) => bits(N);
+__builtin func asl_cvt_bits_sint{N}(x : bits(N)) => integer;
+__builtin func asl_cvt_bits_uint{N}(x : bits(N)) => integer;
+__builtin func asl_in_mask{N}(x : bits(N), y : __mask(N)) => boolean;
+__builtin func asl_notin_mask{N}(x : bits(N), y : __mask(N)) => boolean;
+__builtin func asl_eq_bits{N}(x : bits(N), y : bits(N)) => boolean;
+__builtin func asl_ne_bits{N}(x : bits(N), y : bits(N)) => boolean;
+__builtin func asl_add_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_sub_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_mul_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_and_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_or_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_eor_bits{N}(x : bits(N), y : bits(N)) => bits(N);
+__builtin func asl_not_bits{N}(x : bits(N)) => bits(N);
+__builtin func asl_zeros_bits(N : integer) => bits(N);
+__builtin func asl_ones_bits(N : integer) => bits(N);
+__builtin func asl_lsl_bits{N}(x : bits(N), i : integer) => bits(N);
+__builtin func asl_lsr_bits{N}(x : bits(N), i : integer) => bits(N);
+__builtin func asl_asr_bits{N}(x : bits(N), i : integer) => bits(N);
 
 // Construct 'ZeroExtend(Ones(w), N)'
 // e.g. mk_mask(3, 8) == '00000 111'
 // This is used in the bitmask lowering transformation
-__builtin func mk_mask(w : integer, N : integer) => bits(N);
+__builtin func asl_mk_mask(w : integer, N : integer) => bits(N);
 
-func add_bits_int{N}(x : bits(N), y : integer) => bits(N)
+func asl_add_bits_int{N}(x : bits(N), y : integer) => bits(N)
 begin
-    return add_bits(x, cvt_int_bits(y, N));
+    return asl_add_bits(x, asl_cvt_int_bits(y, N));
 end
 
-func sub_bits_int{N}(x : bits(N), y : integer) => bits(N)
+func asl_sub_bits_int{N}(x : bits(N), y : integer) => bits(N)
 begin
-    return sub_bits(x, cvt_int_bits(y, N));
+    return asl_sub_bits(x, asl_cvt_int_bits(y, N));
 end
 
-func mul_bits_int{N}(x : bits(N), y : integer) => bits(N)
+func asl_mul_bits_int{N}(x : bits(N), y : integer) => bits(N)
 begin
-    return mul_bits(x, cvt_int_bits(y, N));
+    return asl_mul_bits(x, asl_cvt_int_bits(y, N));
 end
 
 // Bit slice helper functions used in some backends
@@ -118,54 +118,54 @@ begin
     return y;
 end
 
-__operator2 + = add_int, add_real, add_bits, add_bits_int;
-__operator2 - = sub_int, sub_real, sub_bits, sub_bits_int;
-__operator1 - = neg_int, neg_real;
-__operator2 * = mul_int, mul_real, mul_bits, mul_bits_int;
-__operator2 / = divide_real;
+__operator2 + = asl_add_int, asl_add_real, asl_add_bits, asl_add_bits_int;
+__operator2 - = asl_sub_int, asl_sub_real, asl_sub_bits, asl_sub_bits_int;
+__operator1 - = asl_neg_int, asl_neg_real;
+__operator2 * = asl_mul_int, asl_mul_real, asl_mul_bits, asl_mul_bits_int;
+__operator2 / = asl_divide_real;
 
-__builtin func replicate_bits{M}(x : bits(M), N : integer) => bits(M*N);
-__builtin func append_bits{M, N}(x : bits(M), y : bits(N)) => bits(M+N);
-__builtin func zero_extend_bits{M}(x : bits(M), N : integer) => bits(N);
-__builtin func sign_extend_bits{M}(x : bits(M), N : integer) => bits(N);
+__builtin func asl_replicate_bits{M}(x : bits(M), N : integer) => bits(M*N);
+__builtin func asl_append_bits{M, N}(x : bits(M), y : bits(N)) => bits(M+N);
+__builtin func asl_zero_extend_bits{M}(x : bits(M), N : integer) => bits(N);
+__builtin func asl_sign_extend_bits{M}(x : bits(M), N : integer) => bits(N);
 
-__builtin func cvt_int_hexstr(x : integer) => string;
-__builtin func cvt_int_decstr(x : integer) => string;
-__builtin func cvt_bool_str(x : boolean) => string;
-__builtin func cvt_bits_str(N : integer, x : bits(N)) => string;
-__builtin func cvt_real_str(x : real) => string;
-__builtin func append_str_str(x : string, y : string) => string;
-__builtin func eq_str(x : string, y : string) => boolean;
-__builtin func ne_str(x : string, y : string) => boolean;
+__builtin func asl_cvt_int_hexstr(x : integer) => string;
+__builtin func asl_cvt_int_decstr(x : integer) => string;
+__builtin func asl_cvt_bool_str(x : boolean) => string;
+__builtin func asl_cvt_bits_str(N : integer, x : bits(N)) => string;
+__builtin func asl_cvt_real_str(x : real) => string;
+__builtin func asl_append_str_str(x : string, y : string) => string;
+__builtin func asl_eq_str(x : string, y : string) => boolean;
+__builtin func asl_ne_str(x : string, y : string) => boolean;
 __builtin func print_str(x : string) => ();
 __builtin func print_char(x : integer) => ();
 __builtin func print_int_hex(x : integer) => ();
 __builtin func print_int_dec(x : integer) => ();
 __builtin func print_bits_hex(x : bits(N)) => ();
 
-__builtin func asl_pragma(x : string) => ();
+__builtin func pragma(x : string) => ();
 
 __builtin func asl_file_open(name : string, mode : string) => integer;
 __builtin func asl_file_write(fd : integer, data : string) => integer;
 __builtin func asl_file_getc(fd : integer) => integer;
 
-__builtin func ram_init(A : integer, N : integer, ram : __RAM(A), val : bits(8*N)) => ();
-__builtin func ram_read(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N);
-__builtin func ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N)) => ();
+__builtin func asl_ram_init(A : integer, N : integer, ram : __RAM(A), val : bits(8*N)) => ();
+__builtin func asl_ram_read(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N);
+__builtin func asl_ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N)) => ();
 
 func __InitRAM(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
 begin
-    ram_init(A, N, ram, val);
+    asl_ram_init(A, N, ram, val);
 end
 
 func __ReadRAM(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N)
 begin
-    return ram_read(A, N, ram, address);
+    return asl_ram_read(A, N, ram, address);
 end
 
 func __WriteRAM(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N))
 begin
-    ram_write(A, N, ram, address, val);
+    asl_ram_write(A, N, ram, address, val);
 end
 
 // Advance trace to next instruction
@@ -203,35 +203,35 @@ begin
     print_char(c);
 end
 
-__operator1 !       = not_bool;
-__operator2 &&      = and_bool;
-__operator2 ||      = or_bool;
-__operator2 <->     = equiv_bool;
-__operator2 -->     = implies_bool;
+__operator1 !       = asl_not_bool;
+__operator2 &&      = asl_and_bool;
+__operator2 ||      = asl_or_bool;
+__operator2 <->     = asl_equiv_bool;
+__operator2 -->     = asl_implies_bool;
 
 // omit since they are auto-generated
 // __operator2 == = eq_bool;
 // __operator2 != = ne_bool;
 
-__operator2 == = eq_int, eq_real, eq_bits, eq_str, in_mask;
-__operator2 != = ne_int, ne_real, ne_bits, ne_str, notin_mask;
-__operator2 <= = le_int, le_real;
-__operator2 >= = ge_int, ge_real;
-__operator2 <  = lt_int, lt_real;
-__operator2 >  = gt_int, gt_real;
+__operator2 == = asl_eq_int, asl_eq_real, asl_eq_bits, asl_eq_str, asl_in_mask;
+__operator2 != = asl_ne_int, asl_ne_real, asl_ne_bits, asl_ne_str, asl_notin_mask;
+__operator2 <= = asl_le_int, asl_le_real;
+__operator2 >= = asl_ge_int, asl_ge_real;
+__operator2 <  = asl_lt_int, asl_lt_real;
+__operator2 >  = asl_gt_int, asl_gt_real;
 
-__operator2 << = shl_int;
-__operator2 >> = shr_int;
+__operator2 << = asl_shl_int;
+__operator2 >> = asl_shr_int;
 
 func IsPowerOfTwo(x : integer) => boolean
 begin
-    return is_pow2_int(x);
+    return asl_is_pow2_int(x);
 end
 
-func pow_int_int(x : integer, y : integer) => integer
+func asl_pow_int_int(x : integer, y : integer) => integer
 begin
     if x == 2 then
-        return pow2_int(y); // optimized case
+        return asl_pow2_int(y); // optimized case
     else
         assert y >= 0;
         var result : integer = 1;
@@ -242,81 +242,81 @@ begin
     end
 end
 
-func pow_real_int(x : real, y : integer) => real
+func asl_pow_real_int(x : real, y : integer) => real
 begin
     assert x == 2.0;
-    return pow2_real(y);
+    return asl_pow2_real(y);
 end
 
-__operator2 ^ = pow_int_int, pow_real_int;
+__operator2 ^ = asl_pow_int_int, asl_pow_real_int;
 
-func frem_bits_int{N}(x : bits(N), y : integer) => integer
+func asl_frem_bits_int{N}(x : bits(N), y : integer) => integer
 begin
     assert y > 0;
-    return frem_int(cvt_bits_uint(x), y);
+    return asl_frem_int(asl_cvt_bits_uint(x), y);
 end
 
 // Division: error if division is not exact
-__operator2 DIV   = exact_div_int;
+__operator2 DIV   = asl_exact_div_int;
 
 // Division: round to zero
-__operator2 QUOT  = zdiv_int;
-__operator2 REM   = zrem_int;
+__operator2 QUOT  = asl_zdiv_int;
+__operator2 REM   = asl_zrem_int;
 
 // Division: round to -infinity (floor)
-__operator2 DIVRM = fdiv_int;
-__operator2 MOD   = frem_int, frem_bits_int;
+__operator2 DIVRM = asl_fdiv_int;
+__operator2 MOD   = asl_frem_int, asl_frem_bits_int;
 
-__operator2 AND   = and_bits;
-__operator2 OR    = or_bits;
-__operator2 EOR   = eor_bits;
-__operator1 NOT   = not_bits;
+__operator2 AND   = asl_and_bits;
+__operator2 OR    = asl_or_bits;
+__operator2 EOR   = asl_eor_bits;
+__operator1 NOT   = asl_not_bits;
 
-func append_str_bool(x : string, y : boolean) => string
+func asl_append_str_bool(x : string, y : boolean) => string
 begin
-    return append_str_str(x, cvt_bool_str(y));
+    return asl_append_str_str(x, asl_cvt_bool_str(y));
 end
 
-func append_bool_str(x : boolean, y : string) => string
+func asl_append_bool_str(x : boolean, y : string) => string
 begin
-    return append_str_str(cvt_bool_str(x), y);
+    return asl_append_str_str(asl_cvt_bool_str(x), y);
 end
 
-func append_str_bits{N}(x : string, y : bits(N)) => string
+func asl_append_str_bits{N}(x : string, y : bits(N)) => string
 begin
-    return append_str_str(x, cvt_bits_str(N, y));
+    return asl_append_str_str(x, asl_cvt_bits_str(N, y));
 end
 
-func append_bits_str{N}(x : bits(N), y : string) => string
+func asl_append_bits_str{N}(x : bits(N), y : string) => string
 begin
-    return append_str_str(cvt_bits_str(N, x), y);
+    return asl_append_str_str(asl_cvt_bits_str(N, x), y);
 end
 
-func append_str_real(x : string, y : real) => string
+func asl_append_str_real(x : string, y : real) => string
 begin
-    return append_str_str(x, cvt_real_str(y));
+    return asl_append_str_str(x, asl_cvt_real_str(y));
 end
 
-func append_real_str(x : real, y : string) => string
+func asl_append_real_str(x : real, y : string) => string
 begin
-    return append_str_str(cvt_real_str(x), y);
+    return asl_append_str_str(asl_cvt_real_str(x), y);
 end
 
-func append_str_int(x : string, y : integer) => string
+func asl_append_str_int(x : string, y : integer) => string
 begin
-    return append_str_str(x, cvt_int_decstr(y));
+    return asl_append_str_str(x, asl_cvt_int_decstr(y));
 end
 
-func append_int_str(x : integer, y : string) => string
+func asl_append_int_str(x : integer, y : string) => string
 begin
-    return append_str_str(cvt_int_decstr(x), y);
+    return asl_append_str_str(asl_cvt_int_decstr(x), y);
 end
 
-__operator2 ++ = append_str_str;
-__operator2 ++ = append_str_bool, append_bool_str;
-__operator2 ++ = append_str_real, append_real_str;
-__operator2 ++ = append_str_bits, append_bits_str;
-__operator2 ++ = append_str_int,  append_int_str;
+__operator2 ++ = asl_append_str_str;
+__operator2 ++ = asl_append_str_bool, asl_append_bool_str;
+__operator2 ++ = asl_append_str_real, asl_append_real_str;
+__operator2 ++ = asl_append_str_bits, asl_append_bits_str;
+__operator2 ++ = asl_append_str_int,  asl_append_int_str;
 
 ////////////////////////////////////////////////////////////////
 // 9.1 Standard integer functions and procedures
@@ -332,13 +332,13 @@ end
 // This is the recommended way to convert a bit vector to an integer.
 func UInt{N}(x : bits(N)) => integer {0 .. 2^N-1}
 begin
-    return cvt_bits_uint(x);
+    return asl_cvt_bits_uint(x);
 end
 
 // Convert a 2s complement bitvector to a signed integer.
 func SInt{N}(x : bits(N)) => integer {-(2^(N-1)) .. 2^(N-1)-1}
 begin
-    return cvt_bits_sint(x);
+    return asl_cvt_bits_sint(x);
 end
 
 // Maximum of two integers.
@@ -369,13 +369,13 @@ end
 // align down to nearest multiple of 2^y
 func AlignDown(x : integer, y : integer) => integer
 begin
-    return align_int(x, y);
+    return asl_align_int(x, y);
 end
 
 // align up to nearest multiple of 2^y
 func AlignUp(x : integer, y : integer) => integer
 begin
-    return align_int(x + 2^y - 1, y);
+    return asl_align_int(x + 2^y - 1, y);
 end
 
 // test whether x is even
@@ -397,25 +397,25 @@ end
 // Convert integer to rational value.
 func Real(x : integer) => real
 begin
-    return cvt_int_real(x);
+    return asl_cvt_int_real(x);
 end
 
 // Nearest integer, rounding towards negative infinity.
 func RoundDown(x : real) => integer
 begin
-    return round_down_real(x);
+    return asl_round_down_real(x);
 end
 
 // Nearest integer, rounding towards positive infinity.
 func RoundUp(x : real) => integer
 begin
-    return round_up_real(x);
+    return asl_round_up_real(x);
 end
 
 // Nearest integer, rounding towards zero.
 func RoundTowardsZero(x : real) => integer
 begin
-    return round_tozero_real(x);
+    return asl_round_tozero_real(x);
 end
 
 // Absolute value.
@@ -438,7 +438,7 @@ end
 
 func Sqrt(x : real) => real
 begin
-    return sqrt_real(x);
+    return asl_sqrt_real(x);
 end
 
 ////////////////////////////////////////////////////////////////
@@ -448,19 +448,19 @@ end
 // Return the concatenation of 1 or more copies of a bitvector.
 func Replicate{M}(x : bits(M), N : integer) => bits(M*N)
 begin
-    return replicate_bits(x, N);
+    return asl_replicate_bits(x, N);
 end
 
 // Return a bitvector consisting entirely of N '0' bits.
 func Zeros(N : integer) => bits(N)
 begin
-    return zeros_bits(N);
+    return asl_zeros_bits(N);
 end
 
 // Return a bitvector consisting entirely of '1' bits.
 func Ones(N : integer) => bits(N)
 begin
-    return ones_bits(N);
+    return asl_ones_bits(N);
 end
 
 // Return true if bitvector consists entirely of '0' bits.
@@ -479,14 +479,14 @@ end
 func ZeroExtend{M}(x : bits(M), N : integer) => bits(N)
 begin
     assert N >= M;
-    return zero_extend_bits(x, N);
+    return asl_zero_extend_bits(x, N);
 end
 
 // Sign-extend a bitvector (treated as 2s complement) to the same or a wider width.
 func SignExtend{M}(x : bits(M), N : integer) => bits(N)
 begin
     assert N >= M;
-    return sign_extend_bits(x, N);
+    return asl_sign_extend_bits(x, N);
 end
 
 // Extend a bitvector to a specified width, treating as signed or unsigned.
@@ -597,21 +597,21 @@ end
 func ShiftLeft(x : bits(N), distance : integer) => bits(N)
 begin
     assert distance IN {0 .. N-1};
-    return lsl_bits(x, distance);
+    return asl_lsl_bits(x, distance);
 end
 
 // Logical right shift, shifting zeroes into higher bits.
 func ShiftRightLogical(x : bits(N), distance : integer) => bits(N)
 begin
     assert distance IN {0 .. N-1};
-    return lsr_bits(x, distance);
+    return asl_lsr_bits(x, distance);
 end
 
 // Arithmetic right shift, shifting sign bits into higher bits.
 func ShiftRightArithmetic(x : bits(N), distance : integer) => bits(N)
 begin
     assert distance IN {0 .. N-1};
-    return asr_bits(x, distance);
+    return asl_asr_bits(x, distance);
 end
 
 func RotateLeft(x : bits(N), distance : integer) => bits(N)
@@ -688,24 +688,24 @@ end
 // Convert an integer to a decimal string, prefixing with '-' if negative.
 func DecStr(x : integer) => string
 begin
-    return cvt_int_decstr(x);
+    return asl_cvt_int_decstr(x);
 end
 
 func DecStr(x : bits(N)) => string
 begin
-    return DecStr(cvt_bits_uint(x));
+    return DecStr(asl_cvt_bits_uint(x));
 end
 
 // Convert an integer to a hexadecimal string, prefixing with '-' if negative.
 // The exact format of the string is implementation defined.
 func HexStr(x : integer) => string
 begin
-    return cvt_int_hexstr(x);
+    return asl_cvt_int_hexstr(x);
 end
 
 func HexStr(x : bits(N)) => string
 begin
-    return HexStr(cvt_bits_uint(x));
+    return HexStr(asl_cvt_bits_uint(x));
 end
 
 // Unreachable() is used to indicate that part of a subprogram should be unreachable.

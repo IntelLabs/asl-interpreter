@@ -678,9 +678,9 @@ let impure_prims =
     "print_int_dec";
     "print_bits_hex";
     "print_bits_dec";
-    "ram_init";
-    "ram_read";
-    "ram_write";
+    "asl_ram_init";
+    "asl_ram_read";
+    "asl_ram_write";
     "__TraceNext";
     "__TracePhysicalMemory";
     "__TraceVirtualMemory";

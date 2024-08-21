@@ -3,7 +3,7 @@
 
 func Test(x : integer, y : integer) => integer
 begin
-    return zdiv_int(x, y);
+    return asl_zdiv_int(x, y);
 end
 
 func main() => integer

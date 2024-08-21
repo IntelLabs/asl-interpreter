@@ -3,12 +3,12 @@
 
 func Test0() => bits(0)
 begin
-    return ones_bits(0);
+    return asl_ones_bits(0);
 end
 
 func Test6() => bits(6)
 begin
-    return ones_bits(6);
+    return asl_ones_bits(6);
 end
 
 func main() => integer

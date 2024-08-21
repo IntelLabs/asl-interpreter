@@ -3,17 +3,17 @@
 
 func Test0(x : bits(4)) => bits(0)
 begin
-    return replicate_bits(x, 0);
+    return asl_replicate_bits(x, 0);
 end
 
 func Test1(x : bits(4)) => bits(4)
 begin
-    return replicate_bits(x, 1);
+    return asl_replicate_bits(x, 1);
 end
 
 func Test5(x : bits(4)) => bits(20)
 begin
-    return replicate_bits(x, 5);
+    return asl_replicate_bits(x, 5);
 end
 
 func main() => integer

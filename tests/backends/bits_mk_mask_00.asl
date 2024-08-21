@@ -3,12 +3,12 @@
 
 func Test0(w : integer) => bits(0)
 begin
-    return mk_mask(w, 0);
+    return asl_mk_mask(w, 0);
 end
 
 func Test8(w : integer) => bits(8)
 begin
-    return mk_mask(w, 8);
+    return asl_mk_mask(w, 8);
 end
 
 func main() => integer

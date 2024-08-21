@@ -3,7 +3,7 @@
 
 func Test(x : bits(8), y : bits(8)) => bits(8)
 begin
-    return sub_bits(x, y);
+    return asl_sub_bits(x, y);
 end
 
 func main() => integer

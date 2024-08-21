@@ -74,9 +74,9 @@ let side_effect_tests : unit Alcotest.test_case list =
     ("length function", `Quick, test_side_effects globals prelude
        "func T(x : bits(N)) => integer begin return N; end" "T" ([], [], [], false));
     ("increment function", `Quick, test_side_effects globals prelude
-       "func T(x : integer) => integer begin return x + 1; end" "T" ([], [], ["add_int"], false));
+       "func T(x : integer) => integer begin return x + 1; end" "T" ([], [], ["asl_add_int"], false));
     ("destructive increment function", `Quick, test_side_effects globals prelude
-       "func T(x : integer) => integer begin var y = x; y = y + 1; return y; end" "T" ([], [], ["add_int"], false));
+       "func T(x : integer) => integer begin var y = x; y = y + 1; return y; end" "T" ([], [], ["asl_add_int"], false));
     ("global read function", `Quick, test_side_effects globals prelude
        "var X : integer; func T() => integer begin return X; end" "T" (["X"], [], [], false));
     ("global write function", `Quick, test_side_effects globals prelude
@@ -112,9 +112,9 @@ let impure_function_tests : unit Alcotest.test_case list =
        ""
        [ "UInt"; "SInt"; "Align"; "Min"; "Max"; "Abs";
          "SignedSat"; "UnsignedSat"; "BitCount"; "LowestSetBit"; "HighestSetBit";
-         "add_int"; "add_real"; "add_bits"; "add_bits_int";
+         "asl_add_int"; "asl_add_real"; "asl_add_bits"; "asl_add_bits_int";
        ]
-       [ "ram_init"; "ram_read"; "ram_write"; "__InitRAM"; "__ReadRAM"; "__WriteRAM";
+       [ "asl_ram_init"; "asl_ram_read"; "asl_ram_write"; "__InitRAM"; "__ReadRAM"; "__WriteRAM";
        ]
     );
     ("user-defined functions", `Quick, test_impure_functions globals prelude
