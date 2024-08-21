@@ -87,7 +87,7 @@ module GlobalEnv = struct
   let getEnum (env : t) (x : Ident.t) : value list option =
     Bindings.find_opt x env.enums
 
-  let addRecord (env : t) (x : Ident.t) (ps : Ident.t list) (fs : (Ident.t * AST.ty) list) : unit =
+  let add_record (env : t) (x : Ident.t) (ps : Ident.t list) (fs : (Ident.t * AST.ty) list) : unit =
     env.records <- Bindings.add x (ps, fs) env.records
 
   let get_record (env : t) (x : Ident.t) : (Ident.t list * (Ident.t * AST.ty) list) option =
@@ -234,7 +234,8 @@ and mk_uninitialized (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
   | Type_Constructor (tc, es) ->
       ( match GlobalEnv.get_record (Env.globals env) tc with
       | Some (ps, fs) ->
-          mkrecord
+          mk_record
+            tc
             (List.map (fun (f, ty) -> (f, mk_uninitialized loc env (expand_type ps ty es))) fs)
       | None ->
           ( match GlobalEnv.get_typedef (Env.globals env) tc with
@@ -272,7 +273,8 @@ and eval_unknown (loc : Loc.t) (env : Env.t) (x : AST.ty) : value =
       | None -> (
           match GlobalEnv.get_record (Env.globals env) tc with
           | Some (ps, fs) ->
-              mkrecord
+              mk_record
+                tc
                 (List.map (fun (f, ty) -> (f, eval_unknown loc env (expand_type ps ty es))) fs)
           | None ->
               ( match GlobalEnv.get_typedef (Env.globals env) tc with
@@ -373,7 +375,7 @@ and eval_expr (loc : Loc.t) (env : Env.t) (x : AST.expr) : value =
       in
       eval_concat loc vs
   | Expr_RecordInit (tc, _, fas) ->
-      mkrecord (List.map (fun (f, e) -> (f, eval_expr loc env e)) fas)
+      mk_record tc (List.map (fun (f, e) -> (f, eval_expr loc env e)) fas)
   | Expr_ArrayInit es ->
       let inits = List.mapi (fun i e -> (i, eval_expr loc env e)) es in
       init_array inits VUninitialized
@@ -579,8 +581,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
       if not (to_bool loc (eval_expr loc env e)) then
         raise (EvalError (loc, "assertion failure"))
   | Stmt_Throw (e, loc) ->
-      let ex = to_exc loc (eval_expr loc env e) in
-      raise (Throw ex)
+      raise (Throw (loc, eval_expr loc env e))
   | Stmt_Block (b, loc) -> eval_stmts env b
   | Stmt_If (c, t, els, (e, el), loc) ->
       let rec eval css d =
@@ -647,18 +648,18 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
   | Stmt_Try (tb, pos, catchers, odefault, loc) ->
       ( try eval_stmts env tb with
       | Return v -> raise (Return v)
-      | Throw (l, exc, fs) ->
+      | Throw (l, (VRecord (etc, fs) as exc)) ->
           let rec eval cs =
             ( match cs with
             | [] ->
                 ( match odefault with
-                | None -> raise (Throw (l, exc, fs))
+                | None -> raise (Throw (loc, exc))
                 | Some (s, _) -> eval_stmts env s
                 )
             | Catcher_Guarded (v, tc, b, loc) :: cs' ->
-                if exc = tc then
+                if etc = tc then
                   Env.nest env (fun env' ->
-                    Env.addLocalVar loc env' v (VExc (l, exc, fs));
+                    Env.addLocalVar loc env' v exc;
                     eval_stmts env' b
                     )
                 else
@@ -701,7 +702,7 @@ and eval_funcall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
       let module Tracer = (val (!tracer) : Tracer) in
       Tracer.trace_function ~is_prim:false ~is_return:true f [] [v];
       v
-  | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
+  | Throw (l, exc) -> raise (Throw (l, exc))
   | ex ->
     Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.to_string f);
     raise ex
@@ -712,7 +713,7 @@ and eval_proccall (loc : Loc.t) (env : Env.t) (f : Ident.t) (tvs : value list)
   ( try eval_call loc env f tvs vs with
   | Return None -> ()
   | Return (Some (VTuple [])) -> ()
-  | Throw (l, exc, fs) -> raise (Throw (l, exc, fs))
+  | Throw (l, exc) -> raise (Throw (l, exc))
   | ex ->
     Printf.printf "  %s: runtime exception thrown in %s\n%!" (Loc.to_string loc) (Ident.to_string f);
     raise ex
@@ -739,8 +740,8 @@ let build_constant_environment (ds : AST.declaration list) : GlobalEnv.t =
   List.iter
     (fun d ->
       match d with
-      | Decl_Record (v, ps, fs, loc) -> GlobalEnv.addRecord genv v ps fs
-      | Decl_Exception (v, fs, loc) -> GlobalEnv.addRecord genv v [] fs (* todo: mark as exception *)
+      | Decl_Record (v, ps, fs, loc) -> GlobalEnv.add_record genv v ps fs
+      | Decl_Exception (v, fs, loc) -> GlobalEnv.add_record genv v [] fs
       | Decl_Enum (qid, es, loc) ->
           let evs =
             if qid = boolean_ident then

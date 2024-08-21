@@ -14,16 +14,15 @@ type value =
   | VBits of Primops.bitvector
   | VMask of Primops.mask
   | VString of string
-  | VExc of (Loc.t * Ident.t * value Identset.Bindings.t)
   | VTuple of value list
-  | VRecord of value Identset.Bindings.t
+  | VRecord of (Ident.t * value Identset.Bindings.t)
   | VArray of (value Primops.ImmutableArray.t * value)
   | VRAM of Primops.ram
   | VUninitialized
 
 exception Return of value option
 exception EvalError of (Loc.t * string)
-exception Throw of (Loc.t * Ident.t * value Identset.Bindings.t)
+exception Throw of (Loc.t * value)
 
 val pp_value : Format.formatter -> value -> unit
 val string_of_value : value -> string
@@ -42,10 +41,9 @@ val to_int : Loc.t -> value -> int
 val to_bits : Loc.t -> value -> Primops.bitvector
 val to_mask : Loc.t -> value -> Primops.mask
 val to_string : Loc.t -> value -> string
-val to_exc : Loc.t -> value -> (Loc.t * Ident.t * value Identset.Bindings.t)
 val to_tuple : value list -> value
 val of_tuple : Loc.t -> value -> value list
-val mkrecord : (Ident.t * value) list -> value
+val mk_record : Ident.t -> (Ident.t * value) list -> value
 val get_field : Loc.t -> value -> Ident.t -> value
 val set_field : Loc.t -> value -> Ident.t -> value -> value
 val empty_array : value -> value

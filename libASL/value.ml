@@ -25,9 +25,8 @@ type value =
   | VBits of bitvector
   | VMask of mask
   | VString of string
-  | VExc of (Loc.t * Ident.t * value Identset.Bindings.t)
   | VTuple of value list
-  | VRecord of value Identset.Bindings.t
+  | VRecord of (Ident.t * value Identset.Bindings.t)
   | VArray of (value ImmutableArray.t * value)
   | VRAM of ram
   | VUninitialized
@@ -39,7 +38,7 @@ type value =
 
 exception Return of value option
 exception EvalError of (Loc.t * string)
-exception Throw of (Loc.t * Ident.t * value Identset.Bindings.t)
+exception Throw of (Loc.t * value)
 
 (****************************************************************)
 (** {2 Printer for values}                                      *)
@@ -48,22 +47,18 @@ exception Throw of (Loc.t * Ident.t * value Identset.Bindings.t)
 let rec pp_value (fmt : Format.formatter) (x : value) : unit =
   match x with
   | VBool b -> Format.pp_print_string fmt (prim_cvt_bool_str b)
-  | VEnum (e, _) -> Format.pp_print_string fmt (Ident.to_string e)
+  | VEnum (e, _) -> Ident.pp fmt e
   | VInt i -> Format.pp_print_string fmt (prim_cvt_int_decstr i)
   | VReal r -> Format.pp_print_string fmt (prim_cvt_real_str r)
   | VBits b -> Format.pp_print_string fmt (prim_cvt_bits_hexstr (Z.of_int b.n) b)
   | VMask m -> Format.pp_print_string fmt "todo: mask"
   | VString s -> Format.fprintf fmt "\"%s\"" s
-  | VExc (loc, exc, fs) ->
-      Format.fprintf fmt "%a{%a}@%a"
-        Ident.pp exc
-        (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Identset.Bindings.bindings fs)
-        Loc.pp loc
   | VTuple vs ->
     Format.fprintf fmt "(%a)"
       (Fun.flip Format_utils.commasep (pp_value fmt)) vs
-  | VRecord fs ->
-    Format.fprintf fmt "{%a}"
+  | VRecord (tc, fs) ->
+    Format.fprintf fmt "%a{%a}"
+      Ident.pp tc
       (Fun.flip Format_utils.commasep (pp_field_value fmt)) (Identset.Bindings.bindings fs)
   | VArray (a, _) ->
     Format.fprintf fmt "[%a]"
@@ -96,9 +91,8 @@ let rec eq_value (x : value) (y : value) : bool =
   | VBits x', VBits y' -> prim_eq_bits x' y'
   | VMask x', VMask y' -> x' = y'
   | VString x', VString y' -> String.equal x' y'
-  | VExc (_, x', xfs), VExc (_, y', yfs) -> Ident.equal x' y' && eq_value_fields xfs yfs
   | VTuple xs, VTuple ys -> List.for_all2 eq_value xs ys
-  | VRecord xfs, VRecord yfs -> eq_value_fields xfs yfs
+  | VRecord (xtc, xfs), VRecord (ytc, yfs) -> Ident.equal xtc ytc && eq_value_fields xfs yfs
   | VArray (xs, xdefault), VArray (ys, ydefault) ->
           eq_value xdefault ydefault && ImmutableArray.equal eq_value xs ys
   | VRAM x', VRAM y' -> x'.default = y'.default && x'.contents = y'.contents
@@ -145,11 +139,6 @@ let to_string (loc : Loc.t) (x : value) : string =
   | VString s -> s
   | _ -> raise (EvalError (loc, "string expected. Got " ^ string_of_value x))
 
-let to_exc (loc : Loc.t) (x : value) : Loc.t * Ident.t * value Identset.Bindings.t =
-  match x with
-  | VExc (loc, exc, fs) -> (loc, exc, fs)
-  | _ -> raise (EvalError (loc, "exception expected. Got " ^ string_of_value x))
-
 let to_tuple (xs : value list) : value = VTuple xs
 
 let of_tuple (loc : Loc.t) (x : value) : value list =
@@ -157,11 +146,12 @@ let of_tuple (loc : Loc.t) (x : value) : value list =
   | VTuple xs -> xs
   | _ -> raise (EvalError (loc, "tuple expected. Got " ^ string_of_value x))
 
-let mkrecord (fs : (Ident.t * value) list) : value = VRecord (Identset.mk_bindings fs)
+let mk_record (tc : Ident.t) (fs : (Ident.t * value) list) : value =
+  VRecord (tc, Identset.mk_bindings fs)
 
 let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
   match x with
-  | VRecord fs ->
+  | VRecord (tc, fs) ->
       ( match Identset.Bindings.find_opt f fs with
       | Some r -> r
       | None -> raise (EvalError (loc, "Field " ^ Ident.to_string f ^ " not found in " ^ string_of_value x))
@@ -170,7 +160,7 @@ let get_field (loc : Loc.t) (x : value) (f : Ident.t) : value =
 
 let set_field (loc : Loc.t) (x : value) (f : Ident.t) (v : value) : value =
   match x with
-  | VRecord fs -> VRecord (Identset.Bindings.add f v fs)
+  | VRecord (tc, fs) -> VRecord (tc, Identset.Bindings.add f v fs)
   | _ -> raise (EvalError (loc, "record expected. Got " ^ string_of_value x))
 
 let empty_array (d : value) : value = VArray (prim_empty_array, d)
