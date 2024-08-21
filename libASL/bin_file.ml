@@ -7,9 +7,7 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-open LibASL
-
- let byte (b : bytes) (o : int) : char = Bytes.get b o
+let byte (b : bytes) (o : int) : char = Bytes.get b o
 
 (****************************************************************)
 (** {2 Binary file loader}                                      *)

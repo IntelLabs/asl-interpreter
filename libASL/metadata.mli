@@ -6,7 +6,7 @@
  ****************************************************************)
 
 (** Write metadata to a json file *)
-val generate_callgraph : string -> LibASL.Asl_ast.declaration list -> unit
+val generate_callgraph : string -> Asl_ast.declaration list -> unit
 
 (****************************************************************
  * End

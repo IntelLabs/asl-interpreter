@@ -5,7 +5,6 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-open LibASL
 open Asl_utils
 open Identset
 

@@ -8,7 +8,12 @@
  * SPDX-Licence-Identifier: BSD-3-Clause
  ****************************************************************)
 
-open LibASL
+(* Turn off warnings about unused values.
+ * It is conveninte to have a full set of names for offsets, etc.
+ * as defined by ELF even if they are not being used by the current
+ * code.
+ *)
+[@@@warning "-32-34"]
 
 (****************************************************************)
 (** {2 ELF-independent helper types and functions}              *)

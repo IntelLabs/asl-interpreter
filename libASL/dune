@@ -27,12 +27,14 @@
    asl_visitor
    backend_c
    backend_c_new
-   backend_verilog
    backend_cpp
+   backend_verilog
+   bin_file
    builtin_idents
    commands
    configuration
    cpu
+   elf
    error
    eval
    flags
@@ -45,6 +47,7 @@
    lexersupport
    loadASL
    loc
+   metadata
    primops
    runtime
    runtime_c23
@@ -77,18 +80,6 @@
 (env (_ (odoc (warnings fatal))))
 
 (library
-  (public_name asli.bin_file)
-  (name bin_file)
-  (flags (:standard -w -27))
-  (modules bin_file)
-  (libraries asli.libASL))
-
-(plugin
-  (name asli.bin_file)
-  (libraries asli.bin_file)
-  (site (asli plugins)))
-
-(library
   (public_name asli.chekhov)
   (name chekhov)
   (flags (:standard -w -27))
@@ -98,30 +89,6 @@
 (plugin
   (name asli.chekhov)
   (libraries asli.chekhov)
-  (site (asli plugins)))
-
-(library
-  (public_name asli.elf)
-  (name elf)
-  (flags (:standard -w -27 -w -32 -w -34))
-  (modules elf)
-  (libraries asli.libASL))
-
-(plugin
-  (name asli.elf)
-  (libraries asli.elf)
-  (site (asli plugins)))
-
-(library
-  (public_name asli.metadata)
-  (name metadata)
-  (flags (:standard -w -27))
-  (modules metadata)
-  (libraries asli.libASL))
-
-(plugin
-  (name asli.metadata)
-  (libraries asli.metadata)
   (site (asli plugins)))
 
 (library
