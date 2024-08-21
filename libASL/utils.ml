@@ -199,6 +199,23 @@ let string_of_chars (cs : char list) : string =
   List.iter (Buffer.add_char buf) cs;
   Buffer.contents buf
 
+(** Delete all characters matching 'c' from string 'x' *)
+let drop_chars (x : string) (c : char) : string =
+  (* First calculate final length *)
+  let len = ref 0 in
+  String.iter (fun t -> if t <> c then len := !len + 1) x;
+
+  (* search for next character not matching c *)
+  let i = ref 0 in
+  let rec next_char (_ : int) : char =
+    let r = String.get x !i in
+    i := !i + 1;
+    if r = c then next_char 0 else r
+  in
+
+  (* create result *)
+  String.init !len next_char
+
 (****************************************************************
  * Compare related
  ****************************************************************)

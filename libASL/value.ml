@@ -194,27 +194,10 @@ let set_array (loc : Loc.t) (a : value) (i : value) (v : value) : value =
       raise (EvalError (loc, "array index expected. Got " ^ string_of_value i))
   | _ -> raise (EvalError (loc, "array expected. Got " ^ string_of_value a))
 
-(** Delete all characters matching 'c' from string 'x' *)
-let drop_chars (x : string) (c : char) : string =
-  (* First calculate final length *)
-  let len = ref 0 in
-  String.iter (fun t -> if t <> c then len := !len + 1) x;
-
-  (* search for next character not matching c *)
-  let i = ref 0 in
-  let rec next_char (_ : int) : char =
-    let r = String.get x !i in
-    i := !i + 1;
-    if r = c then next_char 0 else r
-  in
-
-  (* create result *)
-  String.init !len next_char
-
 let from_intLit (x : string) : value = VInt (Z.of_string x)
 
 let from_hexLit (x : string) : value =
-  VInt (Z.of_string_base 16 (drop_chars x '_'))
+  VInt (Z.of_string_base 16 (Utils.drop_chars x '_'))
 
 let int_one : value = VInt (Z.of_int 1)
 
@@ -228,11 +211,11 @@ let from_realLit (x : string) : value =
   VReal (Q.make numerator denominator)
 
 let from_bitsLit (x : string) : value =
-  let x' = drop_chars x ' ' in
+  let x' = Utils.drop_chars x ' ' in
   VBits (mkBits (String.length x') (Z.of_string_base 2 x'))
 
 let from_maskLit (x : string) : value =
-  let x' = drop_chars x ' ' in
+  let x' = Utils.drop_chars x ' ' in
   let n = String.length x' in
   let v = String.map (function 'x' -> '0' | c -> c) x' in
   let m = String.map (function 'x' -> '0' | c -> '1') x' in

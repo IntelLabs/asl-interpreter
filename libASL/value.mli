@@ -54,9 +54,6 @@ val get_array : Loc.t -> value -> value -> value
 val set_array : Loc.t -> value -> value -> value -> value
 
 
-(* todo: does not belong in this module *)
-val drop_chars : string -> char -> string
-
 (* convert AST nodes to values *)
 
 val from_intLit : string -> value

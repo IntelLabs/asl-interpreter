@@ -108,6 +108,9 @@ val string_drop : int -> string -> string
 (** Convert a char list to a string *)
 val string_of_chars : char list -> string
 
+(** Delete all characters matching 'c' from string 'x' *)
+val drop_chars : string -> char -> string
+
 (****************************************************************
  * Compare related
  ****************************************************************)

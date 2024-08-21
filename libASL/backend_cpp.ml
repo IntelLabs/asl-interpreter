@@ -17,8 +17,8 @@ open Identset
 open Builtin_idents
 open Utils
 
-let drop_spaces (x : string) : string = Value.drop_chars x ' '
-let drop_underscores (x : string) : string = Value.drop_chars x '_'
+let drop_spaces (x : string) : string = Utils.drop_chars x ' '
+let drop_underscores (x : string) : string = Utils.drop_chars x '_'
 
 let runtimes = ["ac"]
 

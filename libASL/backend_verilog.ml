@@ -15,8 +15,8 @@ open Builtin_idents
 open Format_utils
 open Utils
 
-let drop_spaces (x : string) : string = Value.drop_chars x ' '
-let drop_underscores (x : string) : string = Value.drop_chars x '_'
+let drop_spaces (x : string) : string = Utils.drop_chars x ' '
+let drop_underscores (x : string) : string = Utils.drop_chars x '_'
 
 let mangle (s : string) : string =
   (* detect whether s is a reserved name in System Verilog and rename to avoid conflict *)
