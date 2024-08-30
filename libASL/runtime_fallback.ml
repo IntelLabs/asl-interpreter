@@ -282,8 +282,8 @@ module Runtime : RT.RuntimeLib = struct
   let in_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) (m : Primops.mask) : unit =
       PP.fprintf fmt "((%a & %s) == %s)"
         RT.pp_expr x
-        (Z.format "%#x" m.v)
         (Z.format "%#x" m.m)
+        (Z.format "%#x" m.v)
 
   let append_bits (fmt : PP.formatter) (m : int) (n : int)  (x : RT.rt_expr) (y : RT.rt_expr) : unit =
       let result_width = m + n in
