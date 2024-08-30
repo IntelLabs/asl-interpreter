@@ -139,6 +139,12 @@ let from_option (ox : 'a option) (d : unit -> 'a) : 'a =
 let orelse_option (ox : 'a option) (f : unit -> 'a option) : 'a option =
   match ox with None -> f () | Some _ -> ox
 
+let map2_option (f : 'a -> 'b -> 'c) (o1 : 'a option) (o2 : 'b option) : 'c option =
+  ( match (o1, o2) with
+  | (Some x1, Some x2) -> Some (f x1 x2)
+  | _ -> None
+  )
+
 (* Examples:
  * concat_option [ Some [1;2]; None; Some [3] ];;
  * None

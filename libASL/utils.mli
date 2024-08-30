@@ -70,6 +70,8 @@ val from_option : 'a option -> (unit -> 'a) -> 'a
 
 val orelse_option : 'a option -> (unit -> 'a option) -> 'a option
 
+val map2_option : ('a -> 'b -> 'c) -> 'a option -> 'b option -> 'c option
+
 (* Examples:
  * concat_option [ Some [1;2]; None; Some [3] ];;
  * None
