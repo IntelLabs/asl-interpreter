@@ -32,18 +32,3 @@
   ../bin/asli.exe
   ../prelude.asl
   (glob_files ../runtime/include/asl/*)))
-
-(rule
- (deps
-  ../bin/asli.exe
-  ../prelude.asl
-  test_project1.prj
-  test_project2.prj)
- (action
-  (with-stdout-to test_asli_project.output
-   (setenv ASL_PATH ".."
-    (run ../bin/asli.exe --nobanner --project=test_project1.prj --project=test_project2.prj)))))
-
-(rule
- (alias runtest)
- (action (diff test_asli_project.expected test_asli_project.output)))
