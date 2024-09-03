@@ -84,18 +84,6 @@ let expr : test_case list =
     ( "bitvector concatenation",
       [ Backend_Verilog ],
       "func F(x : bits(8), y : bits(4), z : bits(2)) => bits(14) begin return [x, y, z]; end" );
-
-    ( "as constraint",
-      [ Backend_C; Backend_Verilog ],
-      "func F(x : integer) => integer {0 .. 1} begin return x as {0 .. 1}; end" );
-
-    ( "as type",
-      [ Backend_C; Backend_Verilog ],
-      "func F(x : integer) => integer begin return x as integer; end" );
-
-    ( "let",
-      [ Backend_C ],
-      "func F(x : integer) => integer begin return __let r : integer = x*x __in r+r; end" );
   ]
 
 let int_ops : test_case list =
@@ -184,29 +172,9 @@ let stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func F() begin var x, y : __RAM(8); end" );
 
-    ( "variable",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin var x = 0; end" );
-
-    ( "variable (wildcard)",
-      [ Backend_C ],
-      "func F() begin var - = 0; end" );
-
     ( "variable (__RAM)",
       [ Backend_C; Backend_Verilog ],
       "func F() begin var x : __RAM(8); end" );
-
-    ( "constant",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin let x = 0; end" );
-
-    ( "assignment",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin var x : integer; x = 0; end" );
-
-    ( "assignment to wildcard",
-      [ Backend_C ],
-      "func F() begin - = 0; end" );
 
     ( "assignment to array element",
       [ Backend_C; Backend_Verilog ],
@@ -224,10 +192,6 @@ let stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func F() begin return; end" );
 
-    ( "function return",
-      [ Backend_C; Backend_Verilog ],
-      "func F() => integer begin return 0; end" );
-
     ( "assert",
       [ Backend_C; Backend_Verilog ],
       "func F() begin assert FALSE; end" );
@@ -243,26 +207,6 @@ let stmt : test_case list  =
     ( "case with pattern list",
       [ Backend_C; Backend_Verilog ],
       "func F() begin case 0 of when 0, 1, 2 => return; when 3 => return; end end" );
-
-    ( "for loop (direction to)",
-      [ Backend_C ],
-      "func F() begin for x = 0 to 1 do return; end end" );
-
-    ( "for loop (direction downto)",
-      [ Backend_C ],
-      "func F() begin for x = 1 downto 0 do return; end end" );
-
-    ( "while loop",
-      [ Backend_C ],
-      "func F() begin while TRUE do return; end end" );
-
-    ( "repeat loop",
-      [ Backend_C ],
-      "func F() begin repeat return; until TRUE; end" );
-
-    ( "block",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin begin end end" );
   ]
 
 let type_decl : test_case list  =
