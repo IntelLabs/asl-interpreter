@@ -593,7 +593,6 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       | v when Ident.equal v true_ident -> constant fmt kw_true
       | v when Ident.equal v false_ident -> constant fmt kw_false
       | _ -> varname fmt v)
-  | Expr_Parens e -> expr loc fmt e
   | Expr_TApply (f, tes, es, NoThrow) -> funcall fmt f tes es loc
   | Expr_Concat (_, es) -> braces fmt (fun _ -> exprs loc fmt es)
   | Expr_Unknown t -> unknown loc fmt t

@@ -821,7 +821,6 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
         (expr loc) e
         (expr loc) b
   | Expr_Lit v -> valueLit loc fmt v
-  | Expr_Parens e -> expr loc fmt e
   | Expr_RecordInit (tc, [], fas) ->
       if List.mem tc !exception_tcs then begin
         PP.fprintf fmt "(ASL_exception_t){ ._%a={ .ASL_tag = tag_%a, " tycon tc tycon tc;

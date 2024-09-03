@@ -570,7 +570,7 @@ aexpr:
 | ARRAY LPAREN es = separated_nonempty_list(COMMA, expr) RPAREN
     { Expr_ArrayInit(es) }
 | LPAREN e = expr RPAREN
-    { Expr_Parens(e) }
+    { e }
 | LPAREN es = separated_nonempty2_list(COMMA, expr) RPAREN
     { Expr_Tuple(es) }
 | LBRACK es = separated_nonempty2_list(COMMA, expr) RBRACK

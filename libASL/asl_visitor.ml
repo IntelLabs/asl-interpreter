@@ -189,9 +189,6 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
     | Expr_Var v ->
         let v' = visit_var vis Read v in
         if v == v' then x else Expr_Var v'
-    | Expr_Parens e ->
-        let e' = visit_expr vis e in
-        if e == e' then x else Expr_Parens e'
     | Expr_TApply (f, tes, es, throws) ->
         let f' = visit_var vis Call f in
         let tes' = visit_exprs vis tes in

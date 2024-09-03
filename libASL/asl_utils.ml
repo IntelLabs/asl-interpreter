@@ -1108,7 +1108,6 @@ let rec is_safe_to_replicate (x : expr) : bool =
   | Expr_Field (e, f) -> is_safe_to_replicate e
   | Expr_Fields (e, fs) -> is_safe_to_replicate e
   | Expr_In (e, p) -> is_safe_to_replicate e
-  | Expr_Parens e -> is_safe_to_replicate e
   | Expr_Tuple es -> List.for_all is_safe_to_replicate es
   | Expr_Array (e, i) -> is_safe_to_replicate e && is_safe_to_replicate i
   | Expr_Concat (ws, es) -> List.for_all is_safe_to_replicate es

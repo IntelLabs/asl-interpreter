@@ -460,7 +460,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       nbsp fmt;
       pattern fmt p
   | Expr_Var v -> varname fmt v
-  | Expr_Parens e -> parens fmt (fun _ -> expr fmt e)
   | Expr_TApply (f, tes, [a], throws) when !resugar_operators && Bindings.mem f !unop_table ->
       let op = Bindings.find f !unop_table in
       unop fmt op;

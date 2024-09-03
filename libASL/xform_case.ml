@@ -88,7 +88,6 @@ let rec can_duplicate (x : AST.expr) : bool =
 
   | Expr_Field (e, f) -> can_duplicate e
   | Expr_Tuple es -> List.for_all can_duplicate es
-  | Expr_Parens e -> can_duplicate e
 
   | _ -> false
   )

@@ -381,9 +381,6 @@ and eval_expr (loc : Loc.t) (env : Env.t) (x : AST.expr) : value =
       init_array inits VUninitialized
   | Expr_In (e, p) -> from_bool (eval_pattern loc env (eval_expr loc env e) p)
   | Expr_Var v -> Env.getVar loc env v
-  | Expr_Parens e ->
-      let v = eval_expr loc env e in
-      v
   | Expr_TApply (f, tes, es, _) ->
       (* First deal with &&, || and IMPLIES all of which only evaluate
        * their second argument if they need to

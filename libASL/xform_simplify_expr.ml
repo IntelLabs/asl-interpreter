@@ -191,7 +191,6 @@ let rec to_poly (x : AST.expr) : polynomial =
   ( match x with
   | Expr_Lit (VInt k) -> mk_poly k []
   | Expr_Var v -> mk_poly Z.one [v]
-  | Expr_Parens e -> to_poly e
   | Expr_TApply (i, [], [x; y], _) when Ident.equal i add_int ->
     add_poly (to_poly x) (to_poly y)
   | Expr_TApply (i, [], [x; y], _) when Ident.equal i sub_int ->

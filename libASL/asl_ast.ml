@@ -79,7 +79,6 @@ and expr =
  | Expr_ArrayInit of expr list
  | Expr_In of expr * pattern (* pattern match *)
  | Expr_Var of Ident.t
- | Expr_Parens of expr
  | Expr_Tuple of expr list (* tuple *)
  | Expr_Unknown of ty
  | Expr_ImpDef of string option * ty

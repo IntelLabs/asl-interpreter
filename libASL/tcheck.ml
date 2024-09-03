@@ -556,7 +556,6 @@ let rec z3_of_expr (ctx : Z3.context) (ufs : (AST.expr * Z3.Expr.expr) list ref)
   | Expr_Var v ->
       let intsort = Z3.Arithmetic.Integer.mk_sort ctx in
       Z3.Expr.mk_const_s ctx (Ident.to_string v) intsort
-  | Expr_Parens y -> z3_of_expr ctx ufs y
   | Expr_Lit (VInt i) -> Z3.Arithmetic.Integer.mk_numeral_s ctx (Z.to_string i)
   (* todo: the following lines involving DIV are not sound *)
   | Expr_TApply
@@ -1589,9 +1588,6 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
                    (loc, "variable or getter functions", Ident.to_string v))
         )
       )
-  | Expr_Parens e ->
-      let e', ty = tc_expr env loc e in
-      (Expr_Parens e', ty)
   | Expr_TApply (f, tes, es, throws) ->
       let es', tys = List.split (tc_exprs env loc es) in
       let fty = tc_apply env loc "function" f es' tys in
