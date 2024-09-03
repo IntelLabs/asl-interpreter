@@ -183,6 +183,25 @@ __builtin func asl_ram_init(A : integer, N : integer, ram : __RAM(A), val : bits
 __builtin func asl_ram_read(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N);
 __builtin func asl_ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N)) => ();
 
+
+// backwards compatibility layer until the specs are updated to use the new asl_ prefix versions
+func ram_init(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
+begin
+    asl_ram_init(A, N, ram, val);
+end
+
+// backwards compatibility layer until the specs are updated to use the new asl_ prefix versions
+func ram_read(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N)
+begin
+    return asl_ram_read(A, N, ram, address);
+end
+
+// backwards compatibility layer until the specs are updated to use the new asl_ prefix versions
+func ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N))
+begin
+    asl_ram_write(A, N, ram, address, val);
+end
+
 func __InitRAM(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
 begin
     asl_ram_init(A, N, ram, val);
