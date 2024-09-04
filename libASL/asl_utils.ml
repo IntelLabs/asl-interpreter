@@ -479,7 +479,7 @@ let stmt_loc (x : AST.stmt) : Loc.t =
   | Stmt_Throw (v, loc) -> loc
   | Stmt_Block (b, loc) -> loc
   | Stmt_If (c, t, els, (e, el), loc) -> loc
-  | Stmt_Case (e, alts, ob, loc) -> loc
+  | Stmt_Case (e, oty, alts, ob, loc) -> loc
   | Stmt_For (v, f, dir, t, b, loc) -> loc
   | Stmt_While (c, b, loc) -> loc
   | Stmt_Repeat (b, c, pos, loc) -> loc

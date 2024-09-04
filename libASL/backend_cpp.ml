@@ -1150,7 +1150,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
   | Stmt_Block (ss, _) -> brace_enclosed_block fmt ss
-  | Stmt_Case (e, alts, ob, loc) ->
+  | Stmt_Case (e, oty, alts, ob, loc) ->
       vbox fmt (fun _ ->
           kw_switch fmt;
           nbsp fmt;

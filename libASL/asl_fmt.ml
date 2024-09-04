@@ -737,12 +737,16 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
             indented_block fmt e);
           cut fmt;
           kw_end fmt)
-  | Stmt_Case (e, alts, ob, loc) ->
+  | Stmt_Case (e, oty, alts, ob, loc) ->
       comments_before fmt loc;
       vbox fmt (fun _ ->
           kw_case fmt;
           nbsp fmt;
           expr fmt e;
+          ( match oty with
+          | Some t -> nbsp fmt; colon fmt; ty fmt t
+          | None -> ()
+          );
           nbsp fmt;
           kw_of fmt;
           comment_start fmt loc;

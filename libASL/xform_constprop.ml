@@ -495,7 +495,7 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
       | [], e' -> e'
       | S_Elsif_Cond (c', t', loc) :: els', e' ->
           [ Stmt_If (c', t', els', (e', el), loc) ])
-  | Stmt_Case (e, alts, odefault, loc) ->
+  | Stmt_Case (e, oty, alts, odefault, loc) ->
       let e' = xform_expr env e in
       let rec xform env alts =
         match alts with
@@ -545,9 +545,9 @@ and xform_stmt (env : Env.t) (x : AST.stmt) : AST.stmt list =
         (* If the first match is a guaranteed match, eliminate all the other (dead) branches *)
         ( match alts'' with
         | [Alt_Alt ([Pat_Wildcard], None, s, loc)] -> s
-        | _ -> [ Stmt_Case (e', alts'', odefault', loc) ]
+        | _ -> [ Stmt_Case (e', oty, alts'', odefault', loc) ]
         )
-      | _ -> [ Stmt_Case (e', alts', odefault', loc) ]
+      | _ -> [ Stmt_Case (e', oty, alts', odefault', loc) ]
       )
   | Stmt_For (v, start, dir, stop, b, loc) -> (
       let start' = xform_expr env start in

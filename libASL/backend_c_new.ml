@@ -607,6 +607,8 @@ and varoty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option)
 
 let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
+  | Pat_Lit (VInt c) -> PP.pp_print_string fmt (Z.format "%d" c)
+  | Pat_Lit (VBits c) -> PP.pp_print_string fmt (Z.format "0x%x" c.v)
   | Pat_Lit v -> valueLit loc fmt v
   | Pat_Const v ->
       if Ident.equal v true_ident then ident_str fmt "true"
@@ -729,34 +731,39 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       lexpr_assign loc fmt l r
   | Stmt_Block (ss, _) ->
       PP.fprintf fmt "{%a@,}" indented_block ss
-  | Stmt_Case (e, alts, ob, loc) ->
+  | Stmt_Case (e, Some ty, alts, ob, loc) ->
       vbox fmt (fun _ ->
-          PP.fprintf fmt "switch ";
-          parens fmt (fun _ -> expr loc fmt e);
-          nbsp fmt;
-          braces fmt (fun _ ->
-              indented fmt (fun _ ->
-                  map fmt
-                    (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
-                      if Option.is_some oc then
-                        raise (Error.Unimplemented (loc, "pattern_guard", fun fmt -> ()));
-                      List.iter (PP.fprintf fmt "case %a: " (pattern loc)) ps;
-                      Format.fprintf fmt "{%a    break;@,}@," indented_block ss)
-                    alts;
+          PP.fprintf fmt "switch (";
+          ( match ty with
+          | Type_Integer _
+          | Type_Bits _
+          -> Runtime.to_c_index fmt (mk_expr loc e)
+          | _
+          -> expr loc fmt e
+          );
+          PP.fprintf fmt ") {@,";
+          indented fmt (fun _ ->
+              map fmt
+                (fun (AST.Alt_Alt (ps, oc, ss, loc)) ->
+                  if Option.is_some oc then
+                    raise (Error.Unimplemented (loc, "pattern_guard", fun fmt -> ()));
+                  List.iter (PP.fprintf fmt "case %a:@," (pattern loc)) ps;
+                  Format.fprintf fmt "{%a@,    break;@,}@," indented_block ss)
+                alts;
 
-                  PP.fprintf fmt "default: {";
-                  ( match ob with
-                  | Some (b, bl) ->
-                      indented_block fmt b;
-                  | None ->
-                      indented fmt (fun _ ->
-                        Format.fprintf fmt "ASL_error_unmatched_case(\"%s\");@,"
-                          (String.escaped (Loc.to_string loc))
-                      )
-                  );
-                  PP.fprintf fmt "}"
-                );
-              cut fmt)
+              PP.fprintf fmt "default: {";
+              ( match ob with
+              | Some (b, bl) ->
+                  indented_block fmt b;
+              | None ->
+                  indented fmt (fun _ ->
+                    Format.fprintf fmt "ASL_error_unmatched_case(\"%s\");@,"
+                      (String.escaped (Loc.to_string loc))
+                  )
+              );
+              PP.fprintf fmt "@,}"
+            );
+          PP.fprintf fmt "@,}"
       )
   | Stmt_VarDecl (DeclItem_Var (v, _), i, loc)
   | Stmt_ConstDecl (DeclItem_Var (v, _), i, loc) ->
@@ -852,6 +859,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       PP.fprintf fmt "@,}"
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
+  | Stmt_Case _
   ->
     let pp fmt = FMT.stmt fmt x in
     raise (Error.Unimplemented (Loc.Unknown, "statement", pp))

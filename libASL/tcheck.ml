@@ -2195,13 +2195,13 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
       let els' = List.map (tc_s_elsif env) els in
       let e' = tc_stmts env el e in
       Stmt_If (c', t', els', (e', el), loc)
-  | Stmt_Case (e, alts, odefault, loc) ->
+  | Stmt_Case (e, _, alts, odefault, loc) ->
       let (e', ty') = tc_expr env loc e in
       let alts' = List.map (tc_alt env ty') alts in
       let odefault' =
         Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
       in
-      Stmt_Case (e', alts', odefault', loc)
+      Stmt_Case (e', Some ty', alts', odefault', loc)
   | Stmt_For (v, start, dir, stop, b, loc) ->
       let start' = check_expr env loc type_integer start in
       let stop' = check_expr env loc type_integer stop in

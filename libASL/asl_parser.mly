@@ -432,7 +432,7 @@ conditional_stmt:
 | IF c = expr THEN t = block els = list(s_elsif) f = optional_else END
     { Stmt_If(c, t, els, f, Range($symbolstartpos, $endpos)) }
 | CASE e = expr OF alts = nonempty_list(alt) ob = opt_otherwise END
-    { Stmt_Case(e, alts, ob, Range($symbolstartpos, $endpos)) }
+    { Stmt_Case(e, None, alts, ob, Range($symbolstartpos, $endpos)) }
 
 s_elsif:
 | ELSIF c = expr THEN b = block

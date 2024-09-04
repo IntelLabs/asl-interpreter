@@ -105,7 +105,7 @@ class simplifyCaseClass =
 
     method! vstmt s =
       ( match s with
-      | Stmt_Case (e, alts, odefault, loc)
+      | Stmt_Case (e, oty, alts, odefault, loc)
         when can_duplicate e && not (List.for_all is_simple_alt alts) ->
         let branches = List.map (alt_to_branch e) alts in
         let default = match odefault with

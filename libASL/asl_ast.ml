@@ -155,7 +155,7 @@ and stmt =
  | Stmt_TCall of Ident.t * expr list * expr list * can_throw * Loc.t (* procedure call with explicit type parameters *)
  | Stmt_VarDeclsNoInit of Ident.t list * ty * Loc.t
  | Stmt_If of expr * stmt list * s_elsif list * (stmt list * Loc.t) * Loc.t
- | Stmt_Case of expr * alt list * (stmt list * Loc.t) option * Loc.t
+ | Stmt_Case of expr * ty option * alt list * (stmt list * Loc.t) option * Loc.t
  | Stmt_For of Ident.t * expr * direction * expr * stmt list * Loc.t
  | Stmt_While of expr * stmt list * Loc.t
  | Stmt_Repeat of stmt list * expr * Loc.pos * Loc.t

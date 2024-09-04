@@ -106,7 +106,8 @@ class monoClass
         let constraints_combinations = cartesian_product constraints in
         let* when_branches = flatten_map_option (self#constraints_to_when_branch loc stmt) constraints_combinations in
         let params' = List.map (fun p -> AST.Expr_Var p) params in
-        Some (AST.Stmt_Case ((Expr_Tuple params'), when_branches, None, loc))
+        let tys = List.map (fun p -> Option.value (self#get_type p) ~default:type_integer) params in
+        Some (AST.Stmt_Case ((Expr_Tuple params'), Some (AST.Type_Tuple tys), when_branches, None, loc))
       ) else (
         None
       )

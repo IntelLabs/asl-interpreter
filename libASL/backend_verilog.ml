@@ -824,7 +824,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
             indented_block fmt e);
           cut fmt;
           kw_end fmt)
-  | Stmt_Case (e, alts, ob, loc) ->
+  | Stmt_Case (e, oty, alts, ob, loc) ->
       vbox fmt (fun _ ->
           kw_casez fmt;
           nbsp fmt;

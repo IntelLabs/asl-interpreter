@@ -589,7 +589,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
             else eval css' d
       in
       eval (S_Elsif_Cond (c, t, loc) :: els) e
-  | Stmt_Case (e, alts, odefault, loc) ->
+  | Stmt_Case (e, oty, alts, odefault, loc) ->
       let rec eval v alts =
         match alts with
         | [] -> (

@@ -119,7 +119,7 @@ let rec canthrow_stmt (x : AST.stmt) : status =
       let rs = List.map (function AST.S_Elsif_Cond(e, b, _) -> status_seq (canthrow_expr e) (canthrow_stmts b)) els' in
       let r = canthrow_stmts e in
       List.fold_left status_merge r rs
-  | Stmt_Case (e, alts, ob, loc) ->
+  | Stmt_Case (e, oty, alts, ob, loc) ->
       let r = canthrow_expr e in
       let rs = List.map
           (function AST.Alt_Alt (ps, og, b, _) ->
