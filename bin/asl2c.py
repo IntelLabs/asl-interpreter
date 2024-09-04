@@ -18,6 +18,7 @@ import argparse
 import os
 import os.path
 import pathlib
+import shutil
 import string
 import subprocess
 import sys
@@ -441,6 +442,7 @@ def main() -> int:
     parser.add_argument("--build", help="Compile and link the ASL code", action='store_true')
     parser.add_argument("--run", help="Compile, link and run the ASL code", action='store_true')
     parser.add_argument("--verbose", "-v", help="Verbose", action='store_true')
+    parser.add_argument("--save-temps", help="Save intermediate compilation results", action='store_true')
     parser.add_argument('asl_files', nargs='*', metavar="<.asl file>", help="ASL input files (compile/link/run only)")
     args = parser.parse_args()
 
@@ -478,12 +480,12 @@ def main() -> int:
         asli_cmd.extend(args.asl_files)
         run(asli_cmd)
     elif args.run:
-        with tempfile.TemporaryDirectory() as working_directory:
-            # working_directory = tempfile.mkdtemp(prefix="asltest.") # use this while testing to prevent file being deleted
-            report(f"# In temporary directory {working_directory}")
-            script = mk_script(args, working_directory)
-            exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
-            run([exe_file])
+        working_directory = tempfile.mkdtemp(prefix="asltest.") # use this while testing to prevent file being deleted
+        report(f"# In temporary directory {working_directory}")
+        script = mk_script(args, working_directory)
+        exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
+        run([exe_file])
+        if not args.save_temps: shutil.rmtree(working_directory)
     else:
         report(f"# mkdir -p {working_directory}")
         os.makedirs(working_directory, exist_ok=True)
