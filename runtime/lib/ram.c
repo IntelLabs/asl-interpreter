@@ -45,7 +45,7 @@ static uint8_t *
 page_alloc(uint8_t init_val)
 {
         void *p = malloc(PAGE_SZ);
-        runtime_error_if(!p, "cannot allocate a page");
+        ASL_runtime_error_if(!p, "cannot allocate a page");
         memset(p, init_val, PAGE_SZ);
         return p;
 }
@@ -54,7 +54,7 @@ static uint8_t *
 table_alloc()
 {
         void *p = calloc(ENTRIES, TABLE_ENTRY_SZ);
-        runtime_error_if(!p, "cannot allocate a table");
+        ASL_runtime_error_if(!p, "cannot allocate a table");
         return p;
 }
 
@@ -112,7 +112,7 @@ void
 ASL_ram_free(struct ASL_ram **p)
 {
         ASL_ram_t ram = *p;
-        runtime_error_if(!ram, "cannot deallocate RAM");
+        ASL_runtime_error_if(!ram, "cannot deallocate RAM");
 
         table_free(ram->p, 1);
         free(ram);
@@ -121,7 +121,7 @@ ASL_ram_free(struct ASL_ram **p)
 void
 ASL_ram_init(int64_t address_size, int64_t size, ASL_ram_t ram, uint64_t val)
 {
-        runtime_error_if(!ram, "cannot initialize RAM");
+        ASL_runtime_error_if(!ram, "cannot initialize RAM");
 
         table_free(ram->p, 1);
         ram->p = 0;
@@ -132,8 +132,8 @@ uint64_t
 ASL_ram_read(int64_t address_size, int64_t size, ASL_ram_t ram,
              uint64_t address)
 {
-        runtime_error_if(!ram, "cannot read RAM");
-        runtime_error_if(size > 8, "unsupported read access size");
+        ASL_runtime_error_if(!ram, "cannot read RAM");
+        ASL_runtime_error_if(size > 8, "unsupported read access size");
 
         uint64_t val = 0;
         for (uint64_t i = 0; i < size; ++i) {
@@ -147,8 +147,8 @@ void
 ASL_ram_write(int64_t address_size, int64_t size, ASL_ram_t ram,
               uint64_t address, uint64_t val)
 {
-        runtime_error_if(!ram, "cannot write RAM");
-        runtime_error_if(size > 8, "unsupported write access size");
+        ASL_runtime_error_if(!ram, "cannot write RAM");
+        ASL_runtime_error_if(size > 8, "unsupported write access size");
 
         for (uint64_t i = 0; i < size; ++i) {
                 uint8_t *page = page_lookup(ram, address + i);
