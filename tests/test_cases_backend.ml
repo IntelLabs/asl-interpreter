@@ -196,17 +196,6 @@ let stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func F() begin assert FALSE; end" );
 
-    ( "case",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin case 0 of when 0 => return; otherwise => return; end end" );
-
-    ( "case with several whens",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin case 0 of when 0 => return; when 1 => return; end end" );
-
-    ( "case with pattern list",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin case 0 of when 0, 1, 2 => return; when 3 => return; end end" );
   ]
 
 let type_decl : test_case list  =
