@@ -157,6 +157,15 @@ base_script = """
 // those functions) so delete any unreachable functions
 :filter_reachable_from exports
 
+// Check that all definitions are bitwidth-monomorphic and report a useful
+// error message if they are not.
+// The code generator will produce an error message if it finds a call
+// to a polymorphic functions but we can produce a much more useful error message
+// if we scan for all polymorphic functions and organize the list of functions
+// into a call tree so that you can see which functions are at the roots of
+// the tree (and therefore are the ones that you need to fix).
+:check_monomorphization --fatal --verbose
+
 // Generate C code from the remaining definitions
 //
 // This produces multiple files that will be prefixed by the basename and saved
