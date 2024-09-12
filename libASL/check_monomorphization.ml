@@ -20,32 +20,26 @@ let is_polymorphic_decl (d : AST.declaration) : bool =
   | _ -> false
   )
 
-let show_dependency_graph (ds : AST.declaration list) (names : IdentSet.t) : unit =
-
-  (* build callgraph and reverse callgraph *)
-  let callees = ref Bindings.empty in
-  let callers = ref Bindings.empty in
-  List.iter
-    (fun d ->
-       let x = Option.get (decl_name d) in
-       let ys = IdentSet.inter (calls_of_decl d) names in
-       let old = Bindings.find_opt x !callees |> Option.value ~default:IdentSet.empty in
-       callees := Bindings.add x (IdentSet.union old ys) !callees;
-       IdentSet.iter (fun y -> callers := addToBindingSet y x !callers) ys;
-    )
-    ds;
-
-  (* Find the root of each chain of monomorphization failures *)
+let show_dependency_graph
+  (callers : IdentSet.t Bindings.t)
+  (callees : IdentSet.t Bindings.t)
+  (names : IdentSet.t)
+  : unit
+  =
+  (* Find callers of the top of each chain of monomorphization failures.
+   * This is the first function in the chain that does not have a monomorphization
+   * failure.
+   *)
   let roots = ref IdentSet.empty in
+
   let rec find_roots (x : Ident.t) : unit =
-    ( match Bindings.find_opt x !callers with
-    | None -> (* no caller: this is a root *)
-        roots := IdentSet.add x !roots
-    | Some ys when IdentSet.is_empty ys -> (* no caller: this is a root *)
-        roots := IdentSet.add x !roots
-    | Some ys ->
-        IdentSet.iter find_roots ys
-    )
+    let parents = Option.value ~default:IdentSet.empty (Bindings.find_opt x callers) in
+    let poly_functions = IdentSet.inter parents names in
+    if IdentSet.is_empty poly_functions then begin
+      roots := IdentSet.union !roots parents
+    end else begin
+      IdentSet.iter find_roots poly_functions
+    end
   in
   IdentSet.iter find_roots names;
 
@@ -54,9 +48,9 @@ let show_dependency_graph (ds : AST.declaration list) (names : IdentSet.t) : uni
     for _ = 1 to 2*depth do
       print_char ' '
     done;
-    Printf.printf "%s\n" (Ident.to_string x);
-    let ys = Bindings.find_opt x !callees |> Option.value ~default:IdentSet.empty in
-    IdentSet.iter (display_tree (depth+1)) ys
+    Printf.printf "%s\n" (Ident.name x);
+    let ys = Bindings.find_opt x callees |> Option.value ~default:IdentSet.empty in
+    IdentSet.iter (display_tree (depth+1)) (IdentSet.inter names ys)
   in
   IdentSet.iter (display_tree 2) !roots
 
@@ -75,14 +69,26 @@ let _ =
       let seriousness = if !fatal then "ERROR" else "WARNING" in
       Printf.printf "%s: Monomorphization failed for the following definitions.\n"
         seriousness;
-      Printf.printf "This will cause the C backend to fail.";
+      Printf.printf "This will cause code generation to fail.\n\n";
 
       let names = List.filter_map decl_name polymorphic |> IdentSet.of_list in
-      (if !verbose then
-        show_dependency_graph polymorphic names
-      else
-        IdentSet.iter (fun x -> Printf.printf "%s\n" (Ident.to_string x)) names
-      );
+      if !verbose then begin
+        (* build callgraph and reverse callgraph *)
+        let callees = ref Bindings.empty in
+        let callers = ref Bindings.empty in
+        List.iter
+          (fun d ->
+             let x = Option.get (decl_name d) in
+             let ys = IdentSet.inter (calls_of_decl d) names in
+             let old = Bindings.find_opt x !callees |> Option.value ~default:IdentSet.empty in
+             callees := Bindings.add x (IdentSet.union old ys) !callees;
+             IdentSet.iter (fun y -> callers := addToBindingSet y x !callers) ys;
+          )
+          !Commands.declarations;
+        show_dependency_graph !callers !callees names
+      end else begin
+        IdentSet.iter (fun x -> Printf.printf "%s\n" (Ident.name x)) names
+      end;
       not !fatal
     ) else (
       true
