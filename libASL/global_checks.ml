@@ -139,7 +139,8 @@ let rec canthrow_stmt (x : AST.stmt) : status =
           (status_merge (canthrow_expr c) (canthrow_stmts b))
   | Stmt_Repeat (b, c, pos, loc) ->
           (status_merge (canthrow_stmts b) (canthrow_expr c))
-  | Stmt_Try (b, pos, cs, ob, loc) -> maythrow (* pessimistic assumption *)
+  | Stmt_Try (b, pos, cs, ob, loc) ->
+          if Option.is_some ob then ok else maythrow
   )
 
 and canthrow_stmts (xs : AST.stmt list) : status =
@@ -202,10 +203,15 @@ class check_exception_class =
               | _ -> ()
               );
               if should_return && not s.ret then begin
-                    let msg = Format.asprintf "Function definition '%a' does not return a value"
+                if s = throw then begin
+                    Format.printf "Warning: Function definition '%a' should return a value but always throws an exception instead@,"
+                        FMT.funname f
+                end else begin
+                    let msg = Format.asprintf "Function definition '%a' should return a value but does not"
                         FMT.funname f
                     in
                     raise (Error.TypeError (loc, msg))
+                end
               end
           end;
           SkipChildren

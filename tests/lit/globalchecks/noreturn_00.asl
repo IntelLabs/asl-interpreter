@@ -3,6 +3,6 @@
 
 func T() => integer
 begin
-// CHECK: Type error: Function definition 'T.0' does not return a value
+// CHECK: Type error: Function definition 'T.0' should return a value but does not
 end
 

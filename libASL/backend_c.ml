@@ -1197,7 +1197,6 @@ let formal (loc : Loc.t) (fmt : PP.formatter) (x : Ident.t * AST.ty) : unit =
   varty loc fmt v t
 
 let function_header (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (fty : AST.function_type) : unit =
-  (if fty.throws = AlwaysThrow then Format.fprintf fmt "__attribute__((noreturn)) ");
   PP.pp_print_option
     ~none:(fun _ _ -> kw_void fmt; nbsp fmt; varname fmt f)
     (fun _ t -> varty loc fmt f t) fmt fty.rty;
