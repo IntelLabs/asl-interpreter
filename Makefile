@@ -26,11 +26,13 @@ build::
 
 install::
 	$(DUNE) build @install
+	${RM} -r ${OPAM_SWITCH_PREFIX}/lib/asli/*
 	$(DUNE) install
 
 uninstall::
 	$(DUNE) build @install
 	$(DUNE) uninstall
+	${RM} -r ${OPAM_SWITCH_PREFIX}/lib/asli/*
 
 publish::
 	$(DUNE) build @install
