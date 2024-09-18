@@ -163,7 +163,7 @@ ASL_zero_extend_bits_64_64(int width, ASL_bits64_t x, ASL_int_t n)
 ASL_bits64_t
 ASL_sign_extend_bits_64_64(int width, ASL_bits64_t x, ASL_int_t n)
 {
-        if (x & (1 << (width - 1))) {
+        if (x & (((uint64_t)1) << (width - 1))) {
             ASL_bits64_t ext = ASL_mk_mask_64(n) & ~ASL_mk_mask_64(width);
             return x | ext;
         } else {
