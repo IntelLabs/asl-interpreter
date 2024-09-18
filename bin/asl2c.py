@@ -465,9 +465,9 @@ def main() -> int:
     asli = str(asli)
 
     if args.print_c_flags:
-        print(get_c_flags(asli, args.backend))
+        print(' '.join(get_c_flags(asli, args.backend)))
     elif args.print_ld_flags:
-        print(get_ld_flags(asli, args.backend))
+        print(' '.join(get_ld_flags(asli, args.backend)))
     elif not args.build:
         print(mk_script(args, args.output_dir))
     elif args.run and args.backend == "interpreter":
