@@ -127,11 +127,12 @@ rule token = parse
     | '\'' (['0' '1' ' ']* as bits) '\''
       { let x = Utils.drop_chars bits ' ' in
         BITSLIT(Primops.mkBits (String.length x) (Z.of_string_base 2 x)) }
-    | (['0'-'9']+ as len) '\'' 'b' (['0'-'1']+ as bits)
-      { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 2 bits)) }
-    | (['0'-'9']+ as len) '\'' 'd' (['0'-'9']+ as digits)
+    | (['0'-'9']+ as len) '\'' 'b' (['0'-'1' '_']+ as bits)
+      { let x = Utils.drop_chars bits '_' in
+        BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 2 x)) }
+    | (['0'-'9']+ as len) '\'' 'd' (['0'-'9' '_']+ as digits)
       { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 10 digits)) }
-    | (['0'-'9']+ as len) '\'' 'x' (['0'-'9' 'A'-'F' 'a'-'f']+ as nibbles)
+    | (['0'-'9']+ as len) '\'' 'x' (['0'-'9' 'A'-'F' 'a'-'f' '_']+ as nibbles)
       { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 16 nibbles)) }
     | '\'' (['0' '1' 'x' ' ']* as bits) '\''
       { MASKLIT(bits) }
