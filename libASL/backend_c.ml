@@ -420,6 +420,7 @@ let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
     let limbs = List.init
         num_limbs
         (fun i -> bit_to_hex (Z.extract x.v (i * 64) 64))
+      |> List.rev
     in
     asl_keyword fmt "bits";
     parens fmt (fun _ ->
