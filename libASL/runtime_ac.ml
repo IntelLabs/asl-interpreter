@@ -60,8 +60,8 @@ module Runtime : RT.RuntimeLib = struct
     PP.fprintf fmt "static_cast<int>(%s)" (Z.format "%#x" x)
 
   let pos_int_literal (n : int) (fmt : PP.formatter) (x : Z.t) : unit =
-    let num_limbs = (n + 63) / 64 in
-    let limbs = split_int x num_limbs 64 in
+    let num_limbs = (n + 31) / 32 in
+    let limbs = split_int x num_limbs 32 in
     PP.fprintf fmt "ac::bit_fill<%a>((int [%d]){"
       ty_sint n
       num_limbs;
@@ -87,8 +87,8 @@ module Runtime : RT.RuntimeLib = struct
         x.n
         constant_u32 x.v
     end else begin
-      let num_limbs = (x.n + 63) / 64 in
-      let limbs = split_int x.v num_limbs 64 in
+      let num_limbs = (x.n + 31) / 32 in
+      let limbs = split_int x.v num_limbs 32 in
       PP.fprintf fmt "ac::bit_fill<%a>((int [%d]){"
         ty_uint x.n
         num_limbs;
