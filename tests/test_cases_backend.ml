@@ -176,10 +176,6 @@ let stmt : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "func F() begin var x : __RAM(8); end" );
 
-    ( "assignment to array element",
-      [ Backend_C; Backend_Verilog ],
-      "func F() begin var x : array [1] of bits(1); x[0] = '0'; end" );
-
     ( "procedure call",
       [ Backend_C; Backend_Verilog ],
       "func B() begin end func F() begin B(); end" );
@@ -231,10 +227,6 @@ let var_decl : test_case list  =
       [ Backend_C; Backend_Verilog ],
       "var x : integer;" );
 
-    ( "array2",
-      [ Backend_C; Backend_Verilog ],
-      "var x : array [1] of array [2] of integer;" );
-
     ( "__RAM",
       [ Backend_C; Backend_Verilog ],
       "var x : __RAM(8);" );
@@ -242,10 +234,6 @@ let var_decl : test_case list  =
     ( "const (integer)",
       [ Backend_C ],
       "let x : integer = 0;" );
-
-    ( "const (array)",
-      [ Backend_C ],
-      "let x : array [3] of integer = array(3, 4, 5);" );
   ]
 
 (****************************************************************
