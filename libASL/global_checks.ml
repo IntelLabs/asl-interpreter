@@ -27,7 +27,7 @@ let get (f : Ident.t) (bs : IdentSet.t Bindings.t) : IdentSet.t =
 let verbose = ref false
 
 (****************************************************************
- * Check that functions have correct throw/nothrow markers
+ * Check that function definitions have correct throw/nothrow markers
  *
  * This is an experimental extensions where function definitions
  * must be marked with whether or not they can throw exceptions
@@ -41,7 +41,7 @@ let verbose = ref false
  * that are missing return statements.
  ****************************************************************)
 
-let check_exception_markers = ref false
+let check_defn_markers = ref false
 
 (* The core of this checker is checking functions for exceptions, return or fail
  * instead of following the usual control flow.
@@ -164,7 +164,7 @@ and canthrow_stmts (xs : AST.stmt list) : status =
                     status_seq r s
     )
 
-class check_exception_class =
+class check_defn_exception_class =
   object
     inherit Asl_visitor.nopAslVisitor
 
@@ -218,6 +218,52 @@ class check_exception_class =
       | _ ->
           SkipChildren
       )
+  end
+
+(****************************************************************
+ * Check that function calls have correct throw/nothrow markers
+ *
+ * This is an experimental extensions where function definitions
+ * must be marked with whether or not they can throw exceptions
+ * and function calls must have a matching marker.
+ ****************************************************************)
+
+let check_call_markers = ref false
+
+class exn_call_checks_class (markers : (AST.can_throw * Loc.t) Bindings.t) (loc : Loc.t) =
+  object (self)
+    inherit Asl_visitor.nopAslVisitor
+
+    method check_marker (f : Ident.t) (call_loc : Loc.t) (call_marker : AST.can_throw) : unit =
+      let (defn_marker, defn_loc) = Option.value (Bindings.find_opt f markers) ~default:(NoThrow, Loc.Unknown) in
+      if call_marker <> defn_marker then begin
+          let msg = Format.asprintf "Exception marker '%a' on call to '%a' does not match exception marker '%a' on definition at %a"
+                    FMT.throws call_marker
+                    FMT.funname f
+                    FMT.throws defn_marker
+                    FMT.loc defn_loc
+          in
+          raise (Error.TypeError (loc, msg))
+      end
+
+    method! vexpr x =
+      ( match x with
+      | Expr_TApply (f, _, _, throws) ->
+          self#check_marker f loc throws
+      | _ ->
+          ()
+      );
+      DoChildren
+
+    method! vstmt x =
+      ( match x with
+      | Stmt_TCall (f, _, _, throws, loc) ->
+          self#check_marker f loc throws
+      | _ ->
+          ()
+      );
+      SkipChildren
+
   end
 
 (****************************************************************
@@ -469,30 +515,35 @@ class rethrow_checks_class (effects : effects_class) (loc : Loc.t) =
   end
 
 (** Perform global checks on the specification *)
-class global_checks_class (effects : effects_class) (loc : Loc.t) =
+class global_checks_class (effects : effects_class) (markers : (AST.can_throw * Loc.t) Bindings.t) (loc : Loc.t) =
   object
     inherit Asl_visitor.nopAslVisitor
 
     method! vexpr x =
       ignore (check_expression_order loc effects x);
       ignore (Asl_visitor.visit_expr (new rethrow_checks_class effects loc) x);
+      if !check_call_markers then begin
+          ignore (Asl_visitor.visit_expr (new exn_call_checks_class markers loc :> Asl_visitor.aslVisitor) x)
+      end;
       SkipChildren
 
     method! vstmt x =
       ignore (Asl_visitor.visit_stmt (new rethrow_checks_class effects (stmt_loc x)) x);
+      if !check_call_markers then begin
+          ignore (Asl_visitor.visit_stmt (new exn_call_checks_class markers loc :> Asl_visitor.aslVisitor) x)
+      end;
       DoChildren
   end
 
 (** Wrapper around global_checks_class that adds location information *)
-class global_checks_class_wrapper (effects : effects_class) =
+class global_checks_class_wrapper (effects : effects_class) (markers : (AST.can_throw * Loc.t) Bindings.t) =
   object
     inherit Asl_visitor.nopAslVisitor
 
     method! vstmt x =
-      ignore (Asl_visitor.visit_stmt (new global_checks_class effects (stmt_loc x)) x);
+      ignore (Asl_visitor.visit_stmt (new global_checks_class effects markers (stmt_loc x)) x);
       SkipChildren
   end
-
 
 let check_decls (ds : AST.declaration list) : AST.declaration list =
   let genv = Eval.build_constant_environment ds in
@@ -503,14 +554,24 @@ let check_decls (ds : AST.declaration list) : AST.declaration list =
     List.exists (fun name -> Ident.matches v ~name) Value.impure_prims
   in
   let effects = new effects_class is_constant is_impure_prim ds in
-  let checker = new global_checks_class_wrapper effects in
-  let exn_checker = new check_exception_class in
+
+  let defn_marker (d : AST.declaration) : (Ident.t * (AST.can_throw * Loc.t)) option =
+      ( match d with
+      | Decl_FunType (f, fty, loc) -> Some (f, (fty.throws, loc))
+      | Decl_FunDefn (f, fty, _, loc) -> Some (f, (fty.throws, loc))
+      | _ -> None
+      )
+  in
+  let markers = List.map defn_marker ds |> Utils.flatten_option |> Identset.mk_bindings in
+
+  let checker = new global_checks_class_wrapper effects markers in
+  let exn_defn_checker = new check_defn_exception_class in
   let error_count = ref 0 in
   let check_decl d =
     ( try
         ignore (Asl_visitor.visit_decl checker d);
-        if !check_exception_markers then begin
-            ignore (Asl_visitor.visit_decl exn_checker d)
+        if !check_defn_markers then begin
+            ignore (Asl_visitor.visit_decl exn_defn_checker d)
         end
     with
     | Error.TypeError _ as exn

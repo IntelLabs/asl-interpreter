@@ -7,7 +7,8 @@
 
 module AST = Asl_ast
 
-val check_exception_markers : bool ref
+val check_defn_markers : bool ref
+val check_call_markers : bool ref
 
 val check_decls : AST.declaration list -> AST.declaration list
 
