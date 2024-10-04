@@ -5,4 +5,3 @@
 x == 0
 // CHECK: File "foobar.asl", line 42, characters 0-1:
 // CHECK: Syntax error before 'x'.
-// CHECK: A top level declaration was expected at this point.

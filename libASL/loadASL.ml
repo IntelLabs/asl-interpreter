@@ -56,15 +56,12 @@ let env (checkpoint : 'a Interp.checkpoint) : 'a Interp.env =
    (This function is based on an example in the Menhir documentation.)
 *)
 
-let state (checkpoint : _ Interp.checkpoint) : int =
+let state (checkpoint : _ Interp.checkpoint) : int option =
   ( match Interp.top (env checkpoint) with
   | Some (Interp.Element (s, _, _, _)) ->
-      Interp.number s
+      Some (Interp.number s)
   | None ->
-      (* Hmm... The parser is in its initial state. The incremental API
-         currently lacks a way of finding out the number of the initial
-         state. It is usually 0, so we return 0. *)
-      0
+      None
   )
 
 (* [show text (pos1, pos2)] displays a range of the input text [text]
@@ -109,7 +106,11 @@ let fail (text : string) (buffer : (Loc.pos * Loc.pos) ErrorReports.buffer) (che
   (* Show the tokens just before and just after the error. *)
   let indication = Printf.sprintf "Syntax error %s.\n" (ErrorReports.show (show text) buffer) in
   (* Fetch an error message from the database. *)
-  let message = ParserMessages.message (state checkpoint) in
+  let message = ( match state checkpoint with
+                | Some msgid -> ParserMessages.message msgid
+                | None -> ""
+                )
+  in
   (* Expand away the $i keywords that might appear in the message. *)
   let message = ErrorReports.expand (get text checkpoint) message in
   (* Show these three components. *)
