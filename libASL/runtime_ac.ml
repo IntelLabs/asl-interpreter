@@ -548,10 +548,13 @@ module Runtime : RT.RuntimeLib = struct
     PP.fprintf fmt "fputs(%a, stdout)" RT.pp_expr x
 
   (* Foreign Function Interface (FFI) *)
-  let to_c_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+  let ffi_integer_to_c_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "%a.to_int()" RT.pp_expr x
 
-  let to_c_index (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+  let ffi_integer_to_c_sint64 (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    PP.fprintf fmt "%a.to_int64()" RT.pp_expr x
+
+  let ffi_bits_to_c_uint64 (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "%a.to_uint64()" RT.pp_expr x
 end
 

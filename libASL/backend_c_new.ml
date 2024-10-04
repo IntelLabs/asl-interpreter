@@ -555,7 +555,7 @@ and exprs (loc : Loc.t) (fmt : PP.formatter) (es : AST.expr list) : unit =
  *)
 and index_expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   let module Runtime = (val (!runtime) : RuntimeLib) in
-  Runtime.to_c_index fmt (mk_expr loc x)
+  Runtime.ffi_integer_to_c_sint64 fmt (mk_expr loc x)
 
 and varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
   let module Runtime = (val (!runtime) : RuntimeLib) in
@@ -607,8 +607,8 @@ and varoty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option)
 
 let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
-  | Pat_Lit (VInt c) -> PP.pp_print_string fmt (Z.format "%d" c)
-  | Pat_Lit (VBits c) -> PP.pp_print_string fmt (Z.format "0x%x" c.v)
+  | Pat_Lit (VInt c) -> PP.fprintf fmt "%sLL" (Z.format "%d" c)
+  | Pat_Lit (VBits c) -> PP.fprintf fmt "0x%sULL" (Z.format "%x" c.v)
   | Pat_Lit v -> valueLit loc fmt v
   | Pat_Const v ->
       if Ident.equal v true_ident then ident_str fmt "true"
@@ -736,8 +736,9 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
           PP.fprintf fmt "switch (";
           ( match ty with
           | Type_Integer _
-          | Type_Bits _
-          -> Runtime.to_c_index fmt (mk_expr loc e)
+          -> Runtime.ffi_integer_to_c_sint64 fmt (mk_expr loc e)
+          | Type_Bits (n,_)
+          -> Runtime.ffi_bits_to_c_uint64 fmt (const_int_expr loc n) (mk_expr loc e)
           | _
           -> expr loc fmt e
           );
@@ -1181,7 +1182,7 @@ let ffi_fun_header (loc : Loc.t) (fmt : PP.formatter) (function_name : string) (
 let mk_ffi_to_C (loc : Loc.t) (fmt : PP.formatter) (t : AST.ty) (x : rt_expr) : unit =
     let module Runtime = (val (!runtime) : RuntimeLib) in
     ( match t with
-    | Type_Integer _ -> Runtime.to_c_int fmt x
+    | Type_Integer _ -> Runtime.ffi_integer_to_c_int fmt x
     | _ ->
         let msg = Format.asprintf "Type '%a' cannot be used in functions that are imported or exported between ASL and C"
           FMT.ty t
