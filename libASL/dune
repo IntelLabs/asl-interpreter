@@ -78,27 +78,3 @@
 
 
 (env (_ (odoc (warnings fatal))))
-
-(library
-  (public_name asli.chekhov)
-  (name chekhov)
-  (flags (:standard -w -27))
-  (modules chekhov)
-  (libraries asli.libASL))
-
-(plugin
-  (name asli.chekhov)
-  (libraries asli.chekhov)
-  (site (asli plugins)))
-
-(library
-  (public_name asli.obj32)
-  (name obj32)
-  (flags (:standard -w -27))
-  (modules obj32)
-  (libraries asli.libASL))
-
-(plugin
-  (name asli.obj32)
-  (libraries asli.obj32)
-  (site (asli plugins)))
