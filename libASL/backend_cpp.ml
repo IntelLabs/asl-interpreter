@@ -985,7 +985,6 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_ArrayInit _
   | Expr_Binop _
   | Expr_Fields _
-  | Expr_ImpDef _
   | Expr_In _
   | Expr_RecordInit _
   | Expr_Slices _

@@ -136,10 +136,6 @@ val kw_type : formatter -> unit
 val kw_typeof : formatter -> unit
 val kw_underscore_array : formatter -> unit
 val kw_underscore_builtin : formatter -> unit
-val kw_underscore_event : formatter -> unit
-val kw_underscore_map : formatter -> unit
-val kw_underscore_newevent : formatter -> unit
-val kw_underscore_newmap : formatter -> unit
 val kw_underscore_operator1 : formatter -> unit
 val kw_underscore_operator2 : formatter -> unit
 val kw_underscore_readwrite : formatter -> unit

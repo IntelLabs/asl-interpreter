@@ -16,7 +16,6 @@ let keywords : (string * Asl_parser.token) list = [
     ("DIV",                    DIV);
     ("DIVRM",                  DIVRM);
     ("EOR",                    EOR);
-    ("IMPLEMENTATION_DEFINED", IMPLEMENTATION_UNDERSCORE_DEFINED);
     ("IN",                     IN);
     ("MOD",                    MOD);
     ("NOT",                    NOT);

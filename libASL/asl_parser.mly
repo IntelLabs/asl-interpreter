@@ -27,7 +27,6 @@ open Loc
 let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %}
 
-%token IMPLEMENTATION_UNDERSCORE_DEFINED  (* IMPLEMENTATION_DEFINED *)
 %token UNDERSCORE_UNDERSCORE_BUILTIN  (* __builtin *)
 %token UNDERSCORE_UNDERSCORE_IN   (* __in *)
 %token UNDERSCORE_UNDERSCORE_LET  (* __let *)
@@ -578,8 +577,6 @@ aexpr:
     { Expr_Concat([], es) }
 | UNKNOWN COLON t = ty
     { Expr_Unknown(t) }
-| IMPLEMENTATION_UNDERSCORE_DEFINED os = opt_stringLit COLON t = ty
-    { Expr_ImpDef(os, t) }
 | e = aexpr AS c = constraints
     { Expr_AsConstraint(e, c) }
 | e = aexpr AS t = ty

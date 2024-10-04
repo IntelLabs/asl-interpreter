@@ -208,9 +208,6 @@ and visit_expr (vis : aslVisitor) (x : expr) : expr =
     | Expr_Unknown t ->
         let t' = visit_type vis t in
         if t == t' then x else Expr_Unknown t'
-    | Expr_ImpDef (os, t) ->
-        let t' = visit_type vis t in
-        if t == t' then x else Expr_ImpDef (os, t')
     | Expr_Array (a, e) ->
         let a' = visit_expr vis a in
         let e' = visit_expr vis e in

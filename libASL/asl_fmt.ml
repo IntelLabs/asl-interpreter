@@ -128,10 +128,6 @@ let kw_func (fmt : PP.formatter) : unit = keyword fmt "func"
 let kw_getter (fmt : PP.formatter) : unit = keyword fmt "getter"
 let kw_for (fmt : PP.formatter) : unit = keyword fmt "for"
 let kw_if (fmt : PP.formatter) : unit = keyword fmt "if"
-
-let kw_implementation_defined (fmt : PP.formatter) : unit =
-  keyword fmt "IMPLEMENTATION_DEFINED"
-
 let kw_let (fmt : PP.formatter) : unit = keyword fmt "let"
 let kw_of (fmt : PP.formatter) : unit = keyword fmt "of"
 let kw_otherwise (fmt : PP.formatter) : unit = keyword fmt "otherwise"
@@ -148,24 +144,9 @@ let kw_type (fmt : PP.formatter) : unit = keyword fmt "type"
 let kw_typeof (fmt : PP.formatter) : unit = keyword fmt "typeof"
 let kw_underscore_array (fmt : PP.formatter) : unit = keyword fmt "__array"
 let kw_underscore_builtin (fmt : PP.formatter) : unit = keyword fmt "__builtin"
-
-let kw_underscore_event (fmt : PP.formatter) : unit = keyword fmt "__event"
-
-let kw_underscore_map (fmt : PP.formatter) : unit = keyword fmt "__map"
-
-let kw_underscore_newevent (fmt : PP.formatter) : unit = keyword fmt "__newevent"
-
-let kw_underscore_newmap (fmt : PP.formatter) : unit = keyword fmt "__newmap"
-
-let kw_underscore_operator1 (fmt : PP.formatter) : unit =
-  keyword fmt "__operator1"
-
-let kw_underscore_operator2 (fmt : PP.formatter) : unit =
-  keyword fmt "__operator2"
-
-let kw_underscore_readwrite (fmt : PP.formatter) : unit =
-  keyword fmt "__readwrite"
-
+let kw_underscore_operator1 (fmt : PP.formatter) : unit = keyword fmt "__operator1"
+let kw_underscore_operator2 (fmt : PP.formatter) : unit = keyword fmt "__operator2"
+let kw_underscore_readwrite (fmt : PP.formatter) : unit = keyword fmt "__readwrite"
 let kw_underscore_write (fmt : PP.formatter) : unit = keyword fmt "__write"
 let kw_unknown (fmt : PP.formatter) : unit = keyword fmt "UNKNOWN"
 let kw_until (fmt : PP.formatter) : unit = keyword fmt "until"
@@ -489,14 +470,6 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
       expr fmt e
   | Expr_Unknown t ->
       kw_unknown fmt;
-      nbsp fmt;
-      colon fmt;
-      nbsp fmt;
-      ty fmt t
-  | Expr_ImpDef (os, t) ->
-      kw_implementation_defined fmt;
-      nbsp fmt;
-      PP.pp_print_option strLit fmt os;
       nbsp fmt;
       colon fmt;
       nbsp fmt;

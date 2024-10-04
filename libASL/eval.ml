@@ -421,9 +421,6 @@ and eval_expr (loc : Loc.t) (env : Env.t) (x : AST.expr) : value =
   | Expr_Unop (op, e) ->
       raise (EvalError (loc, "unary operation should have been removed"))
   | Expr_Unknown t -> eval_unknown loc env t
-  | Expr_ImpDef (Some s, t) -> GlobalEnv.getImpdef loc (Env.globals env) s
-  | Expr_ImpDef (None, t) ->
-      raise (EvalError (loc, "unnamed IMPLEMENTATION_DEFINED behavior"))
   | Expr_Array (a, i) ->
       let a' = eval_expr loc env a in
       let i' = eval_expr loc env i in

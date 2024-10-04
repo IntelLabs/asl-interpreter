@@ -1608,9 +1608,6 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
   | Expr_Unknown t ->
       let ty' = tc_type env loc t in
       (Expr_Unknown ty', ty')
-  | Expr_ImpDef (os, t) ->
-      let ty' = tc_type env loc t in
-      (Expr_ImpDef (os, ty'), ty')
   | Expr_Array (a, e) -> (
       let a', ty = tc_expr env loc a in
       match derefType (Env.globals env) loc ty with

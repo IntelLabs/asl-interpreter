@@ -628,7 +628,7 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       expr loc fmt e
   (* unimplemented *)
   | Expr_Slices _ | Expr_In _ | Expr_Binop _ | Expr_Unop _
-  | Expr_RecordInit _ | Expr_ImpDef (_, _)
+  | Expr_RecordInit _
   | Expr_TApply _
   | Expr_Let _
   | Expr_Tuple _ | Expr_Fields _ ->

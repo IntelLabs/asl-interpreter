@@ -81,7 +81,6 @@ and expr =
  | Expr_Var of Ident.t
  | Expr_Tuple of expr list (* tuple *)
  | Expr_Unknown of ty
- | Expr_ImpDef of string option * ty
  | Expr_AsConstraint of expr * constraint_range list
  | Expr_AsType of expr * ty
  | Expr_TApply of Ident.t * expr list * expr list * can_throw (* function call with explicit type parameters *)

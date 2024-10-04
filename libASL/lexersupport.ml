@@ -61,7 +61,6 @@ let string_of_token (t : Asl_parser.token) : string =
   | HEXLIT x -> "hex:" ^ x
   | ID x -> "ident:" ^ x
   | IF -> "if"
-  | IMPLEMENTATION_UNDERSCORE_DEFINED -> "impdef"
   | IN -> "in"
   | INTEGER -> "integer"
   | INTLIT x -> "int:" ^ x
