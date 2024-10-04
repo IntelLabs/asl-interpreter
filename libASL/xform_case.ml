@@ -59,7 +59,10 @@ let is_simple_pattern (x : AST.pattern) : bool =
   ( match x with
   | Pat_Lit (VMask _)
   -> false
-  | Pat_Lit _
+  | Pat_Lit (VInt c)
+  -> Z.fits_int64 c
+  | Pat_Lit (VBits c)
+  -> c.n <= 64
   | Pat_Const _
   -> true
   | _

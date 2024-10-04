@@ -606,9 +606,19 @@ and varoty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (ot : AST.ty option)
   | Some t -> varty loc fmt v t
 
 let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
-  match x with
-  | Pat_Lit (VInt c) -> PP.fprintf fmt "%sLL" (Z.format "%d" c)
-  | Pat_Lit (VBits c) -> PP.fprintf fmt "0x%sULL" (Z.format "%x" c.v)
+  ( match x with
+  | Pat_Lit (VInt c) ->
+    if not (Z.fits_int64 c) then begin
+      let pp fmt = FMT.pattern fmt x in
+      raise (Error.Unimplemented (loc, "large (> 64 bit) integer pattern", pp))
+    end;
+    PP.fprintf fmt "%sLL" (Z.format "%d" c)
+  | Pat_Lit (VBits c) ->
+    if c.n > 64 then begin
+      let pp fmt = FMT.pattern fmt x in
+      raise (Error.Unimplemented (loc, "large (> 64 bit) bitvector pattern", pp))
+    end;
+    PP.fprintf fmt "0x%sULL" (Z.format "%x" c.v)
   | Pat_Lit v -> valueLit loc fmt v
   | Pat_Const v ->
       if Ident.equal v true_ident then ident_str fmt "true"
@@ -618,6 +628,7 @@ let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   | Pat_Tuple _ | Pat_Wildcard ->
       let pp fmt = FMT.pattern fmt x in
       raise (Error.Unimplemented (loc, "pattern", pp))
+  )
 
 let rec lexpr (loc : Loc.t) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   ( match x with
