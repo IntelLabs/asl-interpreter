@@ -999,8 +999,18 @@ and exprs (loc : Loc.t) (fmt : PP.formatter) (es : AST.expr list) : unit =
 
 let pattern (loc : Loc.t) (fmt : PP.formatter) (x : AST.pattern) : unit =
   match x with
-  | Pat_Lit (VInt v)    -> int_literal fmt v
-  | Pat_Lit (VBits v)   -> bits_literal fmt v
+  | Pat_Lit (VInt c) ->
+    if not (Z.fits_int64 c) then begin
+      let pp fmt = FMT.pattern fmt x in
+      raise (Error.Unimplemented (loc, "large (> 64 bit) integer pattern", pp))
+    end;
+    PP.fprintf fmt "%sLL" (Z.format "%d" c)
+  | Pat_Lit (VBits c) ->
+    if c.n > 64 then begin
+      let pp fmt = FMT.pattern fmt x in
+      raise (Error.Unimplemented (loc, "large (> 64 bit) bitvector pattern", pp))
+    end;
+    PP.fprintf fmt "0x%sULL" (Z.format "%x" c.v)
   | Pat_Lit (VString v) -> constant fmt ("\"" ^ String.escaped v ^ "\"")
   | Pat_Lit _ -> raise (InternalError (loc, "pattern: lit", (fun fmt -> FMT.pattern fmt x), __LOC__))
   | Pat_Const v ->
@@ -1149,11 +1159,20 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       semicolon fmt
   | Stmt_Assign (l, r, loc) -> lexpr_assign loc fmt l r
   | Stmt_Block (ss, _) -> brace_enclosed_block fmt ss
-  | Stmt_Case (e, oty, alts, ob, loc) ->
+  | Stmt_Case (e, Some ty, alts, ob, loc) ->
       vbox fmt (fun _ ->
           kw_switch fmt;
           nbsp fmt;
-          parens fmt (fun _ -> expr loc fmt e);
+          parens fmt (fun _ ->
+              ( match ty with
+              | Type_Integer _
+              -> PP.fprintf fmt "(%a).to_int64()" (expr loc) e
+              | Type_Bits (n,_)
+              -> PP.fprintf fmt "(%a).to_uint64()" (expr loc) e
+              | _
+              -> expr loc fmt e;
+              )
+          );
           nbsp fmt;
           braces fmt (fun _ ->
               indented fmt (fun _ ->
@@ -1317,6 +1336,7 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
       PP.fprintf fmt "@,}"
   | Stmt_VarDecl _
   | Stmt_ConstDecl _
+  | Stmt_Case _
     ->
       raise
         (Error.Unimplemented (Loc.Unknown, "statement", fun fmt -> FMTAST.stmt fmt x))
