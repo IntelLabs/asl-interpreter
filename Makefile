@@ -50,6 +50,7 @@ test: dune_test
 test: runtime_test
 test: lit_test
 test: test_backends
+test: test_demo
 
 dune_test: build
 	$(DUNE) test
@@ -66,6 +67,13 @@ test_backends: ${addprefix test_backend_, ${BACKENDS}}
 
 test_backend_%: build
 	env PATH="${CURDIR}/tests/scripts:$${PATH}" AC_TYPES_DIR="`pwd`/runtime/external/ac_types" ASL_BACKEND=$* ${LIT} tests/backends -v
+
+test_demo : build
+	make -C demo test
+
+demo : build
+	make -C demo demo
+
 
 ################################################################
 # End
