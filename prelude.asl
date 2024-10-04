@@ -179,15 +179,20 @@ __builtin func asl_file_open(name : string, mode : string) => integer;
 __builtin func asl_file_write(fd : integer, data : string) => integer;
 __builtin func asl_file_getc(fd : integer) => integer;
 
-__builtin func asl_ram_init(A : integer, N : integer, ram : __RAM(A), val : bits(8*N)) => ();
+__builtin func asl_ram_init(A : integer, ram : __RAM(A), val : bits(64)) => ();
 __builtin func asl_ram_read(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N);
 __builtin func asl_ram_write(A : integer, N : integer, ram : __RAM(A), address : bits(A), val : bits(8*N)) => ();
 
 
 // backwards compatibility layer until the specs are updated to use the new asl_ prefix versions
+// uses the bottom 64 bits of val to initialize memory
 func ram_init(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
 begin
-    asl_ram_init(A, N, ram, val);
+    if asl_gt_int(N, 8) then
+        asl_ram_init(A, ram, val[0 +: 64]);
+    else
+        asl_ram_init(A, ram, asl_replicate_bits(val, 8)[0 +: 64]);
+    end
 end
 
 // backwards compatibility layer until the specs are updated to use the new asl_ prefix versions
@@ -204,7 +209,11 @@ end
 
 func __InitRAM(A : integer, N : integer, ram : __RAM(A), val : bits(8*N))
 begin
-    asl_ram_init(A, N, ram, val);
+    if asl_gt_int(N, 8) then
+        asl_ram_init(A, ram, val[0 +: 64]);
+    else
+        asl_ram_init(A, ram, asl_replicate_bits(val, 8)[0 +: 64]);
+    end
 end
 
 func __ReadRAM(A : integer, N : integer, ram : __RAM(A), address : bits(A)) => bits(8*N)

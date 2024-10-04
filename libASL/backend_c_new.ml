@@ -427,9 +427,9 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
       raise (Error.Unimplemented (loc, "string builtin function", pp))
 
   (* RAM builtin functions *)
-  | ([a;n], [_;_;ram;v]) when Ident.equal f ram_init -> Runtime.ram_init fmt a n (mk_expr loc ram) (mk_expr loc v)
-  | ([a;n], [_;_;ram;addr]) when Ident.equal f ram_read -> Runtime.ram_read fmt a n (mk_expr loc ram) (mk_expr loc addr)
-  | ([a;n], [_;_;ram;addr;v]) when Ident.equal f ram_write -> Runtime.ram_write fmt a n (mk_expr loc ram) (mk_expr loc addr) (mk_expr loc v)
+  | ([a], [_;ram;v]) when Ident.equal f ram_init -> Runtime.ram_init fmt a (mk_expr loc ram) (mk_expr loc v)
+  | ([n;a], [_;_;ram;addr]) when Ident.equal f ram_read -> Runtime.ram_read fmt a n (mk_expr loc ram) (mk_expr loc addr)
+  | ([n;a], [_;_;ram;addr;v]) when Ident.equal f ram_write -> Runtime.ram_write fmt a n (mk_expr loc ram) (mk_expr loc addr) (mk_expr loc v)
 
   (* Printing builtin functions *)
   | ([], [x]) when Ident.equal f print_char -> Runtime.print_char fmt (mk_expr loc x)
@@ -990,14 +990,17 @@ let declaration (fmt : PP.formatter) ?(is_extern : bool option) (x : AST.declara
           varty loc fmt tc t;
           PP.fprintf fmt ";@,@,"
       | Decl_Var (v, ty, loc) ->
-          varty loc fmt v ty;
           (match ty with
           | Type_Constructor (i, [ _ ])
             when Ident.equal i Builtin_idents.ram && not is_extern_val ->
-              PP.pp_print_string fmt " = &(struct ASL_ram){ 0 }"
-          | _ -> ()
+              let ram fmt v = PP.fprintf fmt "ASL_%a" ident v in
+              PP.fprintf fmt "struct ASL_ram %a = (struct ASL_ram){ 0 };@," ram v;
+              varty loc fmt v ty;
+              PP.fprintf fmt " = &%a;@,@," ram v
+          | _ ->
+              varty loc fmt v ty;
+              PP.fprintf fmt ";@,@,"
           );
-          PP.fprintf fmt ";@,@,"
       | Decl_BuiltinFunction (f, fty, loc) ->
           ()
       | _ ->

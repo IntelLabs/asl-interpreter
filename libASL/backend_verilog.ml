@@ -556,7 +556,7 @@ and funcall (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr list)
           constant fmt "\"%c\"";
           comma fmt;
           expr loc fmt c)
-  | i, [ a; n; ram; v ] when Ident.equal i ram_init -> ()
+  | i, [ a; ram; v ] when Ident.equal i ram_init -> ()
   | i, [ a; n; ram; addr ] when Ident.equal i ram_read ->
     PP.fprintf fmt "(%a[%a])"
       (expr loc) ram

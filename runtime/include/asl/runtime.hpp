@@ -8,8 +8,10 @@
 #pragma once
 
 #include "asl/error.h"
+#include "asl/ram.h"
 #include <sstream>
 #include <ac_int.h>
+
 
 namespace asl
 {

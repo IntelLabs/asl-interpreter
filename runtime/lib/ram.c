@@ -13,13 +13,13 @@
 #include "asl/error.h"
 
 enum {
-        PAGE_ENRTY_SZ = 1,
+        PAGE_ENTRY_SZ = 1,
         TABLE_ENTRY_SZ = sizeof(uint8_t *),
 
         ENTRIES_LOG2 = 16,  // both tables and pages have 64k entries
         ENTRIES = 1 << ENTRIES_LOG2,
 
-        PAGE_SZ = PAGE_ENRTY_SZ * ENTRIES,
+        PAGE_SZ = PAGE_ENTRY_SZ * ENTRIES,
         LEVEL_OF_PAGE = 4,
 };
 
@@ -32,7 +32,7 @@ entry_num(uint64_t address)
 static inline uint64_t
 page_offset(uint64_t address)
 {
-        return PAGE_ENRTY_SZ * entry_num(address);
+        return PAGE_ENTRY_SZ * entry_num(address);
 }
 
 static inline uint64_t
@@ -42,11 +42,13 @@ table_offset(uint64_t address)
 }
 
 static uint8_t *
-page_alloc(uint8_t init_val)
+page_alloc(uint64_t init_val)
 {
         void *p = malloc(PAGE_SZ);
         ASL_runtime_error_if(!p, "cannot allocate a page");
-        memset(p, init_val, PAGE_SZ);
+        for (int i = 0; i < PAGE_SZ / 8; ++i) {
+            ((uint64_t*)p)[i] = init_val;
+        }
         return p;
 }
 
@@ -119,13 +121,13 @@ ASL_ram_free(struct ASL_ram **p)
 }
 
 void
-ASL_ram_init(int64_t address_size, int64_t size, ASL_ram_t ram, uint64_t val)
+ASL_ram_init(int64_t address_size, ASL_ram_t ram, uint64_t val)
 {
         ASL_runtime_error_if(!ram, "cannot initialize RAM");
 
         table_free(ram->p, 1);
         ram->p = 0;
-        ram->init_val = (uint8_t)val;
+        ram->init_val = val;
 }
 
 uint64_t

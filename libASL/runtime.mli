@@ -122,7 +122,7 @@ module type RuntimeLib = sig
   val print_bits_hex : PP.formatter -> int -> rt_expr -> unit
 
   (* RAM functions *)
-  val ram_init : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
+  val ram_init : PP.formatter -> int -> rt_expr -> rt_expr -> unit
   val ram_read : PP.formatter -> int -> int -> rt_expr -> rt_expr -> unit
   val ram_write : PP.formatter -> int -> int -> rt_expr -> rt_expr -> rt_expr -> unit
 

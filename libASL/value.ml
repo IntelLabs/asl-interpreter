@@ -647,9 +647,9 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       prim_print_int_dec x;    Some (VTuple [])
   | [VInt n], [ VBits x ] when Ident.equal f print_bits_hex ->
       prim_print_bits_hex n x; Some (VTuple [])
-  | _, [ VInt a; VInt n; VRAM ram; VBits i ] when Ident.equal f ram_init ->
+  | _, [ VInt a; VRAM ram; VBits i ] when Ident.equal f ram_init ->
       Some
-        (prim_init_ram a n ram i;
+        (prim_init_ram a ram i.v;
          VTuple [])
   | _, [ VInt a; VInt n; VRAM ram; VBits i ] when Ident.equal f ram_read ->
       Some (VBits (prim_read_ram a n ram i.v))
@@ -841,7 +841,7 @@ let eval_unknown_bits (wd : Primops.bigint) : value =
   VBits (Primops.mkBits (Z.to_int wd) Z.zero)
 
 let eval_unknown_ram (a : Primops.bigint) : value =
-  VRAM (Primops.init_ram (char_of_int 0))
+  VRAM (Primops.init_ram Z.zero)
 
 let eval_unknown_integer () : value = VInt Z.zero
 let eval_unknown_real () : value = VReal Q.zero

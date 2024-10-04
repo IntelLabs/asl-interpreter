@@ -506,16 +506,24 @@ module Pages = struct
   end)
 end
 
-type ram = { mutable contents : Bytes.t Pages.t; mutable default : char }
+(* note: default is 64 bits but it is very hard to manipulate unsigned 64-bit
+ * numbers in OCaml so we use Z.t instead
+ *)
+type ram = { mutable contents : Bytes.t Pages.t; mutable default : Z.t }
 
 let logPageSize = 16
 let pageSize = 1 lsl logPageSize
 let pageMask = Z.of_int (pageSize - 1)
 let pageIndexOfAddr (a : bigint) : bigint = Z.shift_right a logPageSize
 let pageOffsetOfAddr (a : bigint) : bigint = Z.logand a pageMask
-let init_ram (d : char) : ram = { contents = Pages.empty; default = d }
+let init_ram (default : bigint) : ram = { contents = Pages.empty; default }
 
-let clear_ram (mem : ram) (d : char) : unit =
+let get_default_byte (mem : ram) (offset : int) : char =
+  let i = Int.logand 7 offset in
+  let c = Z.to_int (Z.logand (Z.of_int 0xff) (Z.shift_right mem.default (8 * i))) in
+  Char.chr c
+
+let clear_ram (mem : ram) (d : Z.t) : unit =
   mem.contents <- Pages.empty;
   mem.default <- d
 
@@ -524,7 +532,7 @@ let readByte_ram (mem : ram) (addr : bigint) : char =
   let offset = pageOffsetOfAddr addr in
   match Pages.find_opt index mem.contents with
   | Some bs -> Bytes.get bs (Z.to_int offset)
-  | None -> mem.default
+  | None -> get_default_byte mem (Z.to_int offset)
 
 let writeByte_ram (mem : ram) (addr : bigint) (v : char) : unit =
   let index = pageIndexOfAddr addr in
@@ -533,15 +541,17 @@ let writeByte_ram (mem : ram) (addr : bigint) (v : char) : unit =
     match Pages.find_opt index mem.contents with
     | Some bs -> bs
     | None ->
-        let bs = Bytes.make pageSize mem.default in
+        let bs = Bytes.make pageSize (Char.chr 0) in
+        for offset = 0 to pageSize - 1 do
+            Bytes.set bs offset (get_default_byte mem offset)
+        done;
         mem.contents <- Pages.add index bs mem.contents;
         bs
   in
   Bytes.set bs (Z.to_int offset) v
 
-let prim_init_ram (asz : bigint) (dsz : bigint) (mem : ram) (init : bitvector) :
-    unit =
-  clear_ram mem (char_of_int (Z.to_int init.v))
+let prim_init_ram (asz : bigint) (mem : ram) (init : Z.t) : unit =
+  clear_ram mem init
 
 let prim_read_ram (asz : bigint) (dsz : bigint) (mem : ram) (addr : bigint) :
     bitvector =

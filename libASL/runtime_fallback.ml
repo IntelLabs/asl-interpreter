@@ -339,11 +339,10 @@ module Runtime : RT.RuntimeLib = struct
         RT.pp_expr x'
         n
 
-  let ram_init (fmt : PP.formatter) (a : int) (n : int) (ram : RT.rt_expr) (v : RT.rt_expr) : unit =
-      PP.fprintf fmt "%a(%d, %d, %a, %a)"
+  let ram_init (fmt : PP.formatter) (a : int) (ram : RT.rt_expr) (v : RT.rt_expr) : unit =
+      PP.fprintf fmt "%a(%d, %a, %a)"
         asl_keyword "ram_init"
         a
-        n
         RT.pp_expr ram
         RT.pp_expr v
 
