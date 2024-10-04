@@ -198,8 +198,8 @@ factor =
    Factor_BinOp of binop * expr
 
 type
-impdef_command =
-   CLI_Impdef of string * expr
+config_command =
+   CLI_Config of Ident.t * expr
 
 let associativeOperators: binop list =
     [ Binop_Plus

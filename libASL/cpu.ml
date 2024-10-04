@@ -7,45 +7,39 @@
  ****************************************************************)
 
 module AST = Asl_ast
-open Builtin_idents
 
 type cpu = {
   env : Eval.Env.t;
-  setImpdef : string -> Value.value -> unit;
+  setConfig : Ident.t -> Value.value -> unit;
   reset : unit -> unit;
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
   setPC : Primops.bigint -> unit;
   elfwrite8 : Int64.t -> char -> unit;
-  elfwrite32 : Int64.t -> Int32.t -> unit;
 }
 
 let mkCPU (env : Eval.Env.t) : cpu =
   let genv = Eval.Env.globals env in
   let loc = Loc.Unknown in
 
-  let setImpdef (key : string) (v : Value.value) : unit =
-    Eval.GlobalEnv.set_impl_def genv key v
+  let setConfig (key : Ident.t) (v : Value.value) : unit =
+    Eval.GlobalEnv.set_config genv key v
   and reset () : unit =
-    Eval.eval_proccall loc env (take_cold_reset) [] []
+    Eval.eval_proccall loc env Builtin_idents.take_cold_reset [] []
   and step () : unit =
-    Eval.eval_proccall loc env (instruction_execute) [] []
+    Eval.eval_proccall loc env Builtin_idents.instruction_execute [] []
   and getPC () : Primops.bigint =
-    let r = Eval.eval_funcall loc env (get_pc) [] [] in
+    let r = Eval.eval_funcall loc env Builtin_idents.get_pc [] [] in
     Value.to_integer loc r
   and setPC (x : Primops.bigint) : unit =
     let a = Value.VInt x in
-    Eval.eval_proccall loc env (set_pc) [] [ a ]
+    Eval.eval_proccall loc env Builtin_idents.set_pc [] [a]
   and elfwrite8 (addr : Int64.t) (b : char) : unit =
     let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 addr)) in
     let b = Value.VBits (Primops.mkBits 8 (Z.of_int (Char.code b))) in
-    Eval.eval_proccall loc env (elf_write_memory) [] [ a; b ]
-  and elfwrite32 (addr : Int64.t) (value : Int32.t) : unit =
-    let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 addr)) in
-    let b = Value.VBits (Primops.mkBits 32 (Z.of_int32 value)) in
-    Eval.eval_proccall loc env (elf_write_memory32) [] [ a; b ]
+    Eval.eval_proccall loc env Builtin_idents.elf_write_memory8 [] [a; b]
   in
-  { env; setImpdef; reset; step; getPC; setPC; elfwrite8; elfwrite32 }
+  { env; setConfig; reset; step; getPC; setPC; elfwrite8 }
 
 (****************************************************************
  * End

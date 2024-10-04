@@ -147,7 +147,7 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %start <Asl_ast.expr> expr_command_start
 %start <Asl_ast.stmt> stmt_command_start
 %start <Asl_ast.stmt list> stmts_command_start
-%start <Asl_ast.impdef_command> impdef_command_start
+%start <Asl_ast.config_command> config_command_start
 
 
 %%
@@ -164,8 +164,8 @@ stmt_command_start:
 stmts_command_start:
 | stmts_command = stmts_command EOF { stmts_command }
 
-impdef_command_start:
-| impdef_command = impdef_command EOF { impdef_command }
+config_command_start:
+| config_command = config_command EOF { config_command }
 
 pos:
 | { $symbolstartpos }
@@ -585,10 +585,6 @@ aexpr:
 field_assignment:
 | ident = ident EQ expr = expr { (ident, expr) }
 
-opt_stringLit:
-| stringLit = STRINGLIT { Some(stringLit) }
-| { None }
-
 unop:
 | MINUS { Unop_Negate }
 | BANG { Unop_BoolNot }
@@ -617,8 +613,8 @@ stmt_command:
 stmts_command:
 | stmts = list(stmt) { stmts }
 
-impdef_command:
-| s = STRINGLIT EQ e = expr { CLI_Impdef(s, e) }
+config_command:
+| v = ident EQ e = expr { CLI_Config(v, e) }
 
 /**************************************************************************/
 /*                                                                        */

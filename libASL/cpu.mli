@@ -8,13 +8,12 @@
 
 type cpu = {
   env : Eval.Env.t;
-  setImpdef : string -> Value.value -> unit;
+  setConfig : Ident.t -> Value.value -> unit;
   reset : unit -> unit;
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
   setPC : Primops.bigint -> unit;
   elfwrite8 : Int64.t -> char -> unit;
-  elfwrite32 : Int64.t -> Int32.t -> unit;
 }
 
 val mkCPU : Eval.Env.t -> cpu

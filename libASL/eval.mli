@@ -22,7 +22,7 @@ module GlobalEnv : sig
     Ident.t ->
     (Ident.t list * Ident.t list * Loc.t * AST.stmt list) option
 
-  val set_impl_def : t -> string -> Value.value -> unit
+  val set_config : t -> Ident.t -> Value.value -> unit
   val pp : Format.formatter -> t -> unit
 end
 

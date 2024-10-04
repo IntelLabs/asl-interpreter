@@ -28,18 +28,6 @@ open Value
 let override_conflicts = true
 
 (****************************************************************)
-(** {2 Lookup table for IMPLEMENTATION_DEFINED values}          *)
-(****************************************************************)
-
-module ImpDefs = struct
-  include Map.Make (struct
-    type t = string
-
-    let compare = String.compare
-  end)
-end
-
-(****************************************************************)
 (** {2 Mutable bindings}                                        *)
 (****************************************************************)
 
@@ -55,7 +43,6 @@ module GlobalEnv = struct
     mutable records : (Ident.t list * (Ident.t * AST.ty) list) Bindings.t;
     mutable typedefs : (Ident.t list * AST.ty) Bindings.t;
     constants : value Scope.t;
-    mutable impdefs : value ImpDefs.t;
   }
 
   let pp (fmt : Format.formatter) (env : t) : unit = Scope.pp pp_value fmt env.constants
@@ -67,7 +54,6 @@ module GlobalEnv = struct
       records = Bindings.empty;
       typedefs = Bindings.empty;
       constants = Scope.empty ();
-      impdefs = ImpDefs.empty;
     }
 
   let addGlobalConst (env : t) (x : Ident.t) (v : value) : unit =
@@ -117,16 +103,8 @@ module GlobalEnv = struct
       else raise (Error.Ambiguous (loc, "function definition", Ident.to_string x));
     env.functions <- Bindings.add x def env.functions
 
-  let set_impl_def (env : t) (x : string) (v : value) : unit =
-    env.impdefs <- ImpDefs.add x v env.impdefs
-
-  let getImpdef (loc : Loc.t) (env : t) (x : string) : value =
-    match ImpDefs.find_opt x env.impdefs with
-    | Some v -> v
-    | None ->
-        raise
-          (EvalError
-             (loc, "Unknown value for IMPLEMENTATION_DEFINED \"" ^ x ^ "\""))
+  let set_config (env : t) (x : Ident.t) (v : value) : unit =
+    Scope.set env.constants x v
 end
 
 (** Environment representing both global and local state of the system *)

@@ -67,7 +67,7 @@ let help_msg =
     {|:? :help                                 Show this help message|};
     {|:project <file>                          Execute ASLi commands in <file>|};
     {|:q :quit                                 Exit the interpreter|};
-    {|:set impdef <string> = <expr>            Define implementation defined behavior|};
+    {|:set config <ident> = <expr>             Set configuration variable|};
     {|:set +<flag>                             Set flag|};
     {|:set -<flag>                             Clear flag|};
     {|<expr>                                   Execute ASL expression|};
@@ -100,12 +100,12 @@ let rec process_command (tcenv : TC.Env.t) (cpu : Cpu.cpu) (fname : string) (inp
       Flags.FlagMap.iter
         (fun nm (v, desc) -> Printf.printf "  %s%-27s %s\n" (if !v then "+" else "-") nm desc)
         !Flags.flags
-  | ":set" :: "impdef" :: rest ->
+  | ":set" :: "config" :: rest ->
       let cmd = String.concat " " rest in
       let loc = mkLoc fname cmd in
-      let x, e = LoadASL.read_impdef tcenv loc cmd in
-      let v = Eval.eval_expr loc cpu.env e in
-      cpu.setImpdef x v
+      let (v, e, ty) = LoadASL.read_config tcenv loc cmd in
+      let value = Eval.eval_expr loc cpu.env e in
+      cpu.setConfig v value
  | [ ":set"; flag ] when String.starts_with flag ~prefix:"+" -> (
      match Flags.FlagMap.find_opt (Utils.string_drop 1 flag) !Flags.flags with
      | None -> Printf.printf "Unknown flag %s\n" flag

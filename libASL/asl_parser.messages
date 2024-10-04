@@ -6711,56 +6711,56 @@ expr_command_start: ID UNDERSCORE_UNDERSCORE_IN
 
 Malformed statement.
 
-impdef_command_start: WHILE
+config_command_start: WHILE
 ##
 ## Ends in an error in state: 598.
 ##
-## impdef_command_start' -> . impdef_command_start [ # ]
+## config_command_start' -> . config_command_start [ # ]
 ##
 ## The known suffix of the stack is as follows:
 ##
 ##
 
-Malformed impdef setting command.
-The syntax of impdef setting commands is
-    ":set impdef <string> = <expr>"
+Malformed configuration command.
+The syntax of configuration commands is
+    ":set config <ident> = <expr>"
 
-impdef_command_start: STRINGLIT WHILE
+config_command_start: ID WHILE
 ##
 ## Ends in an error in state: 599.
 ##
-## impdef_command -> STRINGLIT . EQ expr [ EOF ]
+## config_command -> ident . EQ expr [ EOF ]
 ##
 ## The known suffix of the stack is as follows:
-## STRINGLIT
+## ident
 ##
 
-Malformed impdef setting command.
-The syntax of impdef setting commands is
-    ":set impdef <string> = <expr>"
+Malformed configuration command.
+The syntax of configuration commands is
+    ":set config <ident> = <expr>"
 
-impdef_command_start: STRINGLIT EQ WHILE
+config_command_start: ID EQ WHILE
 ##
 ## Ends in an error in state: 600.
 ##
-## impdef_command -> STRINGLIT EQ . expr [ EOF ]
+## config_command -> ident EQ . expr [ EOF ]
 ##
 ## The known suffix of the stack is as follows:
-## STRINGLIT EQ
+## ident EQ
 ##
 
-Malformed impdef setting command.
-The syntax of impdef setting commands is
-    ":set impdef <string> = <expr>"
+Malformed configuration command.
+The syntax of configuration commands is
+    ":set config <ident> = <expr>"
 
-impdef_command_start: STRINGLIT EQ ID UNDERSCORE_UNDERSCORE_IN
+config_command_start: ID EQ ID UNDERSCORE_UNDERSCORE_IN
 ##
 ## Ends in an error in state: 603.
 ##
-## impdef_command_start -> impdef_command . EOF [ # ]
+## config_command_start -> config_command . EOF [ # ]
 ##
 ## The known suffix of the stack is as follows:
-## impdef_command
+## config_command
 ##
 ## WARNING: This example involves spurious reductions.
 ## This implies that, although the LR(1) items shown above provide an
@@ -6773,12 +6773,12 @@ impdef_command_start: STRINGLIT EQ ID UNDERSCORE_UNDERSCORE_IN
 ## In state 87, spurious reduction of production cexpr -> bexpr list(factor)
 ## In state 59, spurious reduction of production conditional_expression -> cexpr
 ## In state 58, spurious reduction of production expr -> conditional_expression
-## In state 601, spurious reduction of production impdef_command -> STRINGLIT EQ expr
+## In state 601, spurious reduction of production config_command -> ident EQ expr
 ##
 
-Malformed impdef setting command.
-The syntax of impdef setting commands is
-    ":set impdef <string> = <expr>"
+Malformed configuration command.
+The syntax of configuration commands is
+    ":set config <ident> = <expr>"
 
 
 stmt_command_start: WHERE

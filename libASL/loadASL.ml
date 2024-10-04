@@ -190,12 +190,11 @@ let parse_spec (paths : string list) (filename : string) (verbose : bool) :
    with End_of_file -> close_in inchan);
   List.concat (List.rev !r)
 
-let read_impdef (tcenv : TC.Env.t) (loc : Loc.t) (s : string) :
-    string * AST.expr =
+let read_config (tcenv : TC.Env.t) (loc : Loc.t) (s : string) : Ident.t * AST.expr * AST.ty =
   let lexbuf = Lexing.from_string s in
-  let (CLI_Impdef (x, e)) = Parser.impdef_command_start Lexer.token lexbuf in
-  let e', _ = TC.tc_expr tcenv loc e in
-  (x, e')
+  let (CLI_Config (v, e)) = Parser.config_command_start Lexer.token lexbuf in
+  let (e', ty) = TC.tc_expr tcenv loc e in
+  (v, e', ty)
 
 let read_expr (tcenv : TC.Env.t) (loc : Loc.t) (s : string) : AST.expr =
   let lexbuf = Lexing.from_string s in

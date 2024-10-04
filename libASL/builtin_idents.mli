@@ -110,8 +110,7 @@ val take_cold_reset : Ident.t
 val instruction_execute : Ident.t
 val get_pc : Ident.t
 val set_pc : Ident.t
-val elf_write_memory : Ident.t
-val elf_write_memory32 : Ident.t
+val elf_write_memory8 : Ident.t
 val asl_fake_return_value : Ident.t
 val asl_error_unmatched_case : Ident.t
 val asl_extract_bits : Ident.t
