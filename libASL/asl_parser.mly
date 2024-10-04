@@ -456,6 +456,7 @@ opt_altcond:
 
 pattern:
 | i = INTLIT { Pat_Lit (Value.from_intLit i) }
+| MINUS i = INTLIT { Pat_Lit (Value.from_intLit ("-" ^ i)) }
 | h = HEXLIT { Pat_Lit (Value.from_hexLit h) }
 | b = BITSLIT { Pat_Lit (Value.VBits b) }
 | m = MASKLIT { Pat_Lit (Value.from_maskLit m) }
