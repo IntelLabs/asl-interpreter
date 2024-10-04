@@ -6,6 +6,7 @@ begin
     case x of
         when '0001' => return 3;
         when '0010' => return 4;
+        when '1111' => return 5;
         otherwise => return 10;
     end
     return 20; // unreachable
@@ -21,6 +22,8 @@ begin
     // CHECK: 4
     print_int_dec(Test('0011')); println();
     // CHECK: 10
+    print_int_dec(Test('1111')); println();
+    // CHECK: 5
 
     return 0;
 end
