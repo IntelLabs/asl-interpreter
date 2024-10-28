@@ -150,6 +150,26 @@ TEST_F(Bits64, Replicate)
     EXPECT_EQ(10ULL, ASL_replicate_bits_64(2, 2ULL, 2));
 }
 
+TEST_F(Bits64, SignExtend)
+{
+    int m = 32;
+    int n = 63;
+    ASL_bits64_t x = ASL_lsl_bits_64(m, 1ULL, m - 1);
+
+    EXPECT_EQ(ASL_sign_extend_bits_64_64(m, x, n),
+              ASL_lsl_bits_64(n, ASL_mk_mask_64(1 + n - m), m - 1));
+}
+
+TEST_F(Bits64, SignExtendMax)
+{
+    int m = 32;
+    int n = 64;
+    ASL_bits64_t x = ASL_lsl_bits_64(m, 1ULL, m - 1);
+
+    EXPECT_EQ(ASL_sign_extend_bits_64_64(m, x, n),
+              ASL_lsl_bits_64(n, ASL_mk_mask_64(1 + n - m), m - 1));
+}
+
 TEST_F(Bits64, SliceLoWd)
 {
     EXPECT_EQ(2ULL, ASL_slice_lowd_64_64(11ULL, 2, 2));

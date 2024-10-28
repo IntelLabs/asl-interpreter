@@ -169,5 +169,25 @@ TEST_F(ASL_CC_INDIR(Bits, N), Sub)
     EXPECT_EQ(one, ASL_sub_bits(N, width, zeros, minus_one));
 }
 
+#define M 64
+#include "sign_extend_bits_test_template.h"
+#undef M
+
+#define M 128
+#include "sign_extend_bits_test_template.h"
+#undef M
+
+#define M 256
+#include "sign_extend_bits_test_template.h"
+#undef M
+
+#define M 512
+#include "sign_extend_bits_test_template.h"
+#undef M
+
+#define M 1024
+#include "sign_extend_bits_test_template.h"
+#undef M
+
 #undef ASL_BITS_LIMBS_64
 #undef ASL_BITS_TYPE
