@@ -47,6 +47,7 @@ ASL_sign_extend_bits(M, N, int width, ASL_BITS_TYPE_M x, ASL_int_t n)
         return r;
 }
 
+#undef ASL_BITS_TYPE_M
 #undef LIMB_M
 #undef LIMB_N
 
