@@ -29,19 +29,20 @@ ASL_sign_extend_bits(M, N, int width, ASL_BITS_TYPE_M x, ASL_int_t n)
         int lead_limb = (width - 1) >> 6;
         int lead_msb = (width - 1) & 63;
         uint64_t lead = LIMB_M(x, lead_limb);
-        bool is_negative = (lead & (((uint64_t)1) << lead_msb)) != 0;
+        bool is_negative = (lead & ((uint64_t)1 << lead_msb)) != 0;
 
         if (is_negative) {
-                int lead_res_limb = ((int)n + 63) >> 6;
+                int lead_res_limb = ((int)n - 1) >> 6;
                 // set lead bits to 1
-                ASL_bits64_t ext = UINT64_MAX & ~ASL_mk_mask_64(width & 63);
+                ASL_bits64_t ext = ~ASL_mk_mask_64(width - (lead_limb << 6));
                 LIMB_N(r, lead_limb) |= ext;
                 // fill in higher order sign bits
-                for (int i = lead_limb + 1; i < lead_res_limb; ++i) {
+                for (int i = lead_limb + 1; i <= lead_res_limb; ++i) {
                         LIMB_N(r, i) = UINT64_MAX;
                 }
                 // zero any top bits
-                LIMB_N(r, lead_res_limb-1) &= ASL_mk_mask_64(n & 63);
+                LIMB_N(r, lead_res_limb) &=
+                        ASL_mk_mask_64(n - (lead_res_limb << 6));
         }
         return r;
 }
