@@ -198,27 +198,27 @@ ASL_zero_extend_bits(N, N, int width, ASL_BITS_TYPE x, ASL_int_t n)
 }
 
 #define M 64
-#include "sign_extend_template_c.h"
+#include "sign_extend_bits_template_c.h"
 #include "set_slice_template_c.h"
 #undef M
 
 #define M 128
-#include "sign_extend_template_c.h"
+#include "sign_extend_bits_template_c.h"
 #include "set_slice_template_c.h"
 #undef M
 
 #define M 256
-#include "sign_extend_template_c.h"
+#include "sign_extend_bits_template_c.h"
 #include "set_slice_template_c.h"
 #undef M
 
 #define M 512
-#include "sign_extend_template_c.h"
+#include "sign_extend_bits_template_c.h"
 #include "set_slice_template_c.h"
 #undef M
 
 #define M 1024
-#include "sign_extend_template_c.h"
+#include "sign_extend_bits_template_c.h"
 #include "set_slice_template_c.h"
 #undef M
 
