@@ -57,7 +57,7 @@ module Runtime : RT.RuntimeLib = struct
       (fun i -> Z.extract x (i * chunk_size) chunk_size)
 
   let constant_u32 (fmt : PP.formatter) (x : Z.t) : unit =
-    PP.fprintf fmt "static_cast<int>(%s)" (Z.format "%#x" x)
+    PP.fprintf fmt "static_cast<int>(%sUL)" (Z.format "%#x" x)
 
   let pos_int_literal (n : int) (fmt : PP.formatter) (x : Z.t) : unit =
     let num_limbs = (n + 31) / 32 in
@@ -82,7 +82,7 @@ module Runtime : RT.RuntimeLib = struct
   let int_literal (fmt : PP.formatter) (x : Z.t) : unit = intN_literal int_width fmt x
 
   let bits_literal (fmt : PP.formatter) (x : Primops.bitvector) : unit =
-    if x.n <= 64 then begin
+    if x.n <= 32 then begin
       Format.fprintf fmt "ac_int<%d,false>(%a)"
         x.n
         constant_u32 x.v
