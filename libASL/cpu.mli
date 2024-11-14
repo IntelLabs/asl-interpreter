@@ -12,7 +12,7 @@ type cpu = {
   reset : unit -> unit;
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
-  setPC : Primops.bigint -> unit;
+  setPC : Int64.t -> unit;
   elfwrite8 : Int64.t -> char -> unit;
 }
 

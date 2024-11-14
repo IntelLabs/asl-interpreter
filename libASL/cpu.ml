@@ -14,7 +14,7 @@ type cpu = {
   reset : unit -> unit;
   step : unit -> unit;
   getPC : unit -> Primops.bigint;
-  setPC : Primops.bigint -> unit;
+  setPC : Int64.t -> unit;
   elfwrite8 : Int64.t -> char -> unit;
 }
 
@@ -31,8 +31,8 @@ let mkCPU (env : Eval.Env.t) : cpu =
   and getPC () : Primops.bigint =
     let r = Eval.eval_funcall loc env Builtin_idents.asl_get_pc [] [] in
     Value.to_integer loc r
-  and setPC (x : Primops.bigint) : unit =
-    let a = Value.VInt x in
+  and setPC (x : Int64.t) : unit =
+    let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 x)) in
     Eval.eval_proccall loc env Builtin_idents.asl_set_pc [] [a]
   and elfwrite8 (addr : Int64.t) (b : char) : unit =
     let a = Value.VBits (Primops.mkBits 64 (Z.of_int64 addr)) in

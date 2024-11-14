@@ -186,7 +186,7 @@ let _ =
     Printf.printf "Loading ELF file %s.\n" !file;
     let entry = load_file !file cpu.elfwrite8 in
     Printf.printf "Entry point = 0x%Lx\n" entry;
-    cpu.setPC (Z.of_int64 entry);
+    cpu.setPC entry;
     true
   in
   let args = [
