@@ -414,6 +414,14 @@ def build(script, asl_files, asli, backend, working_directory, basename):
     compile_and_link(use_cxx, c_files, exe_file, working_directory, c_flags, ld_flags)
     return exe_file
 
+def make_working_dir(name, prefix=""):
+    if name:
+        os.makedirs(name, exist_ok=True)
+    else:
+        name = tempfile.mkdtemp(prefix=prefix)
+    report(f"# Created temporary directory {name}")
+    return name
+
 ################################################################
 # Main
 ################################################################
@@ -442,6 +450,7 @@ def main() -> int:
     parser.add_argument("--build", help="Compile and link the ASL code", action='store_true')
     parser.add_argument("--run", help="Compile, link and run the ASL code", action='store_true')
     parser.add_argument("--verbose", "-v", help="Verbose", action='store_true')
+    parser.add_argument("--working-dir", help="working directory, by default temporarily created", metavar="working_dir", default="")
     parser.add_argument("--save-temps", help="Save intermediate compilation results", action='store_true')
     parser.add_argument('asl_files', nargs='*', metavar="<.asl file>", help="ASL input files (compile/link/run only)")
     args = parser.parse_args()
@@ -479,18 +488,14 @@ def main() -> int:
         ]
         asli_cmd.extend(args.asl_files)
         run(asli_cmd)
-    elif args.run:
-        working_directory = tempfile.mkdtemp(prefix="asltest.") # use this while testing to prevent file being deleted
+    else:
+        working_directory = make_working_dir(args.working_dir, prefix="asltest.")
         report(f"# In temporary directory {working_directory}")
         script = mk_script(args, working_directory)
         exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
-        run([exe_file])
+        if args.run:
+            run([exe_file])
         if not args.save_temps: shutil.rmtree(working_directory)
-    else:
-        report(f"# mkdir -p {working_directory}")
-        os.makedirs(working_directory, exist_ok=True)
-        script = mk_script(args, working_directory)
-        exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
 
 if __name__ == "__main__":
     main()
