@@ -285,6 +285,7 @@ let valueLit (loc : Loc.t) (fmt : PP.formatter) (x : Value.value) : unit =
   let module Runtime = (val (!runtime) : RuntimeLib) in
   ( match x with
   | VInt v    -> Runtime.int_literal fmt v
+  | VIntN v   -> Runtime.sintN_literal fmt v
   | VBits v   -> Runtime.bits_literal fmt v
   | VString v -> PP.pp_print_string fmt ("\"" ^ String.escaped v ^ "\"")
   | _ -> raise (InternalError (loc, "valueLit", (fun fmt -> Value.pp_value fmt x), __LOC__))
@@ -357,6 +358,34 @@ and funcall (loc : Loc.t) (fmt : PP.formatter) (f : Ident.t) (tes : AST.expr lis
   | ([], [x])   when Ident.equal f pow2_int -> Runtime.pow2_int fmt (mk_expr loc x)
   | ([], [x])   when Ident.equal f print_int_dec -> Runtime.print_int_dec fmt (mk_expr loc x)
   | ([], [x])   when Ident.equal f print_int_hex -> Runtime.print_int_hex fmt (mk_expr loc x)
+
+  (* Bounded integer builtin functions *)
+  | ([n], [x;y]) when Ident.equal f add_sintN -> Runtime.add_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x])   when Ident.equal f neg_sintN -> Runtime.neg_sintN fmt n (mk_expr loc x)
+  | ([n], [x;y]) when Ident.equal f sub_sintN -> Runtime.sub_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f shl_sintN -> Runtime.shl_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f shr_sintN -> Runtime.shr_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f mul_sintN -> Runtime.mul_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f zdiv_sintN -> Runtime.zdiv_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f zrem_sintN -> Runtime.zrem_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f exact_div_sintN -> Runtime.exact_div_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f fdiv_sintN -> Runtime.fdiv_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f frem_sintN -> Runtime.frem_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f eq_sintN -> Runtime.eq_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f ne_sintN -> Runtime.ne_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f ge_sintN -> Runtime.ge_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f gt_sintN -> Runtime.gt_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f le_sintN -> Runtime.le_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f lt_sintN -> Runtime.lt_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x;y]) when Ident.equal f align_sintN -> Runtime.align_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x])   when Ident.equal f is_pow2_sintN -> Runtime.is_pow2_sintN fmt n (mk_expr loc x)
+  | ([n], [x;y]) when Ident.equal f mod_pow2_sintN -> Runtime.mod_pow2_sintN fmt n (mk_expr loc x) (mk_expr loc y)
+  | ([n], [x])   when Ident.equal f pow2_sintN -> Runtime.pow2_sintN fmt n (mk_expr loc x)
+  | ([m;n],[x])   when Ident.equal f cvt_bits_ssintN -> Runtime.cvt_bits_ssintN fmt m n (mk_expr loc x)
+  | ([m;n],[x])   when Ident.equal f cvt_bits_usintN -> Runtime.cvt_bits_usintN fmt m n (mk_expr loc x)
+  | ([m;n],[x;_]) when Ident.equal f cvt_sintN_bits -> Runtime.cvt_sintN_bits fmt m n (mk_expr loc x)
+  | ([n], [x])   when Ident.equal f print_sintN_dec -> Runtime.print_sintN_dec fmt n (mk_expr loc x)
+  | ([n], [x])   when Ident.equal f print_sintN_hex -> Runtime.print_sintN_hex fmt n (mk_expr loc x)
 
   (* Real builtin functions *)
   | (_, _) when Ident.in_list f [add_real;
@@ -576,11 +605,14 @@ and varty (loc : Loc.t) (fmt : PP.formatter) (v : Ident.t) (x : AST.ty) : unit =
           ident tc
           ident v
       )
+  | Type_Constructor (i, [n]) when Ident.equal i Builtin_idents.sintN ->
+    Runtime.ty_sintN fmt (const_int_expr loc n);
+    nbsp fmt;
+    ident fmt v
   | Type_Constructor (i, [_]) when Ident.equal i Builtin_idents.ram ->
     Runtime.ty_ram fmt;
     nbsp fmt;
     ident fmt v
-  (* TODO implement integer range analysis to determine the correct type width *)
   | Type_Integer _ ->
     Runtime.ty_int fmt;
     nbsp fmt;

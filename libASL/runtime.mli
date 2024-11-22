@@ -30,11 +30,13 @@ module type RuntimeLib = sig
 
   (* types *)
   val ty_int : PP.formatter -> unit
+  val ty_sintN : PP.formatter -> int -> unit
   val ty_ram : PP.formatter -> unit
   val ty_bits : PP.formatter -> int -> unit
 
   (* literal constants *)
   val int_literal : PP.formatter -> Z.t -> unit
+  val sintN_literal : PP.formatter -> Primops.sintN -> unit
   val bits_literal : PP.formatter -> Primops.bitvector -> unit
 
   (* integer functions *)

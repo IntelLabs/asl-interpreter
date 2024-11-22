@@ -20,8 +20,8 @@ module Runtime : RT.RuntimeLib = struct
 
   let int_width = 128
 
-  let max_sintN (n : int) = Z.sub (Z.shift_left Z.one n) Z.one
-  let min_sintN (n : int) = Z.neg (Z.shift_left Z.one n)
+  let max_sintN (n : int) = Z.sub (Z.shift_left Z.one (n-1)) Z.one
+  let min_sintN (n : int) = Z.neg (Z.shift_left Z.one (n-1))
 
   (* signed and unsigned ints
    *
@@ -65,6 +65,7 @@ module Runtime : RT.RuntimeLib = struct
 
   (* Minimum sized signed int is 2 bits *)
   let ty_int (fmt : PP.formatter) : unit = ty_sint fmt (max 2 int_width)
+  let ty_sintN (fmt : PP.formatter) (width : int) : unit = ty_sint fmt (max 2 width)
   (* Minimum sized signed int is 1 bit *)
   let ty_bits (fmt : PP.formatter) (width : int) : unit = ty_uint fmt (max 1 width)
   let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
@@ -80,6 +81,7 @@ module Runtime : RT.RuntimeLib = struct
         (Z.format "%x" (Z.neg x))
 
   let int_literal (fmt : PP.formatter) (x : Z.t) : unit = intN_literal int_width fmt x
+  let sintN_literal (fmt : PP.formatter) (x : Primops.sintN) : unit = intN_literal x.n fmt x.v
 
   let empty_bits (fmt : PP.formatter) : unit = PP.pp_print_string fmt "0uwb"
 
@@ -226,35 +228,55 @@ module Runtime : RT.RuntimeLib = struct
       ty_sint int_width
       RT.pp_expr x
 
+  let print_sint64_decimal (fmt : PP.formatter) (n : int) (add_size : bool) (x : string) : unit =
+    if add_size then begin
+      PP.fprintf fmt "    if (%s == %a) {@," x (intN_literal n) (min_sintN n);
+      PP.fprintf fmt "      printf(\"-i%d'd%s\");@," n (Z.to_string (Z.shift_left Z.one (n - 1)));
+      PP.fprintf fmt "    } else {";
+      PP.fprintf fmt "      if (%s < 0) {@," x;
+      PP.fprintf fmt "        %s = -%s;@," x x;
+      PP.fprintf fmt "        printf(\"-\");@,";
+      PP.fprintf fmt "      }@,";
+      PP.fprintf fmt "      printf(\"i%d'd%%ld\", (int64_t)%s);@," n x;
+      PP.fprintf fmt "    }"
+    end else begin
+      PP.fprintf fmt "    printf(\"%%ld\", (int64_t)%s);@," x
+    end
+
   let print_sintN_decimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
-    (* Print small numbers in decimal, large numbers in hex *)
-    PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
-    PP.fprintf fmt "  if (__tmp >= %a && __tmp <= %a) {@,"
-      (intN_literal 64) (min_sintN 63)
-      (intN_literal 64) (max_sintN 63);
-    (if add_size then PP.fprintf fmt "    printf(\"%d'd%%ld\", (int64_t)__tmp);@," n
-                 else PP.fprintf fmt "    printf(\"%%ld\", (int64_t)__tmp);@,");
-    PP.fprintf fmt "  } else {@,";
-    PP.fprintf fmt "    if (__tmp < 0) {@,";
-    PP.fprintf fmt "      __tmp = -__tmp;@,";
-    PP.fprintf fmt "      printf(\"-\");@,";
-    PP.fprintf fmt "    }@,";
-    (if add_size then PP.fprintf fmt "    printf(\"%d'x\");@," n
-                 else PP.fprintf fmt "    printf(\"0x\");@,");
-    PP.fprintf fmt "    bool leading = true;@,";
-    PP.fprintf fmt "    for(int i = (%d-1)&~3; i >= 0; i -= 4) {@," n;
-    PP.fprintf fmt "      unsigned c = (__tmp >> i) & 15;@,";
-    PP.fprintf fmt "      if (leading) {@,";
-    PP.fprintf fmt "        if (i == 0 || c) {@,";
-    PP.fprintf fmt "          printf(\"%%x\", c);@,";
-    PP.fprintf fmt "          leading = false;@,";
-    PP.fprintf fmt "        }@,";
-    PP.fprintf fmt "      } else {@,";
-    PP.fprintf fmt "        printf(\"%%x\", c);@,";
-    PP.fprintf fmt "      }@,";
-    PP.fprintf fmt "    }@,";
-    PP.fprintf fmt "  }@,";
-    PP.fprintf fmt "}@]"
+    if n <= 64 then begin
+        PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
+        print_sint64_decimal fmt n add_size "__tmp";
+        PP.fprintf fmt "}@]"
+    end else begin
+        (* Print small numbers in decimal, large numbers in hex *)
+        PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
+        PP.fprintf fmt "  if (__tmp >= %a && __tmp <= %a) {@,"
+          (intN_literal 64) (min_sintN 63)
+          (intN_literal 64) (max_sintN 63);
+        print_sint64_decimal fmt n add_size "__tmp";
+        PP.fprintf fmt "  } else {@,";
+        PP.fprintf fmt "    if (__tmp < 0) {@,";
+        PP.fprintf fmt "      __tmp = -__tmp;@,";
+        PP.fprintf fmt "      printf(\"-\");@,";
+        PP.fprintf fmt "    }@,";
+        (if add_size then PP.fprintf fmt "    printf(\"%d'x\");@," n
+                     else PP.fprintf fmt "    printf(\"0x\");@,");
+        PP.fprintf fmt "    bool leading = true;@,";
+        PP.fprintf fmt "    for(int i = (%d-1)&~3; i >= 0; i -= 4) {@," n;
+        PP.fprintf fmt "      unsigned c = (__tmp >> i) & 15;@,";
+        PP.fprintf fmt "      if (leading) {@,";
+        PP.fprintf fmt "        if (i == 0 || c) {@,";
+        PP.fprintf fmt "          printf(\"%%x\", c);@,";
+        PP.fprintf fmt "          leading = false;@,";
+        PP.fprintf fmt "        }@,";
+        PP.fprintf fmt "      } else {@,";
+        PP.fprintf fmt "        printf(\"%%x\", c);@,";
+        PP.fprintf fmt "      }@,";
+        PP.fprintf fmt "    }@,";
+        PP.fprintf fmt "  }@,";
+        PP.fprintf fmt "}@]"
+    end
 
   let print_sintN_hexadecimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "@[<v>{ %a __tmp = %a;@," ty_sint n RT.pp_expr x;
@@ -262,7 +284,7 @@ module Runtime : RT.RuntimeLib = struct
     PP.fprintf fmt "    __tmp = -__tmp;@,";
     PP.fprintf fmt "    printf(\"-\");@,";
     PP.fprintf fmt "  }@,";
-    (if add_size then PP.fprintf fmt "      printf(\"%d'x\");@," n
+    (if add_size then PP.fprintf fmt "      printf(\"i%d'x\");@," n
                  else PP.fprintf fmt "      printf(\"0x\");@,");
     PP.fprintf fmt "  bool leading = true;@,";
     PP.fprintf fmt "  for(int i = (%d-1)&~3; i >= 0; i -= 4) {@," n;

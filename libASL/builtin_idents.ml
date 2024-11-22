@@ -95,7 +95,7 @@ let append_bits       = Ident.mk_fident "asl_append_bits"
 let mk_mask           = Ident.mk_fident "asl_mk_mask"
 let mask_int          = Ident.mk_fident "asl_mask_int"
 
-let sintN              = Ident.mk_fident "__sintN"
+let sintN              = Ident.mk_ident "__sint"
 let eq_sintN           = Ident.mk_fident "asl_eq_sintN"
 let ne_sintN           = Ident.mk_fident "asl_ne_sintN"
 let gt_sintN           = Ident.mk_fident "asl_gt_sintN"

@@ -135,10 +135,12 @@ rule token = parse
       { BITSLIT(Primops.mkBits (int_of_string len) (Z.of_string_base 16 nibbles)) }
     | '\'' (['0' '1' 'x' ' ']* as bits) '\''
       { MASKLIT(bits) }
-    | '0''x'(['0'-'9' 'A'-'F' 'a'-'f' '_']+ as nibbles)
-      { HEXLIT(nibbles) }
+    | '0''x'(['0'-'9' 'A'-'F' 'a'-'f' '_']+ as nibbles) { INTLIT(None, Z.of_string_base 16 nibbles) }
+    | 'i' (['0'-'9']+ as len) '\'' 'b' (['0'-'1']+ as bits) { INTLIT(Some (int_of_string len), Z.of_string_base 2 bits) }
+    | 'i' (['0'-'9']+ as len) '\'' 'd' (['0'-'9']+ as digits) { INTLIT(Some (int_of_string len), Z.of_string digits) }
+    | 'i' (['0'-'9']+ as len) '\'' 'x' (['0'-'9' 'A'-'F' 'a'-'f']+ as nibbles) { INTLIT(Some (int_of_string len), Z.of_string_base 16 nibbles) }
     | ['0'-'9']+ '.' ['0'-'9']+              as lxm { REALLIT(lxm) }
-    | ['0'-'9'] ['0'-'9' '_']*               as lxm { INTLIT(lxm) }
+    | ['0'-'9'] ['0'-'9' '_']*               as digits { INTLIT(None, Z.of_string digits) }
     | ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as lxm {
            ( match List.assoc_opt lxm keywords with
            | Some x -> x

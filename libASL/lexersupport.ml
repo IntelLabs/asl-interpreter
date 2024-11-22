@@ -58,12 +58,12 @@ let string_of_token (t : Asl_parser.token) : string =
   | GT -> "gt"
   | GT_EQ -> "gteq"
   | GT_GT -> "gtgt"
-  | HEXLIT x -> "hex:" ^ x
   | ID x -> "ident:" ^ x
   | IF -> "if"
   | IN -> "in"
   | INTEGER -> "integer"
-  | INTLIT x -> "int:" ^ x
+  | INTLIT (None, x) -> "int:" ^ Z.to_string x
+  | INTLIT (Some w, x) -> "intN:" ^ string_of_int w ^"'d"^ Z.to_string x
   | LBRACE -> "lbrace"
   | LBRACK -> "lbrack"
   | LET -> "let"

@@ -8,6 +8,7 @@
 #ifndef ASL_PRINT_H
 #define ASL_PRINT_H
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "asl/bits64.h"
@@ -55,38 +56,77 @@ ASL_print_char(ASL_int_t x)
 }
 
 static inline void
-ASL_print_int_hex(ASL_int_t x)
+ASL_print_int_hex(int n, bool add_size, ASL_int_t x)
 {
 #ifdef ASL_INT128
+        if (x < 0) {
+                printf("-");
+        }
+        if (add_size) {
+                printf("i%d'x", n);
+        } else {
+                printf("0x");
+        }
         int64_t top = (int64_t)(x >> 64);
         int64_t bottom = (int64_t)x;
         if (top == 0 && bottom >= 0) {
-            printf("%#lx", bottom);
+            printf("%lx", bottom);
         } else if (top == -1 && bottom < 0 && bottom != INT64_MIN) {
-            printf("-%#lx", -bottom);
+            printf("%lx", -bottom);
         } else {
-            // despite the name, large numbers are printed in hex
-            printf("0x%08lx_%08lx", top, bottom);
+            printf("%08lx_%08lx", top, bottom);
         }
 #else
-        printf("0x%llx", (long long)x);
+        if (x < 0) {
+                printf("-");
+        }
+        if (add_size) {
+                printf("i%d'x", n);
+        } else {
+                printf("0x");
+        }
+        if (x == INT64_MIN) {
+                printf("8000000000000000");
+        } else if (x < 0) {
+                printf("%llx", (long long)-x);
+        } else {
+                printf("%llx", (long long)x);
+        }
 #endif
 }
 
 static inline void
-ASL_print_int_dec(ASL_int_t x)
+ASL_print_int_dec(int n, bool add_size, ASL_int_t x)
 {
 #ifdef ASL_INT128
+        if (x < 0) {
+                printf("-");
+        }
+        if (add_size) {
+                printf("i%d'd", n);
+        }
         int64_t top = (int64_t)(x >> 64);
         int64_t bottom = (int64_t)x;
-        if ((top == 0 && bottom >= 0) || (top == -1 && bottom < 0)) {
-            printf("%ld", bottom);
+        if (top == 0 && bottom >= 0) {
+                printf("%ld", bottom);
+        } else if (top == -1 && bottom < 0 && bottom != INT64_MIN) {
+                printf("%ld", -bottom);
         } else {
-            // despite the name, large numbers are printed in hex
-            printf("0x%08lx_%08lx", top, bottom);
+                // despite the name, large numbers are printed in hex
+                printf("x%08lx_%08lx", top, bottom);
         }
 #else
-        printf("%lld", (long long)x);
+        if (x < 0) {
+                printf("-");
+        }
+        if (add_size) {
+                printf("i%d'", n);
+        }
+        if (x == INT64_MIN) {
+                printf("9223372036854775808");
+        } else {
+                printf("%lld", (long long)x);
+        }
 #endif
 }
 

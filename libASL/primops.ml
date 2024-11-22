@@ -305,11 +305,15 @@ let prim_notin_mask (x : bitvector) (m : mask) : bool = not (prim_in_mask x m)
 
 type sintN = { n : int; v : Z.t }
 
+let is_legal_sintN (n : int) (v : bigint) : bool =
+  (  (n >= 0)
+  && (Z.lt v (Z.shift_left Z.one (n-1)))
+  && (Z.geq v (Z.neg (Z.shift_left Z.one (n-1))))
+  )
+
 (* primary way of creating sized integer satisfying invariants *)
 let mksintN (n : int) (v : bigint) : sintN =
-  assert (n >= 0);
-  assert (Z.lt v (Z.shift_left Z.one (n-1)));
-  assert (Z.geq v (Z.neg (Z.shift_left Z.one (n-1))));
+  assert (is_legal_sintN n v);
   { n; v }
 
 let prim_eq_sintN (x : sintN) (y : sintN) : bool =
@@ -322,19 +326,19 @@ let prim_ne_sintN (x : sintN) (y : sintN) : bool =
 
 let prim_gt_sintN (x : sintN) (y : sintN) : bool =
   assert (x.n = y.n);
-  not (Z.gt x.v y.v)
+  Z.gt x.v y.v
 
 let prim_ge_sintN (x : sintN) (y : sintN) : bool =
   assert (x.n = y.n);
-  not (Z.geq x.v y.v)
+  Z.geq x.v y.v
 
 let prim_le_sintN (x : sintN) (y : sintN) : bool =
   assert (x.n = y.n);
-  not (Z.leq x.v y.v)
+  Z.leq x.v y.v
 
 let prim_lt_sintN (x : sintN) (y : sintN) : bool =
   assert (x.n = y.n);
-  not (Z.lt x.v y.v)
+  Z.lt x.v y.v
 
 let prim_add_sintN (x : sintN) (y : sintN) : sintN =
   assert (x.n = y.n);
@@ -402,8 +406,9 @@ let prim_cvt_int_sintN (x : bigint) (n : bigint) : sintN = mksintN (Z.to_int n) 
 
 let prim_resize_sintN (x : sintN) (m : bigint) : sintN = mksintN (Z.to_int m) x.v
 
-let prim_cvt_sintN_bits (x : sintN) : bitvector =
-  mkBits x.n (z_extract x.v 0 x.n)
+let prim_cvt_sintN_bits (x : sintN) (n : bigint) : bitvector =
+  let w = Z.to_int n in
+  mkBits w (z_extract x.v 0 w)
 
 let prim_cvt_bits_ssintN (x : bitvector) : sintN =
   mksintN x.n (z_signed_extract x.v 0 x.n)
@@ -412,19 +417,19 @@ let prim_cvt_bits_usintN (x : bitvector) : sintN =
   mksintN x.n (z_extract x.v 0 x.n)
 
 let prim_cvt_sintN_decstr (x : sintN) : string =
-  let prefix = Printf.sprintf "%d'x" x.n in
+  let prefix = Printf.sprintf "i%d'x" x.n in
   let value = Z.to_string x.v in
   prefix ^ value
 
 let prim_print_sintN_dec (x : sintN) : unit =
   if Z.geq x.v Z.zero
-  then Printf.printf "%d'd%s" x.n (Z.format "%d" x.v)
-  else Printf.printf "-%d'd%s" x.n (Z.format "%d" (Z.neg x.v))
+  then Printf.printf "i%d'd%s" x.n (Z.format "%d" x.v)
+  else Printf.printf "-i%d'd%s" x.n (Z.format "%d" (Z.neg x.v))
 
 let prim_print_sintN_hex (x : sintN) : unit =
   if Z.geq x.v Z.zero
-  then Printf.printf "%d'x%s" x.n (Z.format "%x" x.v)
-  else Printf.printf "-%d'x%s" x.n (Z.format "%x" (Z.neg x.v))
+  then Printf.printf "i%d'x%s" x.n (Z.format "%x" x.v)
+  else Printf.printf "-i%d'x%s" x.n (Z.format "%x" (Z.neg x.v))
 
 (****************************************************************)
 (** {2 String primops}                                          *)

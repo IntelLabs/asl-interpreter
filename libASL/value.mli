@@ -55,7 +55,8 @@ val set_array : Loc.t -> value -> value -> value -> value
 
 (* convert AST nodes to values *)
 
-val from_intLit : string -> value
+val negate_intLit : (int option * Z.t) -> (int option * Z.t)
+val from_intLit : (int option * Z.t) -> value option
 val from_hexLit : string -> value
 val from_realLit : string -> value
 val from_bitsLit : string -> value

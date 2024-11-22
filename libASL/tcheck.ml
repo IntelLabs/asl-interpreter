@@ -1350,6 +1350,7 @@ and tc_pattern (env : Env.t) (loc : Loc.t) (ty : AST.ty) (x : AST.pattern) :
     AST.pattern =
   match x with
   | Pat_Lit (VInt _)  -> check_subtype_satisfies env loc ty type_integer; x
+  | Pat_Lit (VIntN v)  -> check_subtype_satisfies env loc ty (type_sintN (mk_litint v.n)); x
   | Pat_Lit (VReal _) -> check_subtype_satisfies env loc ty type_real; x
   | Pat_Lit (VBits b) -> check_subtype_satisfies env loc ty (type_bits (mk_litint (Primops.prim_length_bits b))); x
   | Pat_Lit (VMask m) -> check_subtype_satisfies env loc ty (type_bits (mk_litint (Primops.prim_length_mask m))); x
@@ -1616,6 +1617,7 @@ and tc_expr (env : Env.t) (loc : Loc.t) (x : AST.expr) :
           (Expr_Array (a', e'), elty)
       | _ -> raise (TypeError (loc, "subscript of non-array")))
   | Expr_Lit (VInt _)    -> (x, Type_Integer (Some([Constraint_Single x])))
+  | Expr_Lit (VIntN v)   -> (x, type_sintN (mk_litint v.n))
   | Expr_Lit (VReal _)   -> (x, type_real)
   | Expr_Lit (VBits b)   -> (x, type_bits (mk_litint (Primops.prim_length_bits b)))
   | Expr_Lit (VString _) -> (x, type_string)
@@ -1655,10 +1657,11 @@ and tc_type (env : Env.t) (loc : Loc.t) (x : AST.ty) : AST.ty =
       Type_Bits (n', fs')
   | Type_Constructor (tc, es) ->
       let es' = List.map (check_expr env loc type_integer) es in
-      if not (GlobalEnv.isTycon (Env.globals env) tc) then begin
+      if (tc = Builtin_idents.sintN) || (GlobalEnv.isTycon (Env.globals env) tc) then (
+        Type_Constructor (tc, es')
+      ) else (
         raise (IsNotA (loc, "type constructor", Ident.to_string tc))
-      end;
-      Type_Constructor (tc, es')
+      )
   | Type_OfExpr e ->
       let (_, ty) = tc_expr env loc e in
       ty

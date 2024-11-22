@@ -24,6 +24,8 @@ module Runtime : RT.RuntimeLib = struct
   (* All definitions in the runtime library use the "ASL_" prefix *)
   let asl_keyword (fmt : PP.formatter) (s : string) : unit = PP.pp_print_string fmt ("ASL_" ^ s)
 
+  let int_width = 128
+
   let min_int (num_bits : int) : Z.t = Z.shift_left Z.minus_one (num_bits - 1)
   let max_int (num_bits : int) : Z.t = Z.lognot (min_int num_bits)
 
@@ -52,6 +54,7 @@ module Runtime : RT.RuntimeLib = struct
 
   (* C types defined elsewhere *)
   let ty_int (fmt : PP.formatter) : unit = asl_keyword fmt "int_t"
+  let ty_sintN (fmt : PP.formatter) (width : int) : unit = asl_keyword fmt "int_t"
   let ty_ram (fmt : PP.formatter) : unit = asl_keyword fmt "ram_t"
 
   let c_int_width_64up (width : int) : int =
@@ -198,8 +201,21 @@ module Runtime : RT.RuntimeLib = struct
   let fdiv_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply2 fmt "fdiv_int" x y
   let frem_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = apply2 fmt "frem_int" x y
   let is_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit = apply1 fmt "is_pow2_int" x
-  let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit = apply1 fmt "print_int_dec" x
-  let print_int_hex (fmt : PP.formatter) (x : RT.rt_expr) : unit = apply1 fmt "print_int_hex" x
+
+  let sintN_literal (fmt : PP.formatter) (x : Primops.sintN) : unit = int_literal fmt x.v
+
+  let print_sintN_decimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
+    let add = if add_size then "true" else "false" in
+    PP.fprintf fmt "ASL_print_int_dec(%d, %s, %a)" n add RT.pp_expr x
+  let print_sintN_hexadecimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
+    let add = if add_size then "true" else "false" in
+    PP.fprintf fmt "ASL_print_int_hex(%d, %s, %a)" n add RT.pp_expr x
+
+  let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    print_sintN_decimal fmt int_width ~add_size:false x
+
+  let print_int_hex (fmt : PP.formatter) (x : RT.rt_expr) : unit =
+    print_sintN_hexadecimal fmt int_width ~add_size:false x
 
   let pow2_int (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "(((ASL_bits64_t)1) << %a)"
@@ -247,8 +263,8 @@ module Runtime : RT.RuntimeLib = struct
   let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
   let cvt_int_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
   let resize_sintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit = RT.pp_expr fmt x
-  let print_sintN_dec (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_int_dec fmt x
-  let print_sintN_hex (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_int_hex fmt x
+  let print_sintN_dec (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_sintN_decimal fmt n ~add_size:true x
+  let print_sintN_hex (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = print_sintN_hexadecimal fmt n ~add_size:true x
 
   let get_slice (fmt : PP.formatter) (n : int) (w : int) (l : RT.rt_expr) (i : RT.rt_expr) : unit =
     PP.fprintf fmt "%a(%d, %d, %a, %a, %d)"

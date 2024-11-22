@@ -135,12 +135,12 @@ __builtin func asl_gt_sintN(x : __sint(N), y : __sint(N)) => boolean;
 __builtin func asl_ge_sintN(x : __sint(N), y : __sint(N)) => boolean;
 __builtin func asl_le_sintN(x : __sint(N), y : __sint(N)) => boolean;
 __builtin func asl_lt_sintN(x : __sint(N), y : __sint(N)) => boolean;
-__builtin func asl_add_int(x : __sint(N), y : __sint(N)) => __sint(N);
-__builtin func asl_neg_int(x : __sint(N)) => __sint(N);
-__builtin func asl_sub_int(x : __sint(N), y : __sint(N)) => __sint(N);
-__builtin func asl_shl_int(x : __sint(N), y : __sint(N)) => __sint(N);
-__builtin func asl_shr_int(x : __sint(N), y : __sint(N)) => __sint(N);
-__builtin func asl_mul_int(x : __sint(N), y : __sint(N)) => __sint(N);
+__builtin func asl_add_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
+__builtin func asl_neg_sintN(x : __sint(N)) => __sint(N);
+__builtin func asl_sub_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
+__builtin func asl_shl_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
+__builtin func asl_shr_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
+__builtin func asl_mul_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
 __builtin func asl_exact_div_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
 __builtin func asl_zdiv_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
 __builtin func asl_zrem_sintN(x : __sint(N), y : __sint(N)) => __sint(N);
@@ -158,6 +158,8 @@ __builtin func asl_cvt_int_sintN(x : integer, N : integer) => __sint(N);
 __builtin func asl_resize_sintN(x : __sint(M), N : integer) => __sint(N);
 __builtin func print_sintN_hex(x : __sint(N)) => ();
 __builtin func print_sintN_dec(x : __sint(N)) => ();
+
+__operator1 - = asl_neg_sintN;
 
 __builtin func asl_cvt_int_hexstr(x : integer) => string;
 __builtin func asl_cvt_int_decstr(x : integer) => string;

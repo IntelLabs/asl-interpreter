@@ -47,8 +47,7 @@ let type_unknown = Type_Constructor (Ident.mk_ident "<type_unknown>", [])
 %token SEMICOLON  (* ; *)
 
 %token <Primops.bitvector> BITSLIT  (* metavarroot bitsLit *)
-%token <string> HEXLIT  (* metavarroot hexLit *)
-%token <string> INTLIT  (* metavarroot intLit *)
+%token <int option * Primops.bigint> INTLIT  (* metavarroot intLit *)
 %token <string> ID  (* metavarroot id *)
 %token <string> MASKLIT  (* metavarroot maskLit *)
 %token <string> REALLIT  (* metavarroot realLit *)
@@ -454,9 +453,18 @@ opt_altcond:
 | { None }
 
 pattern:
-| i = INTLIT { Pat_Lit (Value.from_intLit i) }
-| MINUS i = INTLIT { Pat_Lit (Value.from_intLit ("-" ^ i)) }
-| h = HEXLIT { Pat_Lit (Value.from_hexLit h) }
+| i = INTLIT {
+    ( match Value.from_intLit i with
+    | Some v -> Pat_Lit v
+    | None -> raise (Parse_error_locn (Range($symbolstartpos, $endpos), "integer is too big for bounds"))
+    )
+  }
+| MINUS i = INTLIT {
+    ( match Value.from_intLit (Value.negate_intLit i) with
+    | Some v -> Pat_Lit v
+    | None -> raise (Parse_error_locn (Range($symbolstartpos, $endpos), "integer is too big for bounds"))
+    )
+  }
 | b = BITSLIT { Pat_Lit (Value.VBits b) }
 | m = MASKLIT { Pat_Lit (Value.from_maskLit m) }
 | c = ident { Pat_Const(c) }
@@ -597,8 +605,18 @@ slice:
 | lo = expr STAR_COLON wd = expr { Slice_Element(lo, wd) }
 
 literal_expression:
-| i = INTLIT { Expr_Lit(Value.from_intLit i) }
-| h = HEXLIT { Expr_Lit(Value.from_hexLit h) }
+| i = INTLIT {
+    ( match Value.from_intLit i with
+    | Some v -> Expr_Lit v
+    | None -> raise (Parse_error_locn (Range($symbolstartpos, $endpos), "integer is too big for bounds"))
+    )
+  }
+| MINUS i = INTLIT {
+    ( match Value.from_intLit (Value.negate_intLit i) with
+    | Some v -> Expr_Lit v
+    | None -> raise (Parse_error_locn (Range($symbolstartpos, $endpos), "integer is too big for bounds"))
+    )
+  }
 | r = REALLIT { Expr_Lit(Value.from_realLit r) }
 | b = BITSLIT { Expr_Lit(Value.VBits b) }
 | m = MASKLIT { Expr_Lit(Value.from_maskLit m) }

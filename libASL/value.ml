@@ -186,7 +186,18 @@ let set_array (loc : Loc.t) (a : value) (i : value) (v : value) : value =
       raise (EvalError (loc, "array index expected. Got " ^ string_of_value i))
   | _ -> raise (EvalError (loc, "array expected. Got " ^ string_of_value a))
 
-let from_intLit (x : string) : value = VInt (Z.of_string x)
+let negate_intLit (x : (int option * bigint)) : (int option * bigint) =
+  ( match x with
+  | (None, v) -> (None, Z.neg v)
+  | (Some n, v) -> (Some n, Z.neg v)
+  )
+
+let from_intLit (x : (int option * bigint)) : value option =
+  ( match x with
+  | (None, v) -> Some (VInt v)
+  | (Some n, v) when Primops.is_legal_sintN n v -> Some (VIntN (mksintN n v))
+  | _ -> None
+  )
 
 let from_hexLit (x : string) : value =
   VInt (Z.of_string_base 16 (Utils.drop_chars x '_'))
@@ -528,8 +539,8 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       Some (VIntN (prim_align_sintN x y))
   | [_], [ VIntN x; VIntN y ] when Ident.equal f mod_pow2_sintN ->
       Some (VIntN (prim_mod_pow2_sintN x y))
-  | [VIntN n], [ VIntN x ] when Ident.equal f cvt_sintN_bits ->
-      Some (VBits (prim_cvt_sintN_bits x))
+  | [_;_], [ VIntN x; VInt m ] when Ident.equal f cvt_sintN_bits ->
+      Some (VBits (prim_cvt_sintN_bits x m))
   | [VIntN n], [ VBits x ] when Ident.equal f cvt_bits_ssintN ->
       Some (VIntN (prim_cvt_bits_ssintN x))
   | [_], [ VBits x ] when Ident.equal f cvt_bits_usintN ->

@@ -25,7 +25,7 @@ exception ParseError of Loc.t
 let print_exception (e : exn) : unit =
   match e with
   | Asl_ast.Parse_error_locn (l, s) ->
-      Printf.printf "  Syntax error %s at %s\n" s (Loc.to_string l);
+      Printf.printf "  Syntax error '%s' at %s\n" s (Loc.to_string l);
   | Asl_ast.PrecedenceError (loc, op1, op2) ->
       Printf.printf
         "  Syntax error: operators %s and %s require parentheses to \
