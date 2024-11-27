@@ -25,7 +25,7 @@ module Runtime : RT.RuntimeLib = struct
 
   (* signed and unsigned ints
    *
-   * Note that "unsigned _BitInt(0)" and "signed _BitInt(1)" arei
+   * Note that "unsigned _BitInt(0)" and "signed _BitInt(1)" are
    * not supported by C so we have to use the next size up instead
    * and some of the operations that produce a bits(0) value have to make sure
    * that the value is always 0 (to make other operations that consume a bits(0)
