@@ -153,7 +153,9 @@ and canthrow_stmts (xs : AST.stmt list) : status =
                 r
             ) else (
                 if r.live = Some false then begin
-                    Format.printf "Warning: Dead code detected '%a'\n" FMT.stmt y
+                    Format.printf "Warning (%s): Dead code detected '%a'\n"
+                        (Loc.to_string (Asl_utils.stmt_loc y))
+                        FMT.stmt y
                 end;
                 let s = canthrow_stmts (y :: zs) in
                 if s = fail then
