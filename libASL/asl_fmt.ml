@@ -458,8 +458,8 @@ and expr (fmt : PP.formatter) (x : AST.expr) : unit =
   | Expr_TApply (f, tes, es, can_throw) ->
       funname fmt f;
       if !show_type_params then braces fmt (fun _ -> exprs fmt tes);
-      parens fmt (fun _ -> exprs fmt es);
-      throws fmt can_throw
+      throws fmt can_throw;
+      parens fmt (fun _ -> exprs fmt es)
   | Expr_Tuple es -> parens fmt (fun _ -> exprs fmt es)
   | Expr_Concat (ws, es) ->
       if !show_type_params then braces fmt (fun _ -> exprs fmt ws);
@@ -552,8 +552,8 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
-      parens fmt (fun _ -> exprs fmt es);
-      throws fmt can_throw
+      throws fmt can_throw;
+      parens fmt (fun _ -> exprs fmt es)
   | LExpr_ReadWrite (f, g, tes, es, can_throw) ->
       kw_underscore_readwrite fmt;
       nbsp fmt;
@@ -564,8 +564,8 @@ let rec lexpr (fmt : PP.formatter) (x : AST.lexpr) : unit =
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
-      parens fmt (fun _ -> exprs fmt es);
-      throws fmt can_throw
+      throws fmt can_throw;
+      parens fmt (fun _ -> exprs fmt es)
 
 and lexprs (fmt : PP.formatter) (ps : AST.lexpr list) : unit =
   commasep fmt (lexpr fmt) ps
@@ -645,8 +645,8 @@ let rec stmt (fmt : PP.formatter) (x : AST.stmt) : unit =
         lbrace_lbrace fmt;
         exprs fmt tes;
         rbrace_rbrace fmt);
-      parens fmt (fun _ -> exprs fmt args);
       throws fmt can_throw;
+      parens fmt (fun _ -> exprs fmt args);
       semicolon fmt;
       comment_start fmt loc
   | Stmt_FunReturn (e, loc) ->
