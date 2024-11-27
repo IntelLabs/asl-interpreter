@@ -149,19 +149,18 @@ and canthrow_stmts (xs : AST.stmt list) : status =
     | x :: [] -> canthrow_stmt x
     | x :: y :: zs ->
             let r = canthrow_stmt x in
-            if r = fail then
+            if r = fail then (
                 r
-            else if r.live = Some false then
-                let msg = Format.asprintf "Dead code detected '%a'"
-                    FMT.stmt y
-                in
-                raise (Error.TypeError (stmt_loc y, msg))
-            else
+            ) else (
+                if r.live = Some false then begin
+                    Format.printf "Warning: Dead code detected '%a'\n" FMT.stmt y
+                end;
                 let s = canthrow_stmts (y :: zs) in
                 if s = fail then
                     fail
                 else
                     status_seq r s
+            )
     )
 
 class check_defn_exception_class =
