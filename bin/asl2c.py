@@ -138,6 +138,13 @@ base_script = """
 // introduced by previous transforms
 :xform_constprop --nounroll
 
+// Optimization: optionally use :xform_bounded to represent any
+// constrained integers by an integer that is exactly the right size
+// to contain it.
+// This should come at the end of all the transformations because it changes
+// the types of functions.
+{bounded_int}
+
 // To let the generated code call your own functions, you need to declare
 // the type of an ASL function with a matching type and provide a configuration
 // file containing a list of these external functions.
@@ -288,9 +295,11 @@ def mk_script(args, output_directory):
     }
 
     if args.O0:
-        filter = ":filter_reachable_from exports"
-        generate = f":{backend_generator[args.backend]} --output-dir={output_directory} --basename={args.basename} --num-c-files=1"
-        script = [filter, generate]
+        script = []
+        script.append(":filter_reachable_from exports")
+        print(args.Obounded)
+        if args.Obounded: script.append(":xform_bounded")
+        script.append(f":{backend_generator[args.backend]} --output-dir={output_directory} --basename={args.basename} --num-c-files=1")
         return "\n".join(script)
 
     substitutions = {
@@ -309,6 +318,10 @@ def mk_script(args, output_directory):
         substitutions['auto_case_split'] = '--no-auto-case-split'
     else:
         substitutions['auto_case_split'] = '--auto-case-split'
+    if args.Obounded:
+        substitutions['bounded_int'] = ':xform_bounded'
+    else:
+        substitutions['bounded_int'] = ''
     if not args.line_info:
         substitutions['line_info'] = '--no-line-info'
     else:
@@ -446,6 +459,7 @@ def main() -> int:
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
     parser.add_argument("-O0", help="perform minimal set of transformations", action=argparse.BooleanOptionalAction)
+    parser.add_argument("-Obounded", help="enable integer bounding optimization", action="store_true", default=False)
     parser.add_argument("--backend", help="select backend (default: orig)", choices=['ac', 'c23', 'interpreter', 'fallback', 'orig'], default='orig')
     parser.add_argument("--print-c-flags", help="print the C flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--print-ld-flags", help="print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
