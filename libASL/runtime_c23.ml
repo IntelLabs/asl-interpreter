@@ -215,17 +215,17 @@ module Runtime : RT.RuntimeLib = struct
 
   let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint n
+      ty_sint int_width
       RT.pp_expr x
 
   let cvt_int_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x
 
   let resize_sintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x
 
   let print_sint64_decimal (fmt : PP.formatter) (n : int) (add_size : bool) (x : string) : unit =
