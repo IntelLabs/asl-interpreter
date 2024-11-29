@@ -18,7 +18,18 @@ let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : Loc.t) : AST.d
 
 let returnVariables = new Asl_utils.nameSupply "__r"
 
-let ifVariables = new Asl_utils.nameSupply "__t"
+(* Transform a conditional assignment 'l = if c then t elsif els else e;' to
+   to an if statement 'if c then l = t; elsif ... else l = e; end'
+ *)
+let cond_assign (l : AST.lexpr) (c : AST.expr) (t : AST.expr) (els : AST.e_elsif list) (e : AST.expr) (loc : Loc.t) : AST.stmt =
+  let t' = AST.Stmt_Assign(l, t, loc) in
+  let els' = List.map (function AST.E_Elsif_Cond (c, e) ->
+          AST.S_Elsif_Cond (c, [AST.Stmt_Assign(l, e, loc)], loc)
+      )
+      els
+  in
+  let e' = AST.Stmt_Assign(l, e, loc) in
+  AST.Stmt_If(c, [t'], els', ([e'], loc), loc)
 
 class replaceTupleClass (tc : Ident.t option) =
   object (self)
@@ -26,12 +37,14 @@ class replaceTupleClass (tc : Ident.t option) =
 
     method! vstmt s =
       match s with
+      (* function return *)
       | Stmt_FunReturn (Expr_Tuple es, loc) when Option.is_some tc && List.length es > 1 ->
         let tc = Option.get tc in
         let fas = List.mapi (fun i e -> (mkReturnFieldName i, e)) es in
         let r = AST.Expr_RecordInit (tc, [], fas) in
         Visitor.ChangeTo [AST.Stmt_FunReturn (r, loc)]
 
+      (* function calls *)
       | Stmt_VarDecl (AST.DeclItem_Tuple dis, (AST.Expr_TApply (f, _, _, _) as i), loc) ->
         let vty = AST.Type_Constructor (mkReturnTypeName f, []) in
         let v = returnVariables#fresh in
@@ -59,36 +72,57 @@ class replaceTupleClass (tc : Ident.t option) =
           ) es in
         Visitor.ChangeTo (s :: ss)
 
+      (* tuple assignment: (a, b) = (x, y); *)
+      | Stmt_ConstDecl (AST.DeclItem_Tuple dis, AST.Expr_Tuple es, loc) ->
+        let ss = List.map2 (fun di e -> AST.Stmt_ConstDecl (di, e, loc)) dis es in
+        Visitor.ChangeTo ss
+
+      | Stmt_VarDecl (AST.DeclItem_Tuple dis, AST.Expr_Tuple es, loc) ->
+        let ss = List.map2 (fun di e -> AST.Stmt_VarDecl (di, e, loc)) dis es in
+        Visitor.ChangeTo ss
+
       | Stmt_Assign (AST.LExpr_Tuple ls, AST.Expr_Tuple es, loc) ->
         let ss = List.map2 (fun l e -> AST.Stmt_Assign (l, e, loc)) ls es in
         Visitor.ChangeTo ss
 
+      (* conditional tuple assignment: (a, b) = if _ then _ else _ *)
+      | Stmt_Assign (AST.LExpr_Tuple ls as l, AST.Expr_If(c, t, els, e), loc) ->
+        let s = cond_assign l c t els e loc in
+        Visitor.ChangeTo (Asl_visitor.visit_stmt (self :> Asl_visitor.aslVisitor) s)
+
       | Stmt_ConstDecl (AST.DeclItem_Tuple dis, AST.Expr_If (c, t, els, e), loc) ->
-        let (vs, ds, ss) = List.map (fun di ->
+        let (vs, ds) = List.map (fun di ->
             ( match di with
             | AST.DeclItem_Var (v, Some vty) ->
-                let v' = ifVariables#fresh in
-                let s1 = AST.Stmt_VarDeclsNoInit ([v'], vty, loc) in
-                let s2 = AST.Stmt_ConstDecl (AST.DeclItem_Var (v, Some vty), Expr_Var v', loc) in
-                (AST.LExpr_Var v', s1, s2)
+                let s = AST.Stmt_VarDeclsNoInit ([v], vty, loc) in
+                (AST.LExpr_Var v, s)
             | _ ->
                 raise (Error.Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
             )
           )
           dis
-          |> Utils.split3
+          |> List.split
         in
-        let t' = [AST.Stmt_Assign (AST.LExpr_Tuple vs, t, loc)] in
-        let els' = List.map (fun el ->
-            let AST.E_Elsif_Cond (c, t) = el in
-            AST.S_Elsif_Cond (c, [AST.Stmt_Assign (AST.LExpr_Tuple vs, t, loc)], loc)
+        let l' = AST.LExpr_Tuple vs in
+        let s = cond_assign l' c t els e loc in
+        Visitor.ChangeTo (ds @ Asl_visitor.visit_stmt (self :> Asl_visitor.aslVisitor) s)
+
+      | Stmt_VarDecl (AST.DeclItem_Tuple dis, AST.Expr_If (c, t, els, e), loc) ->
+        let (vs, ds) = List.map (fun di ->
+            ( match di with
+            | AST.DeclItem_Var (v, Some vty) ->
+                let s = AST.Stmt_VarDeclsNoInit ([v], vty, loc) in
+                (AST.LExpr_Var v, s)
+            | _ ->
+                raise (Error.Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
+            )
           )
-          els
+          dis
+          |> List.split
         in
-        let e' = [AST.Stmt_Assign (AST.LExpr_Tuple vs, e, loc)] in
-        let s' = AST.Stmt_If (c, t', els', (e', loc), loc) in
-        let ss' = Asl_visitor.visit_stmt (self :> Asl_visitor.aslVisitor) s' in
-        Visitor.ChangeTo (ds @ ss' @ ss)
+        let l' = AST.LExpr_Tuple vs in
+        let s = cond_assign l' c t els e loc in
+        Visitor.ChangeTo (ds @ Asl_visitor.visit_stmt (self :> Asl_visitor.aslVisitor) s)
 
       | _ -> DoChildren
 

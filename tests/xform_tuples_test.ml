@@ -20,6 +20,16 @@ let tuple_tests : unit Alcotest.test_case list =
   let globals = TC.env0 in
   let stmts = test_xform_stmts Xform_tuples.xform_stmts globals prelude in
   [
+    ("let", `Quick, stmts
+       ""
+       "let (x, y) = (1, 2);"
+       "let x = 1; let y = 2;");
+
+    ("var", `Quick, stmts
+       ""
+       "var (x, y) = (1, 2);"
+       "var x = 1; var y = 2;");
+
     ("assign", `Quick, stmts
        "var x : integer; var y : integer;"
        "(x, y) = (1, 2);"
@@ -28,9 +38,21 @@ let tuple_tests : unit Alcotest.test_case list =
     ("let-if", `Quick, stmts
        "var p : boolean;"
        "let (x : integer, y : integer) = if p then (1, 2) else (2, 1);"
-       "var __t0 : integer; var __t1 : integer;
-        if p then __t0 = 1; __t1 = 2; else __t0 = 2; __t1 = 1; end
-        let x : integer = __t0; let y : integer = __t1;
+       "var x : integer; var y : integer;
+        if p then x = 1; y = 2; else x = 2; y = 1; end
+       ");
+
+    ("var-if", `Quick, stmts
+       "var p : boolean;"
+       "var (x : integer, y : integer) = if p then (1, 2) else (2, 1);"
+       "var x : integer; var y : integer;
+        if p then x = 1; y = 2; else x = 2; y = 1; end
+       ");
+
+    ("assign-if", `Quick, stmts
+       "var p : boolean; var x : integer; var y : integer;"
+       "(x, y) = if p then (1, 2) else (2, 1);"
+       "if p then x = 1; y = 2; else x = 2; y = 1; end
        ");
   ]
 
