@@ -114,7 +114,7 @@ class replaceTupleClass (tc : Ident.t option) =
                 let s = AST.Stmt_VarDeclsNoInit ([v], vty, loc) in
                 (AST.LExpr_Var v, s)
             | _ ->
-                raise (Error.Unimplemented (loc, "tuple let-if", (fun fmt -> Asl_fmt.stmt fmt s)))
+                raise (Error.Unimplemented (loc, "tuple var-if", (fun fmt -> Asl_fmt.stmt fmt s)))
             )
           )
           dis
