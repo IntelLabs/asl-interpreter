@@ -200,7 +200,7 @@ base_script = """
 // Optionally, references to thread-local processor state such as registers
 // can be accessed via a pointer.
 // (This can be useful when modelling multi-processor systems.)
-:{generate_c} --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info} {thread_local}
+:{generate_c} --output-dir={output_dir} --basename={basename} --num-c-files={num_c_files} {line_info}
 
 :quit
 """.strip()
@@ -314,11 +314,15 @@ def mk_script(args, output_directory):
     else:
         substitutions['line_info'] = '--line-info'
     if args.thread_local_pointer:
-        thread_local = f"--thread-local-pointer={args.thread_local_pointer}"
-        thread_local += f" --thread-local=thread_local_state"
-    else:
-        thread_local = ''
-    substitutions['thread_local'] = thread_local
+        substitutions['generate_c'] += f" --thread-local-pointer={args.thread_local_pointer}"
+        substitutions['generate_c'] += f" --thread-local=thread_local_state"
+    if args.const_ref:
+        if not args.generate_cxx:
+            print("Error: must specify --generate-cxx with --const-ref")
+            sys.exit(1)
+        substitutions['generate_c'] += f" --const-ref={args.const_ref}"
+    if args.generate_cxx:
+        substitutions['generate_c'] += f" --generate-cxx"
 
     script = base_script.format(**substitutions)
 
@@ -439,6 +443,8 @@ def main() -> int:
     parser.add_argument("--basename", help="basename of generated C files (default: \"asl\")", metavar="output_prefix", default="asl")
     parser.add_argument("--num-c-files", help="write functions to N files (default: 1)", metavar="N", type=int, default=1)
     parser.add_argument("--auto-case-split", help="generate case split code automatically", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--const-ref", help="use const & for function arguments larger than N", metavar="N", type=int, default=0)
+    parser.add_argument("--generate-cxx", help="generate C++ code", action="store_true", default=False)
     parser.add_argument("--line-info", help="insert line directives into C code", action=argparse.BooleanOptionalAction)
     parser.add_argument("--thread-local-pointer", help="name of pointer to thread-local processor state", metavar="varname", default=None)
     parser.add_argument("--instrument-unknown", help="instrument assignments of UNKNOWN", action=argparse.BooleanOptionalAction)
