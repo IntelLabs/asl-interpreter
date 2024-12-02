@@ -18,7 +18,7 @@ let mkReturnRecord (tyname : Ident.t) (rtys : AST.ty list) (loc : Loc.t) : AST.d
 
 let returnVariables = new Asl_utils.nameSupply "__r"
 
-(* Transform a conditional assignment 'l = if c then t elsif els else e;' to
+(* Transform a conditional assignment 'l = if c then t elsif els else e;'
    to an if statement 'if c then l = t; elsif ... else l = e; end'
  *)
 let cond_assign (l : AST.lexpr) (c : AST.expr) (t : AST.expr) (els : AST.e_elsif list) (e : AST.expr) (loc : Loc.t) : AST.stmt =
