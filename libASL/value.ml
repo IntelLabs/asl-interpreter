@@ -187,10 +187,8 @@ let set_array (loc : Loc.t) (a : value) (i : value) (v : value) : value =
   | _ -> raise (EvalError (loc, "array expected. Got " ^ string_of_value a))
 
 let negate_intLit (x : (int option * bigint)) : (int option * bigint) =
-  ( match x with
-  | (None, v) -> (None, Z.neg v)
-  | (Some n, v) -> (Some n, Z.neg v)
-  )
+  let (n, v) = x in
+  (n, Z.neg v)
 
 let from_intLit (x : (int option * bigint)) : value option =
   ( match x with
