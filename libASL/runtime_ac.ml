@@ -250,15 +250,15 @@ module Runtime : RT.RuntimeLib = struct
     if add_size then begin
       PP.fprintf fmt "    if (%s == %a) {@," x min_sintN n;
       PP.fprintf fmt "      printf(\"-i%d'd%s\");@," n (Z.to_string (Z.shift_left Z.one (n - 1)));
-      PP.fprintf fmt "    } else {";
+      PP.fprintf fmt "    } else {@,";
       PP.fprintf fmt "      if (%s < 0) {@," x;
       PP.fprintf fmt "        %s = -%s;@," x x;
       PP.fprintf fmt "        printf(\"-\");@,";
       PP.fprintf fmt "      }@,";
-      PP.fprintf fmt "      printf(\"i%d'd%%ld\", %s.to_uint64());@," n x;
+      PP.fprintf fmt "      printf(\"i%d'd%%llu\", %s.to_uint64());@," n x;
       PP.fprintf fmt "    }"
     end else begin
-      PP.fprintf fmt "    printf(\"%%ld\", %s.to_uint64());@," x
+      PP.fprintf fmt "    printf(\"%%lld\", %s.to_uint64());@," x
     end
 
   let print_sintN_decimal (fmt : PP.formatter) (n : int) ~(add_size : bool) (x : RT.rt_expr) : unit =
