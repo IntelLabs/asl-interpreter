@@ -88,8 +88,8 @@ module type RuntimeLib = sig
   val align_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
   val mod_pow2_sintN : PP.formatter -> int -> rt_expr -> rt_expr -> unit
   val cvt_sintN_bits : PP.formatter -> int -> int -> rt_expr -> unit
-  val cvt_bits_ssintN : PP.formatter -> int -> int -> rt_expr -> unit
-  val cvt_bits_usintN : PP.formatter -> int -> int -> rt_expr -> unit
+  val cvt_bits_ssintN : PP.formatter -> int -> rt_expr -> unit
+  val cvt_bits_usintN : PP.formatter -> int -> rt_expr -> unit
   val cvt_sintN_int : PP.formatter -> int -> rt_expr -> unit
   val cvt_int_sintN : PP.formatter -> int -> rt_expr -> unit
   val resize_sintN : PP.formatter -> int -> int -> rt_expr -> unit

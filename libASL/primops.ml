@@ -414,7 +414,7 @@ let prim_cvt_bits_ssintN (x : bitvector) : sintN =
   mksintN x.n (z_signed_extract x.v 0 x.n)
 
 let prim_cvt_bits_usintN (x : bitvector) : sintN =
-  mksintN x.n (z_extract x.v 0 x.n)
+  mksintN (x.n + 1) (z_extract x.v 0 (x.n + 1))
 
 let prim_cvt_sintN_decstr (x : sintN) : string =
   let prefix = Printf.sprintf "i%d'x" x.n in

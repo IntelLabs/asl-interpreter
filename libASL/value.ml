@@ -539,7 +539,7 @@ let eval_prim (f : Ident.t) (tvs : value list) (vs : value list) : value option 
       Some (VIntN (prim_mod_pow2_sintN x y))
   | [_;_], [ VIntN x; VInt m ] when Ident.equal f cvt_sintN_bits ->
       Some (VBits (prim_cvt_sintN_bits x m))
-  | [VIntN n], [ VBits x ] when Ident.equal f cvt_bits_ssintN ->
+  | [_], [ VBits x ] when Ident.equal f cvt_bits_ssintN ->
       Some (VIntN (prim_cvt_bits_ssintN x))
   | [_], [ VBits x ] when Ident.equal f cvt_bits_usintN ->
       Some (VIntN (prim_cvt_bits_usintN x))

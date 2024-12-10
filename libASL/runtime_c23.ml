@@ -182,36 +182,51 @@ module Runtime : RT.RuntimeLib = struct
         ty_uint m
         RT.pp_expr x
 
-  let cvt_bits_ssintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then begin
+  (* A generalization of cvt_bits_ssintN that can either
+   * - convert bits(N) to __sint(N)
+   * or
+   * - convert bits(N) to integer (i.e., __sint(int_width))
+   *)
+  let cvt_bits_sint_aux (fmt : PP.formatter) (n : int) (target_width : int) (x : RT.rt_expr) : unit =
+    if target_width = 0 then begin
       (* Although we return zero, we may still need to execute 'x' for any side effects *)
       PP.fprintf fmt "({ (void)%a; %a; })"
         RT.pp_expr x
-        (intN_literal n) Z.zero
-    end else if n = 1 then begin
+        (intN_literal target_width) Z.zero
+    end else if target_width = 1 then begin
       (* signed _BitInt must be at least 2 bits *)
       PP.fprintf fmt "(%a ? %a : %a)"
         RT.pp_expr x
-        (intN_literal n) Z.one
-        (intN_literal n) Z.zero
+        (intN_literal target_width) Z.one
+        (intN_literal target_width) Z.zero
     end else begin
       PP.fprintf fmt "((%a)((%a)%a))"
+        ty_sint target_width
         ty_sint n
-        ty_sint m
         RT.pp_expr x
     end
 
-  let cvt_bits_usintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
-    if n = 0 then begin
+  let cvt_bits_ssintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_sint_aux fmt n n x
+
+  (* A generalization of cvt_bits_usintN that can either
+   * - convert bits(N) to __sint(N+1)
+   * or
+   * - convert bits(N) to integer (i.e., __sint(int_width))
+   *)
+  let cvt_bits_uint_aux (fmt : PP.formatter) (n : int) (target_width : int) (x : RT.rt_expr) : unit =
+    if target_width = 0 then begin
       (* Although we return zero, we may still need to execute 'x' for any side effects *)
       PP.fprintf fmt "({ (void)%a; %a; })"
         RT.pp_expr x
         int_literal Z.zero
     end else begin
-      PP.fprintf fmt "((%a)%a)"
-        ty_uint n
+      PP.fprintf fmt "((%a)((%a)%a))"
+        ty_sint target_width
+        ty_uint target_width
         RT.pp_expr x
     end
+
+  let cvt_bits_usintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_uint_aux fmt n (n+1) x
 
   let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
@@ -331,8 +346,8 @@ module Runtime : RT.RuntimeLib = struct
   let align_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = align_sintN fmt int_width x y
   let mod_pow2_int (fmt : PP.formatter) (x : RT.rt_expr) (y : RT.rt_expr) : unit = mod_pow2_sintN fmt int_width x y
   let cvt_int_bits (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_sintN_bits fmt int_width n x
-  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_ssintN fmt n int_width x
-  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_usintN fmt n int_width x
+  let cvt_bits_sint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_sint_aux fmt n int_width x
+  let cvt_bits_uint (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit = cvt_bits_uint_aux fmt n int_width x
 
   let print_int_dec (fmt : PP.formatter) (x : RT.rt_expr) : unit =
     print_sintN_decimal fmt int_width ~add_size:false x
