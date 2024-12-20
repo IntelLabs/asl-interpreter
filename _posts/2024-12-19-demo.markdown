@@ -1,0 +1,143 @@
+---
+layout: post
+title: Using ASLi to simulate an ISA
+---
+
+To demonstrate how ASLi can be used to model an ISA, we wrote a *trivial* ISA
+with just two instructions: Increment and Halt.
+
+- `INC r3` increments register 3 (there are 4 registers)
+- `HALT` halts the processor
+
+The demo directory contains an ASL specification of this ISA and consists of the following files.
+
+- Makefile: Rules for building and running demos/tests.
+- demo.asl: An ASL specification of the demo architecture.
+- assembly.s: GNU as extension to support the demo instruction set.
+- test.S: A simple test program: increments two registers and halts.
+- test.prj: A file of ASLi commands for running a test interactively.
+- simulator.c: A C simulator harness for creating compiled simulators.
+- exports.json: A list of functions required by the C simulator harness.
+
+The ASL specification defines the registers, memory, instruction fetch and
+instruction execute.  It also implements a simulator API that enable ASLi to
+use the specification as a simulator.
+
+## Building a test program
+
+Before running the simulator, we first need to assemble and link a test program.
+Given the limited instruction set, we can't write anything much more
+complicated than the following
+
+```
+#include "assembly.s"
+
+        .global _start
+
+        .text
+_start:
+        INC R1
+        INC R3
+        HALT
+```
+
+The instruction and register mnemonics are defined in the file `assembly.s` using
+macros.
+
+We can convert the test program `test.S` to an ELF binary using 'make test.elf'.
+
+    $ cd demo
+    $ make test.elf
+    clang-16 -std=c2x -E  test.S > test.s
+    as test.s -o test.o
+    ld test.o -o test.elf
+    nm test.elf
+    0000000000402000 T __bss_start
+    0000000000402000 T _edata
+    0000000000402000 T _end
+    0000000000401000 T _start
+
+## Running the demo specification in an interpreter
+
+To simulate execution of the test program using ASLi, load `demo.asl` into
+ASLi, load the ELF file `test.elf` and use `:step` to step through the program
+and the `PrintState` function (defined in `demo.asl`) to observe the processor
+state at each step.
+
+    $ ASL_PATH=.:.. ../_build/default/bin/asli.exe demo.asl
+    ASLi> :elf test.elf
+    Loading ELF file test.elf.
+    Entry point = 0x401000
+    ASLi> PrintState();
+    RUNNING PC=64'x401000 R=[ 64'x0 64'x0 64'x0 64'x0 ]
+    ASLi> :step
+    ASLi> PrintState();
+    RUNNING PC=64'x401001 R=[ 64'x0 64'x1 64'x0 64'x0 ]
+    ASLi> :step
+    ASLi> PrintState();
+    RUNNING PC=64'x401002 R=[ 64'x0 64'x1 64'x0 64'x1 ]
+    ASLi> :step
+    ASLi> PrintState();
+    HALTED PC=64'x401003 R=[ 64'x0 64'x1 64'x0 64'x1 ]
+    ASLi> :quit
+
+From the output of `PrintState` you can see that the program counter `PC` is
+incremented after every instruction, that the first instruction incremented
+`R[1]`, that the second instruction incremented `R[3]` and that the third
+instruction halted the processor.
+This is just about the most exciting program we can run using such a limited instruction set.
+
+ASLi can also accept commands from a "project file". For example, we could put
+all of the `:step` and `PrintState();` commands in a file `test.prj` and run
+the same test like this.
+
+    ASL_PATH=.:.. ../_build/default/bin/asli.exe demo.asl --project=test.prj
+
+We often use this with the LLVM project
+[FileCheck](https://llvm.org/docs/CommandGuide/FileCheck.html) tool in our
+integration tests.
+
+## Compiling the demo specification
+
+For larger architecture specifications, it can be more effective to compile the specification instead. To compile the specification, we first build a project file containing a sequence of ASLi commands to compile the specification to C code. There are multiple options for doing this, the "fallback" backend is the most portable.
+
+    ../_build/default/bin/asl2c.py --basename=sim --backend=fallback > sim.prj
+
+We then load the demo specification into ASLi and run the project file to generate C code. The configuration file `exports.json` is used to specify which ASL functions are called by hand-written C code.
+
+    ASL_PATH=.:.. ../_build/default/bin/asli.exe --project=sim.prj --configuration=exports.json demo.asl
+
+The generated code is in C files that start with the basename `sim` such as `sim_funs.c`.
+
+To compile and link the C code, we need to use some compiler and linker flags. We can use the `asl2c.py` script to get the right flags for each backend.
+
+    ASL2C=../_build/default/bin/asl2c.py
+    CFLAGS=`$ASL2C --backend=fallback --print-c-flags`
+    LDFLAGS=`$ASL2C --backend=fallback --print-ld-flags`
+
+We can now compile and link the `simulator.c` harness. To keep things simple, this file `#includes` the C files generated from the specification. For some choices of backend, you will need to use clang version 16 or later.
+
+    cc $CFLAGS simulator.c -o simulator $LDFLAGS
+
+And, finally, we can run the simulator. In this case, we run it for up to 20 steps or until the processor halts.
+
+    $ ./simulator test.elf --steps=20
+    Loading ELF file test.elf.
+    Entry point = 0x401000
+    Setting PC to 401000
+    RUNNING PC=64'x401000 R=[ 64'x0 64'x0 64'x0 64'x0 ]
+    RUNNING PC=64'x401001 R=[ 64'x0 64'x1 64'x0 64'x0 ]
+    RUNNING PC=64'x401002 R=[ 64'x0 64'x1 64'x0 64'x1 ]
+    HALTED PC=64'x401003 R=[ 64'x0 64'x1 64'x0 64'x1 ]
+
+## Making the demo ISA more realistic
+
+We kept the demo ISA to the bare minimum to make it easier to understand what all the pieces do. To make it more realistic, we invite you to add features such as the following. (For inspiration, you might look at the design of classic 8-bit microprocessors or at RISC processors.)
+
+- A decrement instruction
+- Add and subtract instructions
+- Load and store instructions
+- Conditional branch instructions
+- Add a stack and instructions to call a function and return from a function.
+- Add an interrupt mechanism
+
