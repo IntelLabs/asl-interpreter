@@ -5,14 +5,6 @@ title: Reading ASL
 
 Instruction specifications are written in Architecture Specification Language (ASL).
 
-
-## Limitations of the ASL Specification
-
-The ASL specification should be read in combination with the natural language
-parts of the specification.  In particular, memory accesses may be performed in
-a different order from that shown in the ASL and exception prioritization may
-differ from that shown in the ASL.
-
 ## Basic ASL Concepts
 
 ASL provides the following types
