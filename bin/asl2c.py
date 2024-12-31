@@ -290,9 +290,11 @@ def mk_script(args, output_directory):
     if args.O0:
         script = []
         script.append(":filter_reachable_from exports")
-        print(args.Obounded)
         if args.Obounded: script.append(":xform_bounded")
-        script.append(f":{backend_generator[args.backend]} --output-dir={output_directory} --basename={args.basename} --num-c-files=1")
+        if args.show_final_asl:
+            script.append(f":show --format=raw")
+        else:
+            script.append(f":{backend_generator[args.backend]} --output-dir={output_directory} --basename={args.basename} --num-c-files=1")
         return "\n".join(script)
 
     substitutions = {
@@ -360,17 +362,18 @@ def generate_project(project_file, script):
         print(script, file=f)
     report(f"# Generated project {project_file}\n")
 
-def generate_exports(export_file):
-    with open(export_file, "w") as f:
+def generate_config(config_filename):
+    with open(config_filename, "w") as f:
         print("{\"exports\": [\"main\"]}\n", file=f)
-    report(f"# Generated export configuration file {export_file}\n")
+    report(f"# Generated configuration file {config_filename}\n")
 
-def generate_c(asli, asl_files, project_file, exports_file):
+# Run ASLi in batch mode using script and configuration file
+def run_asli(asli, asl_files, project_file, config_file):
     asli_cmd = [
         asli,
         "--batchmode", "--nobanner",
         f"--project={project_file}",
-        f"--configuration={exports_file}"
+        f"--configuration={config_file}"
     ]
     asli_cmd.extend(asl_files)
     run(asli_cmd)
@@ -406,17 +409,6 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
         "-o", exe_file,
     ] + c_flags + c_files + ld_flags
     run(cc_cmd)
-
-def build(script, asl_files, asli, backend, working_directory, basename):
-    (project_file, exports_file, c_files, exe_file) = mk_filenames(backend, working_directory, basename)
-    c_flags = get_c_flags(asli, backend)
-    ld_flags = get_ld_flags(asli, backend)
-    generate_project(project_file, script)
-    generate_exports(exports_file)
-    generate_c(asli, asl_files, project_file, exports_file)
-    use_cxx = backend in ['ac']
-    compile_and_link(use_cxx, c_files, exe_file, working_directory, c_flags, ld_flags)
-    return exe_file
 
 def make_working_dir(name, prefix=""):
     if name:
@@ -454,6 +446,7 @@ def main() -> int:
     parser.add_argument("--print-ld-flags", help="print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--build", help="compile and link the ASL code", action='store_true')
     parser.add_argument("--run", help="compile, link and run the ASL code", action='store_true')
+    parser.add_argument("--show-final-asl", help="stop after optimization, dump ASL", action=argparse.BooleanOptionalAction)
     parser.add_argument("--verbose", "-v", help="verbose", action='store_true')
     parser.add_argument("--working-dir", help="working directory, by default temporarily created", metavar="working_dir", default="")
     parser.add_argument("--save-temps", help="save intermediate compilation results", action='store_true')
@@ -461,7 +454,7 @@ def main() -> int:
     args = parser.parse_args()
 
     verbose = args.verbose
-    args.build = args.build or args.run
+    args.build = args.build or args.run or args.show_final_asl
     if args.asl_files and not args.build:
         print("Error: only provide input files if building or running")
         exit(1)
@@ -494,11 +487,21 @@ def main() -> int:
         asli_cmd.extend(args.asl_files)
         run(asli_cmd)
     else:
+        backend = args.backend
         working_directory = make_working_dir(args.working_dir, prefix="asltest.")
         report(f"# In temporary directory {working_directory}")
         script = mk_script(args, working_directory)
-        exe_file = build(script, args.asl_files, asli, args.backend, working_directory, args.basename)
-        if args.run:
+        (project_file, config_filename, c_files, exe_file) = mk_filenames(backend, working_directory, args.basename)
+        generate_project(project_file, script)
+        generate_config(config_filename)
+        run_asli(asli, args.asl_files, project_file, config_filename)
+        if args.show_final_asl:
+            pass
+        elif args.run:
+            c_flags = get_c_flags(asli, backend)
+            ld_flags = get_ld_flags(asli, backend)
+            use_cxx = backend in ['ac']
+            compile_and_link(use_cxx, c_files, exe_file, working_directory, c_flags, ld_flags)
             run([exe_file])
         if not args.save_temps: shutil.rmtree(working_directory)
 
