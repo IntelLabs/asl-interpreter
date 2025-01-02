@@ -37,6 +37,11 @@
  *   calls to bounded integer primitive operations when all necessary
  *   arguments are constrained.
  *
+ * - When an expression "x" with a bounded type "__sintN(N)" is used in a statement
+ *   that can support use of that type including
+ *
+ *   * Let statements
+ *
  * - When an expression "x" with a bounded type "__sintN(N)"
  *   is used in a context where an unconstrained integer argument
  *   is required it is transformed to "asl_cvt_sintN_int{N}(x)".
@@ -394,6 +399,20 @@ class boundedClass = object (self)
 
   method! vstmt x =
     ( match x with
+    | Stmt_ConstDecl (DeclItem_Var (v, Some ty), e, loc) ->
+        let r = range_of_type ty in
+        let ty' = xform_type ty in
+        self#add_lrange v r;
+        let e' = cvt_to_range (self#expr e) r in
+        ChangeTo [Stmt_ConstDecl (DeclItem_Var (v, Some ty'), e', loc)]
+
+    | Stmt_VarDecl (DeclItem_Var (v, Some ty), e, loc) ->
+        let r = range_of_type ty in
+        let ty' = xform_type ty in
+        self#add_lrange v r;
+        let e' = cvt_to_range (self#expr e) r in
+        ChangeTo [Stmt_VarDecl (DeclItem_Var (v, Some ty'), e', loc)]
+
     | Stmt_VarDeclsNoInit (vs, ty, loc) ->
         let r = range_of_type ty in
         let ty' = xform_type ty in
