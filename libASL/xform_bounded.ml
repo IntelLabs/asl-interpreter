@@ -41,6 +41,7 @@
  *   that can support use of that type including
  *
  *   * Let statements
+ *   * For statements
  *
  * - When an expression "x" with a bounded type "__sintN(N)"
  *   is used in a context where an unconstrained integer argument
@@ -427,6 +428,19 @@ class boundedClass = object (self)
         let args'' = List.map2 cvt_to_type args' arg_tys in
         let s' = AST.Stmt_TCall (f, ps, args'', can_throw, loc) in
         ChangeTo [s']
+
+    | Stmt_For (v, ty, f, dir, t, b, loc) ->
+        let f' = self#expr f in
+        let t' = self#expr t in
+        let r = union_range (snd f') (snd t') in
+
+        let ty' = type_of_range r in
+        self#add_lrange v r;
+
+        let f'' = cvt_to_range f' r in
+        let t'' = cvt_to_range t' r in
+        let b' = Asl_visitor.visit_stmts (self :> Asl_visitor.aslVisitor) b in
+        ChangeTo [Stmt_For (v, ty', f'', dir, t'', b', loc)]
 
     | Stmt_FunReturn (e, loc) ->
         let rty = Option.get return_type in
