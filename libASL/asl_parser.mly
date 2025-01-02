@@ -478,7 +478,7 @@ apattern:
 
 repetitive_stmt:
 | FOR v = ident EQ f = expr dir = direction t = expr DO b = block END
-    { Stmt_For(v, f, dir, t, b, Range($symbolstartpos, $endpos)) }
+    { Stmt_For(v, Type_Integer(None), f, dir, t, b, Range($symbolstartpos, $endpos)) }
 | WHILE c = expr DO b = block END
     { Stmt_While(c, b, Range($symbolstartpos, $endpos)) }
 | REPEAT b = block UNTIL c = expr SEMICOLON pos = pos

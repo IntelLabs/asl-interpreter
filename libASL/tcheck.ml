@@ -2202,7 +2202,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
         Option.map (fun (b, bl) -> (tc_stmts env loc b, bl)) odefault
       in
       Stmt_Case (e', Some ty', alts', odefault', loc)
-  | Stmt_For (v, start, dir, stop, b, loc) ->
+  | Stmt_For (v, _, start, dir, stop, b, loc) ->
       let start' = check_expr env loc type_integer start in
       let stop' = check_expr env loc type_integer stop in
       (* todo: we can calculate the range only if start and stop are immutable *)
@@ -2218,7 +2218,7 @@ and tc_stmt (env : Env.t) (x : AST.stmt) : AST.stmt =
             tc_stmts env' loc b)
           env
       in
-      Stmt_For (v, start', dir, stop', b', loc)
+      Stmt_For (v, ty, start', dir, stop', b', loc)
   | Stmt_While (c, b, loc) ->
       let c' = check_expr env loc type_bool c in
       let b' = tc_stmts env loc b in

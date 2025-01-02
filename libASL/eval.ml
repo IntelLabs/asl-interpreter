@@ -582,7 +582,7 @@ and eval_stmt (env : Env.t) (x : AST.stmt) : unit =
             else eval v alts'
       in
       eval (eval_expr loc env e) alts
-  | Stmt_For (v, start, dir, stop, b, loc) ->
+  | Stmt_For (v, ty, start, dir, stop, b, loc) ->
       let start' = eval_expr loc env start in
       let stop' = eval_expr loc env stop in
       let rec eval i =
