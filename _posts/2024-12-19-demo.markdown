@@ -3,6 +3,12 @@ layout: post
 title: Using ASLi to simulate an ISA
 ---
 
+*[Important note: the demo depends on the use of the GNU assembler to
+generate an ELF file. On systems that use 'clang' as the default
+compiler or that do not use ELF, these instructions will not work
+and you will need to install GNU binutils from source and obtain a copy
+of the 'elf.h' header file.]*
+
 To demonstrate how ASLi can be used to model an ISA, we wrote a *trivial* ISA
 with just two instructions: Increment and Halt.
 
