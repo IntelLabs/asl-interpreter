@@ -8,8 +8,10 @@ Architecture Specification Language (ASL) is an executable language for writing
 clear, precise specifications of Instruction Set Architectures (ISAs).
 
 The ASL interpreter (ASLi) is an implementation of ASL that can execute ASL
-specifications either in an interpreter or by compiling via C code.  We include
-a small demonstration of how to use ASLi to build simulators for a toy
+specifications either in an interpreter or by compiling via C code.
+You can download ASLi from https://github.com/IntelLabs/asl-interpreter and
+install by following the [README](https://github.com/IntelLabs/asl-interpreter/blob/master/README.md).
+We include a small demonstration of how to use ASLi to build simulators for a toy
 architecture specification.
 
 This tool is based on Arm's open source
@@ -26,3 +28,8 @@ extensive modifications to
 * Split libASL out from ASLi to make it easier to reuse
   parts of ASLi in other tools.
 * Add support for loading ELF files and executing binaries.
+
+We welcome contributions following the [Contributing](https://github.com/IntelLabs/asl-interpreter/blob/master/CONTRIBUTING.md) instructions.
+
+Please file issues on the GitHub project page at https://github.com/IntelLabs/asl-interpreter/issues
+and security issues following the instructions in [the Security Policy file](https://github.com/IntelLabs/asl-interpreter/blob/master/Security.md).
