@@ -10,7 +10,7 @@ env:
   OPAMROOT: ${{ github.workspace }}/.opam
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
 
     steps:
@@ -52,6 +52,10 @@ jobs:
           opam env
           opam install . --deps-only --with-test --with-doc --yes
 
+  test:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
       - name: Build
         run: |
           eval $(opam env)
