@@ -21,15 +21,16 @@ open Utils
 module type RuntimeLib = Runtime.RuntimeLib
 let runtime = ref (module Runtime_fallback.Runtime : RuntimeLib)
 
-let runtimes = ["ac"; "c23"; "fallback"]
+let runtimes = ["ac"; "c23"; "fallback"; "sc"]
 
 let is_cxx = ref false
 
 let set_runtime (rt : string) : unit =
   runtime := if rt = "ac" then (module Runtime_ac.Runtime : RuntimeLib)
              else if rt = "c23" then (module Runtime_c23.Runtime : RuntimeLib)
+             else if rt = "sc" then (module Runtime_sc.Runtime : RuntimeLib)
              else (module Runtime_fallback.Runtime : RuntimeLib);
-  is_cxx := (rt = "ac")
+  is_cxx := (rt = "ac") || (rt = "sc")
 
 let include_line_info : bool ref = ref false
 let new_ffi : bool ref = ref false
@@ -259,7 +260,13 @@ let rethrow_stmt (fmt : PP.formatter) : unit =
     ident (current_catch_label ())
 
 let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
-  PP.fprintf fmt "({ __auto_type __r = ";
+  PP.fprintf fmt "({ ";
+  if !is_cxx then begin
+    PP.fprintf fmt "auto __r = "
+  end else begin
+    (* __auto_type is a gcc extension (also supported by clang) *)
+    PP.fprintf fmt "__auto_type __r = "
+  end;
   f ();
   PP.fprintf fmt "; ";
   rethrow_stmt fmt;
@@ -687,7 +694,8 @@ let rec lexpr (loc : Loc.t) (fmt : PP.formatter) (x : AST.lexpr) : unit =
   | LExpr_BitTuple _
   | LExpr_Fields _
   | LExpr_ReadWrite _
-  | LExpr_Slices _
+  | LExpr_Slices _ ->
+    lexpr loc fmt x
   | LExpr_Tuple _
   | LExpr_Write _ ->
       let pp fmt = FMT.lexpr fmt x in

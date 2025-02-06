@@ -124,7 +124,7 @@ base_script = """
 // Convert bitslice operations like "x[i] = '1';" to a combination
 // of AND/OR and shift operations like "x = x OR (1 << i);"
 // This works better after constant propagation/monomorphization.
-:xform_bitslices
+:xform_bitslices {suppress_bitslice_xform}
 
 // Any case statement that does not correspond to what the C language
 // supports is converted to an if statement.
@@ -215,9 +215,11 @@ def report(x):
 # (The assumption is that the command printed a useful/meaningful error message already)
 def run(cmd):
     report(" ".join(cmd))
-    r = subprocess.run(cmd)
-    if r.returncode != 0:
-        exit(r.returncode)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Command '{' '.join(e.cmd)}' returned non-zero exit status {e.returncode}.")
+        sys.exit(e.returncode)
 
 ################################################################
 # Compile/link flags
@@ -226,12 +228,16 @@ def run(cmd):
 ac_types_dir = os.environ.get('AC_TYPES_DIR')
 ac_types_include = [f"-I{ac_types_dir}/include"] if ac_types_dir else []
 
+sc_types_dir = os.environ.get('SC_TYPES_DIR')
+sc_types_include = [f"-I{sc_types_dir}/include"] if sc_types_dir else []
+
 backend_c_flags = {
     'ac':          ['-DASL_AC'] + ac_types_include,
     'c23':         ['-DASL_C23'],
     'interpreter': [],
     'fallback':    ['-DASL_FALLBACK'],
     'orig':        ['-DASL_FALLBACK'],
+    'sc':          ['-DASL_SC'] + sc_types_include,
 }
 
 def get_c_flags(asli, backend):
@@ -255,6 +261,7 @@ backend_ld_flags = {
     'interpreter': [],
     'fallback':    [],
     'orig':        [],
+    'sc':          ["-lsystemc"],
 }
 
 def get_ld_flags(asli, backend):
@@ -269,6 +276,11 @@ def get_ld_flags(asli, backend):
         rootdir = os.path.dirname(bindir)
         path = os.path.join(rootdir, "runtime/libASL.a")
         ld_flags = [path]
+    if backend == "sc":
+        sc_types_dir = os.environ.get('SC_TYPES_DIR')
+        if not sc_types_dir:
+            raise EnvironmentError("SC_TYPES_DIR environment variable must be set for SystemC backend")
+        ld_flags.append(f"-L{sc_types_dir}/lib")
     ld_flags.extend(backend_ld_flags[backend])
     return ld_flags
 
@@ -285,6 +297,7 @@ def mk_script(args, output_directory):
         'c23':         f'generate_c_new {ffi} --runtime=c23',
         'fallback':    f'generate_c_new {ffi} --runtime=fallback',
         'orig':        'generate_c',
+        'sc':          f'generate_c_new {ffi} --runtime=sc',
     }
 
     if args.O0:
@@ -305,6 +318,7 @@ def mk_script(args, output_directory):
         'num_c_files': args.num_c_files,
         'output_dir':  output_directory,
         'split_state': "",
+        'suppress_bitslice_xform': "",
         'track_valid': "",
         'wrap_variables': "",
     }
@@ -323,6 +337,13 @@ def mk_script(args, output_directory):
         substitutions['line_info'] = '--no-line-info'
     else:
         substitutions['line_info'] = '--line-info'
+    if args.backend in ["ac", "sc"]: substitutions['suppress_bitslice_xform'] = "--notransform"
+    if args.thread_local_pointer:
+        thread_local = f"--thread-local-pointer={args.thread_local_pointer}"
+        thread_local += f" --thread-local=thread_local_state"
+    else:
+        thread_local = ''
+    substitutions['thread_local'] = thread_local
 
     script = base_script.format(**substitutions)
 
@@ -348,7 +369,7 @@ def mk_script(args, output_directory):
 def mk_filenames(backend, working_directory, basename):
     project_file = f"{working_directory}/asl2c.prj"
     exports_file = f"{working_directory}/exports.json"
-    suffix = "cpp" if backend in ["ac"] else "c"
+    suffix = "cpp" if backend in ["ac", "sc"] else "c"
     c_files = [
         f"{working_directory}/{basename}_exceptions.{suffix}",
         f"{working_directory}/{basename}_vars.{suffix}",
@@ -391,6 +412,8 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
             cc = [ "clang-16" ]
         elif subprocess.run(['which', 'clang'], capture_output=True).returncode == 0:
             cc = [ "clang" ]
+        elif use_cxx:
+            cc = [ "g++" ]
         else:
             cc = [ "gcc" ]
     if use_cxx:
@@ -409,6 +432,7 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
         "-o", exe_file,
     ] + c_flags + c_files + ld_flags
     run(cc_cmd)
+    print(f"Command: '{' '.join(cc_cmd)}'")
 
 def make_working_dir(name, prefix=""):
     if name:
@@ -441,7 +465,7 @@ def main() -> int:
     parser.add_argument("--wrap-variables", help="wrap global variables into functions", action=argparse.BooleanOptionalAction)
     parser.add_argument("-O0", help="perform minimal set of transformations", action=argparse.BooleanOptionalAction)
     parser.add_argument("-Obounded", help="enable integer bounding optimization", action="store_true", default=False)
-    parser.add_argument("--backend", help="select backend (default: orig)", choices=['ac', 'c23', 'interpreter', 'fallback', 'orig'], default='orig')
+    parser.add_argument("--backend", help="select backend (default: orig)", choices=['ac', 'c23', 'interpreter', 'fallback', 'orig', 'sc'], default='orig')
     parser.add_argument("--print-c-flags", help="print the C flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--print-ld-flags", help="print the Linker flags needed to use the selected ASL C runtime", action=argparse.BooleanOptionalAction)
     parser.add_argument("--build", help="compile and link the ASL code", action='store_true')
@@ -500,7 +524,7 @@ def main() -> int:
         elif args.run:
             c_flags = get_c_flags(asli, backend)
             ld_flags = get_ld_flags(asli, backend)
-            use_cxx = backend in ['ac']
+            use_cxx = backend in ['ac', 'sc']
             compile_and_link(use_cxx, c_files, exe_file, working_directory, c_flags, ld_flags)
             run([exe_file])
         if not args.save_temps: shutil.rmtree(working_directory)
