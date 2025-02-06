@@ -432,7 +432,6 @@ def compile_and_link(use_cxx, c_files, exe_file, include_directory, c_flags, ld_
         "-o", exe_file,
     ] + c_flags + c_files + ld_flags
     run(cc_cmd)
-    print(f"Command: '{' '.join(cc_cmd)}'")
 
 def make_working_dir(name, prefix=""):
     if name:
