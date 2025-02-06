@@ -88,11 +88,14 @@ demo_interpreter : build
 	$(MAKE) -C demo demo
 
 build_systemc:
-	mkdir -p runtime/external/systemc/build && \
+	test -f runtime/external/systemc/build-install/lib/libsystemc.a || \
+	( mkdir -p runtime/external/systemc/build && \
 	mkdir -p runtime/external/systemc/build-install && \
 	cmake runtime/external/systemc/ -B runtime/external/systemc/build -DCMAKE_INSTALL_PREFIX=runtime/external/systemc/build-install -DCMAKE_CXX_STANDARD=17 -DBUILD_SHARED_LIBS=OFF && \
 	cmake --build runtime/external/systemc/build && \
-	cmake --install runtime/external/systemc/build
+	cmake --install runtime/external/systemc/build )
+
+test_backend_sc: build_systemc
 
 ################################################################
 # End
