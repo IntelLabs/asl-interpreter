@@ -1,5 +1,6 @@
 // RUN: %aslopt -O0 -Obounded %s | filecheck --check-prefix=XFORM %s
-// RUN: %aslrun -O0 -Obounded %s | filecheck %s
+// RUN: %aslrun -O0 -Obounded %s | filecheck --check-prefix=RUN %s
+// RUN: %aslrun -O0 -Obounded --backend=sc %s | filecheck --check-prefix=SC_RUN %s
 // Copyright (C) 2024-2024 Intel Corporation
 
 func FUT(x : integer {0..10}) => integer {0..100}
@@ -22,6 +23,8 @@ end
 
 func main() => integer
 begin
-    print_int_dec(FUT(5));
-    // CHECK: 10
+    print_int_dec(FUT(5)); println();
+    // RUN: 10
+    // SC_RUN: 0x10
+    return 0;
 end
