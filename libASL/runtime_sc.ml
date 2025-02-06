@@ -62,7 +62,7 @@ module Runtime : RT.RuntimeLib = struct
     let max_64bit_signed = Z.of_int64 Int64.max_int in
     if Z.lt x max_64bit_signed then begin
       (* Minor optimization to improve readability and efficiency *)
-      PP.fprintf fmt "sc_bigint<128>(%s)" (Z.format "%d" x)
+      PP.fprintf fmt "sc_bigint<%d>(%s)" n (Z.format "%d" x)
     end else begin
       let num_limbs = (n + 31) / 32 in
       let limbs = split_int x num_limbs 32 in
@@ -274,17 +274,17 @@ module Runtime : RT.RuntimeLib = struct
 
   let cvt_sintN_int (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint n
+      ty_sint int_width
       RT.pp_expr x
 
   let cvt_int_sintN (fmt : PP.formatter) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x
 
   let resize_sintN (fmt : PP.formatter) (m : int) (n : int) (x : RT.rt_expr) : unit =
     PP.fprintf fmt "((%a)%a)"
-      ty_sint int_width
+      ty_sint n
       RT.pp_expr x
 
   let print_sint64_decimal (fmt : PP.formatter) (n : int) (add_size : bool) (x : string) : unit =
