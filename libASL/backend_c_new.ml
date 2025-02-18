@@ -297,7 +297,13 @@ let rethrow_stmt (fmt : PP.formatter) : unit =
     ident (current_catch_label ())
 
 let rethrow_expr (fmt : PP.formatter) (f : unit -> unit) : unit =
-  PP.fprintf fmt "({ __auto_type __r = ";
+  PP.fprintf fmt "({ ";
+  if !is_cxx then begin
+    PP.fprintf fmt "auto __r = "
+  end else begin
+    (* __auto_type is a gcc extension (also supported by clang) *)
+    PP.fprintf fmt "__auto_type __r = "
+  end;
   f ();
   PP.fprintf fmt "; ";
   rethrow_stmt fmt;
@@ -565,6 +571,12 @@ and expr (loc : Loc.t) (fmt : PP.formatter) (x : AST.expr) : unit =
       PP.fprintf fmt " = %a; %a; })"
         (expr loc) e
         (expr loc) b
+  | Expr_Assert (e1, e2, loc) ->
+      PP.fprintf fmt "({ ASL_assert(\"%s\", \"%s\", %a); %a; })"
+        (String.escaped (Loc.to_string loc))
+        (String.escaped (Utils.to_string2 (Fun.flip FMT.expr e1)))
+        (expr loc) e1
+        (expr loc) e2;
   | Expr_Lit v -> valueLit loc fmt v
   | Expr_RecordInit (tc, [], fas) ->
       if List.mem tc !exception_tcs then begin
