@@ -1161,14 +1161,7 @@ let type_decls (xs : AST.declaration list) : AST.declaration list =
     | Decl_FunType _
       -> Some x
 
-    (* Add Fun/Proc-Type declarations for any functions that have been created
-     * after typechecking such as functions created during monomorphization.
-     * Since the typechecker creates Fun/Proc-Type declarations for all functions
-     * in the original spec, this will result in duplicate function prototypes
-     * for many functions.
-     *)
-    | Decl_FunDefn (f, fty, b, loc) -> Some (Decl_FunType (f, fty, loc))
-
+    | Decl_FunDefn _
     | Decl_Const _
     | Decl_Exception _
     | Decl_Var _
@@ -1687,11 +1680,10 @@ let mk_ffi_wrappers (is_import : bool) (decl_map : (AST.declaration list) Bindin
       let c_ident = Ident.mk_ident c_name in
       ( match Bindings.find_opt asl_ident decl_map with
       | Some (Decl_FunType (_, fty, loc) :: _) -> Some (c_ident, asl_ident, fty, loc)
-      | Some (Decl_FunDefn (_, fty, _, loc) :: _) -> Some (c_ident, asl_ident, fty, loc)
-      | _ when is_enumerated_type c_ident ->
-          None
       | _ ->
-          missing := c_name :: !missing;
+          if not (is_enumerated_type c_ident) then begin
+              missing := c_name :: !missing
+          end;
           None
       )
     ) c_names
@@ -1771,7 +1763,8 @@ let mk_ffi_config (decls : AST.declaration list) : (string list * AST.declaratio
       }
     in
     let getter_body = [ AST.Stmt_FunReturn (Expr_Var v, loc) ] in
-    let getter = AST.Decl_FunDefn (getter_id, getter_fty, getter_body, loc) in
+    let getter_defn = AST.Decl_FunDefn (getter_id, getter_fty, getter_body, loc) in
+    let getter_type = AST.Decl_FunType (getter_id, getter_fty, loc) in
 
     let setter_name = config_setter_prefix ^ Ident.name v in
     let setter_id = Ident.mk_fident setter_name in
@@ -1787,9 +1780,10 @@ let mk_ffi_config (decls : AST.declaration list) : (string list * AST.declaratio
       }
     in
     let setter_body = [ AST.Stmt_Assign (LExpr_Var v, Expr_Var setter_arg, loc) ] in
-    let setter = AST.Decl_FunDefn (setter_id, setter_fty, setter_body, loc) in
+    let setter_defn = AST.Decl_FunDefn (setter_id, setter_fty, setter_body, loc) in
+    let setter_type = AST.Decl_FunType (setter_id, setter_fty, loc) in
 
-    ([getter_name; setter_name], [getter; setter])
+    ([getter_name; setter_name], [getter_defn; getter_type; setter_defn; setter_type])
   in
 
   let (names, decls) = List.map mk_functions configs |> List.split in
