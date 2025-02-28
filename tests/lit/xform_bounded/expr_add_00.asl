@@ -10,7 +10,7 @@ end
 
 // XFORM-LABEL: func FUT.0{}(x : __sint(5)) => __sint(5)
 // XFORM-NEXT:  begin
-// XFORM-NEXT:      return asl_add_sintN.0{5}(x, asl_resize_sintN.0{2, 5}(i2'x1, 5));
+// XFORM-NEXT:      return asl_resize_sintN.0{6, 5}(asl_add_sintN.0{6}(asl_resize_sintN.0{5, 6}(x, 6), asl_resize_sintN.0{2, 6}(i2'x1, 6)), 5);
 // XFORM-NEXT:  end
 
 func main() => integer

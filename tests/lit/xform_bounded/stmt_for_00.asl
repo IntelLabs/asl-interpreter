@@ -15,7 +15,7 @@ end
 // XFORM-NEXT:  begin
 // XFORM-NEXT:      var s : __sint(8) = asl_resize_sintN.0{1, 8}(i1'x0, 8);
 // XFORM-NEXT:       for i : __sint(6) = asl_resize_sintN.0{1, 6}(i1'x0, 6) to asl_resize_sintN.0{5, 6}(x, 6) do
-// XFORM-NEXT:           s = asl_add_sintN.0{8}(s, asl_resize_sintN.0{5, 8}(i, 8));
+// XFORM-NEXT:           s = asl_resize_sintN.0{9, 8}(asl_add_sintN.0{9}(asl_resize_sintN.0{8, 9}(s, 9), asl_resize_sintN.0{5, 9}(i, 9)), 8);
 // XFORM-NEXT:       end
 // XFORM-NEXT:      return s;
 // XFORM-NEXT:  end

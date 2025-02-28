@@ -16,7 +16,7 @@ end
 //
 // XFORM-LABEL: func FUT.0{}(x : __sint(5)) => __sint(5)
 // XFORM-NEXT:  begin
-// XFORM-NEXT:      return asl_cvt_int_sintN.0{5}(if asl_lt_sintN.0{5}(x, i5'x15) then asl_cvt_sintN_int.0{5}(asl_add_sintN.0{5}(x, asl_resize_sintN.0{2, 5}(i2'x1, 5))) else asl_cvt_sintN_int.0{1}(i1'x0), 5);
+// XFORM-NEXT:      return asl_cvt_int_sintN.0{5}(if asl_lt_sintN.0{5}(x, i5'x15) then asl_cvt_sintN_int.0{6}(asl_add_sintN.0{6}(asl_resize_sintN.0{5, 6}(x, 6), asl_resize_sintN.0{2, 6}(i2'x1, 6))) else asl_cvt_sintN_int.0{1}(i1'x0), 5);
 // XFORM-NEXT:  end
 
 func main() => integer
