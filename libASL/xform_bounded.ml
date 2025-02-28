@@ -343,18 +343,17 @@ let mk_unop (op : range -> range) (f : Ident.t) (e1 : AST.expr) : AST.expr optio
   let r = union_range r1 rr in
   Option.map (fun b ->
     let n = int_of_bounds b in
-    pack r (AST.Expr_TApply (f, [expr_of_int n], [mk_cvt_int_sintN n e1], NoThrow))
+    mk_cvt_sintN_int n (AST.Expr_TApply (f, [expr_of_int n], [mk_cvt_int_sintN n e1], NoThrow))
   ) r
 
 let mk_binop (op : range -> range -> range) (f : Ident.t) (e1 : AST.expr) (e2 : AST.expr) : AST.expr option =
   let r1 = range_of_expr e1 in
   let r2 = range_of_expr e2 in
-  let r = union_range r1 r2 in
   let rr = op r1 r2 in
-  let r = union_range (union_range r1 r2) r2 in
+  let r = union_range (union_range r1 r2) rr in
   Option.map (fun b ->
     let n = int_of_bounds b in
-    pack r (AST.Expr_TApply (f, [expr_of_int n], [mk_cvt_int_sintN n e1; mk_cvt_int_sintN n e2], NoThrow))
+    mk_cvt_sintN_int n (AST.Expr_TApply (f, [expr_of_int n], [mk_cvt_int_sintN n e1; mk_cvt_int_sintN n e2], NoThrow))
   ) r
 
 let mk_cmp (f : Ident.t) (e1 : AST.expr) (e2 : AST.expr) : AST.expr option =
