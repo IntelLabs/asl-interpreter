@@ -337,6 +337,22 @@ let range_of_fun1 (f : Z.t -> Z.t) (r1 : range) : range =
 let range_of_fun2 (f : Z.t -> Z.t -> Z.t) (r1 : range) (r2 : range) : range =
     map2_option (bounds_of_fun2 f) r1 r2
 
+let range_of_mul (r1 : range) (r2 : range) : range =
+    (* complicated by negative numbers *)
+    map2_option
+      (fun b1 b2 ->
+        let (lo1, hi1) = b1 in
+        let (lo2, hi2) = b2 in
+        let lo = Z.min (Z.min (Z.mul lo1 lo2) (Z.mul lo1 hi2))
+                       (Z.min (Z.mul hi1 lo2) (Z.mul hi1 hi2))
+        in
+        let hi = Z.max (Z.max (Z.mul lo1 lo2) (Z.mul lo1 hi2))
+                       (Z.max (Z.mul hi1 lo2) (Z.mul hi1 hi2))
+        in
+        (lo, hi))
+      r1
+      r2
+
 let mk_unop (op : range -> range) (f : Ident.t) (e1 : AST.expr) : AST.expr option =
   let r1 = range_of_expr e1 in
   let rr = op r1 in
@@ -370,6 +386,7 @@ let primop (f : Ident.t) (ftype : AST.function_type) (ps : AST.expr list) (args 
   | ([],  [x1; x2]) when Ident.equal f add_int -> mk_binop (range_of_fun2 prim_add_int) add_sintN x1 x2
   | ([],  [x1])     when Ident.equal f neg_int -> mk_unop (range_of_cofun1 prim_neg_int) neg_sintN x1
   | ([],  [x1; x2]) when Ident.equal f sub_int -> mk_binop (range_of_cofun2 prim_sub_int) sub_sintN x1 x2
+  | ([],  [x1; x2]) when Ident.equal f mul_int -> mk_binop range_of_mul mul_sintN x1 x2
   | ([],  [x1; x2]) when Ident.equal f eq_int  -> mk_cmp eq_sintN x1 x2
   | ([],  [x1; x2]) when Ident.equal f ne_int  -> mk_cmp ne_sintN x1 x2
   | ([],  [x1; x2]) when Ident.equal f lt_int  -> mk_cmp lt_sintN x1 x2
