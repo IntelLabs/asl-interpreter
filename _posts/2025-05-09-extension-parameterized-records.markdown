@@ -11,7 +11,7 @@ looks something like this
 ```asl
 00  record UnpackedFloat {
 01      // numerical data
-02      sign        : boolean;
+02      is_negative : boolean;
 03      exponent    : integer;
 04      significand : bits(???);
 05
@@ -39,7 +39,7 @@ and the exponent size ('E').
 ```asl
 00  record UnpackedFloat(N, E) {
 01      // numerical data
-02      sign        : boolean;
+02      is_negative : boolean;
 03      exponent    : integer;
 04      significand : bits(N-E);
 05
@@ -54,3 +54,28 @@ and the exponent size ('E').
 Now we unpack 64-bit floats into records with type 'UnpackedFloat(64, 11)';
 we unpack 32-bit floats into records with type 'UnpackedFloat(32, 8)';
 and we unpack 16-bit floats into records with type 'UnpackedFloat(16, 5)'.
+
+## Design process
+
+The design process for this extension was fairly simple.
+The only minor challenge was that ASL has a syntax for creating and initializing records that looks like this
+
+```asl
+let origin = Point{x = 0, y = 0};
+```
+
+When we added parameterized records, it became possible to write code like this
+
+```asl
+let one = UnpackedFloat(16, 5){
+             is_negative = FALSE,
+             exponent = 0,
+             significand = '1 00 0000 0000',
+             ...
+          };
+```
+
+This has a minor parsing issue that, until the '{' character is seen, it
+is not possible to tell whether this is a call to a function called 'UnpackedFloat'
+or a parameterized record constructor.
+
