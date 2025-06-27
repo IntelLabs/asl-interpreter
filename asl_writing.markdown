@@ -287,7 +287,7 @@ if, instead, the bitwidth is an implicit parameter  of the function
 add it as a parameter like this
 
 ``` asl
-func FPAdd{N : {32, 64}}(x : bits(N), y : bits(N)) => bits(N)
+func FPAdd{N : integer {32, 64}}(x : bits(N), y : bits(N)) => bits(N)
 ```
 
 When first adding constraints to a specification, you might generate a lot of
